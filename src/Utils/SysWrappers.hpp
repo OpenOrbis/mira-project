@@ -1,0 +1,50 @@
+#pragma once
+#include <Utils/Types.hpp>
+
+struct task_struct;
+struct proc;
+struct sockaddr;
+struct cdev;
+struct cdevsw;
+struct ucred;
+struct thread;
+struct stat;
+struct rusage;
+
+extern int kmlock(void* address, uint64_t size);
+extern int kmlockall(int how);
+extern void kclose(int socket);
+extern void kclose_t(int socket, struct thread* td);
+extern int ksocket(int, int, int);
+extern int kbind(int, const struct sockaddr*, size_t);
+extern int klisten(int, int);
+extern int kaccept(int, struct sockaddr*, size_t*);
+extern int krecv(int, void*, int, int);
+extern int kopen(char* path, int flags, int mode);
+extern int kopen_t(char* path, int flags, int mode, struct thread* td);
+extern ssize_t kwrite(int d, const void* buf, size_t nbytes);
+extern int kgetdents(int fd, char* buf, int nbytes);
+extern ssize_t kread(int fd, void* buf, size_t count);
+extern int ksend(int socket, caddr_t buf, size_t len, int flags);
+extern int kfstat(int fd, struct stat* sb);
+extern int kstat(char* path, struct stat* buf);
+extern int kstat_t(char* path, struct stat* buf, struct thread* td);
+extern int kunlink(char* path);
+extern int ksetuid(uid_t uid);
+int ksetuid_t(uid_t uid, struct thread* td);
+extern int kptrace(int req, pid_t pid, caddr_t addr, int data);
+extern int kkill(int pid, int signum);
+extern int kdup2(int oldd, int newd);
+extern int kshutdown(int s, int how);
+extern int kmkdir(char* path, int mode);
+extern int kmkdir_t(char * path, int mode, struct thread* td);
+extern int krmdir(char* path);
+extern int krmdir_t(char * path, struct thread* td);
+extern off_t klseek(int fd, off_t offset, int whence);
+extern caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos);
+extern int kmunmap(void *addr, size_t len);
+extern int kwait4(int pid, int *status, int options, struct rusage *rusage);
+extern int ksetsockopt(int socket, int level, int name, caddr_t val, int valsize);
+extern int kftruncate(int fd, off_t length);
+extern pid_t krfork_t(int flags, struct thread* td);
+extern int kreboot(int opt);

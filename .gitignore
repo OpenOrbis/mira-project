@@ -1,0 +1,8 @@
+*.bin
+.vscode*
+*.o
+*.elf
+*.a
+*.so
+*SteamLink*
+build/*
