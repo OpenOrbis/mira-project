@@ -5,6 +5,11 @@
 //
 #include <Boot/InitParams.hpp>
 
+//
+// Plugins
+//
+#include <Plugins/PluginManager.hpp>
+
 ///
 /// Utilities
 ///
@@ -68,6 +73,8 @@ bool Mira::Framework::Terminate()
 		auto s_EventHandlersUnregistered = RemoveEventHandlers();
 		WriteLog(LL_Info, "Event handlers uninstalled %s", s_EventHandlersUnregistered ? "successfully" : "failed");
 	}
+
+	return true;
 }
 
 extern "C" void mira_entry(void* args)
@@ -92,14 +99,13 @@ extern "C" void mira_entry(void* args)
 	printf(reinterpret_cast<const char*>("[+] mira has reached stage 2\n"));
 
 	printf("[+] starting logging\n");
-	gLogger =  new struct logger_t();
-	if (!gLogger)
+	auto s_Logger = Mira::Utils::Logger::GetInstance();
+	if (!s_Logger)
 	{
 		printf("[-] could not allocate logger\n");
 		kthread_exit();
 		return;
 	}
-	logger_init(gLogger);
 
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
@@ -167,8 +173,19 @@ bool Mira::Framework::Initialize()
 	// TODO: Initialize message manager
 
 	// TODO: Initialize plugin manager
+	m_PluginManager = new Mira::Plugins::PluginManager();
+	if (m_PluginManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate plugin manager.");
+		return false;
+	}
 
-	// TODO: Initialize pre-installed plugins
+	// Install all default plugins
+	if (!m_PluginManager->InstallDefaultPlugins())
+	{
+		WriteLog(LL_Error, "could not initialize default plugins");
+		return false;
+	}
 
 	// TODO: Install needed hooks for Mira
 

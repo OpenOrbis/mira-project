@@ -1,6 +1,6 @@
 #pragma once
-#include <Utils/Vector.hpp>
 #include <Utils/IModule.hpp>
+#include <Utils/Vector.hpp>
 
 namespace Mira
 {
@@ -14,6 +14,11 @@ namespace Mira
         public:
             PluginManager();
             ~PluginManager();
+
+            bool InstallDefaultPlugins();
+
+        private:
+
         };
     }
 }

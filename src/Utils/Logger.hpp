@@ -24,11 +24,38 @@ enum LogLevels
 
 #define Logger_MaxBuffer 0x500
 #ifdef _DEBUG
-#define WriteLog(x, y, ...) logger_writelog(gLogger, x, __FUNCTION__, __LINE__, y, ##__VA_ARGS__)
+#define WriteLog(x, y, ...) Mira::Utils::Logger::GetInstance()->WriteLog_Internal(x, __FUNCTION__, __LINE__, y, ##__VA_ARGS__)
 #else
 #define WriteLog(x, y, ...)
 #endif
 
+namespace Mira
+{
+	namespace Utils
+	{
+		class Logger
+		{
+		private:
+			static Mira::Utils::Logger* m_Instance;
+
+			enum LogLevels m_LogLevel;
+			char m_Buffer[Logger_MaxBuffer];
+			char m_FinalBuffer[Logger_MaxBuffer];
+
+			volatile int32_t m_Handle;
+			struct mtx m_Mutex;
+
+		protected:
+			Logger();
+			~Logger();
+
+		public:
+			static Mira::Utils::Logger* GetInstance();
+
+			void WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function, int32_t p_Line, const char* p_Format, ...);
+		};
+	}
+}
 struct logger_t
 {
 	enum LogLevels logLevel;

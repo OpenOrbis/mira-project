@@ -7,6 +7,9 @@ namespace Mira
         class IModule
         {
         public:
+            IModule() { }
+            virtual ~IModule() { }
+
             virtual bool OnLoad() { return false; }
             virtual bool OnUnload() { return false; }
             virtual bool OnSuspend() { return false; }

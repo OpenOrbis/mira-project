@@ -9,6 +9,7 @@ private:
     uint32_t m_Capacity;    // Available space
     uint32_t m_Size;        // Count
     T* m_Array;
+    static T m_Default;
 
 public:
     Vector() :
@@ -22,7 +23,12 @@ public:
     T& operator[] (uint32_t index)
     {
         if (index >= m_Size)
-            return T();
+        {
+            // Ghetto assert
+            WriteLog(LL_Error, "out of bound index access");
+            for (;;)
+                __asm__("nop");
+        }
         
         return m_Array[index];
     }
@@ -126,5 +132,11 @@ public:
         
         uint32_t s_Index = m_Size - 1;
         return m_Array[s_Index];
+    }
+
+    void clear()
+    {
+        reserve(1, false);
+        m_Size = 0;
     }
 };
