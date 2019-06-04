@@ -58,4 +58,7 @@ extern "C" int	 memcmp(const void *, const void *, size_t);
 extern "C" size_t strlen(const char *str);
 extern "C" int strcmp(const char *str1, const char *str2);
 
+extern "C" void cpu_enable_wp();
+extern "C" void cpu_disable_wp();
+
 bool orbisThreadEscape(int32_t p_RealGroupId, int32_t p_SavedGroupId, int32_t p_EffectiveUserId, int32_t p_RealUserId, void* p_Prison, struct vnode* p_RootDir, struct vnode* p_JailRootDir, SceAuthenticationId p_AuthId, SceCapabilites p_SceCaps);

@@ -6,6 +6,9 @@ namespace Mira
 {
     namespace Plugins
     {
+        class Debugger;
+        class FileManager;
+
         class PluginManager
         {
         private:
@@ -18,7 +21,8 @@ namespace Mira
             bool InstallDefaultPlugins();
 
         private:
-
+            Mira::Plugins::Debugger* m_Debugger;
+            Mira::Plugins::FileManager* m_FileManager;
         };
     }
 }

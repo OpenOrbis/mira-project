@@ -1,22 +1,20 @@
 #include "PluginManager.hpp"
 
+// Built in plugins
+#include <Plugins/Debugger/Debugger.hpp>
+
+// Utility functions
 #include <Utils/Logger.hpp>
 #include <Utils/Span.hpp>
 
 using namespace Mira::Plugins;
 
-PluginManager::PluginManager()
+PluginManager::PluginManager() :
+    m_Debugger(nullptr),
+    m_FileManager(nullptr)
 {
-    WriteLog(LL_Debug, "creating span of 32");
-    Span<uint8_t> span(32);
-
-    for (auto i = 0; i < 10; ++i)
-    {
-        auto s_Address = span.get_struct<uint32_t>();
-        WriteLog(LL_Debug, "span: %p", s_Address);
-    }
-
-    WriteLog(LL_Debug, "span done");
+    // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
+    m_FileManager = nullptr;
 }
 
 PluginManager::~PluginManager()
@@ -45,5 +43,12 @@ bool PluginManager::InstallDefaultPlugins()
 {
     WriteLog(LL_Debug, "installing default plugins");
 
+    m_Debugger = new Mira::Plugins::Debugger();
+    if (m_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate debugger.");
+        return false;
+    }
+    
     return true;
 }
