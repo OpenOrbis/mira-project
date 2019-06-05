@@ -9,17 +9,19 @@ namespace Mira
         class Debugger;
         class FileManager;
 
-        class PluginManager
+        class PluginManager : public Mira::Utils::IModule
         {
         private:
             Vector<Mira::Utils::IModule*> m_Plugins;
 
         public:
             PluginManager();
-            ~PluginManager();
+            virtual ~PluginManager();
 
-            bool InstallDefaultPlugins();
-
+            virtual bool OnLoad() override;
+            virtual bool OnUnload() override;
+            virtual bool OnSuspend() override;
+            virtual bool OnResume() override;
         private:
             Mira::Plugins::Debugger* m_Debugger;
             Mira::Plugins::FileManager* m_FileManager;

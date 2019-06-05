@@ -66,15 +66,15 @@ public:
         {
             if (NULL == pn)
             {
-                try
-                {
+                //try
+                //{
                     pn = new long(1); // may throw std::bad_alloc
-                }
-                catch (std::bad_alloc&)
-                {
-                    delete p;
-                    throw; // rethrow the std::bad_alloc
-                }
+                //}
+                //catch (std::bad_alloc&)
+                //{
+                //    delete p;
+                //    throw; // rethrow the std::bad_alloc
+                //}
             }
             else
             {

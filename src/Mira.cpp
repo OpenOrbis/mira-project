@@ -9,6 +9,7 @@
 // Plugins
 //
 #include <Plugins/PluginManager.hpp>
+#include <Threading/ThreadManager.hpp>
 
 ///
 /// Utilities
@@ -165,14 +166,12 @@ bool Mira::Framework::SetInitParams(Mira::Boot::InitParams& p_Params)
 
 bool Mira::Framework::Initialize()
 {
-	//auto memset = (void * (*)(void *s, int c, size_t n))kdlsym(memset);
-	
 	// TODO: Load settings
-	WriteLog(LL_Info, "loading settings from %S", L"MIRA_CONFIG_PATH");
+	WriteLog(LL_Info, "loading settings from (%S)", L"MIRA_CONFIG_PATH");
 
 	// TODO: Initialize message manager
 
-	// TODO: Initialize plugin manager
+	// Initialize plugin manager
 	m_PluginManager = new Mira::Plugins::PluginManager();
 	if (m_PluginManager == nullptr)
 	{
@@ -180,17 +179,34 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
-	// Install all default plugins
-	if (!m_PluginManager->InstallDefaultPlugins())
+	// Load the plugin manager
+	if (!m_PluginManager->OnLoad())
 	{
 		WriteLog(LL_Error, "could not initialize default plugins");
 		return false;
 	}
 
+	// Install eventhandler's
+	if (!InstallEventHandlers())
+		WriteLog(LL_Error, "could not register event handlers");
+
 	// TODO: Install needed hooks for Mira
 
 	WriteLog(LL_Info, "mira initialized successfully!");
 
+	return true;
+}
+
+bool Mira::Framework::Terminate()
+{
+	// Unload the plugin manager
+	if (m_PluginManager && !m_PluginManager->OnUnload())
+		WriteLog(LL_Error, "could not unload plugin manager");
+
+	// Remove all eventhandlers
+	if (!RemoveEventHandlers())
+		WriteLog(LL_Error, "could not remove event handlers");
+	
 	return true;
 }
 
@@ -204,9 +220,9 @@ bool Mira::Framework::InstallEventHandlers()
 		void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
 	// Register our event handlers
-	const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(power_suspend, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), this, EVENTHANDLER_PRI_LAST + prio);
-	m_ResumeTag = EVENTHANDLER_REGISTER(power_resume, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), this, EVENTHANDLER_PRI_LAST + prio);
+	//const int32_t prio = 1337;
+	m_SuspendTag = EVENTHANDLER_REGISTER(power_suspend, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), this, EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(power_resume, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), this, EVENTHANDLER_PRI_LAST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -218,7 +234,10 @@ bool Mira::Framework::RemoveEventHandlers()
 {
 	if (!m_EventHandlersInstalled)
 		return false;
-
+	
+	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr)
+		return false;
+		
 	// TODO: Kdlsym
 	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
 	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
@@ -236,10 +255,22 @@ bool Mira::Framework::RemoveEventHandlers()
 
 void Mira::Framework::OnMiraSuspend(Mira::Framework* p_Framework)
 {
-	// TODO: Handle suspend events
+	if (p_Framework == nullptr)
+		return;
+	
+	// Handle suspend events
+	auto s_PluginManager = p_Framework->m_PluginManager;
+	if (s_PluginManager)
+		s_PluginManager->OnSuspend();
 }
 
 void Mira::Framework::OnMiraResume(Mira::Framework* p_Framework)
 {
-	// TODO: Handle resume events
+	if (p_Framework == nullptr)
+		return;
+
+	// Handle resume events
+	auto s_PluginManager = p_Framework->m_PluginManager;
+	if (s_PluginManager)
+		s_PluginManager->OnResume();
 }

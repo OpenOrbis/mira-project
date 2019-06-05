@@ -2,6 +2,7 @@
 
 // Built in plugins
 #include <Plugins/Debugger/Debugger.hpp>
+#include <Plugins/FileManager/FileManager.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -19,7 +20,37 @@ PluginManager::PluginManager() :
 
 PluginManager::~PluginManager()
 {
-    WriteLog(LL_Info, "pluginmanager destroy: unloading all plugins");
+    
+}
+
+bool PluginManager::OnLoad()
+{
+    WriteLog(LL_Debug, "loading all plugins");
+
+    // Initialize debugger
+    m_Debugger = new Mira::Plugins::Debugger();
+    if (m_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate debugger.");
+        return false;
+    }
+
+    // Initialize file manager
+    m_FileManager = new Mira::Plugins::FileManager();
+    if (m_FileManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate file manager.");
+        return false;
+    }
+    
+    return true;
+}
+
+bool PluginManager::OnUnload()
+{
+    WriteLog(LL_Debug, "unloading all plugins");
+    bool s_AllUnloadSuccess = true;
+
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
         auto l_Plugin = m_Plugins[i];
@@ -28,7 +59,12 @@ PluginManager::~PluginManager()
             continue;
         
         // TODO: Handle multiple unloads
-        WriteLog(LL_Info, "plugin %S unloaded %s", l_Plugin->GetName(), l_Plugin->OnUnload() ? "successfully" : "unsuccessfully");
+        auto s_UnloadResult = l_Plugin->OnUnload();
+        if (!s_UnloadResult)
+            s_AllUnloadSuccess = false;
+
+        WriteLog(LL_Info, "plugin (%S) unloaded %s", 
+            l_Plugin->GetName(), s_UnloadResult ? "successfully" : "unsuccessfully");
         
         // Delete the plugin
         delete l_Plugin;
@@ -37,18 +73,74 @@ PluginManager::~PluginManager()
 
     // Clear out all entries
     m_Plugins.clear();
+
+    // Free the default plugins
+    if (!m_FileManager->OnUnload())
+        WriteLog(LL_Error, "filemanager could not unload");
+    
+    if (!m_Debugger->OnUnload())
+        WriteLog(LL_Error, "debugger could not unload");
 }
 
-bool PluginManager::InstallDefaultPlugins()
+bool PluginManager::OnSuspend()
 {
-    WriteLog(LL_Debug, "installing default plugins");
+    // Hold our "all success" status
+    bool s_AllSuccess = true;
 
-    m_Debugger = new Mira::Plugins::Debugger();
-    if (m_Debugger == nullptr)
+    // Iterate through all of the plugins
+    for (auto i = 0; i < m_Plugins.size(); ++i)
     {
-        WriteLog(LL_Error, "could not allocate debugger.");
-        return false;
+        // Validate that this plugin still exists
+        auto l_Plugin = m_Plugins[i];
+        if (l_Plugin == nullptr)
+            continue;
+        
+        // Suspend the plugin
+        auto s_SuspendResult = l_Plugin->OnSuspend();
+        if (!s_SuspendResult)
+            s_AllSuccess = false;
+        
+        // Debugging status
+        WriteLog(LL_Info, "plugin (%S) suspend %s", 
+            l_Plugin->GetName(), 
+            s_SuspendResult ? "success" : "failure");
     }
-    
-    return true;
+
+    // Suspend the built in plugins
+    if (!m_Debugger->OnSuspend())
+        WriteLog(LL_Error, "debugger suspend failed");
+
+    if (!m_FileManager->OnSuspend())
+        WriteLog(LL_Error, "file manager suspend failed");
+
+    // Return final status
+    return s_AllSuccess;
+}
+
+bool PluginManager::OnResume()
+{
+    // Hold our "all success" status
+    bool s_AllSuccess = true;
+
+    // Iterate through all of the plugins
+    for (auto i = 0; i < m_Plugins.size(); ++i)
+    {
+        // Validate that this plugin still exists
+        auto l_Plugin = m_Plugins[i];
+        if (l_Plugin == nullptr)
+            continue;
+        
+        // Resume the plugin
+        auto s_ResumeResult = l_Plugin->OnResume();
+        if (!s_ResumeResult)
+            s_AllSuccess = false;
+        
+        // Debugging status
+        WriteLog(LL_Info, "plugin (%S) resume %s", 
+            l_Plugin->GetName(), 
+            s_ResumeResult ? "success" : "failure");
+    }
+
+    // Return final status
+    return s_AllSuccess;
 }

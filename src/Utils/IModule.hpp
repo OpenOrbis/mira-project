@@ -10,10 +10,10 @@ namespace Mira
             IModule() { }
             virtual ~IModule() { }
 
-            virtual bool OnLoad() { return false; }
-            virtual bool OnUnload() { return false; }
-            virtual bool OnSuspend() { return false; }
-            virtual bool OnResume() { return false; }
+            virtual bool OnLoad() { return true; }
+            virtual bool OnUnload() { return true; }
+            virtual bool OnSuspend() { return true; }
+            virtual bool OnResume() { return true; }
 
             virtual const wchar_t* GetName() { return L""; };
             virtual const wchar_t* GetDescription() { return L""; };
