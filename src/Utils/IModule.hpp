@@ -15,8 +15,8 @@ namespace Mira
             virtual bool OnSuspend() { return true; }
             virtual bool OnResume() { return true; }
 
-            virtual const wchar_t* GetName() { return L""; };
-            virtual const wchar_t* GetDescription() { return L""; };
+            virtual const char* GetName() { return ""; };
+            virtual const char* GetDescription() { return ""; };
         };
     }
 }

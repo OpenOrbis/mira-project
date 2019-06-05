@@ -1,5 +1,6 @@
 #pragma once
 #include <Utils/IModule.hpp>
+#include <Utils/Types.hpp>
 
 namespace Mira
 {
@@ -13,8 +14,8 @@ namespace Mira
             FileManager();
             virtual ~FileManager();
 
-            virtual const wchar_t* GetName() override { return L"FileManager"; }
-            virtual const wchar_t* GetDescription() override { return L"replaces ftp"; }
+            virtual const char* GetName() override { return "FileManager"; }
+            virtual const char* GetDescription() override { return "replaces ftp"; }
         };
     }
 }

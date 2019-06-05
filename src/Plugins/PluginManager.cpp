@@ -34,6 +34,8 @@ bool PluginManager::OnLoad()
         WriteLog(LL_Error, "could not allocate debugger.");
         return false;
     }
+    if (!m_Debugger->OnLoad())
+        WriteLog(LL_Error, "could not load debugger.");
 
     // Initialize file manager
     m_FileManager = new Mira::Plugins::FileManager();
@@ -42,6 +44,8 @@ bool PluginManager::OnLoad()
         WriteLog(LL_Error, "could not allocate file manager.");
         return false;
     }
+    if (!m_FileManager->OnLoad())
+        WriteLog(LL_Error, "could not load filemanager");
     
     return true;
 }
@@ -63,7 +67,7 @@ bool PluginManager::OnUnload()
         if (!s_UnloadResult)
             s_AllUnloadSuccess = false;
 
-        WriteLog(LL_Info, "plugin (%S) unloaded %s", 
+        WriteLog(LL_Info, "plugin (%s) unloaded %s", 
             l_Plugin->GetName(), s_UnloadResult ? "successfully" : "unsuccessfully");
         
         // Delete the plugin
@@ -75,11 +79,28 @@ bool PluginManager::OnUnload()
     m_Plugins.clear();
 
     // Free the default plugins
-    if (!m_FileManager->OnUnload())
+    if (m_FileManager)
+    {
+        if (!m_FileManager->OnUnload())
         WriteLog(LL_Error, "filemanager could not unload");
     
-    if (!m_Debugger->OnUnload())
-        WriteLog(LL_Error, "debugger could not unload");
+        // Free the file manager
+        delete m_FileManager;
+        m_FileManager = nullptr;
+    }
+    
+    if (m_Debugger)
+    {
+        if (!m_Debugger->OnUnload())
+            WriteLog(LL_Error, "debugger could not unload");
+        
+        // Free the debugger
+        delete m_Debugger;
+        m_Debugger = nullptr;
+    }
+    
+
+    return true;
 }
 
 bool PluginManager::OnSuspend()
@@ -101,7 +122,7 @@ bool PluginManager::OnSuspend()
             s_AllSuccess = false;
         
         // Debugging status
-        WriteLog(LL_Info, "plugin (%S) suspend %s", 
+        WriteLog(LL_Info, "plugin (%s) suspend %s", 
             l_Plugin->GetName(), 
             s_SuspendResult ? "success" : "failure");
     }
@@ -136,7 +157,7 @@ bool PluginManager::OnResume()
             s_AllSuccess = false;
         
         // Debugging status
-        WriteLog(LL_Info, "plugin (%S) resume %s", 
+        WriteLog(LL_Info, "plugin (%s) resume %s", 
             l_Plugin->GetName(), 
             s_ResumeResult ? "success" : "failure");
     }

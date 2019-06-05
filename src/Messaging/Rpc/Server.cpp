@@ -27,8 +27,9 @@ Server::~Server()
 
 bool Server::Startup()
 {
-    int(*kthread_add)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...) = kdlsym(kthread_add);
+    //auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
 
+    //kthread_add(nullptr, nullptr, nullptr, nullptr, 0, 0, "");
     return true;
 }
 

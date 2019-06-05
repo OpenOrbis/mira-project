@@ -20,19 +20,32 @@ struct amd64_frame
 Debugger::Debugger() :
     m_TrapFatalHook(nullptr)
 {
-    // Create an enable the trap fatal hook
+}
+
+Debugger::~Debugger()
+{
+
+}
+
+bool Debugger::OnLoad()
+{
+	// Create the trap fatal hook
     WriteLog(LL_Info, "creating trap_fatal hook");
     m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));
+    
     if (m_TrapFatalHook != nullptr)
     {
         WriteLog(LL_Info, "enabling trap_fatal hook");
         m_TrapFatalHook->Enable();
     }
+
+	return true;
 }
 
-Debugger::~Debugger()
+bool Debugger::OnUnload()
 {
-    if (m_TrapFatalHook != nullptr)
+	WriteLog(LL_Info, "deleting trap fatal hook");
+	if (m_TrapFatalHook != nullptr)
     {
         if (m_TrapFatalHook->IsEnabled())
             m_TrapFatalHook->Disable();
@@ -40,6 +53,26 @@ Debugger::~Debugger()
         delete m_TrapFatalHook;
         m_TrapFatalHook = nullptr;
     }
+
+	return true;
+}
+
+bool Debugger::OnSuspend()
+{
+	WriteLog(LL_Info, "disabling trap_fatal hook");
+	if (m_TrapFatalHook)
+		m_TrapFatalHook->Disable();
+	
+	return true;
+}
+
+bool Debugger::OnResume()
+{
+	WriteLog(LL_Info, "enabling trap_fatal hook");
+	if (m_TrapFatalHook)
+		m_TrapFatalHook->Enable();
+
+	return true;
 }
 
 void Debugger::OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva)

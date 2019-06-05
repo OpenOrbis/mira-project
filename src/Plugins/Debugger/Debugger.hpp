@@ -20,6 +20,14 @@ namespace Mira
         public:
             Debugger();
             virtual ~Debugger();
+
+            virtual const char* GetName() override { return "Debugger"; }
+            virtual const char* GetDescription() override { return "GDB compatible debugger with ReClass abilties."; }
+            virtual bool OnLoad() override;
+            virtual bool OnUnload() override;
+
+            virtual bool OnSuspend() override;
+            virtual bool OnResume() override;
         };
     }
 }

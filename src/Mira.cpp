@@ -9,7 +9,6 @@
 // Plugins
 //
 #include <Plugins/PluginManager.hpp>
-#include <Threading/ThreadManager.hpp>
 
 ///
 /// Utilities
@@ -58,24 +57,6 @@ Mira::Framework::~Framework()
 		WriteLog(LL_Error, "could not terminate successfully");
 	else
 		WriteLog(LL_Info, "terminated successfully");
-}
-
-bool Mira::Framework::Terminate()
-{
-	if (m_PluginManager)
-	{
-		// TODO: Unload all plugins immediately
-		// m_PluginManager = nullptr;
-	}
-
-	// Uninstall all of the event handlers
-	if (m_EventHandlersInstalled)
-	{
-		auto s_EventHandlersUnregistered = RemoveEventHandlers();
-		WriteLog(LL_Info, "Event handlers uninstalled %s", s_EventHandlersUnregistered ? "successfully" : "failed");
-	}
-
-	return true;
 }
 
 extern "C" void mira_entry(void* args)
@@ -167,7 +148,7 @@ bool Mira::Framework::SetInitParams(Mira::Boot::InitParams& p_Params)
 bool Mira::Framework::Initialize()
 {
 	// TODO: Load settings
-	WriteLog(LL_Info, "loading settings from (%S)", L"MIRA_CONFIG_PATH");
+	WriteLog(LL_Info, "loading settings from (%s)", "MIRA_CONFIG_PATH");
 
 	// TODO: Initialize message manager
 
@@ -203,6 +184,10 @@ bool Mira::Framework::Terminate()
 	if (m_PluginManager && !m_PluginManager->OnUnload())
 		WriteLog(LL_Error, "could not unload plugin manager");
 
+	// Free the plugin manager
+	delete m_PluginManager;
+	m_PluginManager = nullptr;
+
 	// Remove all eventhandlers
 	if (!RemoveEventHandlers())
 		WriteLog(LL_Error, "could not remove event handlers");
@@ -237,7 +222,7 @@ bool Mira::Framework::RemoveEventHandlers()
 	
 	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr)
 		return false;
-		
+
 	// TODO: Kdlsym
 	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
 	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
@@ -255,6 +240,8 @@ bool Mira::Framework::RemoveEventHandlers()
 
 void Mira::Framework::OnMiraSuspend(Mira::Framework* p_Framework)
 {
+	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
+
 	if (p_Framework == nullptr)
 		return;
 	
@@ -266,6 +253,8 @@ void Mira::Framework::OnMiraSuspend(Mira::Framework* p_Framework)
 
 void Mira::Framework::OnMiraResume(Mira::Framework* p_Framework)
 {
+	WriteLog(LL_Warn, "RESUME RESUME RESUME");
+
 	if (p_Framework == nullptr)
 		return;
 

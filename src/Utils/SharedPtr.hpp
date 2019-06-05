@@ -26,6 +26,9 @@ namespace std
 //#include <cassert>
 #define SHARED_ASSERT(x)    /*assert(x)*/
 
+#ifndef NULL
+#define NULL 0
+#endif
 
 /**
  * @brief implementation of reference counter for the following minimal smart pointer.
