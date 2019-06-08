@@ -3,6 +3,13 @@
 
 using namespace Mira::Messaging;
 
+Message::Message() :
+    m_Header { 0 },
+    m_Payload()
+{
+
+}
+
 Message::Message(uint32_t p_PayloadSize, MessageCategory p_Category, int32_t p_ErrorType, bool p_IsRequest)
 {
     // Validate the maximum payload size
@@ -12,7 +19,25 @@ Message::Message(uint32_t p_PayloadSize, MessageCategory p_Category, int32_t p_E
         return;
     }
 
+    m_Payload = Span<uint8_t>(p_PayloadSize + 1);
+    m_Header = MessageHeader
+    {
+        .magic = MessageHeader_Magic,
+        .category = p_Category,
+        .isRequest = p_IsRequest,
+        .errorType = static_cast<uint64_t>(p_ErrorType),
+        .payloadLength = p_PayloadSize,
+        .padding = 0
+    };
 
+    WriteLog(LL_Debug, "header magic: (%d) category: (%d).", m_Header.magic, m_Header.category);
+
+}
+
+Message::~Message()
+{
+    memset(&m_Header, 0, sizeof(m_Header));
+    m_Payload.zero();
 }
 
 shared_ptr<Message> Message::Create(uint32_t p_PayloadSize, MessageCategory p_Category, int32_t p_ErrorType, bool p_IsRequest)
@@ -24,20 +49,12 @@ shared_ptr<Message> Message::Create(uint32_t p_PayloadSize, MessageCategory p_Ca
         return shared_ptr<Message>(nullptr);
     }
 
-    auto s_Allocation = new uint8_t[(sizeof(Message) + p_PayloadSize)];
-    if (s_Allocation == nullptr)
+    auto s_Message = new Message(p_PayloadSize, p_Category, p_ErrorType, p_IsRequest);
+    if (s_Message == nullptr)
     {
-        WriteLog(LL_Error, "could not allocate message and payload");
+        WriteLog(LL_Error, "could not allocate new message");
         return shared_ptr<Message>(nullptr);
     }
-
-    auto s_Message = reinterpret_cast<Message*>(s_Allocation);
-    s_Message->magic = MessageHeader_Magic;
-    s_Message->category = p_Category;
-    s_Message->isRequest = p_IsRequest;
-    s_Message->errorType = p_ErrorType;
-    s_Message->payloadLength = p_PayloadSize;
-    s_Message->padding = 0;
 
     return shared_ptr<Message>(s_Message);
 }

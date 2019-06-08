@@ -1,4 +1,5 @@
 #pragma once 
+#include <Utils/IModule.hpp>
 #include <Utils/SharedPtr.hpp>
 #include <Utils/Vector.hpp>
 
@@ -12,10 +13,11 @@ namespace Mira
     {
         namespace Rpc
         {
-            enum { Server_MaxConnections = 256 };
+            enum {  RpcServer_MaxConnections = 256,
+                    RpcServer_DefaultPort = 9999, };
             class Connection;
 
-            class Server
+            class Server : Mira::Utils::IModule
             {
             private:
                 // Server address
@@ -23,6 +25,9 @@ namespace Mira
 
                 // Socket
                 int32_t m_Socket;
+
+                // Server port
+                uint16_t m_Port;
 
                 // Thread
                 void* m_Thread;
@@ -38,18 +43,27 @@ namespace Mira
                 struct mtx m_Lock;
 
             public:
-                Server(uint16_t p_Port);
-                ~Server();
+                Server(uint16_t p_Port = RpcServer_DefaultPort);
+                virtual ~Server();
 
                 bool Startup();
                 bool Teardown();
 
-                static void OnHandleConnection(Rpc::Server* p_Instance, shared_ptr<Rpc::Connection> p_Connection);
-                static void OnConnectionDisconnected(Rpc::Server* p_Instance, shared_ptr<Rpc::Connection> p_Connection);
+                static void OnHandleConnection(Rpc::Server* p_Instance, Rpc::Connection* p_Connection);
+                static void OnConnectionDisconnected(Rpc::Server* p_Instance, Rpc::Connection* p_Connection);
 
-            private:
+                virtual const char* GetName() override { return "RpcServer"; }
+                virtual bool OnLoad() override;
+                virtual bool OnUnload() override;
+                virtual bool OnSuspend() override;
+                virtual bool OnResume() override;
+
+            public:
                 int32_t GetSocketById(uint32_t p_Id);
                 int32_t Deprecated_GetSocketByThread(struct thread* p_Thread);
+
+            private:
+                static void ServerThread(void* p_UserData);
             };
         }
     }

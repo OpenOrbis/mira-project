@@ -1,5 +1,6 @@
 #include "New.hpp"
 #include <Utils/Kdlsym.hpp>
+#include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
 
 #include <vm/vm.h>
@@ -22,8 +23,14 @@ void * operator new(unsigned long int p_Size)
 	// Set our pointer header
 	(*(uint64_t*)data) = totalSize;
 
+	// Get the returnable address
+	auto retAddress = data + sizeof(uint64_t);
+
+	// Zero the buffer
+	memset(retAddress, 0, p_Size);
+
 	// Return the start of the requested data
-	return data + sizeof(uint64_t);
+	return retAddress;
 }
 
 // placement new

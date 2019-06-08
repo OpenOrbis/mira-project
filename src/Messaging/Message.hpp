@@ -1,6 +1,10 @@
 #pragma once
 #include <Utils/Types.hpp>
 #include <Utils/SharedPtr.hpp>
+#include <Utils/Span.hpp>
+
+#include "MessageHeader.hpp"
+#include "MessageCategory.hpp"
 
 namespace Mira
 {
@@ -11,35 +15,27 @@ namespace Mira
             MessageHeader_Magic = 0x2,
             MessageHeader_MaxPayloadSize = 0x8000,
         };
-        enum MessageCategory
-        {
-            MessageCategory_None = 0,
-            MessageCategory_System,
-            MessageCategory_Log,
-            MessageCategory_Debug,
-            MessageCategory_File,
-            MessageCategory_Command,
-            MessageCategory_Max = 14
-        };
 
-        struct MessageHeader
+        class Message
         {
-            uint64_t magic : 2;
-            uint64_t category : 4;
-            uint64_t isRequest : 1;
-            uint64_t errorType : 32;
-            uint64_t payloadLength : 16;
-            uint64_t padding : 9;
-        };
+        private:
+            MessageHeader m_Header;
+            Span<uint8_t> m_Payload;
 
-        struct Message : public MessageHeader
-        {
-            uint8_t payload[];
-
+        public:
+            Message();
             Message(uint32_t p_PayloadSize = 0, MessageCategory p_Category = MessageCategory_None, int32_t p_ErrorType = 0, bool p_IsRequest = false);
             ~Message();
 
             static shared_ptr<Message> Create(uint32_t p_PayloadSize = 0, MessageCategory p_Category = MessageCategory_None, int32_t p_ErrorType = 0, bool p_IsRequest = false);
+
+            MessageHeader* GetHeader() { return &m_Header; }
+            uint8_t* GetPayloadData() { return m_Payload.data(); }
+            uint8_t GetMagic() { return m_Header.magic; }
+            uint16_t GetCategory() { return m_Header.category; }
+            bool IsRequest() { return m_Header.isRequest; }
+            int32_t GetErrorType() { return m_Header.errorType; }
+            uint32_t GetPayloadLength() { return m_Payload.size(); }
         };
     }
 }

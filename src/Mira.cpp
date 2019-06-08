@@ -6,9 +6,11 @@
 #include <Boot/InitParams.hpp>
 
 //
-// Plugins
+// Managers
 //
+#include <Messaging/MessageManager.hpp>
 #include <Plugins/PluginManager.hpp>
+#include <Messaging/Rpc/Server.hpp>
 
 ///
 /// Utilities
@@ -46,7 +48,9 @@ Mira::Framework::Framework() :
 	m_EventHandlersInstalled(false),
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
-	m_PluginManager(nullptr)
+	m_PluginManager(nullptr),
+	m_MessageManager(nullptr),
+	m_RpcServer(nullptr)
 {
 
 }
@@ -151,6 +155,12 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Info, "loading settings from (%s)", "MIRA_CONFIG_PATH");
 
 	// TODO: Initialize message manager
+	m_MessageManager = new Mira::Messaging::MessageManager();
+	if (m_MessageManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate message manager.");
+		return false;
+	}
 
 	// Initialize plugin manager
 	m_PluginManager = new Mira::Plugins::PluginManager();
@@ -171,6 +181,19 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
+	// Initialize the rpc server
+	m_RpcServer = new Mira::Messaging::Rpc::Server();
+	if (m_RpcServer == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate rpc server.");
+		return false;
+	}
+	if (!m_RpcServer->OnLoad())
+	{
+		WriteLog(LL_Error, "could not load rpc server.");
+		return false;
+	}
+
 	// TODO: Install needed hooks for Mira
 
 	WriteLog(LL_Info, "mira initialized successfully!");
@@ -187,6 +210,13 @@ bool Mira::Framework::Terminate()
 	// Free the plugin manager
 	delete m_PluginManager;
 	m_PluginManager = nullptr;
+
+	// Free the rpc server
+	if (m_RpcServer && !m_RpcServer->OnUnload())
+		WriteLog(LL_Error, "could not unload rpc server");
+	
+	delete m_RpcServer;
+	m_RpcServer = nullptr;
 
 	// Remove all eventhandlers
 	if (!RemoveEventHandlers())
@@ -206,8 +236,9 @@ bool Mira::Framework::InstallEventHandlers()
 
 	// Register our event handlers
 	//const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(power_suspend, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), this, EVENTHANDLER_PRI_FIRST);
-	m_ResumeTag = EVENTHANDLER_REGISTER(power_resume, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), this, EVENTHANDLER_PRI_LAST);
+	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), this, EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), this, EVENTHANDLER_PRI_LAST);
+	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), this, EVENTHANDLER_PRI_LAST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -229,9 +260,11 @@ bool Mira::Framework::RemoveEventHandlers()
 
 	EVENTHANDLER_DEREGISTER(power_suspend, m_SuspendTag);
 	EVENTHANDLER_DEREGISTER(power_resume, m_ResumeTag);
+	EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
 
 	m_SuspendTag = nullptr;
 	m_ResumeTag = nullptr;
+	m_ShutdownTag = nullptr;
 
 	m_EventHandlersInstalled = false;
 
@@ -262,4 +295,16 @@ void Mira::Framework::OnMiraResume(Mira::Framework* p_Framework)
 	auto s_PluginManager = p_Framework->m_PluginManager;
 	if (s_PluginManager)
 		s_PluginManager->OnResume();
+}
+
+void Mira::Framework::OnMiraShutdown(Mira::Framework* p_Framework)
+{
+	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
+
+	if (p_Framework == nullptr)
+		return;
+	
+	auto s_PluignManager = p_Framework->m_PluginManager;
+	if (s_PluignManager)
+		s_PluignManager->OnUnload();
 }

@@ -32,13 +32,19 @@ namespace Mira
                 Rpc::Server* m_Server;
 
             public:
-                Connection();
+                Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Socket, struct sockaddr_in& p_Address);
                 virtual ~Connection();
+
+                void Disconnect();
 
                 int32_t GetSocket() { return m_Socket; }
                 uint32_t GetId() { return m_Id; }
                 bool IsRunning() { return m_Running; }
-                struct sockaddr_in& GetAdress() { return m_Address; }
+                struct sockaddr_in* GetAdress() { return &m_Address; }
+                void** Internal_GetThread() { return &m_Thread; }
+                void* GetConnectionThread() { return m_Thread; }
+
+                static void ConnectionThread(void* p_Connection);
             };
         }
     }

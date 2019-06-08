@@ -12,6 +12,16 @@ namespace Mira
         class PluginManager;
     }
 
+    namespace Messaging
+    {
+        namespace Rpc
+        {
+            class Server;
+        }
+
+        class MessageManager;
+    }
+
     class Framework
     {
     private:
@@ -21,8 +31,11 @@ namespace Mira
         bool m_EventHandlersInstalled;
         struct eventhandler_entry* m_SuspendTag;
         struct eventhandler_entry* m_ResumeTag;
+        struct eventhandler_entry* m_ShutdownTag;
 
         Mira::Plugins::PluginManager* m_PluginManager;
+        Mira::Messaging::MessageManager* m_MessageManager;
+        Mira::Messaging::Rpc::Server* m_RpcServer;
 
     public:
         static Framework* GetFramework();
@@ -41,8 +54,12 @@ namespace Mira
         bool Initialize();
         bool Terminate();
 
+        Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
+        Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
+        Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }
     private:
         static void OnMiraSuspend(Mira::Framework* p_Framework);
         static void OnMiraResume(Mira::Framework* p_Framework);
+        static void OnMiraShutdown(Mira::Framework* p_Framework);
     };
 }

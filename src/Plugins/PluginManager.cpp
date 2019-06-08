@@ -142,26 +142,42 @@ bool PluginManager::OnResume()
 {
     // Hold our "all success" status
     bool s_AllSuccess = true;
+    WriteLog(LL_Debug, "Yerrrrrrrr");
 
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
         // Validate that this plugin still exists
+        WriteLog(LL_Error, "Yerrrrrrrr");
         auto l_Plugin = m_Plugins[i];
         if (l_Plugin == nullptr)
             continue;
         
         // Resume the plugin
+        WriteLog(LL_Info, "Yerrrrrrrr");
         auto s_ResumeResult = l_Plugin->OnResume();
         if (!s_ResumeResult)
             s_AllSuccess = false;
         
         // Debugging status
+        WriteLog(LL_Warn, "Yerrrrrrrr");
+
         WriteLog(LL_Info, "plugin (%s) resume %s", 
             l_Plugin->GetName(), 
             s_ResumeResult ? "success" : "failure");
     }
 
+    WriteLog(LL_Debug, "ABC1");
+
+    if (!m_Debugger->OnResume())
+        WriteLog(LL_Error, "debugger resume failed");
+
+    WriteLog(LL_Debug, "ABC2");
+    
+    if (!m_FileManager->OnResume())
+        WriteLog(LL_Error, "file manager resume failed");
+
+    WriteLog(LL_Debug, "ABC3");
     // Return final status
     return s_AllSuccess;
 }

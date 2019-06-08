@@ -226,4 +226,10 @@ public:
 
         return Span(s_Dest, p_SourceLength, true);
     }
+
+    T* data() { return m_Data; }
+    uint8_t* dataAtOffset() { if (m_Data != nullptr) return &m_Data[m_Offset]; else return nullptr; }
+    uint32_t size() { return m_DataLength; }
+
+    void zero() { if (m_Data != nullptr && m_DataLength != 0) memset(m_Data, 0, m_DataLength); }
 };
