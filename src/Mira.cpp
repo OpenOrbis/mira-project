@@ -236,9 +236,9 @@ bool Mira::Framework::InstallEventHandlers()
 
 	// Register our event handlers
 	//const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), this, EVENTHANDLER_PRI_FIRST);
-	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), this, EVENTHANDLER_PRI_LAST);
-	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), this, EVENTHANDLER_PRI_LAST);
+	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_LAST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -271,40 +271,52 @@ bool Mira::Framework::RemoveEventHandlers()
 	return true;
 }
 
-void Mira::Framework::OnMiraSuspend(Mira::Framework* p_Framework)
+void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 {
-	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
-
-	if (p_Framework == nullptr)
+	if (GetFramework() == nullptr)
 		return;
 	
+	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
+	
 	// Handle suspend events
-	auto s_PluginManager = p_Framework->m_PluginManager;
+	auto s_RpcServer = GetFramework()->GetRpcServer();
+	if (s_RpcServer)
+		s_RpcServer->OnSuspend();
+	
+	auto s_PluginManager = GetFramework()->m_PluginManager;
 	if (s_PluginManager)
 		s_PluginManager->OnSuspend();
 }
 
-void Mira::Framework::OnMiraResume(Mira::Framework* p_Framework)
+void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 {
+	if (GetFramework() == nullptr)
+		return;
+	
 	WriteLog(LL_Warn, "RESUME RESUME RESUME");
 
-	if (p_Framework == nullptr)
-		return;
-
 	// Handle resume events
-	auto s_PluginManager = p_Framework->m_PluginManager;
+	auto s_PluginManager = GetFramework()->GetPluginManager();
 	if (s_PluginManager)
 		s_PluginManager->OnResume();
+
+	auto s_RpcServer = GetFramework()->GetRpcServer();
+	if (s_RpcServer)
+		s_RpcServer->OnResume();
 }
 
-void Mira::Framework::OnMiraShutdown(Mira::Framework* p_Framework)
+void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
-	if (p_Framework == nullptr)
+	if (GetFramework() == nullptr)
 		return;
 	
-	auto s_PluignManager = p_Framework->m_PluginManager;
+	auto s_PluignManager = GetFramework()->m_PluginManager;
 	if (s_PluignManager)
 		s_PluignManager->OnUnload();
+
+	auto s_RpcServer = GetFramework()->GetRpcServer();
+	if (s_RpcServer)
+		s_RpcServer->OnUnload();
 }

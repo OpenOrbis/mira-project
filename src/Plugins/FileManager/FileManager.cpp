@@ -43,11 +43,16 @@ void FileManager::OnEcho(shared_ptr<Messaging::Message> p_Message)
         return;
     }
 
-    if (p_Message->GetPayloadLength() == 0)
+    if (p_Message->GetPayloadLength() < sizeof(struct fileexplorer_echoRequest_t))
     {
         WriteLog(LL_Error, "no message to echo");
         return;
     }
 
-    WriteLog(LL_Error, "echo: (%s).", reinterpret_cast<char*>(p_Message->GetPayloadData()));
+    auto s_Request = reinterpret_cast<struct fileexplorer_echoRequest_t*>(p_Message->GetPayloadData());
+    if (p_Message->GetPayloadLength() - sizeof(*s_Request))
+    {
+        
+    }
+    WriteLog(LL_Error, "echo: (%s).", s_Request->message);
 }

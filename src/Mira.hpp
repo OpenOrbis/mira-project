@@ -58,8 +58,8 @@ namespace Mira
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
         Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }
     private:
-        static void OnMiraSuspend(Mira::Framework* p_Framework);
-        static void OnMiraResume(Mira::Framework* p_Framework);
-        static void OnMiraShutdown(Mira::Framework* p_Framework);
+        static void OnMiraSuspend(void* __unused p_Reserved);
+        static void OnMiraResume(void* __unused p_Reserved);
+        static void OnMiraShutdown(void* __unused p_Reserved);
     };
 }

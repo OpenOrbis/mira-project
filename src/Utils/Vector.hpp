@@ -40,17 +40,17 @@ public:
         {
             if (m_Capacity == 0)
             {
-                WriteLog(LL_Debug, "Allocating (1) capacity");
+                //WriteLog(LL_Debug, "Allocating (1) capacity");
                 reserve(1, false); // Allocate 1 entry, don't copy any
             }
             else
             {
-                WriteLog(LL_Debug, "Doubling the capacity from (%d) to (%d).", m_Capacity, (2 * m_Capacity));
+                //WriteLog(LL_Debug, "Doubling the capacity from (%d) to (%d).", m_Capacity, (2 * m_Capacity));
                 reserve(2 * m_Capacity, true); // Double the capacity
             }
         }
 
-        WriteLog(LL_Debug, "pushing object at %p", &obj);
+        //WriteLog(LL_Debug, "pushing object at %p", &obj);
         m_Array[m_Size] = obj;
         m_Size++;
     }
@@ -65,19 +65,19 @@ public:
         if (p_Count > m_Size)
             s_CopyCount = m_Size;
         
-        WriteLog(LL_Debug, "copyCount: %d", s_CopyCount);
+        //WriteLog(LL_Debug, "copyCount: %d", s_CopyCount);
         // Allocate the new array
         T* s_NewArray = new T[p_Count];
         if (s_NewArray == nullptr)
         {
-            WriteLog(LL_Error, "could not allocate new array of size %d.", p_Count);
+            //WriteLog(LL_Error, "could not allocate new array of size %d.", p_Count);
             return;
         }
 
         // Copy everything from the old list to the new list
         if (p_Copy && m_Array != nullptr)
         {
-            WriteLog(LL_Error, "copying %d entries", s_CopyCount);
+            //WriteLog(LL_Error, "copying %d entries", s_CopyCount);
             for (uint32_t i = 0; i < s_CopyCount; ++i)
                 s_NewArray[i] = m_Array[i];
         }
@@ -85,12 +85,12 @@ public:
         // Delete the previous array
         if (m_Array != nullptr)
         {
-            WriteLog(LL_Debug, "deleting previous array %p", m_Array);
+            //WriteLog(LL_Debug, "deleting previous array %p", m_Array);
             delete [] m_Array;
             m_Array = nullptr;
         }
 
-        WriteLog(LL_Debug, "replacing array (%p) with capacity (%d).", s_NewArray, p_Count);
+        //WriteLog(LL_Debug, "replacing array (%p) with capacity (%d).", s_NewArray, p_Count);
         m_Array = s_NewArray;
         m_Capacity = p_Count;
     }

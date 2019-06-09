@@ -129,6 +129,14 @@ bool Server::Teardown()
     }
     _mtx_unlock_flags(&m_Lock, 0, __FILE__, __LINE__);
 
+    // Close the server socket
+    if (m_Socket > 0)
+    {
+        kshutdown(m_Socket, 0);
+        kclose(m_Socket);
+        m_Socket = -1;
+    }
+
     return true;
 }
 

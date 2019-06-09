@@ -13,6 +13,7 @@ Logger* Logger::GetInstance()
 	
 	return m_Instance;
 }
+
 Logger::Logger() :
 	m_LogLevel(LL_None),
 	m_Buffer{0},

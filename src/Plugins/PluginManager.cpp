@@ -55,52 +55,76 @@ bool PluginManager::OnUnload()
     WriteLog(LL_Debug, "unloading all plugins");
     bool s_AllUnloadSuccess = true;
 
+    WriteLog(LL_Debug, "here");
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
+        WriteLog(LL_Debug, "here");
         auto l_Plugin = m_Plugins[i];
+
+        WriteLog(LL_Debug, "here");
         // Skip any blank spots
         if (l_Plugin == nullptr)
             continue;
-        
+        WriteLog(LL_Debug, "here");
         // TODO: Handle multiple unloads
         auto s_UnloadResult = l_Plugin->OnUnload();
+
+        WriteLog(LL_Debug, "here");
         if (!s_UnloadResult)
             s_AllUnloadSuccess = false;
-
+        
+        WriteLog(LL_Debug, "here");
         WriteLog(LL_Info, "plugin (%s) unloaded %s", 
             l_Plugin->GetName(), s_UnloadResult ? "successfully" : "unsuccessfully");
         
+        WriteLog(LL_Debug, "here");
         // Delete the plugin
         delete l_Plugin;
+
+        WriteLog(LL_Debug, "here");
         m_Plugins[i] = nullptr;
     }
 
+    WriteLog(LL_Debug, "here");
     // Clear out all entries
     m_Plugins.clear();
 
+    WriteLog(LL_Debug, "here");
     // Free the default plugins
     if (m_FileManager)
     {
+        WriteLog(LL_Debug, "here");
+
         if (!m_FileManager->OnUnload())
-        WriteLog(LL_Error, "filemanager could not unload");
+            WriteLog(LL_Error, "filemanager could not unload");
     
+        WriteLog(LL_Debug, "here");
+
         // Free the file manager
         delete m_FileManager;
+
+        WriteLog(LL_Debug, "here");
         m_FileManager = nullptr;
     }
     
+    WriteLog(LL_Debug, "here");
     if (m_Debugger)
     {
+        WriteLog(LL_Debug, "here");
         if (!m_Debugger->OnUnload())
             WriteLog(LL_Error, "debugger could not unload");
         
+        WriteLog(LL_Debug, "here");
+
         // Free the debugger
         delete m_Debugger;
+
+        WriteLog(LL_Debug, "here");
         m_Debugger = nullptr;
     }
     
-
-    return true;
+    WriteLog(LL_Debug, "here");
+    return s_AllUnloadSuccess;
 }
 
 bool PluginManager::OnSuspend()

@@ -19,7 +19,7 @@ Message::Message(uint32_t p_PayloadSize, MessageCategory p_Category, int32_t p_E
         return;
     }
 
-    m_Payload = Span<uint8_t>(p_PayloadSize + 1);
+    m_Payload = Span<uint8_t>(p_PayloadSize);
     m_Header = MessageHeader
     {
         .magic = MessageHeader_Magic,

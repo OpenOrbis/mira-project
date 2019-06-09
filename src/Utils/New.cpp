@@ -15,7 +15,7 @@ void * operator new(unsigned long int p_Size)
 	uint8_t* data = reinterpret_cast<uint8_t*>(kmem_alloc(map, totalSize));
 	if (data == nullptr)
 	{
-		WriteLog(LL_Error, "could not allocate new of size %llx", p_Size);
+		//WriteLog(LL_Error, "could not allocate new of size %llx", p_Size);
 		for (;;)
 			__asm__ ("nop");
 	}
