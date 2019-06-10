@@ -1,6 +1,6 @@
 #include "MessageManager.hpp"
 #include "MessageCategory.hpp"
-#include "MessageCategoryEntry.hpp"
+#include "MessageListener.hpp"
 #include "Message.hpp"
 
 #include <Utils/Kdlsym.hpp>
@@ -16,7 +16,7 @@ MessageManager::MessageManager()
 {
     // Initialize the mutex
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-    mtx_init(&m_CategoriesLock, "MsgMgr", nullptr, 0);
+    mtx_init(&m_ListenersLock, "MsgMgr", nullptr, 0);
 }
 
 MessageManager::~MessageManager()
@@ -24,7 +24,7 @@ MessageManager::~MessageManager()
 
 }
 
-bool MessageManager::RegisterCallback(MessageCategory p_Category, uint32_t p_Type, void(*p_Callback)(shared_ptr<Messaging::Message>))
+bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(shared_ptr<Messaging::Message>))
 {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
@@ -41,53 +41,40 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, uint32_t p_Typ
         return false;
     }
 
-    MessageCategoryEntry* s_FoundEntry = nullptr;
-    _mtx_lock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < m_Categories.size(); ++i)
+    MessageListener* s_FoundEntry = nullptr;
+    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    for (auto i = 0; i < m_Listeners.size(); ++i)
     {
-        auto& l_CategoryEntry = m_Categories[i];
+        auto& l_CategoryEntry = m_Listeners[i];
         if (l_CategoryEntry.GetCategory() != p_Category)
+            continue;
+        
+        if (l_CategoryEntry.GetType() != p_Type)
+            continue;
+        
+        if (l_CategoryEntry.GetCallback() != p_Callback)
             continue;
         
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    _mtx_unlock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
+    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
-    // Check if this category entry exists already
-    if (s_FoundEntry == nullptr)
+    if (s_FoundEntry != nullptr)
     {
-        // This category has not been added to our list yet add it
-        auto s_CatEntry = Messaging::MessageCategoryEntry(p_Category);
-        if (!s_CatEntry.AddCallback(p_Type, p_Callback))
-        {
-            WriteLog(LL_Error, "could not add callback c:(%d), t:(%d) cb:(%p).", p_Category, p_Type, p_Callback);
-            return false;
-        }
-
-        _mtx_lock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
-        m_Categories.push_back(s_CatEntry);
-        _mtx_unlock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
+        WriteLog(LL_Error, "callback already exists");
+        return false;
     }
-    else // Category exist add the callback
-    {
-        if (s_FoundEntry->GetCallbackByType(p_Type) != nullptr)
-        {
-            WriteLog(LL_Error, "callback exists c: (%d) t:(%d) cb: (%p).", p_Category, p_Type, p_Callback);
-            return false;
-        }
 
-        if (!s_FoundEntry->AddCallback(p_Type, p_Callback))
-        {
-            WriteLog(LL_Error, "could not add callback c:(%d), t:(%d) cb:(%p).", p_Category, p_Type, p_Callback);
-            return false;
-        }
-    }
+    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    m_Listeners.push_back(MessageListener(p_Category, p_Type, p_Callback));
+    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+
     
     return true;
 }
 
-bool MessageManager::UnregisterCallback(MessageCategory p_Category, uint32_t p_Type, void(*p_Callback)(shared_ptr<Messaging::Message>))
+bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(shared_ptr<Messaging::Message>))
 {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
@@ -104,18 +91,24 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, uint32_t p_T
         return false;
     }
 
-    MessageCategoryEntry* s_FoundEntry = nullptr;
-    _mtx_lock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < m_Categories.size(); ++i)
+    MessageListener* s_FoundEntry = nullptr;
+    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    for (auto i = 0; i < m_Listeners.size(); ++i)
     {
-        auto& l_CategoryEntry = m_Categories[i];
+        auto& l_CategoryEntry = m_Listeners[i];
         if (l_CategoryEntry.GetCategory() != p_Category)
+            continue;
+    
+        if (l_CategoryEntry.GetType() != p_Type)
+            continue;
+        
+        if (l_CategoryEntry.GetCallback() != p_Callback)
             continue;
         
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    _mtx_unlock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
+    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry == nullptr)
     {
@@ -123,11 +116,7 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, uint32_t p_T
         return false;
     }
 
-    if (!s_FoundEntry->RemoveCallback(p_Type, p_Callback))
-    {
-        WriteLog(LL_Error, "could not remove the callback for type (%d) (%p).", p_Type, p_Callback);
-        return false;
-    }
+    s_FoundEntry->Zero();
 
     return true;
 }
@@ -193,55 +182,38 @@ void MessageManager::SendResponse(shared_ptr<Messaging::Message> p_Message)
 
 void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
 {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    
     if (!p_Message)
     {
         WriteLog(LL_Error, "invalid message");
         return;
     }
-    auto s_Category = p_Message->GetCategory();
-    if (s_Category < MessageCategory_None || s_Category >= MessageCategory_Max)
+    WriteLog(LL_Debug, "Message: c: (%d) t: (%d).", p_Message->GetCategory(), p_Message->GetErrorType());
+
+    MessageListener* s_FoundEntry = nullptr;
+    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    for (auto i = 0; i < m_Listeners.size(); ++i)
     {
-        WriteLog(LL_Error, "invalid category (%d).", s_Category);
-        return;
-    }
-
-    auto s_CategoryEntry = GetCategory(static_cast<MessageCategory>(s_Category));
-    if (s_CategoryEntry == nullptr)
-    {
-        WriteLog(LL_Error, "no category found (%d).", s_Category);
-        return;
-    }
-
-    auto s_Callback = s_CategoryEntry->GetCallbackByType(p_Message->GetErrorType());
-    if (s_Callback == nullptr)
-    {
-        WriteLog(LL_Error, "no callback found for type (%d).", p_Message->GetErrorType());
-        return;
-    }
-
-    s_Callback(p_Message);
-}
-
-MessageCategoryEntry* MessageManager::GetCategory(MessageCategory p_Category)
-{
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-    
-    if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
-        return nullptr;
-
-    MessageCategoryEntry* s_FoundEntry = nullptr;
-    _mtx_lock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < m_Categories.size(); ++i)
-    {
-        auto& l_CategoryEntry = m_Categories[i];
-        if (l_CategoryEntry.GetCategory() != p_Category)
+        auto& l_CategoryEntry = m_Listeners[i];
+        if (l_CategoryEntry.GetCategory() != p_Message->GetCategory())
+            continue;
+        
+        if (l_CategoryEntry.GetType() != p_Message->GetErrorType())
             continue;
         
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    _mtx_unlock_flags(&m_CategoriesLock, 0, __FILE__, __LINE__);
+    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
-    return s_FoundEntry;
+    if (s_FoundEntry == nullptr)
+    {
+        WriteLog(LL_Error, "could not find the right shit");
+        return;
+    }
+
+    WriteLog(LL_Debug, "calling callback (%p).", s_FoundEntry->GetCallback());
+    s_FoundEntry->GetCallback()(p_Message);
 }

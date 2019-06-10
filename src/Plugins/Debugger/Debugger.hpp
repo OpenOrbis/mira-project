@@ -2,6 +2,8 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Hook.hpp>
 
+#include <netinet/in.h>
+
 struct trapframe;
 
 namespace Mira
@@ -11,6 +13,8 @@ namespace Mira
         class Debugger : public Mira::Utils::IModule
         {
         private:
+            int32_t m_Socket;
+            struct sockaddr_in m_Address;
             Utils::Hook* m_TrapFatalHook;
 
         protected:
@@ -28,6 +32,18 @@ namespace Mira
 
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
+
+        protected:
+            uint8_t StubGetChar(void);
+            bool StubPutChar(uint8_t p_Char);
+            int32_t StubReadByte(void* p_Address, char* p_OutValue);
+            int32_t StubWriteByte(void* p_Address, char p_Value);
+            int32_t StubContinue();
+            int32_t StubStep();
+
+        private:
+            bool StartStubServer();
+            bool TeardownStubServer();
         };
     }
 }

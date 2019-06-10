@@ -1,6 +1,7 @@
 #include "Debugger.hpp"
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
+#include <Utils/SysWrappers.hpp>
 
 // thread
 #include <sys/proc.h>
@@ -190,4 +191,14 @@ hang_thread:
 bool Debugger::IsStackSpace(void* p_Address)
 {
     return ((reinterpret_cast<uint64_t>(p_Address) & 0xFFFFFFFF00000000) == 0xFFFFFF8000000000);
+}
+
+uint8_t Debugger::StubGetChar()
+{
+	if (m_Socket < 0)
+		return 0;
+	
+	
+
+	return 0;
 }
