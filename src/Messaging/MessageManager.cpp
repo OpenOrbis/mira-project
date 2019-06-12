@@ -190,7 +190,7 @@ void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
         WriteLog(LL_Error, "invalid message");
         return;
     }
-    WriteLog(LL_Debug, "Message: c: (%d) t: (%d).", p_Message->GetCategory(), p_Message->GetErrorType());
+    //WriteLog(LL_Debug, "Message: c: (%d) t: (%d).", p_Message->GetCategory(), p_Message->GetErrorType());
 
     MessageListener* s_FoundEntry = nullptr;
     _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
@@ -214,6 +214,6 @@ void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
         return;
     }
 
-    WriteLog(LL_Debug, "calling callback (%p).", s_FoundEntry->GetCallback());
+    //WriteLog(LL_Debug, "calling callback (%p).", s_FoundEntry->GetCallback());
     s_FoundEntry->GetCallback()(p_Message);
 }

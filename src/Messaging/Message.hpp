@@ -30,6 +30,7 @@ namespace Mira
             static shared_ptr<Message> Create(uint32_t p_PayloadSize = 0, MessageCategory p_Category = MessageCategory_None, int32_t p_ErrorType = 0, bool p_IsRequest = false);
 
             MessageHeader* GetHeader() { return &m_Header; }
+            Span<uint8_t>& GetPayload() { return m_Payload; }
             uint8_t* GetPayloadData() { return m_Payload.data(); }
             uint8_t GetMagic() { return m_Header.magic; }
             uint16_t GetCategory() { return m_Header.category; }

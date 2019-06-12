@@ -29,6 +29,15 @@ namespace Mira
 
         private:
             static void OnEcho(shared_ptr<Messaging::Message> p_Message);
+            static void OnOpen(shared_ptr<Messaging::Message> p_Message);
+            static void OnClose(shared_ptr<Messaging::Message> p_Message);
+            static void OnRead(shared_ptr<Messaging::Message> p_Message);
+            static void OnWrite(shared_ptr<Messaging::Message> p_Message);
+            static void OnGetDents(shared_ptr<Messaging::Message> p_Message);
+            static void OnStat(shared_ptr<Messaging::Message> p_Message);
+            static void OnMkDir(shared_ptr<Messaging::Message> p_Message);
+            static void OnRmDir(shared_ptr<Messaging::Message> p_Message);
+            static void OnUnlink(shared_ptr<Messaging::Message> p_Message);
         };
     }
 }

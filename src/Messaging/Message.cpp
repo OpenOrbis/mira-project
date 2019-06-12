@@ -29,9 +29,6 @@ Message::Message(uint32_t p_PayloadSize, MessageCategory p_Category, int32_t p_E
         .payloadLength = p_PayloadSize,
         .padding = 0
     };
-
-    WriteLog(LL_Debug, "header magic: (%d) category: (%d).", m_Header.magic, m_Header.category);
-
 }
 
 Message::~Message()

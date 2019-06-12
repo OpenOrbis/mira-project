@@ -181,7 +181,7 @@ void Server::ServerThread(void* p_UserArgs)
         }
 
         // Set the send recv and linger timeouts
-        int32_t result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
+        /*int32_t result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
         if (result < 0)
         {
             WriteLog(LL_Error, "could not set recv timeout (%d).", result);
@@ -195,11 +195,11 @@ void Server::ServerThread(void* p_UserArgs)
             WriteLog(LL_Error, "could not set send timeout (%d).", result);
             kclose(l_ClientSocket);
             continue;
-        }
+        }*/
 
         // SO_LINGER
         s_Timeout.tv_sec = 0;
-        result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout));
+        auto result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout));
         if (result < 0)
         {
             WriteLog(LL_Error, "could not set send timeout (%d).", result);

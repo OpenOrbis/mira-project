@@ -188,6 +188,37 @@ public:
         return reinterpret_cast<X*>(m_Data + p_Offset);
     }
 
+    template<typename X>
+    bool set_struct(uint32_t p_Offset, X* p_Object)
+    {
+        if (p_Offset >= m_DataLength)
+            return false;
+        
+        if (p_Offset + sizeof(X) >= m_DataLength)
+            return false;
+        
+        if (p_Object == nullptr)
+            return false;
+        
+        memcpy(m_Data + p_Offset, p_Object, sizeof(*p_Object));
+        return true;
+    }
+
+    bool set_buffer(uint32_t p_Offset, uint8_t* p_Source, uint32_t p_Length)
+    {
+        if (p_Offset >= m_DataLength)
+            return false;
+        
+        if (p_Offset + p_Length > m_DataLength)
+            return false;
+        
+        if (p_Source == nullptr)
+            return false;
+        
+        memcpy(m_Data + p_Offset, p_Source, p_Length);
+        return true;
+    }
+
     // Set the current offset
     void setOffset(uint32_t p_Offset)
     {
