@@ -1,4 +1,5 @@
 #pragma once
+#include <Utils/New.hpp>
 #include <sys/param.h>
 #include <sys/lock.h>
 #include <sys/mutex.h>

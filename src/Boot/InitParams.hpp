@@ -2,6 +2,7 @@
 #include <Utils/Types.hpp>
 
 struct proc;
+struct _ElfLoader_t;
 
 namespace Mira
 {
@@ -21,6 +22,9 @@ namespace Mira
             // Entrypoint
             // Userland should set this to NULL
             void(*entrypoint)(void*);
+
+            // ElfLoader
+            struct _ElfLoader_t* elfLoader;
 
             // If this is an elf launch or not
             uint8_t isElf : 1;

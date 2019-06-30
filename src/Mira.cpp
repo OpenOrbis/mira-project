@@ -64,7 +64,7 @@ Mira::Framework::~Framework()
 }
 
 extern "C" void mira_entry(void* args)
-{
+{		
     if (args == nullptr)
         return;
     
@@ -82,7 +82,7 @@ extern "C" void mira_entry(void* args)
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 
     // Let'em know we made it
-	printf(reinterpret_cast<const char*>("[+] mira has reached stage 2\n"));
+	printf("[+] mira has reached stage 2\n");
 
 	printf("[+] starting logging\n");
 	auto s_Logger = Mira::Utils::Logger::GetInstance();
@@ -93,9 +93,11 @@ extern "C" void mira_entry(void* args)
 		return;
 	}
 
+	// Create new credentials
+	(void)ksetuid_t(0, curthread);
+
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
-
 	vm_offset_t sv_minuser = MAX(sv->sv_minuser, PAGE_SIZE);
 	struct vmspace* vmspace = vmspace_alloc(sv_minuser, sv->sv_maxuser);
 	if (!vmspace)
@@ -110,11 +112,30 @@ extern "C" void mira_entry(void* args)
 	if (initParams->process == curthread->td_proc)
 		pmap_activate(curthread);
 
-	// Create new credentials
-	(void)ksetuid_t(0, curthread);
-
 	// Root and escape our thread
-	//oni_threadEscape(curthread, NULL);
+	if (curthread->td_ucred)
+	{
+		WriteLog(LL_Info, "escaping thread");
+		curthread->td_ucred->cr_rgid = 0;
+		curthread->td_ucred->cr_svgid = 0;
+		
+		curthread->td_ucred->cr_uid = 0;
+		curthread->td_ucred->cr_ruid = 0;
+
+		if (curthread->td_ucred->cr_prison)
+			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
+		
+		if (curthread->td_proc->p_fd)
+			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+		
+		// Set our auth id as debugger
+		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::Decid;
+
+		// make system credentials
+		curthread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
+		curthread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
+	}
+	
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
@@ -129,7 +150,7 @@ extern "C" void mira_entry(void* args)
 	auto s_Framework = Mira::Framework::GetFramework();
 
 	// Set the initparams so we do not lose track of it
-	s_Framework->SetInitParams(*initParams);
+	s_Framework->SetInitParams(initParams);
 
 	if (!s_Framework->Initialize())
 	{
@@ -143,9 +164,18 @@ extern "C" void mira_entry(void* args)
 	kthread_exit();
 }
 
-bool Mira::Framework::SetInitParams(Mira::Boot::InitParams& p_Params)
+bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
 {
-	m_InitParams = p_Params;
+	if (p_Params == NULL)
+		return false;
+	
+	m_InitParams.elfLoader = p_Params->elfLoader;
+	m_InitParams.entrypoint = p_Params->entrypoint;
+	m_InitParams.isElf = p_Params->isElf;
+	m_InitParams.payloadBase = p_Params->payloadBase;
+	m_InitParams.payloadSize = p_Params->payloadSize;
+	m_InitParams.process = p_Params->process;
+
 	return true;
 }
 

@@ -21,7 +21,8 @@ Connection::Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Soc
     m_Running(false),
     m_Thread(nullptr),
     m_Address{0},
-    m_Server(p_Server)
+    m_Server(p_Server),
+    m_MessageBuffer{0}
 {
     memcpy(&m_Address, &p_Address, sizeof(m_Address));
 }
@@ -57,7 +58,8 @@ void Connection::ConnectionThread(void* p_Connection)
     }
 
     // Allocate our new buffer
-    auto s_Buffer = Span<uint8_t>(0x10000);
+    auto s_Buffer = Span<uint8_t>(s_Connection->m_MessageBuffer, sizeof(s_Connection->m_MessageBuffer));
+    s_Buffer.zero();
 
     WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%x), thread: (%p).", 
                     s_Connection->m_Socket, 
@@ -76,37 +78,32 @@ void Connection::ConnectionThread(void* p_Connection)
         s_Buffer.zero();
         s_Buffer.setOffset(0);
 
+        Messaging::MessageHeader l_MessageHeader = { 0 };
+
         // Recv the data length of this message
-        ssize_t l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.data(), s_MessageHeaderSize, 0);
+        ssize_t l_Ret = krecv(s_Connection->GetSocket(), &l_MessageHeader, sizeof(l_MessageHeader), 0);
         if (l_Ret < 0)
         {
             WriteLog(LL_Error, "recv returned (%d).", l_Ret);
             break;
         }
 
+        // Make sure that we got all of the data
         if (l_Ret != s_MessageHeaderSize)
         {
             WriteLog(LL_Error, "could not get message header.");
             break;
         }
 
-        // Parse out a message header
-        auto s_Header = s_Buffer.get_struct<Messaging::MessageHeader>();
-        if (s_Header == nullptr)
-        {
-            WriteLog(LL_Error, "could not get the message header");
-            break;
-        }
-
         // Validate the header magic
-        if (s_Header->magic != MessageHeader_Magic)
+        if (l_MessageHeader.magic != MessageHeader_Magic)
         {
-            WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", s_Header->magic, MessageHeader_Magic);
+            WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", l_MessageHeader.magic, MessageHeader_Magic);
             break;
         }
 
         // Validate message category
-        auto s_Category = static_cast<MessageCategory>(s_Header->category);
+        auto s_Category = static_cast<MessageCategory>(l_MessageHeader.category);
         if (s_Category < MessageCategory_None || s_Category > MessageCategory_Max)
         {
             WriteLog(LL_Error, "invalid category (%d).", s_Category);
@@ -114,21 +111,21 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // We do not want to handle any responses
-        if (s_Header->isRequest == false)
+        if (l_MessageHeader.isRequest == false)
         {
             WriteLog(LL_Error, "attempted to handle outgoing message, fix ya code");
             break;
         }
 
         // Bounds check the span
-        if (s_Header->payloadLength > s_Buffer.getRemainingBytes())
+        if (l_MessageHeader.payloadLength > s_Buffer.size())
         {
-            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", s_Header->payloadLength, s_Buffer.getRemainingBytes());
+            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", l_MessageHeader.payloadLength, s_Buffer.size());
             break;
         }
 
         uint32_t l_TotalRecv = 0;
-        l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.dataAtOffset(), s_Header->payloadLength, 0);
+        l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.data(), l_MessageHeader.payloadLength, 0);
         if (l_Ret <= 0)
         {
             WriteLog(LL_Error, "could not recv data err: (%d).", l_Ret);
@@ -136,13 +133,13 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         l_TotalRecv += l_Ret;
-        while (l_TotalRecv < s_Header->payloadLength)
+        while (l_TotalRecv < l_MessageHeader.payloadLength)
         {
-            auto l_DataLeft = s_Header->payloadLength - l_TotalRecv;
+            auto l_DataLeft = l_MessageHeader.payloadLength - l_TotalRecv;
             if (l_DataLeft == 0)
                 break;
             
-            l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.dataAtOffset() + l_TotalRecv, l_DataLeft, 0);
+            l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.data() + l_TotalRecv, l_DataLeft, 0);
             if (l_Ret <= 0)
             {
                 WriteLog(LL_Error, "could not recv all data err: (%d).", l_Ret);
@@ -153,51 +150,51 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // Validate that we have gotten all data
-        if (l_TotalRecv != s_Header->payloadLength)
+        if (l_TotalRecv != l_MessageHeader.payloadLength)
         {
-            WriteLog(LL_Error, "did not recv all of payload wanted (%d) got (%d).", s_Header->payloadLength, l_TotalRecv);
+            WriteLog(LL_Error, "did not recv all of payload wanted (%d) got (%d).", l_MessageHeader.payloadLength, l_TotalRecv);
             break;
         }
 
         // TODO: Send out message
-        auto l_Message = Message::Create(s_Header->payloadLength, static_cast<MessageCategory>(s_Header->category), s_Header->errorType, s_Header->isRequest);
+        auto l_Message = shared_ptr<Message>(new Message(l_MessageHeader.payloadLength, static_cast<MessageCategory>(l_MessageHeader.category), l_MessageHeader.errorType, l_MessageHeader.isRequest));
         if (!l_Message)
         {
             WriteLog(LL_Error, "could not allocate message.");
             break;
         }
 
-        if (l_Message->GetPayloadLength() != s_Header->payloadLength)
+        if (l_Message->GetPayloadLength() != l_MessageHeader.payloadLength)
         {
             WriteLog(LL_Error, "idk how you even got here");
-            continue;
+            break;
         }
 
         // Copy over our payload
-        memcpy(l_Message->GetPayloadData(), s_Buffer.dataAtOffset(), s_Header->payloadLength);
+        memcpy(l_Message->GetPayloadData(), s_Buffer.data(), l_MessageHeader.payloadLength);
 
         auto s_Framework = Mira::Framework::GetFramework();
         if (s_Framework == nullptr)
         {
             WriteLog(LL_Error, "could not get mira framework.");
-            continue;
+            break;
         }
 
         auto s_MessageManager = s_Framework->GetMessageManager();
         if (s_MessageManager == nullptr)
         {
             WriteLog(LL_Error, "could not get message manager");
-            continue;
+            break;
         }
 
-        s_MessageManager->OnRequest(l_Message);
+        s_MessageManager->OnRequest(s_Connection, l_Message);
     }
 
     s_Connection->m_Running = false;
 
     auto s_Server = s_Connection->m_Server;
     if (s_Server == nullptr)
-        s_Server->OnConnectionDisconnected(s_Server, s_Connection);
+        s_Server->OnConnectionDisconnected(s_Connection);
 
     kthread_exit();
 }

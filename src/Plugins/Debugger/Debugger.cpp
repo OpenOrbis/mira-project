@@ -9,6 +9,8 @@
 // stackframe
 #include <machine/frame.h>
 
+#include <Mira.hpp>
+
 using namespace Mira::Plugins;
 
 struct amd64_frame 
@@ -84,12 +86,11 @@ void Debugger::OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva)
 	struct amd64_frame* amdFrame = nullptr;
     void* s_Rsp = nullptr;
     static const char* dash = "-----------------------";
+	auto s_Framework = Mira::Framework::GetFramework();
 
     if (p_Frame == nullptr)
         goto hang_thread;
-
-    
-
+		
     if (curthread == nullptr)
         goto hang_thread;
 
@@ -107,19 +108,21 @@ void Debugger::OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva)
 	}
 
 	// Print extra information in case that Oni/Mira itself crashes
-	/* if (gInitParams)
+	if (s_Framework->GetInitParams())
 	{
-		WriteLog(LL_Info, dash);
-		WriteLog(LL_Info, "mira base: %p size: %p", gInitParams->payloadBase, gInitParams->payloadSize);
-		WriteLog(LL_Info, "mira proc: %p entrypoint: %p", gInitParams->process);
-		WriteLog(LL_Info, "mira oni_kernelInitialization: %p", oni_kernelInitialization);
+		auto s_InitParams = s_Framework->GetInitParams();
 
-		if (gFramework)
-			WriteLog(LL_Info, "mira messageManager: %p pluginManager: %p rpcServer: %p", gFramework->messageManager, gFramework->pluginManager, gFramework->rpcServer);
+		WriteLog(LL_Info, dash);
+		WriteLog(LL_Info, "mira base: %p size: %p", s_InitParams->payloadBase, s_InitParams->payloadSize);
+		WriteLog(LL_Info, "mira proc: %p entrypoint: %p", s_InitParams->process);
+		WriteLog(LL_Info, "mira mira_entry: %p", mira_entry);
+
+		if (s_Framework)
+			WriteLog(LL_Info, "mira messageManager: %p pluginManager: %p rpcServer: %p", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
 	
-		WriteLog(LL_Info, "OffsetFromKernelBase: %p", frame->tf_last_branch_from - (uint64_t)gKernelBase);
-		WriteLog(LL_Info, "OffsetFromMiraBase: %p", frame->tf_last_branch_from - gInitParams->payloadBase);
-    }*/
+		WriteLog(LL_Info, "OffsetFromKernelBase: %p", p_Frame->tf_last_branch_from - (uint64_t)gKernelBase);
+		WriteLog(LL_Info, "OffsetFromMiraEntry: %p",  p_Frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry));
+    }
 
 	WriteLog(LL_Info, dash);
 	WriteLog(LL_Info, "gKernelBase: %p", gKernelBase);

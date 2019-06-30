@@ -38,7 +38,7 @@ namespace Mira
                 // Give a id to each connection for lookup later
                 uint32_t m_NextConnectionId;
 
-                Vector<shared_ptr<Rpc::Connection>> m_Connections;
+                Vector<Rpc::Connection*> m_Connections;
 
                 struct mtx m_Lock;
 
@@ -49,8 +49,8 @@ namespace Mira
                 bool Startup();
                 bool Teardown();
 
-                static void OnHandleConnection(Rpc::Server* p_Instance, Rpc::Connection* p_Connection);
-                static void OnConnectionDisconnected(Rpc::Server* p_Instance, Rpc::Connection* p_Connection);
+                void OnHandleConnection(Rpc::Connection* p_Connection);
+                void OnConnectionDisconnected(Rpc::Connection* p_Connection);
 
                 virtual const char* GetName() override { return "RpcServer"; }
                 virtual bool OnLoad() override;
@@ -60,7 +60,7 @@ namespace Mira
 
             public:
                 int32_t GetSocketById(uint32_t p_Id);
-                int32_t Deprecated_GetSocketByThread(struct thread* p_Thread);
+                int32_t GetSocketByConnection(Rpc::Connection* p_Connection);
 
             private:
                 static void ServerThread(void* p_UserData);

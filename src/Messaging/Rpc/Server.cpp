@@ -109,25 +109,26 @@ bool Server::Startup()
 
 bool Server::Teardown()
 {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     // Set that we no longer want to run this server instance
     m_Running = false;
 
     // Iterate through all connections and disconnect them
-    _mtx_lock_flags(&m_Lock, 0, __FILE__, __LINE__);
+    //_mtx_lock_flags(&m_Lock, 0, __FILE__, __LINE__);
     for (auto i = 0; i < m_Connections.size(); ++i)
     {
         // Check that we have a valid connection
         auto l_Connection = m_Connections[i];
-        if (!l_Connection)
+        if (l_Connection == nullptr)
             continue;
         
         // Disconnect the client, the client will fire the Server::OnConnectionDisconnected
-        l_Connection->Disconnect();
+        if (l_Connection->IsRunning())
+            l_Connection->Disconnect();
     }
-    _mtx_unlock_flags(&m_Lock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&m_Lock, 0, __FILE__, __LINE__);
 
     // Close the server socket
     if (m_Socket > 0)
@@ -143,8 +144,8 @@ bool Server::Teardown()
 void Server::ServerThread(void* p_UserArgs)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     // Check for invalid usage
     Server* s_Server = static_cast<Server*>(p_UserArgs);
@@ -215,7 +216,7 @@ void Server::ServerThread(void* p_UserArgs)
 			(l_Addr >> 16) & 0xFF,
 			(l_Addr >> 24) & 0xFF);
         
-        auto l_Connection = shared_ptr<Rpc::Connection>(new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, l_ClientSocket, l_ClientAddress));
+        auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, l_ClientSocket, l_ClientAddress);
         if (!l_Connection)
         {
             WriteLog(LL_Error, "could not allocate new connection for socket (%d).", l_ClientSocket);
@@ -223,12 +224,12 @@ void Server::ServerThread(void* p_UserArgs)
             break;
         }
 
-        _mtx_lock_flags(&s_Server->m_Lock, 0, __FILE__, __LINE__);
+        //_mtx_lock_flags(&s_Server->m_Lock, 0, __FILE__, __LINE__);
         s_Server->m_Connections.push_back(l_Connection);
-        _mtx_unlock_flags(&s_Server->m_Lock, 0, __FILE__, __LINE__);
+        //_mtx_unlock_flags(&s_Server->m_Lock, 0, __FILE__, __LINE__);
 
         // Send off for new client thread creation
-        OnHandleConnection(s_Server, l_Connection.get());
+        s_Server->OnHandleConnection(l_Connection);
     }
 
     // Disconnects all clients, set running to false
@@ -239,17 +240,10 @@ void Server::ServerThread(void* p_UserArgs)
     kthread_exit();
 }
 
-void Server::OnHandleConnection(Server* p_Instance, Rpc::Connection* p_Connection)
+void Server::OnHandleConnection(Rpc::Connection* p_Connection)
 {
     // This does not need kthread_exit as it is called "flatly"
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
-
-    // Validate server instance
-    if (p_Instance == nullptr)
-    {
-        WriteLog(LL_Error, "invalid server instance");
-        return;
-    }
 
     // Validate connection instance
     if (!p_Connection)
@@ -281,49 +275,47 @@ void Server::OnHandleConnection(Server* p_Instance, Rpc::Connection* p_Connectio
     }
 }
 
-void Server::OnConnectionDisconnected(Server* p_Instance, Rpc::Connection* p_Connection)
+void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
 {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-
-    if (p_Instance == nullptr || p_Connection == nullptr)
+    if (p_Connection == nullptr)
     {
-        WriteLog(LL_Error, "invalid instance");
+        WriteLog(LL_Error, "invalid connection");
         return;
     }
-
     WriteLog(LL_Debug, "client disconnect (%p).", p_Connection);
 
     // Iterate through all connections and disconnect them
-    _mtx_lock_flags(&p_Instance->m_Lock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < p_Instance->m_Connections.size(); ++i)
+    //_mtx_lock_flags(&p_Instance->m_Lock, 0, __FILE__, __LINE__);
+    for (auto i = 0; i < m_Connections.size(); ++i)
     {
         // Check that we have a valid connection
-        auto l_Connection = p_Instance->m_Connections[i];
-        if (!l_Connection)
+        auto l_Connection = m_Connections[i];
+        if (l_Connection == nullptr)
             continue;
         
-        if (l_Connection.get() != p_Connection)
+        if (l_Connection->GetId() != p_Connection->GetId())
             continue;
 
-        WriteLog(LL_Debug, "freeing connection at (%d).", i);
-
         // Disconnect the client, the client will fire the Server::OnConnectionDisconnected
-        l_Connection.reset();
-        p_Instance->m_Connections[i] = shared_ptr<Rpc::Connection>(nullptr);
+        m_Connections[i] = nullptr;
+
+        WriteLog(LL_Debug, "freeing connection at (%d) (%p).", i, l_Connection);
+        delete l_Connection;
         break;
     }
-    _mtx_unlock_flags(&p_Instance->m_Lock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&p_Instance->m_Lock, 0, __FILE__, __LINE__);
 }
 
 int32_t Server::GetSocketById(uint32_t p_Id)
 {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     int32_t s_SocketId = -1;
-    _mtx_lock_flags(&m_Lock, 0, __FILE__, __LINE__);
+    //_mtx_lock_flags(&m_Lock, 0, __FILE__, __LINE__);
     for (uint32_t i = 0; i < m_Connections.size(); ++i)
     {
         auto l_Connection = m_Connections[i];
@@ -339,37 +331,7 @@ int32_t Server::GetSocketById(uint32_t p_Id)
         s_SocketId = l_Connection->GetSocket();
         break;
     }
-    _mtx_unlock_flags(&m_Lock, 0, __FILE__, __LINE__);
-
-    return s_SocketId;
-}
-
-int32_t Server::Deprecated_GetSocketByThread(struct thread* p_Thread)
-{
-    if (p_Thread == nullptr)
-        return -1;
-    
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-    int32_t s_SocketId = -1;
-    _mtx_lock_flags(&m_Lock, 0, __FILE__, __LINE__);
-    for (uint32_t i = 0; i < m_Connections.size(); ++i)
-    {
-        auto l_Connection = m_Connections[i];
-        if (!l_Connection)
-            continue;
-        
-        if (!l_Connection->IsRunning())
-            continue;
-        
-        if (p_Thread != l_Connection->GetConnectionThread())
-            continue;
-        
-        s_SocketId = l_Connection->GetSocket();
-        break;
-    }
-    _mtx_unlock_flags(&m_Lock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&m_Lock, 0, __FILE__, __LINE__);
 
     return s_SocketId;
 }

@@ -5,6 +5,8 @@ struct eventhandler_entry;
 struct eventhandler_list;
 typedef eventhandler_entry* eventhandler_tag;
 
+extern "C" void mira_entry(void* args);
+
 namespace Mira
 {
     namespace Plugins
@@ -48,7 +50,7 @@ namespace Mira
         bool RemoveEventHandlers();
 
     public:
-        bool SetInitParams(Mira::Boot::InitParams& p_Params);
+        bool SetInitParams(Mira::Boot::InitParams* p_Params);
         Mira::Boot::InitParams* GetInitParams() { return &m_InitParams; }
 
         bool Initialize();

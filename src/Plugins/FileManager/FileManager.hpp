@@ -8,6 +8,10 @@ namespace Mira
 {
     namespace Messaging
     {
+        namespace Rpc
+        {
+            class Connection;
+        }
         class Message;
     }
     
@@ -15,8 +19,6 @@ namespace Mira
     {
         class FileManager : public Mira::Utils::IModule
         {
-            Span<uint8_t> m_Buffer;
-
         public:
             FileManager();
             virtual ~FileManager();
@@ -28,16 +30,16 @@ namespace Mira
             virtual const char* GetDescription() override { return "replaces ftp"; }
 
         private:
-            static void OnEcho(shared_ptr<Messaging::Message> p_Message);
-            static void OnOpen(shared_ptr<Messaging::Message> p_Message);
-            static void OnClose(shared_ptr<Messaging::Message> p_Message);
-            static void OnRead(shared_ptr<Messaging::Message> p_Message);
-            static void OnWrite(shared_ptr<Messaging::Message> p_Message);
-            static void OnGetDents(shared_ptr<Messaging::Message> p_Message);
-            static void OnStat(shared_ptr<Messaging::Message> p_Message);
-            static void OnMkDir(shared_ptr<Messaging::Message> p_Message);
-            static void OnRmDir(shared_ptr<Messaging::Message> p_Message);
-            static void OnUnlink(shared_ptr<Messaging::Message> p_Message);
+            static void OnEcho(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnOpen(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnClose(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnRead(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnWrite(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnGetDents(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnStat(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnMkDir(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnRmDir(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
+            static void OnUnlink(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message);
         };
     }
 }

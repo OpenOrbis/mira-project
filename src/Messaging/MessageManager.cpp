@@ -7,6 +7,7 @@
 #include <Utils/SysWrappers.hpp>
 
 #include "Rpc/Server.hpp"
+#include "Rpc/Connection.hpp"
 
 #include <Mira.hpp>
 
@@ -24,10 +25,10 @@ MessageManager::~MessageManager()
 
 }
 
-bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(shared_ptr<Messaging::Message>))
+bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, shared_ptr<Messaging::Message>))
 {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
     {
@@ -42,7 +43,7 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
     }
 
     MessageListener* s_FoundEntry = nullptr;
-    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
     for (auto i = 0; i < m_Listeners.size(); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
@@ -58,7 +59,7 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry != nullptr)
     {
@@ -66,18 +67,18 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
         return false;
     }
 
-    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
     m_Listeners.push_back(MessageListener(p_Category, p_Type, p_Callback));
-    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     
     return true;
 }
 
-bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(shared_ptr<Messaging::Message>))
+bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, shared_ptr<Messaging::Message>))
 {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
     {
@@ -92,7 +93,7 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
     }
 
     MessageListener* s_FoundEntry = nullptr;
-    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
     for (auto i = 0; i < m_Listeners.size(); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
@@ -108,7 +109,7 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry == nullptr)
     {
@@ -121,16 +122,19 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
     return true;
 }
 
-void MessageManager::SendErrorResponse(MessageCategory p_Category, int32_t p_Error)
+void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, MessageCategory p_Category, int32_t p_Error)
 {
-    auto s_Message = Message::Create(0, p_Category, p_Error, false);
+    if (p_Connection == nullptr)
+        return;
+        
+    auto s_Message = shared_ptr<Messaging::Message>(new Messaging::Message(0, p_Category, p_Error, false));
 
-    SendResponse(s_Message);
+    SendResponse(p_Connection, s_Message);
 }
 
-void MessageManager::SendResponse(shared_ptr<Messaging::Message> p_Message)
+void MessageManager::SendResponse(Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
 {
-    if (!p_Message)
+    if (!p_Message || p_Connection == nullptr)
         return;
 
     auto s_Framework = Mira::Framework::GetFramework();
@@ -148,7 +152,7 @@ void MessageManager::SendResponse(shared_ptr<Messaging::Message> p_Message)
     }
 
     // Get the socket for this thread
-    auto s_Socket = s_RpcServer->Deprecated_GetSocketByThread(curthread);
+    auto s_Socket = p_Connection->GetSocket();
     if (s_Socket < 0)
     {
         WriteLog(LL_Error, "invalid socket (%d).", s_Socket);
@@ -180,10 +184,10 @@ void MessageManager::SendResponse(shared_ptr<Messaging::Message> p_Message)
     }
 }
 
-void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
+void MessageManager::OnRequest(Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
 {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
     
     if (!p_Message)
     {
@@ -193,7 +197,7 @@ void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
     //WriteLog(LL_Debug, "Message: c: (%d) t: (%d).", p_Message->GetCategory(), p_Message->GetErrorType());
 
     MessageListener* s_FoundEntry = nullptr;
-    _mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
     for (auto i = 0; i < m_Listeners.size(); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
@@ -206,7 +210,7 @@ void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    _mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
+    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry == nullptr)
     {
@@ -215,5 +219,5 @@ void MessageManager::OnRequest(shared_ptr<Messaging::Message> p_Message)
     }
 
     //WriteLog(LL_Debug, "calling callback (%p).", s_FoundEntry->GetCallback());
-    s_FoundEntry->GetCallback()(p_Message);
+    s_FoundEntry->GetCallback()(p_Connection, p_Message);
 }
