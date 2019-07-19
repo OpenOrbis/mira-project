@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 
 using namespace Mira::Plugins;
+using namespace Mira::Plugins::FileManagerExtent;
 
 FileManager::FileManager()
 {
@@ -57,405 +58,259 @@ bool FileManager::OnUnload()
     return true;
 }
 
-void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message)
+    if (p_Message.Header == nullptr || p_Message.Buffer == nullptr || p_Message.BufferLength < sizeof(EchoRequest))
     {
         WriteLog(LL_Error, "invalid message");
         return;
     }
 
-    if (p_Message->GetPayloadLength() < sizeof(struct fileexplorer_echoRequest_t))
+    auto s_Request = reinterpret_cast<const EchoRequest*>(p_Message.Buffer);
+    if (s_Request->Length > MaxEchoLength)
     {
-        WriteLog(LL_Error, "no message to echo");
-        return;
-    }
-    auto& s_Payload = p_Message->GetPayload();
-
-    s_Payload.setOffset(0);
-    auto s_Request = s_Payload.get_struct<struct fileexplorer_echoRequest_t>();
-    if (s_Request == nullptr)
-    {
-        WriteLog(LL_Error, "could not get request");
+        WriteLog(LL_Error, "invalid length");
         return;
     }
 
-    if (s_Payload.size() < s_Request->length + s_Payload.getOffset())
-    {
-        WriteLog(LL_Error, "message length too long");
-        return;
-    }
-    //WriteLog(LL_Error, "echo: (%s).", s_Request->message);
+    WriteLog(LL_Error, "echo: (%s).", s_Request->Message);
 }
 
-void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message)
+    if (p_Message.Header == nullptr || p_Message.BufferLength < sizeof(OpenRequest))
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
         return;
     }
 
-    auto& s_Payload = p_Message->GetPayload();
-
-    s_Payload.setOffset(0);
-    auto s_Request = s_Payload.get_struct<struct fileexplorer_openRequest_t>();
-    if (s_Request == nullptr)
-    {
-        WriteLog(LL_Error, "invalid request.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
-
-    if (p_Message->GetPayloadLength() < s_Request->pathLength + s_Payload.getOffset())
-    {
-        WriteLog(LL_Error, "invalid path length");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
+    auto s_Request = reinterpret_cast<const OpenRequest*>(p_Message.Buffer);
 
 	//WriteLog(LL_Debug, "open: (%s) (%d) (%d)", s_Request->path, s_Request->flags, s_Request->mode);
 
-    int32_t s_Ret = kopen(s_Request->path, s_Request->flags, s_Request->mode);
+    int32_t s_Ret = kopen(s_Request->Path, s_Request->Flags, s_Request->Mode);
 
-    auto s_Response = shared_ptr<Messaging::Message>(new Messaging::Message(0, Messaging::MessageCategory_File, s_Ret, false));
-    if (!s_Response)
-    {
-        WriteLog(LL_Error, "could not allocate response message.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
+    Messaging::MessageHeader s_Header = {
+        .magic = Messaging::MessageHeaderMagic,
+        .category = Messaging::MessageCategory_File,
+        .isRequest = false,
+        .errorType = static_cast<uint64_t>(s_Ret),
+        .payloadLength = 0,
+        .padding = 0
+    };
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-}
-
-
-void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
-{
-    if (!p_Message)
-    {
-        WriteLog(LL_Error, "invalid message");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
-
-    auto& s_Payload = p_Message->GetPayload();
-
-    s_Payload.setOffset(0);
-    auto s_Request = s_Payload.get_struct<struct fileexplorer_closeRequest_t>();
-    if (s_Request == nullptr)
-    {
-        WriteLog(LL_Error, "invalid request.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
-
-    kclose(s_Request->handle);
-
-    auto s_Response = shared_ptr<Messaging::Message>(new Messaging::Message(0, Messaging::MessageCategory_File, 0, false));
-    if (!s_Response)
-    {
-        WriteLog(LL_Error, "could not allocate response message.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
+    Messaging::Message s_Response = {
+        .Header = &s_Header,
+        .BufferLength = 0,
+        .Buffer = nullptr
+    };
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
 }
 
-void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+
+void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message)
+    if (p_Message.Header == nullptr || p_Message.Buffer == nullptr || p_Message.BufferLength < sizeof(CloseRequest))
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
         return;
     }
 
-    auto& s_RequestPayload = p_Message->GetPayload();
-    s_RequestPayload.setOffset(0);
-    
-    auto s_Request = s_RequestPayload.get_struct<struct fileexplorer_readRequest_t>();
-    if (s_Request == nullptr)
-    {
-        WriteLog(LL_Error, "invalid request.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
+    auto s_Request = reinterpret_cast<const CloseRequest*>(p_Message.Buffer);
+    kclose(s_Request->Handle);
 
-    auto s_TotalRequestCount = s_Request->count + sizeof(struct fileexplorer_readResponse_t);
-    if (s_TotalRequestCount > Messaging::MessageHeader_MaxPayloadSize)
-    {
-        WriteLog(LL_Error, "too large of request (%d) max (%d).", s_Request->count, s_TotalRequestCount);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOBUFS);
-        return;
-    }
+    Messaging::MessageHeader s_Header = {
+        .magic = Messaging::MessageHeaderMagic,
+        .category = Messaging::MessageCategory_File,
+        .isRequest = false,
+        .errorType = 0,
+        .payloadLength = 0,
+        .padding = 0
+    };
 
-    uint8_t* s_ResponsePayloadBuffer = new uint8_t[s_TotalRequestCount];
-    if (s_ResponsePayloadBuffer == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate response buffer");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOBUFS);
-        return;
-    }
-    Span<uint8_t> s_PayloadBuffer(s_ResponsePayloadBuffer, s_TotalRequestCount);
-    if (!s_PayloadBuffer)
-    {
-        delete [] s_ResponsePayloadBuffer;
-        WriteLog(LL_Error, "could not allocate payload buffer.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOBUFS);
-        return;
-    }
+    Messaging::Message s_Response = {
+        .Header = &s_Header,
+        .BufferLength = 0,
+        .Buffer = nullptr
+    };
 
-    // When we read, skip the header
-    auto s_Ret = kread(s_Request->handle, s_PayloadBuffer.data() + sizeof(struct fileexplorer_readResponse_t), s_Request->count);
-    if (s_Ret < 0 || s_Request->count != s_Ret)
-    {
-        delete [] s_ResponsePayloadBuffer;
-        WriteLog(LL_Error, "could not read (%d).", s_Ret);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_Ret);
-        return;
-    }
-
-    auto s_Response = reinterpret_cast<struct fileexplorer_readResponse_t*>(s_PayloadBuffer.data());
-    s_Response->count = s_Request->count;
-
-    auto s_ResponseMessage = shared_ptr<Messaging::Message>(new Messaging::Message(s_PayloadBuffer.data(), s_PayloadBuffer.size(), Messaging::MessageCategory_File, s_Ret, false));
-    if (!s_ResponseMessage)
-    {
-        delete [] s_ResponsePayloadBuffer;
-        WriteLog(LL_Error, "could not allocate response");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
-
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_ResponseMessage);
-
-    delete [] s_ResponsePayloadBuffer;
-    //WriteLog(LL_Debug, "read: fd: (%d) data: (%p) cnt: (%d).", s_Request->handle, s_Buffer.data(), s_Request->count);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
 }
 
-void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message)
+    if (p_Message.Header == nullptr || p_Message.Buffer == nullptr || p_Message.BufferLength < sizeof(ReadRequest))
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
         return;
     }
 
-    if (p_Connection == nullptr)
+    auto s_Request = reinterpret_cast<const ReadRequest*>(p_Message.Buffer);
+    if (s_Request->Count > sizeof(ReadResponse::Buffer))
     {
-        WriteLog(LL_Error, "invalid connection");
+        WriteLog(LL_Error, "read request size too large (%x) > (%x).", s_Request->Count, sizeof(ReadResponse::Buffer));
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -EOVERFLOW);
+        return;
+    }
+
+    ReadResponse s_Payload = {
+        .Count = 0,
+        .Buffer = { 0 }
+    };
+
+    auto s_SizeRead = kread(s_Request->Handle, s_Payload.Buffer, s_Request->Count);
+    if (s_SizeRead < 0)
+    {
+        WriteLog(LL_Error, "there was an error reading (%d).", s_SizeRead);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_SizeRead);
+        return;
+    }
+
+    s_Payload.Count = static_cast<uint16_t>(s_SizeRead);
+
+    Messaging::MessageHeader s_Header = {
+        .magic = Messaging::MessageHeaderMagic,
+        .category = Messaging::MessageCategory_File,
+        .isRequest = false,
+        .errorType = 0,
+        .payloadLength = 0,
+        .padding = 0
+    };
+
+    Messaging::Message s_Response = {
+        .Header = &s_Header,
+        .BufferLength = sizeof(s_Payload),
+        .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
+    };
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
+}
+
+void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
+{
+    if (p_Message.Header == nullptr || p_Message.Buffer == nullptr || p_Message.BufferLength < sizeof(GetDentsRequest))
+    {
+        WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
         return;
     }
 
-    auto& s_Payload = p_Message->GetPayload();
-
-    s_Payload.setOffset(0);
-    auto s_Request = s_Payload.get_struct<struct fileexplorer_getdentsRequest_t>();
-    if (s_Request == nullptr)
-    {
-        WriteLog(LL_Error, "invalid request.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
-
-    
-
-    if (s_Payload.size() < s_Request->length + sizeof(struct fileexplorer_getdentsRequest_t) || s_Request->length == 0)
+    auto s_Request = reinterpret_cast<const GetDentsRequest*>(p_Message.Buffer);
+       if (s_Request->PathLength > sizeof(s_Request->Path))
     {
         WriteLog(LL_Error, "path length out of bounds.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
         return;
     }
 
-    
-
-    auto s_DirectoryHandle = kopen(s_Request->path, 0x0000 | 0x00020000, 0777);
+    auto s_DirectoryHandle = kopen(s_Request->Path, 0x0000 | 0x00020000, 0777);
     if (s_DirectoryHandle < 0)
     {
-		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->path, s_DirectoryHandle);
+		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->Path, s_DirectoryHandle);
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_DirectoryHandle);
         return;
     }
-
-    
 
     uint64_t s_DentCount = 0;
 
     // Switch this to use stack
-    static uint8_t s_DentBufferStack[Messaging::MessageHeader_MaxPayloadSize];
-    Span<uint8_t> s_DentBuffer(s_DentBufferStack, sizeof(s_DentBufferStack));
-    s_DentBuffer.zero();    
+    struct dirent s_Dent = { 0 };
 
     int32_t s_ReadCount = 0;
     for (;;)
     {
-        s_ReadCount = kgetdents(s_DirectoryHandle, reinterpret_cast<char*>(s_DentBuffer.data()), s_DentBuffer.size());
+        s_ReadCount = kgetdents(s_DirectoryHandle, reinterpret_cast<char*>(&s_Dent), sizeof(s_Dent));
         if (s_ReadCount <= 0)
             break;
         
-        for (auto i = 0; i < s_ReadCount;)
-        {
-            auto l_Dent = reinterpret_cast<struct dirent*>(s_DentBuffer.data() + i);
-            s_DentCount++;
-
-            i += l_Dent->d_reclen;
-        }
+        s_DentCount++;
     }
     kclose(s_DirectoryHandle);
 
-    
+    s_Dent = { 0 };
 
-    // Send the response with the dent count out
+    if (s_DentCount > 0)
     {
-        struct fileexplorer_getdentsResponse_t s_DentResponse =
+        for (;;)
         {
-            .totalDentCount = s_DentCount,
-        };
-
-        
-
-        auto s_Response = shared_ptr<Messaging::Message>(new Messaging::Message(reinterpret_cast<uint8_t*>(&s_DentResponse), sizeof(s_DentResponse), Messaging::MessageCategory_File, 0, false));
-
-        
-        Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-    }
-    
-    
-
-    // Zero out the dent buffer
-    s_DentBuffer.setOffset(0);
-    s_DentBuffer.zero();
-    
-    
-
-    s_DirectoryHandle = kopen(s_Request->path, 0x0000 | 0x00020000, 0777);
-    if (s_DirectoryHandle < 0)
-    {
-		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->path, s_DirectoryHandle);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_DirectoryHandle);
-        return;
-    }
-
-    
-
-    auto s_ConnectionSocket = p_Connection->GetSocket();
-    if (s_ConnectionSocket < 0)
-    {
-        WriteLog(LL_Error, "rpcserver could not get socket (%d)", s_ConnectionSocket);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_ConnectionSocket);
-        return;
-    }    
-
-    // use the stack here
-    static uint8_t s_AllocatedDentBuffer[sizeof(struct fileexplorer_dent_t) + 0x102];
-    Span<uint8_t> s_AllocatedDent(s_AllocatedDentBuffer, sizeof(s_AllocatedDentBuffer));
-    s_ReadCount = 0;
-    for (;;)
-    {
-        bool l_Error = false;
-
-        s_ReadCount = kgetdents(s_DirectoryHandle, reinterpret_cast<char*>(s_DentBuffer.data()), s_DentBuffer.size());
-        if (s_ReadCount <= 0)
-            break;
-        
-        for (auto i = 0; i < s_ReadCount;)
-        {
-            auto l_Dent = reinterpret_cast<struct dirent*>(s_DentBuffer.data() + i);
-
-            uint32_t l_AllocatedDentSize = sizeof(struct fileexplorer_dent_t) + l_Dent->d_namlen;
-            s_AllocatedDent.zero();
-            s_AllocatedDent.setOffset(0);
-
+            s_ReadCount = kgetdents(s_DirectoryHandle, reinterpret_cast<char*>(&s_Dent), sizeof(s_Dent));
+            if (s_ReadCount <= 0)
+                break;
             
-
-            auto l_AllocatedDentHeader = s_AllocatedDent.get_struct<struct fileexplorer_dent_t>();
-            l_AllocatedDentHeader->fileno = l_Dent->d_fileno;
-            l_AllocatedDentHeader->reclen = l_Dent->d_reclen;
-            l_AllocatedDentHeader->type = l_Dent->d_type;
-            l_AllocatedDentHeader->namlen = l_Dent->d_namlen;
-
+            GetDentsResponse s_Payload = 
+            {
+                .RemainingDents = s_DentCount,
+                .Info = {
+                    .fileno = s_Dent.d_fileno,
+                    .reclen = s_Dent.d_reclen,
+                    .type = s_Dent.d_type,
+                    .namlen = s_Dent.d_namlen
+                }
+            };
             
+            if (s_Dent.d_namlen < sizeof(s_Payload.Info.name))
+                (void)memcpy(s_Payload.Info.name, s_Dent.d_name, s_Dent.d_namlen);
 
-            s_AllocatedDent.set_buffer(offsetof(struct fileexplorer_dent_t, name), reinterpret_cast<uint8_t*>(l_Dent->d_name), l_Dent->d_namlen);
-
-            
-
-            kwrite(s_ConnectionSocket, s_AllocatedDent.data(), l_AllocatedDentSize);
-            
-            
-            i += l_Dent->d_reclen;
+            s_DentCount--;
         }
-
-        if (l_Error)
-            break;
     }
 }
 
-void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message)
+    if (p_Message.Header == nullptr || p_Message.Buffer == nullptr || p_Message.BufferLength < sizeof(StatRequest))
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
         return;
     }
 
-    auto& s_RequestPayload = p_Message->GetPayload();
-
-    s_RequestPayload.setOffset(0);
-    auto s_Request = s_RequestPayload.get_struct<struct fileexplorer_statRequest_t>();
-    if (s_Request == nullptr)
-    {
-        WriteLog(LL_Error, "invalid request.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
-    }
+    auto s_Request = reinterpret_cast<const StatRequest*>(p_Message.Buffer);
 
     // Check to see if we have a valid file handle
     struct stat s_Stat = { 0 };
 
-    if (s_Request->handle < 0)
+    if (s_Request->Handle < 0)
     {
-        if (s_Request->pathLength == 0)
+        if (s_Request->PathLength == 0)
         {
             WriteLog(LL_Error, "invalid path length");
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOENT);
             return;
         }
 
-        if (s_RequestPayload.getRemainingBytes() < s_Request->pathLength)
+        if (s_Request->PathLength > sizeof(s_Request->Path))
         {
             WriteLog(LL_Error, "path length too long for remaining data.");
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOENT);
             return;
         }
 
-        int32_t s_Ret = kstat(s_Request->path, &s_Stat);
+        int32_t s_Ret = kstat(const_cast<char*>(s_Request->Path), &s_Stat);
         if (s_Ret < 0)
         {
-            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
+            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->Path, s_Ret);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_Ret);
             return;
         }
     }
     else
     {
-        auto s_Ret = kfstat(s_Request->handle, &s_Stat);
+        auto s_Ret = kfstat(s_Request->Handle, &s_Stat);
         if (s_Ret < 0)
         {
-            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
+            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->Path, s_Ret);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_Ret);
             return;
         }
     }
     
     // Send a success response back
-	struct fileexplorer_stat_t s_ResponseData = 
+	StatResponse s_Payload = 
 	{
 		.st_dev = s_Stat.st_dev,
 		.st_ino = s_Stat.st_ino,
@@ -492,7 +347,19 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, shared_ptr<Me
 		}
 	};
 
-    auto s_Response = shared_ptr<Messaging::Message>(new Messaging::Message(reinterpret_cast<uint8_t*>(&s_ResponseData), sizeof(s_ResponseData), Messaging::MessageCategory_File, 0, false));
+    Messaging::MessageHeader s_Header = {
+        .magic = Messaging::MessageHeaderMagic,
+        .category = Messaging::MessageCategory_File,
+        .isRequest = false,
+        .errorType = 0,
+        .payloadLength = 0,
+        .padding = 0
+    };
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-}
+    Messaging::Message s_Response = {
+        .Header = &s_Header,
+        .BufferLength = sizeof(s_Payload),
+        .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
+    };
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);}

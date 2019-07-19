@@ -38,7 +38,7 @@ bool PluginManager::OnLoad()
         WriteLog(LL_Error, "could not load debugger.");
 
     // Initialize file manager
-    m_FileManager = new Mira::Plugins::FileManager();
+    m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
     if (m_FileManager == nullptr)
     {
         WriteLog(LL_Error, "could not allocate file manager.");

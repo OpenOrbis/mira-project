@@ -15,6 +15,7 @@ namespace Mira
             class Connection
             {
             private:
+                enum { MaxBufferSize = 0x4000 };
                 // Connection socket
                 int32_t m_Socket;
 
@@ -33,7 +34,7 @@ namespace Mira
                 // Server reference
                 Rpc::Server* m_Server;
 
-                uint8_t m_MessageBuffer[Messaging::MessageHeader_MaxPayloadSize + sizeof(Messaging::MessageHeader)];
+                uint8_t m_MessageBuffer[MaxBufferSize];
 
             public:
                 Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Socket, struct sockaddr_in& p_Address);

@@ -29,7 +29,7 @@ void * operator new(unsigned long int p_Size)
 	//auto uma_large_malloc = (void*(*)(size_t size, int flags))kdlsym(uma_large_malloc);
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 
-    uint64_t totalSize = /*upper_power_of_two(*/p_Size + sizeof(uint64_t)/*)*/;
+    uint64_t totalSize = p_Size + sizeof(uint64_t);
 
 	//uint8_t* data = reinterpret_cast<uint8_t*>(uma_large_malloc(p_Size, M_WAITOK | M_ZERO | M_EXEC));
 	uint8_t* data = reinterpret_cast<uint8_t*>(kmem_alloc(map, totalSize));

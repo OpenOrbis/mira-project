@@ -562,7 +562,7 @@ struct proc {
 									/* End area that is zeroed on creation. */
 #define	p_endzero	p_magic
 
-#if ONI_PLATFORM == ONI_PLATFORM_STEAM_LINK
+#if ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK
 	char blah[0x6C];
 #else
 	/* PS4 specific data */

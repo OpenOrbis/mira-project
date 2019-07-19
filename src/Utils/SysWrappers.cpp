@@ -1,7 +1,7 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
-#include <Utils/Syscall.hpp>
+#include <Utils/_Syscall.hpp>
 
 extern "C"
 {
@@ -625,7 +625,7 @@ int kopen_t(char* path, int flags, int mode, struct thread* td)
 	return td->td_retval[0];
 }
 
-int kopen(char* path, int flags, int mode)
+int kopen(const char* path, int flags, int mode)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -639,7 +639,7 @@ int kopen(char* path, int flags, int mode)
 	td->td_retval[0] = 0;
 
 	// call syscall
-	uap.path = path;
+	uap.path = (char*)path;
 	uap.flags = flags;
 	uap.mode = mode;
 

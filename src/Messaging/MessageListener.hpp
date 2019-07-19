@@ -1,6 +1,6 @@
 #pragma once
 #include "MessageCategory.hpp"
-#include <Utils/SharedPtr.hpp>
+#include "Message.hpp"
 
 namespace Mira
 {
@@ -10,14 +10,13 @@ namespace Mira
         {
             class Connection;
         }
-        class Message;
 
         class MessageListener
         {
         private:
             MessageCategory m_Category;
             int32_t m_Type;
-            void(*m_Callback)(Rpc::Connection* p_Connection, shared_ptr<Message> p_Message);
+            void(*m_Callback)(Rpc::Connection* p_Connection, const Message& p_Message);
 
         public:
             MessageListener() :
@@ -28,7 +27,7 @@ namespace Mira
 
             }
 
-            MessageListener(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection* p_Connection, shared_ptr<Message>)) :
+            MessageListener(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection* p_Connection, const Message& p_Message)) :
                 m_Category(p_Category),
                 m_Type(p_Type),
                 m_Callback(p_Callback)
@@ -89,7 +88,7 @@ namespace Mira
 
             MessageCategory GetCategory() const { return m_Category; }
             int32_t GetType() const { return m_Type; }
-            auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, shared_ptr<Message> p_Message)
+            auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, const Message& p_Message)
             {
                 return m_Callback;
             };

@@ -6,9 +6,6 @@ namespace Mira
 {
     namespace Plugins
     {
-        class Debugger;
-        class FileManager;
-
         class PluginManager : public Mira::Utils::IModule
         {
         private:
@@ -23,8 +20,8 @@ namespace Mira
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
         private:
-            Mira::Plugins::Debugger* m_Debugger;
-            Mira::Plugins::FileManager* m_FileManager;
+            Mira::Utils::IModule* m_Debugger;
+            Mira::Utils::IModule* m_FileManager;
         };
     }
 }

@@ -57,10 +57,6 @@ void Connection::ConnectionThread(void* p_Connection)
         return;
     }
 
-    // Allocate our new buffer
-    auto s_Buffer = Span<uint8_t>(s_Connection->m_MessageBuffer, sizeof(s_Connection->m_MessageBuffer));
-    s_Buffer.zero();
-
     WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%x), thread: (%p).", 
                     s_Connection->m_Socket, 
                     s_Connection->m_Address.sin_addr.s_addr, 
@@ -71,12 +67,12 @@ void Connection::ConnectionThread(void* p_Connection)
 
     // Get the header size
     const auto s_MessageHeaderSize = sizeof(Messaging::MessageHeader);
+    const auto s_MessageBufferSize = sizeof(s_Connection->m_MessageBuffer);
     
     while (s_Connection->IsRunning())
     {
         // Zero out our entire buffer for a new message
-        s_Buffer.zero();
-        s_Buffer.setOffset(0);
+        memset(s_Connection->m_MessageBuffer, 0, s_MessageBufferSize);
 
         Messaging::MessageHeader l_MessageHeader = { 0 };
 
@@ -96,9 +92,9 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // Validate the header magic
-        if (l_MessageHeader.magic != MessageHeader_Magic)
+        if (l_MessageHeader.magic != MessageHeaderMagic)
         {
-            WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", l_MessageHeader.magic, MessageHeader_Magic);
+            WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", l_MessageHeader.magic, MessageHeaderMagic);
             break;
         }
 
@@ -118,14 +114,14 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // Bounds check the span
-        if (l_MessageHeader.payloadLength > s_Buffer.size())
+        if (l_MessageHeader.payloadLength > s_MessageBufferSize)
         {
-            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", l_MessageHeader.payloadLength, s_Buffer.size());
+            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", l_MessageHeader.payloadLength, s_MessageBufferSize);
             break;
         }
 
         uint32_t l_TotalRecv = 0;
-        l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.data(), l_MessageHeader.payloadLength, 0);
+        l_Ret = krecv(s_Connection->GetSocket(), s_Connection->m_MessageBuffer, l_MessageHeader.payloadLength, 0);
         if (l_Ret <= 0)
         {
             WriteLog(LL_Error, "could not recv data err: (%d).", l_Ret);
@@ -139,7 +135,13 @@ void Connection::ConnectionThread(void* p_Connection)
             if (l_DataLeft == 0)
                 break;
             
-            l_Ret = krecv(s_Connection->GetSocket(), s_Buffer.data() + l_TotalRecv, l_DataLeft, 0);
+            if (l_TotalRecv + l_DataLeft > s_MessageBufferSize)
+            {
+                WriteLog(LL_Error, "attempted to write out of the bounds of what data we had left.");
+                break;
+            }
+
+            l_Ret = krecv(s_Connection->GetSocket(), s_Connection->m_MessageBuffer + l_TotalRecv, l_DataLeft, 0);
             if (l_Ret <= 0)
             {
                 WriteLog(LL_Error, "could not recv all data err: (%d).", l_Ret);
@@ -156,23 +158,14 @@ void Connection::ConnectionThread(void* p_Connection)
             break;
         }
 
-        // TODO: Send out message
-        auto l_Message = shared_ptr<Message>(new Message(l_MessageHeader.payloadLength, static_cast<MessageCategory>(l_MessageHeader.category), l_MessageHeader.errorType, l_MessageHeader.isRequest));
-        if (!l_Message)
+        // Send out message
+        Messaging::Message l_Message = 
         {
-            WriteLog(LL_Error, "could not allocate message.");
-            break;
-        }
-
-        if (l_Message->GetPayloadLength() != l_MessageHeader.payloadLength)
-        {
-            WriteLog(LL_Error, "idk how you even got here");
-            break;
-        }
-
-        // Copy over our payload
-        memcpy(l_Message->GetPayloadData(), s_Buffer.data(), l_MessageHeader.payloadLength);
-
+            .Header = &l_MessageHeader,
+            .BufferLength = l_TotalRecv,
+            .Buffer = s_Connection->m_MessageBuffer
+        };
+        
         auto s_Framework = Mira::Framework::GetFramework();
         if (s_Framework == nullptr)
         {

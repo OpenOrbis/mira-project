@@ -25,7 +25,7 @@ MessageManager::~MessageManager()
 
 }
 
-bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, shared_ptr<Messaging::Message>))
+bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&))
 {
     //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
@@ -75,7 +75,7 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
     return true;
 }
 
-bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, shared_ptr<Messaging::Message>))
+bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&))
 {
     //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
@@ -126,15 +126,28 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, MessageCat
 {
     if (p_Connection == nullptr)
         return;
-        
-    auto s_Message = shared_ptr<Messaging::Message>(new Messaging::Message(0, p_Category, p_Error, false));
+    
+    Messaging::MessageHeader s_Header = {
+        .magic = MessageHeaderMagic,
+        .category = p_Category,
+        .isRequest = false,
+        .errorType = static_cast<uint64_t>(p_Error > 0 ? -p_Error : p_Error),
+        .payloadLength = 0,
+        .padding = 0
+    };
+
+    Messaging::Message s_Message = {
+        .Header = &s_Header,
+        .BufferLength = 0,
+        .Buffer = nullptr
+    };
 
     SendResponse(p_Connection, s_Message);
 }
 
-void MessageManager::SendResponse(Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message || p_Connection == nullptr)
+    if (!p_Message.Header || p_Connection == nullptr)
         return;
 
     auto s_Framework = Mira::Framework::GetFramework();
@@ -160,7 +173,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, shared_ptr<Mess
     }
 
     // Get and send the header data
-    auto s_HeaderData = p_Message->GetHeader();
+    auto s_HeaderData = p_Message.Header;
     auto s_Ret = kwrite(s_Socket, s_HeaderData, sizeof(*s_HeaderData));
     if (s_Ret < 0)
     {
@@ -169,8 +182,8 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, shared_ptr<Mess
     }
 
     // Send the payload
-    auto s_Data = p_Message->GetPayloadData();
-    auto s_DataLength = p_Message->GetPayloadLength();
+    auto s_Data = p_Message.Buffer;
+    auto s_DataLength = p_Message.BufferLength;
 
     // If there is no payload then we don't send anything
     if (s_Data == nullptr || s_DataLength == 0)
@@ -184,33 +197,25 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, shared_ptr<Mess
     }
 }
 
-void MessageManager::OnRequest(Rpc::Connection* p_Connection, shared_ptr<Messaging::Message> p_Message)
+void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-    
-    if (!p_Message)
-    {
-        WriteLog(LL_Error, "invalid message");
+    if (p_Message.Header == nullptr)
         return;
-    }
-    //WriteLog(LL_Debug, "Message: c: (%d) t: (%d).", p_Message->GetCategory(), p_Message->GetErrorType());
-
+    
     MessageListener* s_FoundEntry = nullptr;
     //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
     for (auto i = 0; i < m_Listeners.size(); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
-        if (l_CategoryEntry.GetCategory() != p_Message->GetCategory())
+        if (l_CategoryEntry.GetCategory() != p_Message.Header->category)
             continue;
         
-        if (l_CategoryEntry.GetType() != p_Message->GetErrorType())
+        if (l_CategoryEntry.GetType() != p_Message.Header->errorType)
             continue;
         
         s_FoundEntry = &l_CategoryEntry;
         break;
     }
-    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry == nullptr)
     {
@@ -218,6 +223,5 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, shared_ptr<Messagi
         return;
     }
 
-    //WriteLog(LL_Debug, "calling callback (%p).", s_FoundEntry->GetCallback());
     s_FoundEntry->GetCallback()(p_Connection, p_Message);
 }

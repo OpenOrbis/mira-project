@@ -32,6 +32,8 @@
 
 #define ONI_PLATFORM_STEAM_LINK		999
 
+#define ONI_PLATFORM_STEAM_LINK2	1000
+
 // Unknown device
 #define ONI_UNKNOWN_PLATFORM		-1
 

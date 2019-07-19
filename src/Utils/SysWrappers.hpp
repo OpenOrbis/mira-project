@@ -20,7 +20,7 @@ extern int kbind(int, const struct sockaddr*, size_t);
 extern int klisten(int, int);
 extern int kaccept(int, struct sockaddr*, size_t*);
 extern int krecv(int, void*, int, int);
-extern int kopen(char* path, int flags, int mode);
+extern int kopen(const char* path, int flags, int mode);
 extern int kopen_t(char* path, int flags, int mode, struct thread* td);
 extern ssize_t kwrite(int d, const void* buf, size_t nbytes);
 extern int kgetdents(int fd, char* buf, int nbytes);

@@ -3,7 +3,7 @@
 #include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
 
-#include <External/hde64/hde64.h>
+#include <external/hde64/hde64.h>
 
 using namespace Mira::Utils;
 

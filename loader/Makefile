@@ -4,7 +4,7 @@ ONI_PLATFORM := ONI_PLATFORM_STEAM_LINK2
 endif
 
 # Project name
-PROJ_NAME := Mira
+PROJ_NAME := MiraLoader
 
 # C++ compiler
 CPPC	:=	clang
@@ -34,11 +34,13 @@ SRC_DIR	:=	src
 
 # If the FREEBSD headers path is not set we will try to use the relative path
 ifeq ($(BSD_INC),)
-BSD_INC := external/freebsd-headers/include
+BSD_INC := ../external/freebsd-headers/include
 endif
 
+MIRACPP_DIR = $(abspath ${CURDIR}/../src)
+
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -Iexternal/hde64
+I_DIRS	:=	-I. -I$(SRC_DIR) -I$(MIRACPP_DIR) -I"$(BSD_INC)"
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib
@@ -50,14 +52,14 @@ LIBS	:=
 C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"ONI_PLATFORM=${ONI_PLATFORM}" -D__LP64__ -D_M_X64 -D__amd64__
 
 # C++ Flags, -02 Optimizations break shit badly
-CFLAGS	:= $(I_DIRS) $(C_DEFS) -fno-rtti -fPIE -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
+CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpie -fPIC -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
 
 # Assembly flags
 SFLAGS	:= -fPIE -m64 -nodefaultlibs -nostdlib
 
 # Linker flags
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
-LFLAGS	:= -v -pie $(L_DIRS) -nostdlib -entry="mira_entry"
+LFLAGS	:= -v $(L_DIRS) -nostdlib -T $(SRC_DIR)/link.x -gc-sections -nmagic
 
 # Calculate the listing of all file paths
 CFILES	:=	$(wildcard $(SRC_DIR)/*.c)
@@ -81,6 +83,8 @@ TARGET = "$(PROJ_NAME)_Orbis_${ONI_PLATFORM}.elf"
 # Target payload name (data + text only, no elf)
 PAYLOAD = "$(PROJ_NAME)_Orbis_${ONI_PLATFORM}.bin"
 
+
+
 .PHONY: all clean
 
 all: post-build
@@ -96,18 +100,10 @@ post-build: main-build
 	@$(LNK) $(ALL_OBJ) -o $(TARGET) $(LFLAGS) $(LIBS)
 	@echo "Creating Payload..."
 	@$(OBJCOPY) -O binary $(TARGET) $(PAYLOAD)
-	@echo "Building loader..."
-	@$(MAKE) --no-print-directory loader-build
 
 main-build: pre-build
 	@echo "Building for Firmware $(ONI_PLATFORM)..."
 	@$(MAKE) --no-print-directory $(ALL_OBJ)
-
-loader-build:
-	@echo "Loader-Build"
-	$(MAKE) --no-print-directory -C loader clean
-	$(MAKE) --no-print-directory -C loader create
-	$(MAKE) --no-print-directory -C loader
 	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $< ..."
@@ -115,7 +111,7 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo "Compiling $< ..."
-	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
+	$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."

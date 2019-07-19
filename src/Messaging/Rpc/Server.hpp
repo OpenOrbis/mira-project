@@ -1,6 +1,5 @@
 #pragma once 
 #include <Utils/IModule.hpp>
-#include <Utils/SharedPtr.hpp>
 #include <Utils/Vector.hpp>
 
 #include <netinet/in.h>

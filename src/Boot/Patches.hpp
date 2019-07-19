@@ -9,6 +9,7 @@ namespace Mira
         class Patches
         {
         public:
+            static void install_prePatches();
             static void install_prerunPatches_405();
             static void install_prerunPatches_455();
             static void install_prerunPatches_474();
@@ -16,6 +17,7 @@ namespace Mira
             static void install_prerunPatches_505();
             static void install_prerunPatches_RaspiZero();
             static void install_prerunPatches_SteamLink();
+            static void install_prerunPatches_SteamLink2();
         };
     }
 }
