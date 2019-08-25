@@ -321,7 +321,6 @@ struct thread {
 	struct trapframe *td_intr_frame;/* (k) Frame of the current irq */
 
 	char            td_unk440[0xA8];
-
 #if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
 	char            td_unk4E8[0x58];
 #endif
@@ -562,17 +561,13 @@ struct proc {
 									/* End area that is zeroed on creation. */
 #define	p_endzero	p_magic
 
-#if ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK
-	char blah[0x6C];
-#else
-	/* PS4 specific data */
 	char		*p_patchpath;	/* patch file path */
 	int		p_unk338;
 	void		*p_dynlib;      /* Sony Dynlib info */
-	/* PS4 specific data */
-#endif
 
-#if ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK
+#if ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK2
+	char            unk348[0x104];
+#elif ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK
 	char            unk348[0x100];
 #elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
 	char            unk348[0x0FC];
@@ -591,9 +586,9 @@ struct proc {
 						binary (from ELF note, if any) */
 	char		p_comm[MAXCOMLEN + 13];	/* (b) Process name. */
 
-										/* PS4 specific data */
+	/* PS4 specific data */
 	char		p_elfpath[PATH_MAX];        /* full path to elf */
-											/* PS4 specific data */
+	/* PS4 specific data */
 
 	struct pgrp	*p_pgrp;	/* (c + e) Pointer to process group. */
 	struct sysentvec *p_sysent;	/* (b) Syscall dispatch info. */
@@ -604,12 +599,12 @@ struct proc {
 						/* End area that is copied on creation. */
 #define	p_endcopy	p_xstat
 
-						/* PS4 specific data */
+	/* PS4 specific data */
 	int		p_unk7F0;
 	int		p_unk7F4;
-	int		p_sandBoxLen;		/* sandbox base name length */
-	char		p_sandbox[0x100];	/* sandbox base name */
-									/* PS4 specific data */
+	int		p_randomized_path_len;		/* sandbox base name length */
+	char	p_randomized_path[0x100];	/* sandbox base name */
+	/* PS4 specific data */
 
 	u_short		p_xstat;	/* (c) Exit status; also stop sig. */
 	struct knlist	p_klist;	/* (c) Knotes attached to this proc. */

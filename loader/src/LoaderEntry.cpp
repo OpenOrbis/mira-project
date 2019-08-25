@@ -1,10 +1,14 @@
+extern "C"
+{
+#include <Utils/_Syscall.hpp>
+};
+
 #include <Utils/New.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
 #include <Boot/Patches.hpp>
 #include <Boot/InitParams.hpp>
 
-#include <Utils/_Syscall.hpp>
 #include <Utils/Dynlib.hpp>
 #include <Utils/Logger.hpp>
 
@@ -35,6 +39,8 @@ using namespace MiraLoader;
 #define ALLOC_3MB	0x300000
 #define ALLOC_5MB	0x500000
 
+uint8_t* gKernelBase = nullptr;
+
 struct kexec_uap
 {
 	void* func;
@@ -53,7 +59,7 @@ int(*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap);
 
 
-void WriteNotificationLog(char* text)
+void WriteNotificationLog(const char* text)
 {
 	if (!text)
 		return;
@@ -66,7 +72,7 @@ void WriteNotificationLog(char* text)
 	if (moduleId == -1)
 		return;
 
-	int(*sceSysUtilSendSystemNotificationWithText)(int messageType, char* message) = NULL;
+	int(*sceSysUtilSendSystemNotificationWithText)(int messageType, const char* message) = NULL;
 
 	// Resolve the symbol
 	Dynlib::Dlsym(moduleId, "sceSysUtilSendSystemNotificationWithText", &sceSysUtilSendSystemNotificationWithText);
@@ -81,8 +87,11 @@ void mira_escape(struct thread* td, void* uap)
 {
 	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
 
-	auto critical_enter = (void(*)(void))kdlsym(critical_enter);
-	auto crtical_exit = (void(*)(void))kdlsym(critical_exit);
+	//auto critical_enter = (void(*)(void))kdlsym(critical_enter);
+	//auto crtical_exit = (void(*)(void))kdlsym(critical_exit);
+	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+
+	printf("[+] mira_escape\n");
 
 	struct ucred* cred = td->td_proc->p_ucred;
 	struct filedesc* fd = td->td_proc->p_fd;
@@ -95,21 +104,29 @@ void mira_escape(struct thread* td, void* uap)
 	cred->cr_prison = *(struct prison**)kdlsym(prison0);
 	fd->fd_rdir = fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
+	// set diag auth ID flags
+	td->td_ucred->cr_sceAuthID = SceAuthenticationId_t::Decid;
+
+	// make system credentials
+	td->td_ucred->cr_sceCaps[0] = SceCapabilities_t::Max;
+	td->td_ucred->cr_sceCaps[1] = SceCapabilities_t::Max;
 	// Apply patches
-	critical_enter();
+	//critical_enter();
 	cpu_disable_wp();
 
 	Mira::Boot::Patches::install_prePatches();
 
 	cpu_enable_wp();
-	crtical_exit();
+	//crtical_exit();
+
+	printf("[-] mira_escape\n");
 }
 
 
-void* mira_entry(void* args)
+extern "C" void* mira_entry(void* args)
 {
 	// Escape the jail and sandbox
-	syscall2(KEXEC_SYSCALL_NUM, mira_escape, NULL);
+	syscall2(KEXEC_SYSCALL_NUM, reinterpret_cast<void*>(mira_escape), NULL);
 
 	//int32_t sysUtilModuleId = -1;
 	int32_t netModuleId = -1;
@@ -120,6 +137,7 @@ void* mira_entry(void* args)
 		Dynlib::LoadPrx("libSceLibcInternal.sprx", &libcModuleId);
 
 		Dynlib::Dlsym(libcModuleId, "snprintf", &snprintf);
+
 	}
 
 	// Networking resolving
@@ -136,11 +154,11 @@ void* mira_entry(void* args)
 
 	// Allocate a 3MB buffer
 	size_t bufferSize = ALLOC_5MB;
-	uint8_t* buffer = (uint8_t*)_mmap(NULL, bufferSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
+	uint8_t* buffer = (uint8_t*)_mmap(nullptr, bufferSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
 	if (!buffer)
 	{
 		WriteNotificationLog("could not allocate 5MB buffer");
-		return NULL;
+		return nullptr;
 	}
 	Loader::Memset(buffer, 0, bufferSize);
 	// Hold our server socket address
@@ -158,7 +176,7 @@ void* mira_entry(void* args)
 	if (serverSocket < 0)
 	{
 		WriteNotificationLog("socket error");
-		return NULL;
+		return nullptr;
 	}
 
 	// Bind to localhost
@@ -166,7 +184,7 @@ void* mira_entry(void* args)
 	if (result < 0)
 	{
 		WriteNotificationLog("bind error");
-		return NULL;
+		return nullptr;
 	}
 
 	// Listen
@@ -174,17 +192,17 @@ void* mira_entry(void* args)
 	if (result < 0)
 	{
 		WriteNotificationLog("listen error");
-		return NULL;
+		return nullptr;
 	}
 
 	WriteNotificationLog("waiting for clients");
 
 	// Wait for a client to send something
-	int32_t clientSocket = sceNetAccept(serverSocket, NULL, NULL);
+	int32_t clientSocket = sceNetAccept(serverSocket, nullptr, nullptr);
 	if (clientSocket < 0)
 	{
 		WriteNotificationLog("accept errror");
-		return NULL;
+		return nullptr;
 	}
 
 	int32_t currentSize = 0;
@@ -224,7 +242,7 @@ void* mira_entry(void* args)
 			initParams.elfLoader = nullptr;
 			initParams.entrypoint = nullptr;
 
-			syscall2(KEXEC_SYSCALL_NUM, miraloader_kernelInitialization, &initParams);
+			syscall2(KEXEC_SYSCALL_NUM, reinterpret_cast<void*>(miraloader_kernelInitialization), reinterpret_cast<void*>(&initParams));
 		}
 		else
 		{
@@ -252,7 +270,7 @@ void* mira_entry(void* args)
 		payload_start();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
@@ -271,11 +289,12 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	//void(*crtical_exit)(void) = kdlsym(critical_exit);
 	auto kmem_alloc = (vm_offset_t(*)(vm_map_t map, vm_size_t size))kdlsym(kmem_alloc);
 	auto kmem_free = (void(*)(void* map, void* addr, size_t size))kdlsym(kmem_free);
-	auto printf = (void(*)(char *format, ...))kdlsym(printf);
+	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto kproc_create = (int(*)(void(*func)(void*), void* arg, struct proc** newpp, int flags, int pages, const char* fmt, ...))kdlsym(kproc_create);
 	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
 	auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
 	auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
 	// Allocate a new logger for the MiraLoader
 	auto s_Logger = Mira::Utils::Logger::GetInstance();
@@ -349,24 +368,15 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 		printf("could not allocate loader\n");
 		return;
 	}
-	
-	if (!loader->LoadSegments())
-	{
-		printf("err: could not load segments.\n");
-		return;
-	}
 
-	if (!loader->RelocateElf())
+	auto s_EntryPoint = loader->GetEntrypoint();
+	if (s_EntryPoint != nullptr)
 	{
-		printf("err: could not relocate elf.\n");
-		return;
+		printf("[+]entrypoint: %p", s_EntryPoint);
+		(void)kproc_create(s_EntryPoint, initParams, &initParams->process, 0, 0, "miraldr2");
 	}
-
-	if (!loader->UpdateProtections())
+	else
 	{
-		printf("err: coudl not update protections.\n");
-		return;
-	}
-
-	(void)kproc_create(entryPoint, initParams, &initParams->process, 0, 0, "miraldr2");
+		printf("[-]could not get entry point.\n");
+	}		
 }

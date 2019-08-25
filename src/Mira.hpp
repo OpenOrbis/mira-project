@@ -9,6 +9,11 @@ extern "C" void mira_entry(void* args);
 
 namespace Mira
 {
+    namespace Driver
+    {
+        class CtrlDriver;
+    }
+
     namespace Plugins
     {
         class PluginManager;
@@ -38,6 +43,8 @@ namespace Mira
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
         Mira::Messaging::Rpc::Server* m_RpcServer;
+
+        Mira::Driver::CtrlDriver* m_CtrlDriver;
 
     public:
         static Framework* GetFramework();

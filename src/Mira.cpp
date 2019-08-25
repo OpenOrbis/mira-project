@@ -6,6 +6,11 @@
 #include <Boot/InitParams.hpp>
 
 //
+// Devices
+//
+#include <Driver/CtrlDriver.hpp>
+
+//
 // Managers
 //
 #include <Messaging/MessageManager.hpp>
@@ -64,16 +69,8 @@ Mira::Framework::~Framework()
 }
 
 extern "C" void mira_entry(void* args)
-{		
-    if (args == nullptr)
-        return;
-    
-    // These are the initialization parameters from the loader
-    Mira::Boot::InitParams* initParams = static_cast<Mira::Boot::InitParams*>(args);
-    if (initParams == nullptr)
-        return;
-
-    // Fill the kernel base address
+{
+	// Fill the kernel base address
 	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 	auto vmspace_alloc = (struct vmspace* (*)(vm_offset_t min, vm_offset_t max))kdlsym(vmspace_alloc);
@@ -83,6 +80,14 @@ extern "C" void mira_entry(void* args)
 
     // Let'em know we made it
 	printf("[+] mira has reached stage 2\n");
+
+    // These are the initialization parameters from the loader
+    Mira::Boot::InitParams* initParams = static_cast<Mira::Boot::InitParams*>(args);
+    if (initParams == nullptr)
+    {
+		printf("[-] no init params\n");
+		return;
+	}    
 
 	printf("[+] starting logging\n");
 	auto s_Logger = Mira::Utils::Logger::GetInstance();
@@ -155,6 +160,7 @@ extern "C" void mira_entry(void* args)
 	if (!s_Framework->Initialize())
 	{
 		WriteLog(LL_Error, "could not initialize mira framework.");
+		WriteLog(LL_Debug, "MiraTerminate: %s", s_Framework->Terminate() ? "Success" : "Failure");
 		kthread_exit();
 		return;
 	}
@@ -226,6 +232,14 @@ bool Mira::Framework::Initialize()
 
 	// TODO: Install needed hooks for Mira
 
+	// Install device driver
+	m_CtrlDriver = new Mira::Driver::CtrlDriver();
+	if (m_CtrlDriver == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate control driver.");
+		return false;
+	}
+
 	WriteLog(LL_Info, "mira initialized successfully!");
 
 	return true;
@@ -251,6 +265,13 @@ bool Mira::Framework::Terminate()
 	// Remove all eventhandlers
 	if (!RemoveEventHandlers())
 		WriteLog(LL_Error, "could not remove event handlers");
+
+	// Remove the device driver
+	if (m_CtrlDriver != nullptr)
+	{
+		delete m_CtrlDriver;
+		m_CtrlDriver = nullptr;
+	}
 	
 	return true;
 }
@@ -342,11 +363,9 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 	if (GetFramework() == nullptr)
 		return;
 	
-	auto s_PluignManager = GetFramework()->m_PluginManager;
-	if (s_PluignManager)
-		s_PluignManager->OnUnload();
-
-	auto s_RpcServer = GetFramework()->GetRpcServer();
-	if (s_RpcServer)
-		s_RpcServer->OnUnload();
+	if (!GetFramework()->Terminate())
+	{
+		WriteLog(LL_Error, "could not terminate cleanly");
+		return;
+	}
 }

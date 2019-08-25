@@ -71,6 +71,7 @@ ALL_CPP := $(shell find $(SRC_DIR)/ -type f -name '*.cpp')
 ALL_C	:= $(shell find $(SRC_DIR)/ -type f -name '*.c')
 ALL_S	:= $(shell find $(SRC_DIR)/ -type f -name '*.s')
 
+
 ALL_SOURCES :=  $(ALL_S) $(ALL_C) $(ALL_CPP)
 TO_BUILD := $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)
 ALL_OBJ_CPP := $(TO_BUILD:.cpp=.o)
@@ -82,8 +83,6 @@ TARGET = "$(PROJ_NAME)_Orbis_${ONI_PLATFORM}.elf"
 
 # Target payload name (data + text only, no elf)
 PAYLOAD = "$(PROJ_NAME)_Orbis_${ONI_PLATFORM}.bin"
-
-
 
 .PHONY: all clean
 
@@ -111,9 +110,21 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo "Compiling $< ..."
-	$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
+	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
+	@echo "Assembling $< ..."
+	@$(CC) $(SFLAGS) -c -o $@ $< 
+
+$(OUT_DIR)/$(MIRACPP_DIR)/%.o: $(MIRACPP_DIR)/%.c
+	@echo "Compiling $< ..."
+	@$(CC) $(CFLAGS) $(I_DIRS) -c $< -o $@
+
+$(OUT_DIR)/$(MIRACPP_DIR)/%.o: $(MIRACPP_DIR)/%.cpp
+	@echo "Compiling $< ..."
+	$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
+
+$(OUT_DIR)/$(MIRACPP_DIR)/%.o: $(MIRACPP_DIR)/%.s
 	@echo "Assembling $< ..."
 	@$(CC) $(SFLAGS) -c -o $@ $< 
 

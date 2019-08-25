@@ -1,6 +1,8 @@
 #pragma once
 #include <Utils/Types.hpp>
 
+extern "C"
+{
 void* syscall1(
 	uint64_t number,
 	void* arg1
@@ -40,6 +42,8 @@ caddr_t _mmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos);
 //caddr_t _mmap(void);
 caddr_t _Allocate3MB(void);
 caddr_t _Allocate5MB(void);
+};
+
 
 // THIS IS AUTO-GENERATED DO NOT MODIFY UNLESS YOU KNOW WTF YOU ARE DOING
 // Created by: OpenOrbis toolchain

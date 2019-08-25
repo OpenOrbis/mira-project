@@ -1,5 +1,5 @@
 #pragma once
-#include <Utils/Types.hpp>
+#include "Types.hpp"
 #include <sys/elf64.h>
 
 namespace MiraLoader
@@ -12,9 +12,6 @@ namespace MiraLoader
 
         // Data length
         uint64_t m_DataLength;
-
-        // Size of ELF
-        uint64_t m_ElfSize;
 
         // The allocated data for all segments
         uint8_t* m_AllocatedData;
@@ -35,7 +32,7 @@ namespace MiraLoader
         auto GetEntrypoint() -> void(*)(void*) { return m_EntryPoint; }
         static void Memcpy(void* p_Destination, void* p_Source, uint64_t p_Size);
         static void Memset(void* p_Address, uint8_t p_Value, uint64_t p_Length);
-
+        static void WriteNotificationLog(const char* p_Message);
     private:
         uint64_t RoundUp(uint64_t p_Number, uint64_t p_Multiple);
         static int32_t Strcmp(const char* p_First, const char* p_Second);
@@ -44,7 +41,7 @@ namespace MiraLoader
         void* Win32Allocate(uint32_t p_Size);
         #endif
         bool SetProtection(void* p_Address, uint64_t p_Size, int32_t p_Protection);
-        void WriteLog(const char* p_Function, int32_t p_Line, const char* p_Format, ...);
+        //void WriteLog(const char* p_Function, int32_t p_Line, const char* p_Format, ...);
         // Processing functions
         /*
             In order to properly load an elf you should do these things in this order
@@ -56,7 +53,6 @@ namespace MiraLoader
             GetEntrypoint();
         */
 
-       public:
         // Loads all of the segments into the m_AllocatedData(/Size)
         bool LoadSegments();
 

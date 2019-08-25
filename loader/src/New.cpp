@@ -1,4 +1,4 @@
-#include "New.hpp"
+#include <Utils/New.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
@@ -7,23 +7,6 @@
 #include <sys/malloc.h>
 
 #include <vm/uma.h>
-
-/*
-uint32_t upper_power_of_two(uint32_t v)
-{
-	v--;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    v++;
-    return v;
-}
-
-volatile static uint64_t g_AllocSize = 0;
-volatile static uint8_t* g_Arena = NULL;
-volatile static uint64_t g_TotalSize = 0;*/
 
 void * operator new(unsigned long int p_Size)
 {

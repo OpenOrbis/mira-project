@@ -340,12 +340,14 @@ int ksocket(int a, int b, int c)
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto ksys_socket = (int(*)(struct thread*, struct socket_args*))sysents[SYS_SOCKET].sy_call;
-
+	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	
 	int error;
 	struct socket_args uap;
 	struct thread *td = curthread;
 
 	// clear errors
+	//printf("offsetof td_retval: %llx", offsetof(struct thread, td_retval));
 	td->td_retval[0] = 0;
 
 	// call syscall
