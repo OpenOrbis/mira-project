@@ -8,6 +8,7 @@
 
 #include <sys/mman.h>
 #include <sys/malloc.h>
+#include <vm/pmap.h>
 #include <stdarg.h>
 
 using namespace MiraLoader;
@@ -29,10 +30,20 @@ Loader::Loader(uint8_t* p_ElfData, uint64_t p_ElfDataLength, bool p_IsInKernel) 
     auto s_LoadableSegmentSize = GetLoadableSegmentsSize();
 	if (s_LoadableSegmentSize == 0)
 		return;
+	
+	if (m_IsInKernel)
+		WriteLog(LL_Debug, "loadableSegmentSize: %llx", s_LoadableSegmentSize);
 
 	uint32_t s_AlignedLoadableSegmentSize = RoundUp(s_LoadableSegmentSize, 0x4000);
 
+	if (m_IsInKernel)
+		WriteLog(LL_Debug, "alignedLoadableSegmentSize: %llx", s_AlignedLoadableSegmentSize);
+
 	uint8_t* s_LoadableData = static_cast<uint8_t*>(Allocate(s_AlignedLoadableSegmentSize));
+
+	if (m_IsInKernel)
+		WriteLog(LL_Info, "loadableData: (%p).", s_LoadableData);
+
 	if (s_LoadableData == NULL)
 	{
 		if (m_IsInKernel)
@@ -40,14 +51,14 @@ Loader::Loader(uint8_t* p_ElfData, uint64_t p_ElfDataLength, bool p_IsInKernel) 
 
 		return;
 	}
-	Memset(s_LoadableData, 0, s_AlignedLoadableSegmentSize);
+	memset(s_LoadableData, 0, s_AlignedLoadableSegmentSize);
 
     m_AllocatedData = s_LoadableData;
 	m_AllocatedDataSize = s_AlignedLoadableSegmentSize;
 	
 	if (m_IsInKernel)
-		WriteLog(LL_Info, "loadableData: (%p).\n", s_LoadableData);
-
+		WriteLog(LL_Info, "pre-load segments.");
+	
 	if (!LoadSegments())
 	{
 		if (m_IsInKernel)
@@ -90,7 +101,7 @@ Loader::Loader(uint8_t* p_ElfData, uint64_t p_ElfDataLength, bool p_IsInKernel) 
 		return;
 	}
 
-	m_EntryPoint = reinterpret_cast<void(*)(void*)>(s_EntryProgramHeader->p_vaddr + s_Header->e_entry);
+	m_EntryPoint = reinterpret_cast<void(*)(void*)>(m_AllocatedData + s_Header->e_entry);
 	return;
 }
 
@@ -117,20 +128,6 @@ int32_t Loader::Strcmp(const char* p_First, const char* p_Second)
 		if (*p_First++ == '\0')
 			return (0);
 	return (*(const unsigned char *)p_First - *(const unsigned char *)(p_Second - 1));
-}
-
-void Loader::Memcpy(void* p_Destination, void* p_Source, uint64_t p_Size)
-{
-    for (uint64_t i = 0; i < p_Size; ++i)
-        ((uint8_t*)p_Destination)[i] = ((uint8_t*)p_Source)[i];
-}
-
-void Loader::Memset(void* p_Address, uint8_t p_Value, uint64_t p_Length)
-{
-    volatile uint8_t c = (uint8_t)p_Value;
-
-    for (uint64_t i = 0; i < p_Length; ++i)
-        *(((uint8_t*)p_Address) + i) = c;
 }
 
 void Loader::WriteNotificationLog(const char* p_Message)
@@ -178,7 +175,7 @@ void* Loader::Allocate(uint32_t p_Size)
 #endif
 
     if (s_AllocationData != nullptr)
-        Memset(s_AllocationData, 0, p_Size);
+        memset(s_AllocationData, 0, p_Size);
 
     return s_AllocationData;
 }
@@ -202,7 +199,14 @@ bool Loader::SetProtection(void* p_Address, uint64_t p_Size, int32_t p_Protectio
 #else
     if (m_IsInKernel)
     {
+		/*auto pmap_protect = (void(*)(pmap_t, vm_offset_t, vm_offset_t, vm_prot_t))kdlsym(pmap_protect);
+
         // TODO: pmap_protect
+		uint64_t s_StartAddress = ((uint64_t)p_Address) & ~(uint64_t)(PAGE_SIZE - 1);
+		uint64_t s_EndAddress = ((uint64_t)p_Address + p_Size + PAGE_SIZE - 1) & ~(uint64_t)(PAGE_SIZE - 1);
+
+		WriteLog(LL_Debug, "pmap_protect: %p %llx %x", p_Address, p_Size, p_Protection);*/
+
     }
     else
     {
@@ -216,8 +220,48 @@ bool Loader::SetProtection(void* p_Address, uint64_t p_Size, int32_t p_Protectio
 
 bool Loader::LoadSegments()
 {
-    if (m_Data == nullptr || m_DataLength == 0 || m_AllocatedData == nullptr || m_AllocatedDataSize == 0)
-        return false;
+	if (m_Data == nullptr)
+	{
+		if (m_IsInKernel)
+			WriteLog(LL_Error, "elf data is missing");
+		return false;
+	}
+
+	if (m_IsInKernel)
+		WriteLog(LL_Info, "m_Data: (%p).", m_Data);
+
+	if (m_DataLength == 0)
+	{
+		if (m_IsInKernel)
+			WriteLog(LL_Error, "0 data length");
+		
+		return false;
+	}
+
+	if (m_IsInKernel)
+		WriteLog(LL_Info, "m_DataLength: (%llx).", m_DataLength);
+
+	if (m_AllocatedDataSize == 0)
+	{
+		if (m_IsInKernel)
+			WriteLog(LL_Error, "0 allocated data length");
+		
+		return false;
+	}
+
+	if (m_IsInKernel)
+		WriteLog(LL_Info, "m_AllocatedDataSize: (%llx).", m_AllocatedDataSize);
+
+	if (m_AllocatedData == nullptr)
+	{
+		if (m_IsInKernel)
+			WriteLog(LL_Error, "allocated data nullptr");
+		
+		return false;
+	}
+
+	if (m_IsInKernel)
+		WriteLog(LL_Info, "m_AllocatedData: (%p).", m_AllocatedData);
 
 	if (m_DataLength < sizeof(Elf64_Ehdr))
 		return false;
@@ -233,7 +277,7 @@ bool Loader::LoadSegments()
             continue;
 
 		if (m_IsInKernel)
-			WriteLog(LL_Info, "here\n");
+			WriteLog(LL_Info, "got program header: %p", l_ProgramHeader);
         
         if (l_ProgramHeader->p_type != PT_LOAD)
             continue;
@@ -252,11 +296,14 @@ bool Loader::LoadSegments()
 		
 		if (m_IsInKernel)
 			WriteLog(LL_Info, "here\n");
-		// Save the previous va in the pa
-		//l_ProgramHeader->p_paddr = l_ProgramHeader->p_vaddr;
+		
+		// Save the previous Virtual Address in the Physical Address (unused)
+		l_ProgramHeader->p_paddr = l_ProgramHeader->p_vaddr;
 
+		if (m_IsInKernel)
+			WriteLog(LL_Info, "here\n");
+		
 		// Copy over the data
-		// TODO: Bounds check the memcpy
 		if (l_ProgramHeader->p_vaddr > m_AllocatedDataSize)
 		{
 			if (m_IsInKernel)
@@ -273,12 +320,15 @@ bool Loader::LoadSegments()
 			continue;
 		}
 
-		Memcpy((m_AllocatedData + l_ProgramHeader->p_vaddr), (m_Data + l_ProgramHeader->p_offset), l_ProgramHeader->p_filesz);
+		auto s_VirtualAddress = l_ProgramHeader->p_vaddr;
+		uint8_t* s_AllocatedDataOffset = m_AllocatedData + s_VirtualAddress;
+		memcpy(s_AllocatedDataOffset, m_Data + l_ProgramHeader->p_offset, l_ProgramHeader->p_filesz);
 
 		if (m_IsInKernel)
 			WriteLog(LL_Info, "here\n");
-			
-		l_ProgramHeader->p_vaddr = reinterpret_cast<Elf64_Addr>((m_AllocatedData + l_ProgramHeader->p_paddr));
+		
+		// Update the current Virtual Address
+		l_ProgramHeader->p_vaddr = reinterpret_cast<Elf64_Addr>(s_AllocatedDataOffset);
 
 		if (m_IsInKernel)
 			WriteLog(LL_Info, "here\n");
@@ -325,6 +375,7 @@ bool Loader::RelocateElf()
     
     auto s_Header = reinterpret_cast<Elf64_Ehdr*>(m_Data);
     Elf64_Sym* s_SymbolTable = nullptr;
+	Elf64_Xword s_SymbolTableCount = 0;
     Elf64_Rela* s_RelocationTable = nullptr;
     Elf64_Xword s_RelocationEntSize = 0;
     Elf64_Xword s_RelocationCount = 0;
@@ -336,27 +387,30 @@ bool Loader::RelocateElf()
     {
         auto l_SectionHeader = GetSectionHeaderByIndex(s_SectionIndex);
         if (l_SectionHeader == nullptr)
-            continue;
+		{
+			if (m_IsInKernel)
+				WriteLog(LL_Error, "could not get section header");
+			
+			continue;
+		}
         
         if (l_SectionHeader->sh_offset > m_DataLength)
-            continue;
+        {
+			if (m_IsInKernel)
+				WriteLog(LL_Error, "offset (%llx) is out of bounds of max data length (%llx).", l_SectionHeader->sh_offset, m_DataLength);
+			
+			continue;
+		}
         
+		if (m_IsInKernel)
+			WriteLog(LL_Info, "Parsing Section Header Type: %llx.", l_SectionHeader->sh_type);
+		
         switch (l_SectionHeader->sh_type)
         {
         case SHT_SYMTAB:
 			{
 				s_SymbolTable = reinterpret_cast<Elf64_Sym*>((m_Data + l_SectionHeader->sh_offset));
-
-				Elf64_Word l_StringSectionIndex = l_SectionHeader->sh_link;
-				if (l_StringSectionIndex > s_Header->e_shnum)
-					continue;
-
-				Elf64_Shdr* l_StringTableHeader = GetSectionHeaderByIndex(l_StringSectionIndex);
-				if (l_StringTableHeader == nullptr)
-					continue;
-
-				s_StringTable = reinterpret_cast<const char*>((m_Data + l_StringTableHeader->sh_offset));
-				s_StringTableSize = l_StringTableHeader->sh_size;
+				s_SymbolTableCount = (l_SectionHeader->sh_size / l_SectionHeader->sh_entsize);
 				break;
 			}
 		case SHT_RELA:
@@ -371,6 +425,23 @@ bool Loader::RelocateElf()
 				}
 				s_RelocationCount = l_SectionHeader->sh_size / s_RelocationEntSize;
 				s_RelocationTable = reinterpret_cast<Elf64_Rela*>((m_Data + l_SectionHeader->sh_offset));
+				break;
+			}
+		case SHT_STRTAB:
+			{
+				if (s_Header->e_shstrndx == s_SectionIndex)
+				{
+					if (m_IsInKernel)
+						WriteLog(LL_Debug, "skipping sectionHeaderStringTable.");
+					
+					continue;
+				}
+				
+				if (m_IsInKernel)
+					WriteLog(LL_Debug, "STRTAB NON SHIDX sectionHeaderStringIndex: (%d) curIndex: (%d).", s_Header->e_shstrndx, s_SectionIndex);
+				
+				s_StringTable = reinterpret_cast<const char*>((m_Data + l_SectionHeader->sh_offset));
+				s_StringTableSize = l_SectionHeader->sh_size;
 				break;
 			}
         }
@@ -392,11 +463,22 @@ bool Loader::RelocateElf()
 	if (s_StringTableSize == 0 || s_StringTable == nullptr)
 	{
 		if (m_IsInKernel)
-			WriteLog(LL_Error, "no string table.\n");
+			WriteLog(LL_Error, "no string table (%p) (%llx).\n", s_StringTable, s_StringTableSize);
 		else
 			WriteNotificationLog("no string table.\n");
 
 		// If we don't have any, proceed, but check all usages before we do anything
+	}
+
+	// Validate that we have a symbol table
+	if (s_SymbolTable == nullptr || s_SymbolTableCount == 0)
+	{
+		if (m_IsInKernel)
+			WriteLog(LL_Error, "no symbol table (%p) (%llx).\n", s_SymbolTable, s_SymbolTableCount);
+		else
+			WriteNotificationLog("no symbol table\n");
+		
+		return false;
 	}
 
     for (Elf64_Xword l_RelocationEntryIndex = 0; l_RelocationEntryIndex < s_RelocationCount; ++l_RelocationEntryIndex)
@@ -407,18 +489,34 @@ bool Loader::RelocateElf()
 		Elf64_Word l_SymbolIndex = ELF64_R_SYM(l_RelocationEntry->r_info);
 		Elf64_Word l_SymbolType = ELF64_R_TYPE(l_RelocationEntry->r_info);
 
+		// Validate that our symbol index is within bounds
+		if (l_SymbolIndex >= s_SymbolTableCount)
+		{
+			if (m_IsInKernel)
+				WriteLog(LL_Error, "could not get symbol index (%llx) max (%llx).", l_SymbolIndex, s_SymbolTableCount);
+			else
+				WriteNotificationLog("symbol index out of bounds");
+			
+			continue;
+		}
 		const Elf64_Sym* l_Symbol = s_SymbolTable + l_SymbolIndex;
 
 		const char* l_SymbolName = nullptr;
-		if (s_StringTable == nullptr || l_Symbol->st_name > s_StringTableSize)
+		if (s_StringTable == nullptr || l_Symbol->st_name >= s_StringTableSize)
 			l_SymbolName = "(null)";
 		else
+		{
+			if (m_IsInKernel)
+				WriteLog(LL_Info, "(%p) 0x(%x) (%s).", s_StringTable, l_Symbol->st_name, (s_StringTable + l_Symbol->st_name));
+			
 			l_SymbolName = s_StringTable + l_Symbol->st_name;
+		}
+			
 
 		Elf64_Addr* l_Location = (Elf64_Addr*)(m_AllocatedData + l_RelocationEntry->r_offset);
 
-		/*if (m_IsInKernel)
-			WriteLog(LL_Error, "relocating (%s) -> (%p).\n", l_SymbolName, l_Location);*/
+		if (m_IsInKernel)
+			WriteLog(LL_Error, "relocating (%s) -> (%p).", l_SymbolName, l_Location);
 
 		switch (l_SymbolType)
 		{
@@ -444,7 +542,7 @@ bool Loader::RelocateElf()
 		}
 	}
 
-	return true;
+	return false /*true*/;
 }
 
 bool Loader::UpdateProtections()
@@ -524,26 +622,57 @@ Elf64_Dyn* Loader::GetDynamicByTag(uint64_t p_Tag)
 
 Elf64_Phdr* Loader::GetProgramHeaderByIndex(uint32_t p_Index)
 {
-    if (m_Data == nullptr || m_DataLength == 0)
+    if (m_Data == nullptr || m_DataLength < sizeof(Elf64_Ehdr))
         return nullptr;
-    
+	
     Elf64_Ehdr* s_Header = reinterpret_cast<Elf64_Ehdr*>(m_Data);
-    if (p_Index >= s_Header->e_phnum)
-        return nullptr;
 
-	return reinterpret_cast<Elf64_Phdr*>(((m_Data + s_Header->e_phoff) + (s_Header->e_phentsize * p_Index)));
+	// Validate that our header offset is within our bounds to read
+	if (s_Header->e_phoff >= m_DataLength)
+		return nullptr;
+
+	// Validate that our index is in bounds
+	if (p_Index >= s_Header->e_phnum)
+		return nullptr;
+	
+	// Calculate our program header table address in memory
+	uint8_t* s_ProgramHeaderTableOffset = m_Data + s_Header->e_phoff;
+
+	// Calculate offset into table
+	auto s_ProgramHeaderOffsetInTable = (s_Header->e_phentsize * p_Index);
+
+	// Validate that the offset we are trying to read is in bounds
+	if (s_Header->e_phoff + s_ProgramHeaderOffsetInTable > m_DataLength)
+		return nullptr;
+
+	return reinterpret_cast<Elf64_Phdr*>(s_ProgramHeaderTableOffset + s_ProgramHeaderOffsetInTable);
 }
 
 Elf64_Shdr* Loader::GetSectionHeaderByIndex(uint32_t p_Index)
 {
-    if (m_Data == nullptr || m_DataLength == 0)
+    if (m_Data == nullptr || m_DataLength < sizeof(Elf64_Ehdr))
         return nullptr;
 
     Elf64_Ehdr* s_Header = reinterpret_cast<Elf64_Ehdr*>(m_Data);
+
+	// Validate that our header offset is within bounds to read
+	if (s_Header->e_shoff >= m_DataLength)
+		return nullptr;
+	
+	// Validate that our index is in bounds
 	if (p_Index >= s_Header->e_shnum)
 		return nullptr;
 
-	return reinterpret_cast<Elf64_Shdr*>(((m_Data + s_Header->e_shoff) + (s_Header->e_shentsize * p_Index)));
+	// Calculate the section header table address in memory
+	uint8_t* s_SectionHeaderTableOffset = m_Data + s_Header->e_shoff;
+
+	auto s_SectionHeaderOffsetInTable = s_Header->e_shentsize * p_Index;
+
+	// Validate that the offset we want to read is in bounds
+	if (s_Header->e_shoff + s_SectionHeaderOffsetInTable > m_DataLength)
+		return nullptr;
+	
+	return reinterpret_cast<Elf64_Shdr*>(s_SectionHeaderTableOffset + s_SectionHeaderOffsetInTable);
 }
 
 Elf64_Phdr* Loader::GetProgramHeaderByFileOffset(uint64_t p_FileOffset)

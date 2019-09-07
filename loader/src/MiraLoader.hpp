@@ -1,5 +1,5 @@
 #pragma once
-#include "Types.hpp"
+#include <Utils/Types.hpp>
 #include <sys/elf64.h>
 
 namespace MiraLoader
@@ -33,6 +33,9 @@ namespace MiraLoader
         static void Memcpy(void* p_Destination, void* p_Source, uint64_t p_Size);
         static void Memset(void* p_Address, uint8_t p_Value, uint64_t p_Length);
         static void WriteNotificationLog(const char* p_Message);
+
+        const uint8_t* GetAllocatedData() { return m_AllocatedData; }
+        const uint64_t GetAllocatedDataSize() { return m_AllocatedDataSize; }
     private:
         uint64_t RoundUp(uint64_t p_Number, uint64_t p_Multiple);
         static int32_t Strcmp(const char* p_First, const char* p_Second);

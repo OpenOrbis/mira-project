@@ -2,6 +2,7 @@
 #include <stdarg.h>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/SysWrappers.hpp>
+#include <Utils/Kernel.hpp>
 
 using namespace Mira::Utils;
 
@@ -20,9 +21,6 @@ Logger::Logger() :
 	m_FinalBuffer{0},
 	m_Handle(-1)
 {
-	auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
-	auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-
 #ifdef _DEBUG
 	m_LogLevel = LL_Debug;
 #else
@@ -32,8 +30,6 @@ Logger::Logger() :
 
 	memset(m_Buffer, 0, sizeof(m_Buffer));
 	memset(m_FinalBuffer, 0, sizeof(m_FinalBuffer));
-
-	mtx_init(&m_Mutex, "logger", NULL, 0);
 }
 
 Logger::~Logger()
@@ -54,10 +50,6 @@ void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function
 	auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
 	auto vsnprintf = (int(*)(char *str, size_t size, const char *format, va_list ap))kdlsym(vsnprintf);
 	auto printf = (void(*)(char *format, ...))kdlsym(printf);
-	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-	//_mtx_lock_flags(&m_Mutex, 0, __FILE__, __LINE__);
 
 	// Zero out the buffer
 	memset(m_Buffer, 0, sizeof(m_Buffer));
@@ -97,6 +89,4 @@ void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function
 
 	snprintf(m_FinalBuffer, sizeof(m_FinalBuffer), "%s[%s] %s:%d : %s %s\n", s_LevelColor, s_LevelString, p_Function, p_Line, m_Buffer, KNRM);
 	printf(m_FinalBuffer);
-
-	//_mtx_unlock_flags(&m_Mutex, 0, __FILE__, __LINE__);
 }

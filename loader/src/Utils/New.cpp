@@ -35,7 +35,7 @@ void * operator new[] (unsigned long int p_Size)
 }
 
 // Delete
-void operator delete(void* p_Pointer)
+void operator delete(void* p_Pointer) noexcept
 {
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto free = (void(*)(void* addr, struct malloc_type* type))kdlsym(free);
@@ -46,7 +46,7 @@ void operator delete(void* p_Pointer)
 	free(p_Pointer, M_TEMP);
 }
 
-void operator delete[](void* p_Pointer)
+void operator delete[](void* p_Pointer) noexcept
 {
 	::operator delete(p_Pointer);
 }

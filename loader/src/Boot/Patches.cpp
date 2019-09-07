@@ -21,18 +21,18 @@ void Patches::install_prePatches()
 		case ONI_PLATFORM_ORBIS_BSD_505:
 			install_prerunPatches_505();
 			break;
-#if ONI_PLATFORM == ONI_PLATFORM_RASPI_ZERO
 		case ONI_PLATFORM_RASPI_ZERO:
+			// no patches needed for the raspi-z
 			break;
-#elif ONI_PLATFORM == ONI_PLATFORM_STEAM_LINK
-		case ONI_PLATFORM_STEAM_LINK:
-			install_prerunPatches_SteamLink();
+		case ONI_PLATFORM_ORBIS_BSD_620:
+			install_prerunPatches_620();
 			break;
-#elif ONI_PLATFORM == ONI_PLATFORM_STEAM_LINK2
-		case ONI_PLATFORM_STEAM_LINK:
+		case ONI_PLATFORM_ORBIS_BSD_650:
+			install_prerunPatches_650();
+			break;
+		case ONI_PLATFORM_STEAM_LINK2:
 			install_prerunPatches_SteamLink2();
 			break;
-#endif
 		default:
 			break;
 	}

@@ -211,90 +211,90 @@ struct thread {
 	struct cpuset	*td_cpuset;	/* (t) CPU affinity mask. */
 	struct seltd	*td_sel;	/* Select queue/channel. */
 	struct sleepqueue *td_sleepqueue; /* (k) Associated sleep queue. */
-	struct turnstile *td_turnstile;	/* (k) Associated turnstile. */
-	struct umtx_q   *td_umtxq;	/* (c?) Link for when we're blocked. */
-	lwpid_t		td_tid;		/* (b) Thread ID. */
+	struct turnstile *td_turnstile; /* (k) Associated turnstile. */	
+	struct umtx_q	*td_umtxq;	/* (c?) Link for when we're blocked. */
+	lwpid_t	td_tid;	/* (b) Thread ID. */
 	sigqueue_t	td_sigqueue;	/* (c) Sigs arrived, not delivered. */
-#define	td_siglist	td_sigqueue.sq_signals
-	u_char		td_lend_user_pri; /* (t) Lend user pri. */
-
-								  /* Cleared during fork1() */
-#define	td_startzero td_flags
-	int		td_flags;	/* (t) TDF_* flags. */
-	int		td_inhibitors;	/* (t) Why can not run. */
-	int		td_pflags;	/* (k) Private thread (TDP_*) flags. */
-	int		td_dupfd;	/* (k) Ret value from fdopen. XXX */
-	int		td_sqqueue;	/* (t) Sleepqueue queue blocked on. */
-	void		*td_wchan;	/* (t) Sleep address. */
+	#define td_siglist	td_sigqueue.sq_signals
+	u_char	td_lend_user_pri; /* (t) Lend user pri. */
+	
+	/* Cleared during fork1() */
+	#define td_startzero td_flags
+	int	td_flags;	/* (t) TDF_* flags. */
+	int	td_inhibitors;	/* (t) Why can not run. */
+	int	td_pflags;	/* (k) Private thread (TDP_*) flags. */
+	int	td_dupfd;	/* (k) Ret value from fdopen. XXX */
+	int	td_sqqueue;	/* (t) Sleepqueue queue blocked on. */
+	void	*td_wchan;	/* (t) Sleep address. */
 	const char	*td_wmesg;	/* (t) Reason for sleep. */
-	u_char		td_lastcpu;	/* (t) Last cpu we were on. */
-	u_char		td_oncpu;	/* (t) Which cpu we are on. */
-	volatile u_char td_owepreempt;  /* (k*) Preempt on last critical_exit */
-	u_char		td_tsqueue;	/* (t) Turnstile queue blocked on. */
-	short		td_locks;	/* (k) Count of non-spin locks. */
-	short		td_rw_rlocks;	/* (k) Count of rwlock read locks. */
-	short		td_lk_slocks;	/* (k) Count of lockmgr shared locks. */
+	u_char	td_lastcpu;	/* (t) Last cpu we were on. */
+	u_char	td_oncpu;	/* (t) Which cpu we are on. */
+	volatile u_char td_owepreempt;	/* (k*) Preempt on last critical_exit */
+	u_char	td_tsqueue;	/* (t) Turnstile queue blocked on. */
+	short	td_locks;	/* (k) Count of non-spin locks. */
+	short	td_rw_rlocks;	/* (k) Count of rwlock read locks. */
+	short	td_lk_slocks;	/* (k) Count of lockmgr shared locks. */
+	short	td_stopsched;	/* (k) Scheduler stopped. */
 	struct turnstile *td_blocked;	/* (t) Lock thread is blocked on. */
 	const char	*td_lockname;	/* (t) Name of lock blocked on. */
 	LIST_HEAD(, turnstile) td_contested;	/* (q) Contested locks. */
 	struct lock_list_entry *td_sleeplocks; /* (k) Held sleep locks. */
-	int		td_intr_nesting_level; /* (k) Interrupt recursion. */
-	int		td_pinned;	/* (k) Temporary cpu pin count. */
+	int	td_intr_nesting_level; /* (k) Interrupt recursion. */
+	int	td_pinned;	/* (k) Temporary cpu pin count. */
 	struct ucred	*td_ucred;	/* (k) Reference to credentials. */
-	u_int		td_estcpu;	/* (t) estimated cpu utilization */
-	int		td_slptick;	/* (t) Time at sleep. */
-	int		td_blktick;	/* (t) Time spent blocked. */
-	int		td_swvoltick;	/* (t) Time at last SW_VOL switch. */
-	struct rusage	td_ru;		/* (t) rusage information. */
+	u_int	td_estcpu;	/* (t) estimated cpu utilization */
+	int	td_slptick;	/* (t) Time at sleep. */
+	int	td_blktick;	/* (t) Time spent blocked. */
+	int	td_swvoltick;	/* (t) Time at last SW_VOL switch. */
+	struct rusage	td_ru;	/* (t) rusage information. */
 	struct rusage_ext td_rux;	/* (t) Internal rusage information. */
 	uint64_t	td_incruntime;	/* (t) Cpu ticks to transfer to proc. */
 	uint64_t	td_runtime;	/* (t) How many cpu ticks we've run. */
-	u_int 		td_pticks;	/* (t) Statclock hits for profiling */
-	u_int		td_sticks;	/* (t) Statclock hits in system mode. */
-	u_int		td_iticks;	/* (t) Statclock hits in intr mode. */
-	u_int		td_uticks;	/* (t) Statclock hits in user mode. */
-	int		td_intrval;	/* (t) Return value for sleepq. */
-	sigset_t	td_oldsigmask;	/* (k) Saved mask from pre sigpause. */
+	u_int	td_pticks;	/* (t) Statclock hits for profiling */
+	u_int	td_sticks;	/* (t) Statclock hits in system mode. */
+	u_int	td_iticks;	/* (t) Statclock hits in intr mode. */
+	u_int	td_uticks;	/* (t) Statclock hits in user mode. */
+	int	td_intrval;	/* (t) Return value for sleepq. */
+	sigset_t	td_oldsigmask;	/* (k) Saved mask from pre sigpause. */	
 	sigset_t	td_sigmask;	/* (c) Current signal mask. */
 	volatile u_int	td_generation;	/* (k) For detection of preemption */
-	stack_t		td_sigstk;	/* (k) Stack ptr and on-stack flag. */
-	int		td_xsig;	/* (c) Signal for ptrace */
-	u_long		td_profil_addr;	/* (k) Temporary addr until AST. */
-	u_int		td_profil_ticks; /* (k) Temporary ticks until AST. */
-	char		td_name[MAXCOMLEN + 17];	/* (*) Thread name. */
+	stack_t	td_sigstk;	/* (k) Stack ptr and on-stack flag. */
+	int	td_xsig;	/* (c) Signal for ptrace */	
+	u_long	td_profil_addr; /* (k) Temporary addr until AST. */
+	u_int	td_profil_ticks; /* (k) Temporary ticks until AST. */
+	char	td_name[MAXCOMLEN + 1]; /* (*) Thread name. */
 	struct file	*td_fpop;	/* (k) file referencing cdev under op */
-	int		td_dbgflags;	/* (c) Userland debugger flags */
+	int	td_dbgflags;	/* (c) Userland debugger flags */
 	struct ksiginfo td_dbgksi;	/* (c) ksi reflected to debugger. */
-	int		td_ng_outbound;	/* (k) Thread entered ng from above. */
-	struct osd	td_osd;		/* (k) Object specific data. */
+	int	td_ng_outbound; /* (k) Thread entered ng from above. */
+	struct osd	td_osd;	/* (k) Object specific data. */
 	struct vm_map_entry *td_map_def_user; /* (k) Deferred entries. */
-	pid_t		td_dbg_forked;	/* (c) Child pid for debugger. */
-#define	td_endzero td_rqindex
+	pid_t	td_dbg_forked;	/* (c) Child pid for debugger. */
+	#define td_endzero td_rqindex
+	char unk35C[0x04];
 
-	char td_unk35C[0x04];
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	char unk360[0x18];
+	#endif
 
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
-	char td_unk360[0x18];
-#endif
-
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
-	char td_unk378[0x04];
-#endif
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
+	char unk378[0x04];
+	#endif
 
 	/* Copied during fork1() or thread_sched_upcall(). */
-#define	td_startcopy td_endzero
-	u_short		td_rqindex;	/* (t) Run queue index. */
-	u_short		td_base_pri;	/* (t) Thread base kernel priority. */
-	u_short		td_priority;	/* (t) Thread active priority. */
-	u_short		td_pri_class;	/* (t) Scheduling class. */
-	u_short		td_user_pri;	/* (t) User pri from estcpu and nice. */
-	u_short		td_base_user_pri; /* (t) Base user pri */
-#define	td_endcopy td_pcb
-
-								  /*
-								  * Fields that must be manually set in fork1() or thread_sched_upcall()
-								  * or already have been set in the allocator, constructor, etc.
-								  */
+	#define td_startcopy td_endzero
+	u_char	td_rqindex;	/* (t) Run queue index. */
+	u_char	td_base_pri;	/* (t) Thread base kernel priority. */
+	u_char	td_priority;	/* (t) Thread active priority. */
+	u_char	td_pri_class;	/* (t) Scheduling class. */
+	u_char	td_user_pri;	/* (t) User pri from estcpu and nice. */
+	u_char	td_base_user_pri; /* (t) Base user pri */
+	#define td_endcopy td_pcb
+	
+	/*
+	 * Fields that must be manually set in fork1() or thread_sched_upcall()
+	 * or already have been set in the allocator, constructor, etc.
+	 */
 	struct pcb	*td_pcb;	/* (k) Kernel VA of pcb and kstack. */
 	enum {
 		TDS_INACTIVE = 0x0,
@@ -302,36 +302,39 @@ struct thread {
 		TDS_CAN_RUN,
 		TDS_RUNQ,
 		TDS_RUNNING
-	} td_state;			/* (t) thread state */
+	} td_state;	/* (t) thread state */
 	register_t	td_retval[2];	/* (k) Syscall aux returns. */
 	struct callout	td_slpcallout;	/* (h) Callout for sleep. */
 	struct trapframe *td_frame;	/* (k) */
 	struct vm_object *td_kstack_obj;/* (a) Kstack object. */
 	vm_offset_t	td_kstack;	/* (a) Kernel VA of kstack. */
-	int		td_kstack_pages; /* (a) Size of the kstack. */
+	int	td_kstack_pages; /* (a) Size of the kstack. */
 	volatile u_int	td_critnest;	/* (k*) Critical section nest level. */
-	struct mdthread td_md;		/* (k) Any machine-dependent fields. */
-	struct td_sched	*td_sched;	/* (*) Scheduler-specific data. */
-	struct kaudit_record	*td_ar;	/* (k) Active audit record, if any. */
+	struct mdthread td_md;	/* (k) Any machine-dependent fields. */
+	struct td_sched *td_sched;	/* (*) Scheduler-specific data. */
+	struct kaudit_record	*td_ar; /* (k) Active audit record, if any. */
 	struct lpohead	td_lprof[2];	/* (a) lock profiling objects. */
 	struct kdtrace_thread	*td_dtrace; /* (*) DTrace-specific data. */
-	int		td_errno;	/* Error returned by last syscall. */
+	int	td_errno;	/* Error returned by last syscall. */
 	struct vnet	*td_vnet;	/* (k) Effective vnet. */
-	const char	*td_vnet_lpush;	/* (k) Debugging vnet push / pop. */
+	const char	*td_vnet_lpush; /* (k) Debugging vnet push / pop. */
 	struct trapframe *td_intr_frame;/* (k) Frame of the current irq */
 
+	/* PS4 specific fields */
 	char            td_unk440[0xA8];
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
 	char            td_unk4E8[0x58];
-#endif
+	#endif
 
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
 	char            td_unk540[0x20];
-#endif
+	#endif
 
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
-	char td_unk560[0x10];
-#endif
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+	char            td_unk560[0x10];
+	#endif
+	/* PS4 specific fields */
 };
 
 struct mtx *thread_lock_block(struct thread *);
@@ -401,10 +404,8 @@ do {									\
 #define	TDB_SCE		0x00000008 /* Thread performs syscall enter */
 #define	TDB_SCX		0x00000010 /* Thread performs syscall exit */
 #define	TDB_EXEC	0x00000020 /* TDB_SCX from exec(2) family */
-#define	TDB_FORK	0x00000040 /* TDB_SCX from fork(2) that created new
-				      process */
-#define	TDB_STOPATFORK	0x00000080 /* Stop at the return from fork (child
-				      only) */
+#define	TDB_FORK	0x00000040 /* TDB_SCX from fork(2) that created new process */
+#define	TDB_STOPATFORK	0x00000080 /* Stop at the return from fork (child only) */
 
 /*
  * "Private" flags kept in td_pflags:
@@ -502,10 +503,10 @@ struct proc {
 	struct callout	p_limco;	/* (c) Limit callout handle */
 	struct sigacts	*p_sigacts;	/* (x) Signal actions, state (CPU). */
 
-								/*
-								* The following don't make too much sense.
-								* See the td_ or ke_ versions of the same flags.
-								*/
+	/*
+	 * The following don't make too much sense.
+	 * See the td_ or ke_ versions of the same flags.
+	 */
 	int		p_flag;		/* (c) P_* flags. */
 	enum {
 		PRS_NEW = 0,		/* In creation */
@@ -523,7 +524,7 @@ struct proc {
 	sigqueue_t	p_sigqueue;	/* (c) Sigs not delivered to a td. */
 #define p_siglist	p_sigqueue.sq_signals
 
-							/* The following fields are all zeroed upon creation in fork. */
+/* The following fields are all zeroed upon creation in fork. */
 #define	p_startzero	p_oppid
 	pid_t		p_oppid;	/* (c + e) Save ppid in ptrace. XXX */
 	int		p_dbg_child;	/* (c + e) # of debugged children in
@@ -558,32 +559,37 @@ struct proc {
 	int		p_pendingcnt;	/* how many signals are pending */
 	struct itimers	*p_itimers;	/* (c) POSIX interval timers. */
 	struct procdesc	*p_procdesc;	/* (e) Process descriptor, if any. */
-									/* End area that is zeroed on creation. */
+/* End area that is zeroed on creation. */
 #define	p_endzero	p_magic
 
+	/* PS4 specific data */
 	char		*p_patchpath;	/* patch file path */
 	int		p_unk338;
 	void		*p_dynlib;      /* Sony Dynlib info */
 
-#if ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK2
+	// extra stuff
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_650
 	char            unk348[0x104];
-#elif ONI_PLATFORM >= ONI_PLATFORM_STEAM_LINK
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_600
 	char            unk348[0x100];
-#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_550
+	char            unk348[0x104];
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
 	char            unk348[0x0FC];
-#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
 	char            unk348[0x0F4];
-#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_400
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_400
 	char            unk348[0x0A0];
-#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
 	char            unk348[0x090];
-#endif
+	#endif
+	/* PS4 specific data */
 
-	/* The following fields are all copied upon creation in fork. */
+/* The following fields are all copied upon creation in fork. */
 #define	p_startcopy	p_endzero
 	u_int		p_magic;	/* (b) Magic number. */
 	int		p_osrel;	/* (x) osreldate for the
-						binary (from ELF note, if any) */
+					       binary (from ELF note, if any) */
 	char		p_comm[MAXCOMLEN + 13];	/* (b) Process name. */
 
 	/* PS4 specific data */
@@ -596,7 +602,7 @@ struct proc {
 	rlim_t		p_cpulimit;	/* (c) Current CPU limit in seconds. */
 	signed char	p_nice;		/* (c) Process "nice" value. */
 	int		p_fibnum;	/* in this routing domain XXX MRT */
-						/* End area that is copied on creation. */
+/* End area that is copied on creation. */
 #define	p_endcopy	p_xstat
 
 	/* PS4 specific data */
@@ -622,18 +628,18 @@ struct proc {
 	struct kdtrace_proc	*p_dtrace; /* (*) DTrace-specific data. */
 	struct cv	p_pwait;	/* (*) wait cv for exit/exec. */
 	struct cv	p_dbgwait;	/* (*) wait cv for debugger attach
-							after fork. */
+					   after fork. */
 	uint64_t	p_prev_runtime;	/* (c) Resource usage accounting. */
 	struct racct	*p_racct;	/* (b) Resource accounting. */
 
 	/* PS4 specific data */
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
 	char            unkA08[0xB0];
-#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
 	char            unkA08[0xA8];
-#else
+	#else
 	char            unkA08[0x98];
-#endif
+	#endif
 	/* PS4 specific data */
 };
 

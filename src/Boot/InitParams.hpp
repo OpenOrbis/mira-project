@@ -4,6 +4,10 @@
 struct proc;
 struct _ElfLoader_t;
 
+namespace MiraLoader
+{
+    class Loader;
+}
 namespace Mira
 {
     namespace Boot
@@ -16,6 +20,8 @@ namespace Mira
             // Payload size
             uint64_t payloadSize;
 
+            uint64_t allocatedBase;
+
             // Kernel process handle
             struct proc* process;
 
@@ -24,10 +30,13 @@ namespace Mira
             void(*entrypoint)(void*);
 
             // ElfLoader
-            struct _ElfLoader_t* elfLoader;
+            MiraLoader::Loader* elfLoader;
 
             // If this is an elf launch or not
             uint8_t isElf : 1;
+            
+            // If the kproc is currently running
+            uint8_t isRunning : 1;
         } InitParams;
     }
 }

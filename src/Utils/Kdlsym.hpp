@@ -8,8 +8,6 @@
 
 #if ONI_PLATFORM==ONI_UNKNOWN_PLATFORM
 #include "Kdlsym/Default.hpp"
-#elif ONI_PLATFORM==ONI_PLATFORM_STEAM_LINK
-#include "Kdlsym/SteamLink.hpp"
 #elif ONI_PLATFORM==ONI_PLATFORM_STEAM_LINK2
 #include "Kdlsym/SteamLink2.hpp"
 #elif ONI_PLATFORM==ONI_PLATFORM_RASPI_ZERO
@@ -24,6 +22,10 @@
 #include "Kdlsym/Orbis501.hpp"
 #elif ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_505
 #include "Kdlsym/Orbis505.hpp"
+#elif ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_620
+#include "Kdlsym/Orbis620.hpp"
+#elif ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_650
+#include "Kdlsym/Orbis650.hpp"
 #endif
 
 // Kernel base address, this must be filled out on-startup (normally done in oni_initializeKernel)

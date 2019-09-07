@@ -160,10 +160,11 @@ extern "C" void* mira_entry(void* args)
 		WriteNotificationLog("could not allocate 5MB buffer");
 		return nullptr;
 	}
-	Loader::Memset(buffer, 0, bufferSize);
+	memset(buffer, 0, bufferSize);
+	//Loader::Memset(buffer, 0, bufferSize);
 	// Hold our server socket address
-	struct sockaddr_in serverAddress;
-	Loader::Memset(&serverAddress, 0, sizeof(serverAddress));
+	struct sockaddr_in serverAddress = { 0 };
+	//Loader::Memset(&serverAddress, 0, sizeof(serverAddress));
 
 	// Listen on port 9021
 	serverAddress.sin_len = sizeof(serverAddress);
@@ -226,7 +227,7 @@ extern "C" void* mira_entry(void* args)
 
 		// TODO: Check for custom Mira elf section to determine launch type
 		char buf[64];
-		Loader::Memset(buf, 0, sizeof(buf));
+		memset(buf, 0, sizeof(buf));
 
 		snprintf(buf, sizeof(buf), "elf: %p elfSize: %llx", buffer, currentSize);
 		WriteNotificationLog(buf);
@@ -236,6 +237,7 @@ extern "C" void* mira_entry(void* args)
 		{
 			Mira::Boot::InitParams initParams = { 0 };
 			initParams.isElf = true;
+			initParams.isRunning = false;
 			initParams.payloadBase = (uint64_t)buffer;
 			initParams.payloadSize = currentSize;
 			initParams.process = nullptr;
@@ -292,7 +294,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto kproc_create = (int(*)(void(*func)(void*), void* arg, struct proc** newpp, int flags, int pages, const char* fmt, ...))kdlsym(kproc_create);
 	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
-	auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
+	//auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
 	auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
@@ -368,6 +370,16 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 		printf("could not allocate loader\n");
 		return;
 	}
+
+	// Update the loader
+	initParams->elfLoader = loader;
+	initParams->entrypoint = loader->GetEntrypoint();
+	initParams->allocatedBase = reinterpret_cast<uint64_t>(loader->GetAllocatedData());
+	initParams->payloadBase = reinterpret_cast<uint64_t>(kernelElf);
+	initParams->payloadSize = payloadSize;
+
+	// Update the initial running state
+	initParams->isRunning = false;
 
 	auto s_EntryPoint = loader->GetEntrypoint();
 	if (s_EntryPoint != nullptr)

@@ -340,14 +340,12 @@ int ksocket(int a, int b, int c)
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto ksys_socket = (int(*)(struct thread*, struct socket_args*))sysents[SYS_SOCKET].sy_call;
-	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	
 	int error;
 	struct socket_args uap;
 	struct thread *td = curthread;
 
 	// clear errors
-	//printf("offsetof td_retval: %llx", offsetof(struct thread, td_retval));
 	td->td_retval[0] = 0;
 
 	// call syscall
@@ -680,29 +678,27 @@ int kdup2(int oldd, int newd)
 
 int kmkdir(char * path, int mode)
 {
-	auto kern_mkdirat = (int (*)(struct thread *td, int fd, char *path, enum uio_seg segflg, int mode))kdlsym(kern_mkdirat);
-
-	struct thread *td = curthread;
-
-	// clear the return
-	td->td_retval[0] = 0;
-
-	int error = kern_mkdirat(td, AT_FDCWD, path, UIO_SYSSPACE, mode);
-	if (error)
-		return -error;
-
-	// success
-	return td->td_retval[0];
+	return kmkdir_t(path, mode, curthread);
 }
 
 
 int kmkdir_t(char * path, int mode, struct thread* td)
 {
-	auto kern_mkdirat = (int (*)(struct thread *td, int fd, char *path, enum uio_seg segflg, int mode))kdlsym(kern_mkdirat);
-	// clear the return
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_mkdir = (int (*)(struct thread*, struct mkdir_args*))sysents[SYS_MKDIR].sy_call;
+	
+	int error;
+	struct mkdir_args uap;
+
+	// clear errors
 	td->td_retval[0] = 0;
 
-	int error = kern_mkdirat(td, AT_FDCWD, path, UIO_SYSSPACE, mode);
+	// call syscall
+	uap.path = path;
+	uap.mode = mode;
+
+	error = sys_mkdir(td, &uap);
 	if (error)
 		return -error;
 

@@ -108,8 +108,10 @@ struct sysentvec {
 	int		sv_pagesize;	/* pagesize */
 	vm_offset_t	sv_minuser;	/* VM_MIN_ADDRESS */
 	vm_offset_t	sv_maxuser;	/* VM_MAXUSER_ADDRESS */
+#if ONI_PLATFORM < ONI_PLATFORM_ORBIS_BSD_355
 	vm_offset_t	sv_usrstack;	/* USRSTACK */
 	vm_offset_t	sv_psstrings;	/* PS_STRINGS */
+#endif
 	int		sv_stackprot;	/* vm protection for stack */
 	register_t	*(*sv_copyout_strings)(struct image_params *);
 	void		(*sv_setregs)(struct thread *, struct image_params *,

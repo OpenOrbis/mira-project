@@ -93,15 +93,15 @@ pre-build:
 post-build: main-build
 	@echo "Post-Build"
 	@echo "Linking $(PROJ_NAME)..."
-	@$(LNK) $(ALL_OBJ) -o $(TARGET) $(LFLAGS) $(LIBS)
+	@$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(TARGET) $(LFLAGS) $(LIBS)
 	@echo "Creating Payload..."
-	@$(OBJCOPY) -O binary $(TARGET) $(PAYLOAD)
+	@$(OBJCOPY) -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD)
 	@echo "Building loader..."
 	@$(MAKE) --no-print-directory loader-build
 
 main-build: pre-build
 	@echo "Building for Firmware $(ONI_PLATFORM)..."
-	@$(MAKE) --no-print-directory $(ALL_OBJ)
+	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 
 loader-build:
 	@echo "Loader-Build"
@@ -111,10 +111,12 @@ loader-build:
 	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $< ..."
+	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 	@$(CC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo "Compiling $< ..."
+	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
@@ -123,7 +125,7 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 
 clean:
 	@echo "Cleaning project..."
-	@rm -f $(TARGET) $(PAYLOAD) $(shell find $(OUT_DIR)/ -type f -name '*.o')
+	@rm -f $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD) $(shell find $(OUT_DIR)/ -type f -name '*.o')
 
 create:
 	@echo "Creating directories..."

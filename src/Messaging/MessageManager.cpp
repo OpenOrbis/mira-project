@@ -15,9 +15,13 @@ using namespace Mira::Messaging;
 
 MessageManager::MessageManager()
 {
+    WriteLog(LL_Debug, "here");
+
     // Initialize the mutex
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     mtx_init(&m_ListenersLock, "MsgMgr", nullptr, 0);
+
+    WriteLog(LL_Debug, "here");
 }
 
 MessageManager::~MessageManager()

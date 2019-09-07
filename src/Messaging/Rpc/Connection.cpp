@@ -186,7 +186,7 @@ void Connection::ConnectionThread(void* p_Connection)
     s_Connection->m_Running = false;
 
     auto s_Server = s_Connection->m_Server;
-    if (s_Server == nullptr)
+    if (s_Server != nullptr)
         s_Server->OnConnectionDisconnected(s_Connection);
 
     kthread_exit();
