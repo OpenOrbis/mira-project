@@ -31,7 +31,7 @@ extern "C"
 #include <sys/mman.h>
 #include <netinet/in.h>
 
-#include "MiraLoader.hpp"
+#include <Boot/MiraLoader.hpp>
 
 using namespace Mira::Utils;
 using namespace MiraLoader;
@@ -250,17 +250,18 @@ extern "C" void* mira_entry(void* args)
 		{
 			// Launch ELF
 			// TODO: Check/Add a flag to the elf that determines if this is a kernel or userland elf
-			Loader loader(buffer, currentSize, false);
+			// Loader(const void* p_Elf, uint32_t p_ElfSize, ElfLoaderType_t p_Type);
+			MiraLoader::Loader loader(buffer, currentSize, ElfLoaderType_t::UserProc);
 
-
-			if (!loader.GetEntrypoint())
+			auto entryPoint = reinterpret_cast<void(*)(void*)>(loader.GetEntrypoint());
+			if (!entryPoint)
 			{
 				WriteNotificationLog("could not find entry point");
 				return NULL;
 			}
 
 			// Launch userland
-			loader.GetEntrypoint()(nullptr);
+			entryPoint(nullptr);
 		}
 	}
 	else
@@ -364,7 +365,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	WriteLog(LL_Debug, "elf header: %X\n", magic);
 
 	// Launch ELF
-	MiraLoader::Loader* loader = new MiraLoader::Loader(kernelElf, payloadSize, true); //malloc(sizeof(ElfLoader_t), M_LINKER, M_WAITOK);
+	MiraLoader::Loader* loader = new MiraLoader::Loader(kernelElf, payloadSize, ElfLoaderType_t::KernelProc); //malloc(sizeof(ElfLoader_t), M_LINKER, M_WAITOK);
 	if (!loader)
 	{
 		printf("could not allocate loader\n");
@@ -373,15 +374,15 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 
 	// Update the loader
 	initParams->elfLoader = loader;
-	initParams->entrypoint = loader->GetEntrypoint();
-	initParams->allocatedBase = reinterpret_cast<uint64_t>(loader->GetAllocatedData());
+	initParams->entrypoint = reinterpret_cast<void(*)(void*)>(loader->GetEntrypoint());
+	initParams->allocatedBase = reinterpret_cast<uint64_t>(loader->GetAllocatedMap());
 	initParams->payloadBase = reinterpret_cast<uint64_t>(kernelElf);
 	initParams->payloadSize = payloadSize;
 
 	// Update the initial running state
 	initParams->isRunning = false;
 
-	auto s_EntryPoint = loader->GetEntrypoint();
+	auto s_EntryPoint = initParams->entrypoint;
 	if (s_EntryPoint != nullptr)
 	{
 		printf("[+]entrypoint: %p", s_EntryPoint);

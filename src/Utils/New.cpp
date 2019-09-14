@@ -27,14 +27,14 @@ volatile static uint64_t g_TotalSize = 0;*/
 
 void * operator new(unsigned long int p_Size)
 {
-	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	//auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
 	auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
-	printf("[+] %llx\n", p_Size);
+	//printf("[+] %llx\n", p_Size);
 
 	auto s_Allocation = malloc(p_Size, M_TEMP, M_ZERO | M_WAITOK);
-	printf("[+] %p\n", s_Allocation);
+	//printf("[+] %p\n", s_Allocation);
 
 	return s_Allocation;
 }
@@ -57,11 +57,11 @@ void operator delete(void* p_Pointer) noexcept
 	if (p_Pointer == nullptr)
 		return;
 	
-	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	//auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto free = (void(*)(void* addr, struct malloc_type* type))kdlsym(free);
 	auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
-	printf("[-] %p\n", p_Pointer);
+	//printf("[-] %p\n", p_Pointer);
 
 	free(p_Pointer, M_TEMP);
 }

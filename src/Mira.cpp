@@ -278,7 +278,33 @@ extern "C" void mira_entry(void* args)
 	// Create new credentials
 	(void)ksetuid_t(0, curthread);
 
-	printf("[+] %s %d: here\n", __PRETTY_FUNCTION__, __LINE__);
+	WriteLog(LL_Debug, "here");
+
+	// Root and escape our thread
+	if (curthread->td_ucred)
+	{
+		WriteLog(LL_Info, "escaping thread");
+
+		curthread->td_ucred->cr_rgid = 0;
+		curthread->td_ucred->cr_svgid = 0;
+		
+		curthread->td_ucred->cr_uid = 0;
+		curthread->td_ucred->cr_ruid = 0;
+
+		if (curthread->td_ucred->cr_prison)
+			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
+
+		if (curthread->td_proc->p_fd)
+			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+		
+		// Set our auth id as debugger
+		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::Decid;
+
+		// make system credentials
+		curthread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
+		curthread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
+	}
+	WriteLog(LL_Debug, "here");
 
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
@@ -331,43 +357,24 @@ extern "C" void mira_entry(void* args)
 		pmap_activate(curthread);
 		WriteLog(LL_Debug, "here");
 	}
-	
-	WriteLog(LL_Debug, "here");
 
-	// Root and escape our thread
-	if (curthread->td_ucred)
-	{
-		WriteLog(LL_Info, "escaping thread");
+	//auto offset = offsetof(struct thread, td_retval[0]);
 
-		curthread->td_ucred->cr_rgid = 0;
-		curthread->td_ucred->cr_svgid = 0;
-		
-		curthread->td_ucred->cr_uid = 0;
-		curthread->td_ucred->cr_ruid = 0;
-
-		if (curthread->td_ucred->cr_prison)
-			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
-
-		if (curthread->td_proc->p_fd)
-			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
-		
-		// Set our auth id as debugger
-		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::Decid;
-
-		// make system credentials
-		curthread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
-		curthread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
-	}
-	WriteLog(LL_Debug, "here");
+	/*auto offset = offsetof(struct thread, td_retval[0]);
+	auto offset2 = offsetof(struct thread, unk35C);
+	auto offset3 = offsetof(struct thread, td_flags);
+	auto offset4 = offsetof(struct thread, td_ucred);
+	auto offset5 = offsetof(struct thread, td_intrval);
+	auto offset6 = offsetof(struct thread, td_name);
+	auto offset7 = offsetof(struct thread, td_name);
+	WriteLog(LL_Debug, "td_retval %p", offset);*/
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
 	int descriptor = kopen(const_cast<char*>("/dev/console"), 1, 0);
-	WriteLog(LL_Debug, "here");
-	kdup2(descriptor, 1);
-	WriteLog(LL_Debug, "here");
-	kdup2(1, 2);
-	WriteLog(LL_Debug, "here");
+	WriteLog(LL_Debug, "/dev/console descriptor: %d", descriptor);
+	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2(descriptor, 1));
+	WriteLog(LL_Info, "dup2(1, 2) result: %d", kdup2(1, 2));
 
 	// Show over UART that we are running in a new process
 	WriteLog(LL_Info, "oni_kernelInitialization in new process!\n");
