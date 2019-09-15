@@ -21,7 +21,7 @@ extern int klisten(int, int);
 extern int kaccept(int, struct sockaddr*, size_t*);
 extern int krecv(int, void*, int, int);
 extern int kopen(const char* path, int flags, int mode);
-extern int kopen_t(char* path, int flags, int mode, struct thread* td);
+extern int kopen_t(const char* path, int flags, int mode, struct thread* td);
 extern ssize_t kwrite(int d, const void* buf, size_t nbytes);
 extern int kgetdents(int fd, char* buf, int nbytes);
 extern ssize_t kread(int fd, void* buf, size_t count);

@@ -34,6 +34,8 @@ Server::Server(uint16_t p_Port) :
 Server::~Server()
 {
     // TODO: implement
+    auto mtx_destroy = (void (*)(struct	mtx *mutex))kdlsym(mtx_destroy);
+    mtx_destroy(&m_Lock);
 }
 
 bool Server::OnLoad()
@@ -62,30 +64,6 @@ bool Server::OnResume()
 
 bool Server::Startup()
 {
-    // Root and escape our thread
-	if (curthread->td_ucred)
-	{
-		WriteLog(LL_Info, "escaping thread");
-		curthread->td_ucred->cr_rgid = 0;
-		curthread->td_ucred->cr_svgid = 0;
-		
-		curthread->td_ucred->cr_uid = 0;
-		curthread->td_ucred->cr_ruid = 0;
-
-		if (curthread->td_ucred->cr_prison)
-			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
-		
-		if (curthread->td_proc->p_fd)
-			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
-		
-		// Set our auth id as debugger
-		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::Decid;
-
-		// make system credentials
-		curthread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
-		curthread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
-	}
-
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
 
     // Create a socket

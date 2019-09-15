@@ -463,7 +463,7 @@ int klisten(int sockfd, int backlog)
 	return td->td_retval[0];
 }
 
-int kaccept(int sock, struct sockaddr * b, size_t* c)
+int kaccept2(int sock, struct sockaddr * b, size_t* c)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -501,7 +501,28 @@ int kaccept(int sock, struct sockaddr * b, size_t* c)
 		return error;
 }
 
-int krecv(int s, void * buf, int len, int flags)
+int kaccept(int sock, struct sockaddr * b, size_t* c)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kaccept2(sock, b, c);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int krecv2(int s, void * buf, int len, int flags)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -550,7 +571,28 @@ int krecv(int s, void * buf, int len, int flags)
 		return error;
 }
 
-int ksend(int socket, caddr_t buf, size_t len, int flags)
+int krecv(int s, void * buf, int len, int flags)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = krecv2(s, buf, len, flags);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int ksend2(int socket, caddr_t buf, size_t len, int flags)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -599,7 +641,28 @@ int ksend(int socket, caddr_t buf, size_t len, int flags)
 		return error;
 }
 
-int kopen_t(char* path, int flags, int mode, struct thread* td)
+int ksend(int socket, caddr_t buf, size_t len, int flags)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = ksend2(socket, buf, len, flags);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kopen2_t(const char* path, int flags, int mode, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -613,7 +676,7 @@ int kopen_t(char* path, int flags, int mode, struct thread* td)
 	td->td_retval[0] = 0;
 
 	// call syscall
-	uap.path = path;
+	uap.path = const_cast<char*>(path);
 	uap.flags = flags;
 	uap.mode = mode;
 
@@ -625,7 +688,7 @@ int kopen_t(char* path, int flags, int mode, struct thread* td)
 	return td->td_retval[0];
 }
 
-int kopen(const char* path, int flags, int mode)
+int kopen2(const char* path, int flags, int mode)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -649,6 +712,48 @@ int kopen(const char* path, int flags, int mode)
 
 	// success
 	return td->td_retval[0];
+}
+
+int kopen_t(const char* path, int flags, int mode, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kopen2_t(path, flags, mode, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kopen(const char* path, int flags, int mode)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kopen2(path, flags, mode);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
 }
 
 int kdup2(int oldd, int newd)

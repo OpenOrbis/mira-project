@@ -7,7 +7,14 @@
 #include <sys/proc.h>
 
 // stackframe
-#include <machine/frame.h>
+extern "C"
+{
+	#include <vm/vm.h>
+	#include <vm/pmap.h>
+	#include <machine/frame.h>
+	#include <machine/psl.h>
+	#include <machine/pmap.h>
+}
 
 #include <Mira.hpp>
 
@@ -39,7 +46,7 @@ bool Debugger::OnLoad()
     if (m_TrapFatalHook != nullptr)
     {
         WriteLog(LL_Info, "enabling trap_fatal hook");
-        m_TrapFatalHook->Enable();
+        //m_TrapFatalHook->Enable();
     }
 
 	return true;
@@ -78,117 +85,16 @@ bool Debugger::OnResume()
 	return true;
 }
 
-void Debugger::OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva)
+void sdtossd(struct user_segment_descriptor *sd, struct soft_segment_descriptor *ssd)
 {
-    //auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-
-	uint32_t amdFrameCount = 0;
-	struct amd64_frame* amdFrame = nullptr;
-    void* s_Rsp = nullptr;
-    static const char* dash = "-----------------------";
-	auto s_Framework = Mira::Framework::GetFramework();
-
-    if (p_Frame == nullptr)
-        goto hang_thread;
-		
-    if (curthread == nullptr)
-        goto hang_thread;
-
-    // Set the correct RSP
-    s_Rsp = ((uint8_t*)p_Frame - 0xA8);
-
-	WriteLog(LL_Info, "kernel panic detected");
-	WriteLog(LL_Info, "call stizzack");
-    amdFrame = (struct amd64_frame*)p_Frame->tf_rbp;
-	while (IsStackSpace(amdFrame))
-	{
-		WriteLog(LL_Debug, "[%d] - f: %p ret: %p", amdFrameCount, amdFrame, amdFrame->f_retaddr);
-		amdFrame = amdFrame->f_frame;
-		amdFrameCount++;
-	}
-
-	// Print extra information in case that Oni/Mira itself crashes
-	if (s_Framework->GetInitParams())
-	{
-		auto s_InitParams = s_Framework->GetInitParams();
-
-		WriteLog(LL_Info, dash);
-		WriteLog(LL_Info, "mira base: %p size: %p", s_InitParams->payloadBase, s_InitParams->payloadSize);
-		WriteLog(LL_Info, "mira proc: %p entrypoint: %p", s_InitParams->process);
-		WriteLog(LL_Info, "mira mira_entry: %p", mira_entry);
-
-		if (s_Framework)
-			WriteLog(LL_Info, "mira messageManager: %p pluginManager: %p rpcServer: %p", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
-	
-		WriteLog(LL_Info, "OffsetFromKernelBase: %p", p_Frame->tf_last_branch_from - (uint64_t)gKernelBase);
-		WriteLog(LL_Info, "OffsetFromMiraEntry: %p",  p_Frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry));
-    }
-
-	WriteLog(LL_Info, dash);
-	WriteLog(LL_Info, "gKernelBase: %p", gKernelBase);
-	WriteLog(LL_Info, "thread: %p proc: %p pid: %d path: %s", curthread, curthread->td_proc, curthread->td_proc->p_pid, curthread->td_proc->p_elfpath);
-	WriteLog(LL_Info, "eva: %p", p_Eva);
-	WriteLog(LL_Info, "rdi: %p", p_Frame->tf_rdi);
-	WriteLog(LL_Info, "rsi: %p", p_Frame->tf_rsi);
-	WriteLog(LL_Info, "rdx: %p", p_Frame->tf_rdx);
-	WriteLog(LL_Info, "rcx: %p", p_Frame->tf_rcx);
-	WriteLog(LL_Info, "r8: %p", p_Frame->tf_r8);
-	WriteLog(LL_Info, "r9: %p", p_Frame->tf_r9);
-	WriteLog(LL_Info, "rax: %p", p_Frame->tf_rax);
-	WriteLog(LL_Info, "rbx: %p", p_Frame->tf_rbx);
-	WriteLog(LL_Info, "rbp: %p", p_Frame->tf_rbp);
-	WriteLog(LL_Info, "r10: %p", p_Frame->tf_r10);
-	WriteLog(LL_Info, "r11: %p", p_Frame->tf_r11);
-	WriteLog(LL_Info, "r12: %p", p_Frame->tf_r12);
-	WriteLog(LL_Info, "r13: %p", p_Frame->tf_r13);
-	WriteLog(LL_Info, "r14: %p", p_Frame->tf_r14);
-	WriteLog(LL_Info, "r15: %p", p_Frame->tf_r15);
-	WriteLog(LL_Info, "trapno: %u", p_Frame->tf_trapno);
-	WriteLog(LL_Info, "fs: %u", p_Frame->tf_fs);
-	WriteLog(LL_Info, "gs: %u", p_Frame->tf_gs);
-	WriteLog(LL_Info, "addr: %p", p_Frame->tf_addr);
-	WriteLog(LL_Info, "flags: %u", p_Frame->tf_flags);
-	WriteLog(LL_Info, "es: %u", p_Frame->tf_es);
-	WriteLog(LL_Info, "ds: %u", p_Frame->tf_ds);
-	WriteLog(LL_Info, "last branch from: %p", p_Frame->tf_last_branch_from);
-	WriteLog(LL_Info, "last branch to: %p", p_Frame->tf_last_branch_to);
-	WriteLog(LL_Info, "err: %p", p_Frame->tf_err);
-	WriteLog(LL_Info, "rip: %p", p_Frame->tf_rip);
-	WriteLog(LL_Info, "cs: %p", p_Frame->tf_cs);
-	WriteLog(LL_Info, "rflags: %p", p_Frame->tf_rflags);
-	WriteLog(LL_Info, "rsp adjusted: %p rsp: %p", s_Rsp, p_Frame->tf_rsp);
-	WriteLog(LL_Info, "err: %p", p_Frame->tf_err);
-	WriteLog(LL_Info, dash);
-
-	// If the kernel itself crashes, we don't want this to be debuggable, otherwise the entire console hangs
-	/*if (curthread->td_proc->p_pid == 0)
-	{
-		// See if we have a trap fatal reference, if not we just hang and let the console die
-		if (m_TrapFatalHook == nullptr)
-			goto hang_thread;
-
-		// Get the original hook
-		void(*onTrapFatal)(struct trapframe* frame, vm_offset_t eva) = hook_getFunctionAddress(gTrapFatalHook);
-
-		// Disable the hook
-		
-
-		// Call original sce trap fatal
-		onTrapFatal(frame, eva);
-		return;
-	}*/
-
-
-hang_thread:
-    for (;;)
-        __asm__("nop");
-
-/*kill_thread:
-    kthread_exit();
-    return;*/
-    
-    // Allow the debugger to be placed here manually to continue execution
-    __asm__("pop %rbp;leave;ret;");
+	ssd->ssd_base  = (sd->sd_hibase << 24) | sd->sd_lobase;
+	ssd->ssd_limit = (sd->sd_hilimit << 16) | sd->sd_lolimit;
+	ssd->ssd_type  = sd->sd_type;
+	ssd->ssd_dpl   = sd->sd_dpl;
+	ssd->ssd_p     = sd->sd_p;
+	ssd->ssd_long  = sd->sd_long;
+	ssd->ssd_def32 = sd->sd_def32;
+	ssd->ssd_gran  = sd->sd_gran;
 }
 
 bool Debugger::IsStackSpace(void* p_Address)
@@ -196,12 +102,172 @@ bool Debugger::IsStackSpace(void* p_Address)
     return ((reinterpret_cast<uint64_t>(p_Address) & 0xFFFFFFFF00000000) == 0xFFFFFF8000000000);
 }
 
+void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
+{
+	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	auto gdt = (struct user_segment_descriptor*)kdlsym(gdt);/* global descriptor tables */
+	auto vm_fault_disable_pagefaults = (int(*)(void))kdlsym(vm_fault_disable_pagefaults);
+	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
+	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+
+#define MAX_TRAP_MSG		33
+static const char *trap_msg[] = {
+	"",					/*  0 unused */
+	"privileged instruction fault",		/*  1 T_PRIVINFLT */
+	"",					/*  2 unused */
+	"breakpoint instruction fault",		/*  3 T_BPTFLT */
+	"",					/*  4 unused */
+	"",					/*  5 unused */
+	"arithmetic trap",			/*  6 T_ARITHTRAP */
+	"",					/*  7 unused */
+	"",					/*  8 unused */
+	"general protection fault",		/*  9 T_PROTFLT */
+	"trace trap",				/* 10 T_TRCTRAP */
+	"",					/* 11 unused */
+	"page fault",				/* 12 T_PAGEFLT */
+	"",					/* 13 unused */
+	"alignment fault",			/* 14 T_ALIGNFLT */
+	"",					/* 15 unused */
+	"",					/* 16 unused */
+	"",					/* 17 unused */
+	"integer divide fault",			/* 18 T_DIVIDE */
+	"non-maskable interrupt trap",		/* 19 T_NMI */
+	"overflow trap",			/* 20 T_OFLOW */
+	"FPU bounds check fault",		/* 21 T_BOUND */
+	"FPU device not available",		/* 22 T_DNA */
+	"double fault",				/* 23 T_DOUBLEFLT */
+	"FPU operand fetch fault",		/* 24 T_FPOPFLT */
+	"invalid TSS fault",			/* 25 T_TSSFLT */
+	"segment not present fault",		/* 26 T_SEGNPFLT */
+	"stack fault",				/* 27 T_STKFLT */
+	"machine check trap",			/* 28 T_MCHK */
+	"SIMD floating-point exception",	/* 29 T_XMMFLT */
+	"reserved (unknown) fault",		/* 30 T_RESERVED */
+	"",					/* 31 unused (reserved) */
+	"DTrace pid return trap",		/* 32 T_DTRACE_RET */
+	"DTrace fasttrap probe trap",		/* 33 T_DTRACE_PROBE */
+};
+
+	int code, ss;
+	u_int type;
+	long esp;
+	struct soft_segment_descriptor softseg;
+	const char *msg;
+
+	code = frame->tf_err;
+	type = frame->tf_trapno;
+	sdtossd(&gdt[NGDT * PCPU_GET(cpuid) + IDXSEL(frame->tf_cs & 0xffff)],
+	    &softseg);
+
+	if (type <= MAX_TRAP_MSG)
+		msg = trap_msg[type];
+	else
+		msg = "UNKNOWN";
+	printf("\n\nFatal trap %d: %s while in %s mode\n", type, msg,
+	    ISPL(frame->tf_cs) == SEL_UPL ? "user" : "kernel");
+#ifdef SMP
+	/* two separate prints in case of a trap on an unmapped page */
+	printf("cpuid = %d; ", PCPU_GET(cpuid));
+	printf("apic id = %02x\n", PCPU_GET(apic_id));
+#endif
+	if (type == T_PAGEFLT) {
+		printf("fault virtual address	= 0x%lx\n", eva);
+		printf("fault code		= %s %s %s, %s\n",
+			code & PGEX_U ? "user" : "supervisor",
+			code & PGEX_W ? "write" : "read",
+			code & PGEX_I ? "instruction" : "data",
+			code & PGEX_P ? "protection violation" : "page not present");
+	}
+	printf("instruction pointer	= 0x%lx:0x%lx\n",
+	       frame->tf_cs & 0xffff, frame->tf_rip);
+        if (ISPL(frame->tf_cs) == SEL_UPL) {
+		ss = frame->tf_ss & 0xffff;
+		esp = frame->tf_rsp;
+	} else {
+		ss = GSEL(GDATA_SEL, SEL_KPL);
+		esp = (long)&frame->tf_rsp;
+	}
+	printf("stack pointer	        = 0x%x:0x%lx\n", ss, esp);
+	printf("frame pointer	        = 0x%x:0x%lx\n", ss, frame->tf_rbp);
+	printf("code segment		= base 0x%lx, limit 0x%lx, type 0x%x\n",
+	       softseg.ssd_base, softseg.ssd_limit, softseg.ssd_type);
+	printf("			= DPL %d, pres %d, long %d, def32 %d, gran %d\n",
+	       softseg.ssd_dpl, softseg.ssd_p, softseg.ssd_long, softseg.ssd_def32,
+	       softseg.ssd_gran);
+	printf("processor eflags	= ");
+	if (frame->tf_rflags & PSL_T)
+		printf("trace trap, ");
+	if (frame->tf_rflags & PSL_I)
+		printf("interrupt enabled, ");
+	if (frame->tf_rflags & PSL_NT)
+		printf("nested task, ");
+	if (frame->tf_rflags & PSL_RF)
+		printf("resume, ");
+	printf("IOPL = %ld\n", (frame->tf_rflags & PSL_IOPL) >> 12);
+	printf("current process		= ");
+	if (curproc) {
+		printf("%lu (%s)\n",
+		    (u_long)curproc->p_pid, curthread->td_name/* ?
+		    curthread->td_name : ""*/);
+	} else {
+		printf("Idle\n");
+	}
+
+#ifdef KDB
+	if (debugger_on_panic || kdb_active)
+		if (kdb_trap(type, 0, frame))
+			return;
+#endif
+	printf("trap number		= %d\n", type);
+	if (type <= MAX_TRAP_MSG)
+		printf("%s\n", trap_msg[type]);
+	else
+		printf("unknown/reserved trap");
+	
+	auto s_Saved = vm_fault_disable_pagefaults();
+	// Print extra information in case that Oni/Mira itself crashes
+	auto s_Framework = Mira::Framework::GetFramework();
+	if (s_Framework)
+	{
+		auto s_InitParams = s_Framework->GetInitParams();
+
+		printf("mira base: %p size: %p\n", s_InitParams->payloadBase, s_InitParams->payloadSize);
+		printf("mira proc: %p entrypoint: %p\n", s_InitParams->process, s_InitParams->entrypoint);
+		printf("mira mira_entry: %p\n", mira_entry);
+
+		if (s_Framework)
+			printf("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
+	
+		printf("OffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
+		printf("OffsetFromMiraEntry: %p\n",  frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry));
+    }
+
+	printf("call stack:\n");
+    auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
+	auto amdFrameCount = 0;
+	while (Debugger::IsStackSpace(amdFrame))
+	{
+		printf("[%d] [r: %p] [f:%p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
+		amdFrame = amdFrame->f_frame;
+		amdFrameCount++;
+	}
+	vm_fault_enable_pagefaults(s_Saved);
+	
+	// Intentionally hang the thread
+	/*for (;;)
+		__asm__("nop");*/
+	
+	printf("exiting crashed thread\n");
+	kthread_exit();
+
+	// Allow the debugger to be placed here manually and continue exceution
+	//__asm__("pop %rbp;leave;ret;");
+}
+
 uint8_t Debugger::StubGetChar()
 {
 	if (m_Socket < 0)
 		return 0;
 	
-	
-
 	return 0;
 }
