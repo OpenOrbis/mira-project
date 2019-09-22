@@ -37,9 +37,7 @@ namespace Mira
                 // Give a id to each connection for lookup later
                 uint32_t m_NextConnectionId;
 
-                Vector<Rpc::Connection*> m_Connections;
-
-                struct mtx m_Lock;
+                Rpc::Connection* m_Connections[RpcServer_MaxConnections];
 
             public:
                 Server(uint16_t p_Port = RpcServer_DefaultPort);
@@ -60,6 +58,9 @@ namespace Mira
             public:
                 int32_t GetSocketById(uint32_t p_Id);
                 int32_t GetSocketByConnection(Rpc::Connection* p_Connection);
+                int32_t GetFreeConnectionCount();
+                int32_t GetUsedConnectionCount();
+                int32_t GetFreeConnectionIndex();
 
             private:
                 static void ServerThread(void* p_UserData);

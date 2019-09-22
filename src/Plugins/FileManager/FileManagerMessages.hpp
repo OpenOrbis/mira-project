@@ -12,7 +12,7 @@ namespace Mira
 				MaxPathLength = 0x400,
 				MaxNameLength = 0xFF,
 				MaxEchoLength = 0x100,
-				MaxBufferLength = 0x4000,
+				MaxBufferLength = 0x1000,
 			};
 
 			typedef enum _Commands
@@ -63,7 +63,7 @@ namespace Mira
 			typedef struct MSGPACK  _ReadRequest
 			{
 				int32_t Handle;
-				int16_t Count;
+				int32_t Count;
 			} ReadRequest;
 
 			typedef struct MSGPACK  _ReadResponse
@@ -78,6 +78,11 @@ namespace Mira
 				int32_t Count;
 				uint8_t Buffer[MaxBufferLength];
 			} WriteRequest;
+
+			typedef struct MSGPACK _WriteResponse
+			{
+				// Empty, response is returned in header
+			} WriteResponse;
 
 			typedef struct MSGPACK  _Dent
 			{
@@ -105,7 +110,7 @@ namespace Mira
 
 			typedef struct MSGPACK  _GetDentsResponse
 			{
-				uint64_t RemainingDents;
+				uint64_t DentIndex;
 				Dent Info;
 			} GetDentsResponse;
 

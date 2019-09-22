@@ -2,7 +2,7 @@
 #include <Utils/Vector.hpp>
 
 #include "MessageCategory.hpp"
-
+#include "MessageListener.hpp"
 #include "Message.hpp"
 
 
@@ -14,18 +14,17 @@ namespace Mira
         {
             class Connection;
         }
-        class MessageListener;
 
         enum
         {
-            MessageManager_MaxCategories = 14
+            MessageManager_MaxCategories = 14,
+            MessageManager_MaxListeners = 50
         };
 
         class MessageManager
         {
         private:
-            Vector<Messaging::MessageListener> m_Listeners;
-            struct mtx m_ListenersLock;
+            Messaging::MessageListener m_Listeners[MessageManager_MaxListeners];
 
         public:
             MessageManager();

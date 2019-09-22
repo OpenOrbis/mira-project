@@ -15,13 +15,8 @@ using namespace Mira::Messaging;
 
 MessageManager::MessageManager()
 {
-    WriteLog(LL_Debug, "here");
-
-    // Initialize the mutex
-    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-    mtx_init(&m_ListenersLock, "MsgMgr", nullptr, 0);
-
-    WriteLog(LL_Debug, "here");
+    for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
+        m_Listeners[i].Zero();
 }
 
 MessageManager::~MessageManager()
@@ -31,9 +26,6 @@ MessageManager::~MessageManager()
 
 bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&))
 {
-    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
     if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
     {
         WriteLog(LL_Error, "could not register callback, invalid category (%d).", p_Category);
@@ -47,10 +39,18 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
     }
 
     MessageListener* s_FoundEntry = nullptr;
-    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < m_Listeners.size(); ++i)
+    int32_t s_FreeIndex = -1;
+    for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
+        if (!l_CategoryEntry.GetCallback() && 
+            !l_CategoryEntry.GetCategory() && 
+            !l_CategoryEntry.GetType())
+        {
+            s_FreeIndex = i;
+            continue;
+        }
+
         if (l_CategoryEntry.GetCategory() != p_Category)
             continue;
         
@@ -60,10 +60,9 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
         if (l_CategoryEntry.GetCallback() != p_Callback)
             continue;
         
-        s_FoundEntry = &l_CategoryEntry;
+        s_FoundEntry = &m_Listeners[i];
         break;
     }
-    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry != nullptr)
     {
@@ -71,19 +70,24 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
         return false;
     }
 
-    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
-    m_Listeners.push_back(MessageListener(p_Category, p_Type, p_Callback));
-    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
-
+    if (s_FreeIndex < 0)
+    {
+        WriteLog(LL_Error, "no free index");
+        return false;
+    }
     
+    //WriteLog(LL_Warn, "freeIndex: %d", s_FreeIndex);
+
+    m_Listeners[s_FreeIndex] = MessageListener(p_Category, p_Type, p_Callback);
+
+    s_FoundEntry = &m_Listeners[s_FreeIndex];
+    //WriteLog(LL_Warn, "reset entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
+
     return true;
 }
 
 bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&))
 {
-    //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
     if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
     {
         WriteLog(LL_Error, "could not register callback, invalid category (%d).", p_Category);
@@ -97,8 +101,8 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
     }
 
     MessageListener* s_FoundEntry = nullptr;
-    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < m_Listeners.size(); ++i)
+    int32_t s_FoundIndex = -1;
+    for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
         if (l_CategoryEntry.GetCategory() != p_Category)
@@ -110,10 +114,10 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
         if (l_CategoryEntry.GetCallback() != p_Callback)
             continue;
         
-        s_FoundEntry = &l_CategoryEntry;
+        s_FoundEntry = &m_Listeners[i];
+        s_FoundIndex = i;
         break;
     }
-    //_mtx_unlock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
 
     if (s_FoundEntry == nullptr)
     {
@@ -121,6 +125,10 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
         return false;
     }
 
+    //WriteLog(LL_Warn, "foundIndex: %d", s_FoundIndex);
+    //WriteLog(LL_Warn, "reset entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
+
+    // Reset
     s_FoundEntry->Zero();
 
     return true;
@@ -130,19 +138,17 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, MessageCat
 {
     if (p_Connection == nullptr)
         return;
-    
-    Messaging::MessageHeader s_Header = {
-        .magic = MessageHeaderMagic,
-        .category = p_Category,
-        .isRequest = false,
-        .errorType = static_cast<uint64_t>(p_Error > 0 ? -p_Error : p_Error),
-        .payloadLength = 0,
-        .padding = 0
-    };
 
     Messaging::Message s_Message = {
-        .Header = &s_Header,
-        .BufferLength = 0,
+        .Header = 
+        {
+            .magic = MessageHeaderMagic,
+            .category = p_Category,
+            .isRequest = false,
+            .errorType = static_cast<uint64_t>(p_Error > 0 ? -p_Error : p_Error),
+            .payloadLength = 0,
+            .padding = 0
+        },
         .Buffer = nullptr
     };
 
@@ -151,7 +157,7 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, MessageCat
 
 void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (!p_Message.Header || p_Connection == nullptr)
+    if (p_Connection == nullptr)
         return;
 
     auto s_Framework = Mira::Framework::GetFramework();
@@ -177,17 +183,16 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
     }
 
     // Get and send the header data
-    auto s_HeaderData = p_Message.Header;
-    auto s_Ret = kwrite(s_Socket, s_HeaderData, sizeof(*s_HeaderData));
+    auto s_Ret = kwrite(s_Socket, &p_Message.Header, sizeof(p_Message.Header));
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "could not send header data (%p).", s_HeaderData);
+        WriteLog(LL_Error, "could not send header data (%p).", &p_Message.Header);
         return;
     }
 
     // Send the payload
     auto s_Data = p_Message.Buffer;
-    auto s_DataLength = p_Message.BufferLength;
+    auto s_DataLength = p_Message.Header.payloadLength;
 
     // If there is no payload then we don't send anything
     if (s_Data == nullptr || s_DataLength == 0)
@@ -203,21 +208,19 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
 
 void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
-    if (p_Message.Header == nullptr)
-        return;
-    
     MessageListener* s_FoundEntry = nullptr;
-    //_mtx_lock_flags(&m_ListenersLock, 0, __FILE__, __LINE__);
-    for (auto i = 0; i < m_Listeners.size(); ++i)
+    int32_t s_FoundIndex = -1;
+    for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
     {
-        auto& l_CategoryEntry = m_Listeners[i];
-        if (l_CategoryEntry.GetCategory() != p_Message.Header->category)
+        auto& l_CategoryEntry = m_Listeners[i];        
+        if (l_CategoryEntry.GetCategory() != p_Message.Header.category)
             continue;
         
-        if (l_CategoryEntry.GetType() != p_Message.Header->errorType)
+        if (l_CategoryEntry.GetType() != p_Message.Header.errorType)
             continue;
         
-        s_FoundEntry = &l_CategoryEntry;
+        s_FoundEntry = &m_Listeners[i];
+        s_FoundIndex = i;
         break;
     }
 
@@ -227,5 +230,9 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::M
         return;
     }
 
-    s_FoundEntry->GetCallback()(p_Connection, p_Message);
+    //WriteLog(LL_Warn, "foundIndex: %d", s_FoundIndex);
+    //WriteLog(LL_Warn, "call entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
+
+    if (s_FoundEntry->GetCallback())
+        s_FoundEntry->GetCallback()(p_Connection, p_Message);
 }

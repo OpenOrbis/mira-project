@@ -2,7 +2,11 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Hook.hpp>
 
-#include <netinet/in.h>
+extern "C"
+{
+    #include <netinet/in.h>
+    #include <machine/reg.h>
+};
 
 struct trapframe;
 
@@ -16,6 +20,10 @@ namespace Mira
             int32_t m_Socket;
             struct sockaddr_in m_Address;
             Utils::Hook* m_TrapFatalHook;
+
+            struct reg m_Registers;
+            struct fpreg m_FloatingRegisters;
+            struct dbreg m_DebugRegisters;
 
         protected:
             static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
@@ -40,6 +48,8 @@ namespace Mira
             int32_t StubWriteByte(void* p_Address, char p_Value);
             int32_t StubContinue();
             int32_t StubStep();
+
+            bool LaunchApplication(const char* p_Path);
 
         private:
             bool StartStubServer();

@@ -1275,7 +1275,7 @@ bool Loader::Load()
 	{
 		Free(s_SectionHeaderData);
 		s_SectionHeaderData = nullptr;
-		s_SectionHeaderSize = 0;
+		//s_SectionHeaderSize = 0;
 	}
 
 	return true;

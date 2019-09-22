@@ -46,7 +46,7 @@ bool Debugger::OnLoad()
     if (m_TrapFatalHook != nullptr)
     {
         WriteLog(LL_Info, "enabling trap_fatal hook");
-        //m_TrapFatalHook->Enable();
+        m_TrapFatalHook->Enable();
     }
 
 	return true;

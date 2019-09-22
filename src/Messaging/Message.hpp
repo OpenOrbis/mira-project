@@ -7,8 +7,7 @@ namespace Mira
     {
         typedef struct _Message
         {
-            Messaging::MessageHeader* Header;
-            const uint32_t BufferLength;
+            Messaging::MessageHeader Header;
             const uint8_t* Buffer;
         } Message;
     }

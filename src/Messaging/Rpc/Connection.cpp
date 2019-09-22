@@ -12,6 +12,11 @@
 
 #include <Mira.hpp>
 
+extern "C"
+{
+    #include <sys/socket.h>
+}
+
 
 using namespace Mira::Messaging::Rpc;
 
@@ -39,6 +44,7 @@ void Connection::Disconnect()
     
     if (m_Socket > 0)
     {
+        kshutdown(m_Socket, SHUT_RDWR);
         kclose(m_Socket);
         m_Socket = -1;
     }
@@ -46,10 +52,10 @@ void Connection::Disconnect()
 
 void Connection::ConnectionThread(void* p_Connection)
 {
-    auto s_Connection = reinterpret_cast<Rpc::Connection*>(p_Connection);
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
     // Validate connection
+    auto s_Connection = reinterpret_cast<Rpc::Connection*>(p_Connection);
     if (s_Connection == nullptr)
     {
         WriteLog(LL_Error, "invalid connection instance");
@@ -62,7 +68,6 @@ void Connection::ConnectionThread(void* p_Connection)
                     s_Connection->m_Address.sin_addr.s_addr, 
                     s_Connection->m_Thread);
 
-    // TODO: Thread escape
     s_Connection->m_Running = true;
 
     // Get the header size
@@ -78,7 +83,7 @@ void Connection::ConnectionThread(void* p_Connection)
 
         // Recv the data length of this message
         ssize_t l_Ret = krecv(s_Connection->GetSocket(), &l_MessageHeader, sizeof(l_MessageHeader), 0);
-        if (l_Ret < 0)
+        if (l_Ret <= 0)
         {
             WriteLog(LL_Error, "recv returned (%d).", l_Ret);
             break;
@@ -161,8 +166,7 @@ void Connection::ConnectionThread(void* p_Connection)
         // Send out message
         Messaging::Message l_Message = 
         {
-            .Header = &l_MessageHeader,
-            .BufferLength = l_TotalRecv,
+            .Header = l_MessageHeader,
             .Buffer = s_Connection->m_MessageBuffer
         };
         
