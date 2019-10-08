@@ -239,7 +239,7 @@ static const char *trap_msg[] = {
 			printf("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
 	
 		printf("OffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
-		printf("OffsetFromMiraEntry: %p\n",  frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry));
+		printf("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
     }
 
 	printf("call stack:\n");
@@ -261,13 +261,18 @@ static const char *trap_msg[] = {
 	kthread_exit();
 
 	// Allow the debugger to be placed here manually and continue exceution
-	//__asm__("pop %rbp;leave;ret;");
+	__asm__("pop %rbp;leave;ret;");
 }
 
 uint8_t Debugger::StubGetChar()
 {
-	if (m_Socket < 0)
+	if (m_GdbSocket < 0)
 		return 0;
 	
 	return 0;
+}
+
+bool Debugger::Attach(int32_t p_ProcessId)
+{
+	return true;
 }

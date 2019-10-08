@@ -27,6 +27,7 @@ namespace Mira
 				FileManager_RmDir = 0xA1222091,
 				FileManager_Unlink = 0x569F464B,
 				FileManager_Echo = 0xEBDB1342,
+				FileManager_DecryptSelf = 0xEA9BF6A9
 			} Commands;
 
 			typedef struct MSGPACK  _EmptyPayload

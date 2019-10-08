@@ -70,7 +70,7 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
         return false;
     }
 
-    if (s_FreeIndex < 0)
+    if (s_FreeIndex < 0 || s_FreeIndex > ARRAYSIZE(m_Listeners))
     {
         WriteLog(LL_Error, "no free index");
         return false;
@@ -82,7 +82,6 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
 
     s_FoundEntry = &m_Listeners[s_FreeIndex];
     //WriteLog(LL_Warn, "reset entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
-
     return true;
 }
 
@@ -119,11 +118,12 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
         break;
     }
 
-    if (s_FoundEntry == nullptr)
+    if (s_FoundEntry == nullptr || s_FoundIndex == -1)
     {
         WriteLog(LL_Error, "category entry not found for cat: (%d).", p_Category);
         return false;
     }
+
 
     //WriteLog(LL_Warn, "foundIndex: %d", s_FoundIndex);
     //WriteLog(LL_Warn, "reset entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
@@ -212,11 +212,14 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::M
     int32_t s_FoundIndex = -1;
     for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
     {
-        auto& l_CategoryEntry = m_Listeners[i];        
-        if (l_CategoryEntry.GetCategory() != p_Message.Header.category)
+        auto l_CategoryEntry = &m_Listeners[i];
+        if (l_CategoryEntry == nullptr)
+            continue;
+                    
+        if (l_CategoryEntry->GetCategory() != p_Message.Header.category)
             continue;
         
-        if (l_CategoryEntry.GetType() != p_Message.Header.errorType)
+        if (l_CategoryEntry->GetType() != p_Message.Header.errorType)
             continue;
         
         s_FoundEntry = &m_Listeners[i];
@@ -224,7 +227,7 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::M
         break;
     }
 
-    if (s_FoundEntry == nullptr)
+    if (s_FoundEntry == nullptr || s_FoundIndex == -1)
     {
         WriteLog(LL_Error, "could not find the right shit");
         return;

@@ -17,8 +17,10 @@ namespace Mira
         class Debugger : public Mira::Utils::IModule
         {
         private:
-            int32_t m_Socket;
-            struct sockaddr_in m_Address;
+            int32_t m_GdbSocket;
+            struct sockaddr_in m_GdbAddress;
+
+            int32_t m_ProcessId;
             Utils::Hook* m_TrapFatalHook;
 
             struct reg m_Registers;
@@ -54,6 +56,8 @@ namespace Mira
         private:
             bool StartStubServer();
             bool TeardownStubServer();
+
+            bool Attach(int32_t p_ProcessId);
         };
     }
 }

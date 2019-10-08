@@ -110,13 +110,9 @@ extern "C" void mira_entry(void* args)
 		kthread_exit();
 		return;
 	}
-
-	WriteLog(LL_Debug, "here");
-
 	// Create new credentials
+	WriteLog(LL_Debug, "Creating new thread credentials");
 	(void)ksetuid_t(0, curthread);
-
-	WriteLog(LL_Debug, "here");
 
 	// Root and escape our thread
 	if (curthread->td_ucred)
@@ -141,11 +137,9 @@ extern "C" void mira_entry(void* args)
 		// make system credentials
 		curthread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
 		curthread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
-	}
-	WriteLog(LL_Debug, "here");
 
-	// Create new vm_space
-	WriteLog(LL_Debug, "Creating new vm space");
+		WriteLog(LL_Debug, "credentials rooted for new proc");
+	}
 
 	WriteLog(LL_Debug, "fuck the ps4 it gives you aids and cancer at the same fucking time");
 	WriteLog(LL_Debug, "payloadBase: %p", initParams->payloadBase);
@@ -158,7 +152,8 @@ extern "C" void mira_entry(void* args)
 	WriteLog(LL_Debug, "printf: %p", printf);
 	WriteLog(LL_Debug, "avcontrol_sleep: %p", avcontrol_sleep);
 
-	
+	// Create new vm_space
+	WriteLog(LL_Debug, "Creating new vm space");
 	struct vmspace* vmspace = vmspace_alloc(0, PAGE_SIZE);
 	WriteLog(LL_Debug, "here");
 	if (!vmspace)
@@ -185,7 +180,7 @@ extern "C" void mira_entry(void* args)
 		return;
 	}
 
-	WriteLog(LL_Debug, "here");
+	WriteLog(LL_Debug, "Got current process");
 
 	// Assign our new vmspace to our process
 	initParams->process->p_vmspace = vmspace;
@@ -195,17 +190,6 @@ extern "C" void mira_entry(void* args)
 		pmap_activate(curthread);
 		WriteLog(LL_Debug, "here");
 	}
-
-	//auto offset = offsetof(struct thread, td_retval[0]);
-
-	/*auto offset = offsetof(struct thread, td_retval[0]);
-	auto offset2 = offsetof(struct thread, unk35C);
-	auto offset3 = offsetof(struct thread, td_flags);
-	auto offset4 = offsetof(struct thread, td_ucred);
-	auto offset5 = offsetof(struct thread, td_intrval);
-	auto offset6 = offsetof(struct thread, td_name);
-	auto offset7 = offsetof(struct thread, td_name);
-	WriteLog(LL_Debug, "td_retval %p", offset);*/
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
@@ -218,20 +202,17 @@ extern "C" void mira_entry(void* args)
 	WriteLog(LL_Info, "oni_kernelInitialization in new process!\n");
 
 	// Initialize miraframework
+	WriteLog(LL_Debug, "Creating MiraFramework...");
 	auto s_Framework = Mira::Framework::GetFramework();
 
-	WriteLog(LL_Debug, "here");
-
 	// Set the initparams so we do not lose track of it
+	WriteLog(LL_Debug, "Updating initialization parameters...");
 	s_Framework->SetInitParams(initParams);
 
-	WriteLog(LL_Debug, "here");
-
 	// We are successfully running
-	s_Framework->GetInitParams()->isRunning = false;
+	s_Framework->GetInitParams()->isRunning = true;
 
-	WriteLog(LL_Debug, "here");
-
+	WriteLog(LL_Debug, "Initializing MiraFramework...");
 	if (!s_Framework->Initialize())
 	{
 		WriteLog(LL_Error, "could not initialize mira framework.");
@@ -334,10 +315,31 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
-	WriteLog(LL_Info, "mira initialized successfully!");
-
+	// Set the running flag
 	m_InitParams.isRunning = true;
 
+	/*auto kthread_suspend = (int (*)(struct thread *td, int timo))kdlsym(kthread_suspend);
+	struct proc* proc0 = static_cast<struct proc*>(kdlsym(proc0));
+	auto _thread_lock_flags = (void (*)(struct thread *td, int opts, const char *file, int line))kdlsym(_thread_lock_flags);
+	auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+	struct thread* td = nullptr;
+	FOREACH_THREAD_IN_PROC(proc0, td)
+	{
+		bool veriThreadFound = false;
+		thread_lock(td);
+		if (strcmp(td->td_name, "SysVeri") == 0)
+			veriThreadFound = true;
+		thread_unlock(td);
+
+		if (!veriThreadFound)
+			continue;
+
+		WriteLog(LL_Debug, "found verification thread, suspending...");
+		kthread_suspend(td, 1000);
+		WriteLog(LL_Debug, "verification thread suspended...");
+	}
+
+	WriteLog(LL_Info, "mira initialized successfully!");*/
 	return true;
 }
 

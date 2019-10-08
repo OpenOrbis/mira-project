@@ -50,7 +50,7 @@ LIBS	:=
 C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"ONI_PLATFORM=${ONI_PLATFORM}" -D__LP64__ -D_M_X64 -D__amd64__
 
 # C++ Flags, -02 Optimizations break shit badly
-CFLAGS	:= $(I_DIRS) $(C_DEFS) -fno-rtti -fpic -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
+CFLAGS	:= $(I_DIRS) $(C_DEFS) -fno-rtti -fpic -m64 -std=c++17 -O3 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
 
 # Assembly flags
 SFLAGS	:= -pie -m64 -nodefaultlibs -nostdlib

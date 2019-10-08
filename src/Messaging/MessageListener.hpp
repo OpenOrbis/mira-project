@@ -86,8 +86,8 @@ namespace Mira
                 return *this;
             }
 
-            MessageCategory GetCategory() const { return m_Category; }
-            int32_t GetType() const { return m_Type; }
+            MessageCategory GetCategory() { return m_Category; }
+            int32_t GetType() { return m_Type; }
             auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, const Message& p_Message)
             {
                 return m_Callback;

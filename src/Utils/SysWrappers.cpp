@@ -186,6 +186,11 @@ int kmunmap(void *addr, size_t len)
 
 ssize_t kread(int fd, void* buf, size_t count)
 {
+	return kread_t(fd, buf, count, curthread);
+}
+
+ssize_t kread_t(int fd, void* buf, size_t count, struct thread* td)
+{
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto sys_read = (int(*)(struct thread*, struct read_args*))sysents[SYS_READ].sy_call;
@@ -194,7 +199,6 @@ ssize_t kread(int fd, void* buf, size_t count)
 
 	int error;
 	struct read_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -214,6 +218,11 @@ ssize_t kread(int fd, void* buf, size_t count)
 
 int kfstat(int fd, struct stat* sb)
 {
+	return kfstat_t(fd, sb, curthread);
+}
+
+int kfstat_t(int fd, struct stat* sb, struct thread* td)
+{
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto sys_fstat = (int(*)(struct thread*, struct fstat_args*))sysents[SYS_FSTAT].sy_call;
@@ -222,7 +231,6 @@ int kfstat(int fd, struct stat* sb)
 
 	int error;
 	struct fstat_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -241,29 +249,7 @@ int kfstat(int fd, struct stat* sb)
 
 int kstat(char* path, struct stat* buf)
 {
-	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-	struct sysent* sysents = sv->sv_table;
-	auto sys_stat = (int(*)(struct thread*, struct stat_args*))sysents[SYS_STAT].sy_call;
-	if (!sys_stat)
-		return -1;
-
-	int error;
-	struct stat_args uap;
-	struct thread *td = curthread;
-
-	// clear errors
-	td->td_retval[0] = 0;
-
-	// call syscall
-	uap.path = path;
-	uap.ub = buf;
-
-	error = sys_stat(td, &uap);
-	if (error)
-		return -error;
-
-	// return socket
-	return td->td_retval[0];
+	return kstat_t(path, buf, curthread);
 }
 
 int kstat_t(char* path, struct stat* buf, struct thread* td)
@@ -315,27 +301,15 @@ void kclose_t(int socket, struct thread* td)
 
 void kclose(int socket)
 {
-	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-	struct sysent* sysents = sv->sv_table;
-	auto ksys_close = (int(*)(struct thread *, struct close_args *))sysents[SYS_CLOSE].sy_call;
-	if (!ksys_close)
-		return;
-
-	int error;
-	struct close_args uap;
-	struct thread *td = curthread;
-
-	// clear errors
-	td->td_retval[0] = 0;
-
-	// call syscall
-	uap.fd = socket;
-	error = ksys_close(td, &uap);
-	if (error)
-		return;
+	kclose_t(socket, curthread);
 }
 
 int ksocket(int a, int b, int c)
+{
+	return ksocket_t(a, b, c, curthread);
+}
+
+int ksocket_t(int a, int b, int c, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -343,7 +317,6 @@ int ksocket(int a, int b, int c)
 	
 	int error;
 	struct socket_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -387,7 +360,13 @@ ssize_t kwrite(int d, const void* buf, size_t nbytes)
 	// return socket
 	return td->td_retval[0];
 }
-int kgetdents(int fd, char* buf, int nbytes)
+
+int kgetdents(int fd, char* buf, int nbytes, struct thread* td)
+{
+	return kgetdents_t(fd, buf, nbytes, curthread);
+}
+
+int kgetdents_t(int fd, char* buf, int nbytes, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -395,7 +374,6 @@ int kgetdents(int fd, char* buf, int nbytes)
 
 	int error;
 	struct getdents_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -414,6 +392,11 @@ int kgetdents(int fd, char* buf, int nbytes)
 
 int kbind(int socket, const struct sockaddr * b, size_t c)
 {
+	return kbind_t(socket, b, c, curthread);
+}
+
+int kbind_t(int socket, const struct sockaddr * b, size_t c, struct thread* td)
+{
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto ksys_bind = (int(*)(struct thread *, struct bind_args *))sysents[SYS_BIND].sy_call;
@@ -422,8 +405,6 @@ int kbind(int socket, const struct sockaddr * b, size_t c)
 	struct bind_args uap;
 
 	(void)memset(&uap, 0, sizeof(uap));
-
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -442,12 +423,16 @@ int kbind(int socket, const struct sockaddr * b, size_t c)
 
 int klisten(int sockfd, int backlog)
 {
+	return klisten_t(sockfd, backlog, curthread);
+}
+
+int klisten_t(int sockfd, int backlog, struct thread* td)
+{
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto ksys_listen = (int(*)(struct thread *, struct listen_args *))sysents[SYS_LISTEN].sy_call;
 	int error;
 	struct listen_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -463,15 +448,13 @@ int klisten(int sockfd, int backlog)
 	return td->td_retval[0];
 }
 
-int kaccept2(int sock, struct sockaddr * b, size_t* c)
+int kaccept2(int sock, struct sockaddr * b, size_t* c, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto ksys_accept = (int(*)(struct thread *, struct accept_args *))sysents[SYS_ACCEPT].sy_call;
 	int error;
 	struct accept_args uap;
-
-	struct thread* td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -503,11 +486,16 @@ int kaccept2(int sock, struct sockaddr * b, size_t* c)
 
 int kaccept(int sock, struct sockaddr * b, size_t* c)
 {
+	return kaccept_t(sock, b, c, curthread);
+}
+
+int kaccept_t(int sock, struct sockaddr * b, size_t* c, struct thread* td)
+{
 	int ret = -EIO;
 
 	for (;;)
 	{
-		ret = kaccept2(sock, b, c);
+		ret = kaccept2(sock, b, c, td);
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
@@ -522,7 +510,7 @@ int kaccept(int sock, struct sockaddr * b, size_t* c)
 	return ret;
 }
 
-int krecv2(int s, void * buf, int len, int flags)
+int krecv2(int s, void * buf, int len, int flags, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -532,7 +520,6 @@ int krecv2(int s, void * buf, int len, int flags)
 
 	int error;
 	struct recvfrom_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -573,11 +560,16 @@ int krecv2(int s, void * buf, int len, int flags)
 
 int krecv(int s, void * buf, int len, int flags)
 {
+	return krecv_t(s, buf, len, flags, curthread);
+}
+
+int krecv_t(int s, void * buf, int len, int flags, struct thread* td)
+{
 	int ret = -EIO;
 
 	for (;;)
 	{
-		ret = krecv2(s, buf, len, flags);
+		ret = krecv2(s, buf, len, flags, td);
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
@@ -592,7 +584,7 @@ int krecv(int s, void * buf, int len, int flags)
 	return ret;
 }
 
-int ksend2(int socket, caddr_t buf, size_t len, int flags)
+int ksend2(int socket, caddr_t buf, size_t len, int flags, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -602,7 +594,6 @@ int ksend2(int socket, caddr_t buf, size_t len, int flags)
 
 	int error;
 	struct sendto_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -643,11 +634,16 @@ int ksend2(int socket, caddr_t buf, size_t len, int flags)
 
 int ksend(int socket, caddr_t buf, size_t len, int flags)
 {
+	return ksend_t(socket, buf, len, flags, curthread);
+}
+
+int ksend_t(int socket, caddr_t buf, size_t len, int flags, struct thread* td)
+{
 	int ret = -EIO;
 
 	for (;;)
 	{
-		ret = ksend2(socket, buf, len, flags);
+		ret = ksend2(socket, buf, len, flags, td);
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
@@ -860,13 +856,17 @@ int krmdir_t(char * path, struct thread* td)
 
 int kshutdown(int s, int how)
 {
+	return kshutdown_t(s, how, curthread);
+}
+
+int kshutdown_t(int s, int how, struct thread* td)
+{
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto sys_shutdown = (int(*)(struct thread *, struct shutdown_args *))sysents[SYS_SHUTDOWN].sy_call;
 
 	int error;
 	struct shutdown_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -885,13 +885,17 @@ int kshutdown(int s, int how)
 
 int kunlink(char* path)
 {
+	return kunlink_t(path, curthread);
+}
+
+int kunlink_t(char* path, struct thread* td)
+{
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
 	auto sys_unlink = (int(*)(struct thread *, struct unlink_args *))sysents[SYS_UNLINK].sy_call;
 
 	int error;
 	struct unlink_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -1005,8 +1009,12 @@ int kkill(int pid, int signum)
 	// success
 	return td->td_retval[0];
 }
-
 int ksetsockopt(int socket, int level, int name, caddr_t val, int valsize)
+{
+	return ksetsockopt_t(socket, level, name, val, valsize, curthread);
+}
+
+int ksetsockopt_t(int socket, int level, int name, caddr_t val, int valsize, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -1014,7 +1022,6 @@ int ksetsockopt(int socket, int level, int name, caddr_t val, int valsize)
 
 	int error;
 	struct setsockopt_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;

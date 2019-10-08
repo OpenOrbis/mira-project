@@ -5,7 +5,15 @@ struct eventhandler_entry;
 struct eventhandler_list;
 typedef eventhandler_entry* eventhandler_tag;
 
-extern "C" void mira_entry(void* args);
+extern "C"
+{
+    #include <sys/param.h>
+    #include <sys/proc.h>
+
+    void mira_entry(void* args);
+};
+
+extern "C" 
 
 namespace Mira
 {
@@ -66,6 +74,22 @@ namespace Mira
         Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
         Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }
+
+        struct thread* GetMainThread() 
+        { 
+            if (m_InitParams.process == nullptr)
+                return nullptr;
+            
+            struct thread* s_Thread = m_InitParams.process->p_singlethread;
+            if (s_Thread == nullptr)
+            {
+                s_Thread = FIRST_THREAD_IN_PROC(m_InitParams.process);
+                if (s_Thread == nullptr)
+                    return nullptr;
+            }
+
+            return s_Thread;
+        }
     private:
         static void OnMiraSuspend(void* __unused p_Reserved);
         static void OnMiraResume(void* __unused p_Reserved);

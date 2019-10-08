@@ -31,16 +31,14 @@ bool FileManager::OnLoad()
 {
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Echo, OnEcho);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Open, OnOpen);
-    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Close, OnClose);\
-    //WriteLog(LL_Warn, "read");
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Close, OnClose);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Read, OnRead);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Write, OnWrite);
-    //WriteLog(LL_Warn, "getdents");
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_GetDents, OnGetDents);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Stat, OnStat);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_MkDir, OnMkDir);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_RmDir, OnRmDir);
-    //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Unlink, OnUnlink);
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(Messaging::MessageCategory_File, FileManager_Unlink, OnUnlink);
     
     return true;
 }
@@ -50,15 +48,13 @@ bool FileManager::OnUnload()
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Echo, OnEcho);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Open, OnOpen);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Close, OnClose);
-    WriteLog(LL_Warn, "read");
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Read, OnRead);
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Write, OnWrite);
-    WriteLog(LL_Warn, "getdents");
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_GetDents, OnGetDents);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Stat, OnStat);
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_MkDir, OnMkDir);
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_RmDir, OnRmDir);
-    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Unlink, OnUnlink);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(Messaging::MessageCategory_File, FileManager_Unlink, OnUnlink);
     return true;
 }
 
@@ -82,6 +78,14 @@ void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const Messagi
 
 void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
     if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(OpenRequest))
     {
         WriteLog(LL_Error, "invalid open message");
@@ -93,7 +97,7 @@ void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const Messagi
 
 	//WriteLog(LL_Debug, "open: (%s) (%d) (%d)", s_Request->path, s_Request->flags, s_Request->mode);
 
-    int32_t s_Ret = kopen(s_Request->Path, s_Request->Flags, s_Request->Mode);
+    int32_t s_Ret = kopen_t(s_Request->Path, s_Request->Flags, s_Request->Mode, s_MainThread);
 
     Messaging::Message s_Response = {
         .Header = {
@@ -113,6 +117,14 @@ void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const Messagi
 
 void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
     if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(CloseRequest))
     {
         WriteLog(LL_Error, "invalid message");
@@ -121,7 +133,7 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const Messag
     }
 
     auto s_Request = reinterpret_cast<const CloseRequest*>(p_Message.Buffer);
-    kclose(s_Request->Handle);
+    kclose_t(s_Request->Handle, s_MainThread);
 
     Messaging::Message s_Response = {
         .Header = 
@@ -141,6 +153,14 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const Messag
 
 void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
     if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(ReadRequest))
     {
         WriteLog(LL_Error, "invalid message");
@@ -165,7 +185,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messagi
 
     //WriteLog(LL_Debug, "read (%d) cnt: (%d)", s_Request->Handle, s_Request->Count);
 
-    auto s_SizeRead = kread(s_Request->Handle, s_Payload.Buffer, s_Request->Count);
+    auto s_SizeRead = kread_t(s_Request->Handle, s_Payload.Buffer, s_Request->Count, s_MainThread);
     if (s_SizeRead < 0)
     {
         WriteLog(LL_Error, "there was an error reading (%d).", s_SizeRead);
@@ -194,6 +214,14 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messagi
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
     if (p_Message.Buffer == nullptr)
     {
         WriteLog(LL_Error, "invalid message");
@@ -224,7 +252,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Mes
         return;
     }
 
-    auto s_DirectoryHandle = kopen(s_Request->Path, 0x0000 | 0x00020000, 0777);
+    auto s_DirectoryHandle = kopen_t(s_Request->Path, 0x0000 | 0x00020000, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
 		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->Path, s_DirectoryHandle);
@@ -235,13 +263,15 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Mes
     uint64_t s_DentCount = 0;
 
     // Switch this to use stack
-    static char s_Buffer[0x4000] = { 0 };
+    char s_Buffer[0x1000] = { 0 };
+    memset(s_Buffer, 0, sizeof(s_Buffer));
     WriteLog(LL_Debug, "here");
 
     int32_t s_ReadCount = 0;
     for (;;)
     {
-        s_ReadCount = kgetdents(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer));
+        memset(s_Buffer, 0, sizeof(s_Buffer));
+        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_MainThread);
         if (s_ReadCount <= 0)
             break;
         
@@ -260,7 +290,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Mes
                 }
             };
             
-            if (l_Dent->d_namlen < sizeof(s_Payload.Info.name))
+            if (l_Dent->d_namlen <= sizeof(s_Payload.Info.name))
                 (void)memcpy(s_Payload.Info.name, l_Dent->d_name, l_Dent->d_namlen);
 
             s_DentCount++;
@@ -281,7 +311,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Mes
             l_Pos += l_Dent->d_reclen;
         }
     }
-    kclose(s_DirectoryHandle);
+    kclose_t(s_DirectoryHandle, s_MainThread);
 
     GetDentsResponse s_Payload = 
     {
@@ -313,6 +343,14 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Mes
 
 void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
     if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(StatRequest))
     {
         WriteLog(LL_Error, "invalid message");
@@ -341,7 +379,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const Messagi
             return;
         }
 
-        int32_t s_Ret = kstat(const_cast<char*>(s_Request->Path), &s_Stat);
+        int32_t s_Ret = kstat_t(const_cast<char*>(s_Request->Path), &s_Stat, s_MainThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->Path, s_Ret);
@@ -351,7 +389,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const Messagi
     }
     else
     {
-        auto s_Ret = kfstat(s_Request->Handle, &s_Stat);
+        auto s_Ret = kfstat_t(s_Request->Handle, &s_Stat, s_MainThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->Path, s_Ret);
@@ -409,6 +447,45 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const Messagi
             .padding = 0
         },
         .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
+    };
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
+}
+
+void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
+{
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(UnlinkRequest))
+    {
+        WriteLog(LL_Error, "invalid message");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
+    auto s_Request = reinterpret_cast<const UnlinkRequest*>(p_Message.Buffer);
+    
+    auto s_Ret = kunlink_t(const_cast<char*>(s_Request->Path), s_MainThread);
+
+    WriteLog(LL_Info, "unlink: (%d) (%s).", s_Ret, s_Request->Path);
+
+    Messaging::Message s_Response = {
+        .Header = 
+        {
+            .magic = Messaging::MessageHeaderMagic,
+            .category = Messaging::MessageCategory_File,
+            .isRequest = false,
+            .errorType = static_cast<uint64_t>(s_Ret),
+            .payloadLength = 0,
+            .padding = 0
+        },
+        .Buffer = nullptr
     };
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);

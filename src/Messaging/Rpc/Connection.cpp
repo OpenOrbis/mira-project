@@ -15,6 +15,9 @@
 extern "C"
 {
     #include <sys/socket.h>
+    #include <sys/filedesc.h>
+    #include <sys/proc.h>
+    #include <sys/pcpu.h>
 }
 
 
@@ -39,19 +42,35 @@ Connection::~Connection()
 
 void Connection::Disconnect()
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return;
+    }
+
     if (m_Running)
         m_Running = false;
     
     if (m_Socket > 0)
     {
-        kshutdown(m_Socket, SHUT_RDWR);
-        kclose(m_Socket);
+        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+        kclose_t(m_Socket, s_MainThread);
         m_Socket = -1;
     }
+
+    WriteLog(LL_Debug, "client (%p) disconnected.", this);
 }
 
 void Connection::ConnectionThread(void* p_Connection)
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return;
+    }
+
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
     // Validate connection
@@ -82,7 +101,7 @@ void Connection::ConnectionThread(void* p_Connection)
         Messaging::MessageHeader l_MessageHeader = { 0 };
 
         // Recv the data length of this message
-        ssize_t l_Ret = krecv(s_Connection->GetSocket(), &l_MessageHeader, sizeof(l_MessageHeader), 0);
+        ssize_t l_Ret = krecv_t(s_Connection->GetSocket(), &l_MessageHeader, sizeof(l_MessageHeader), 0, s_MainThread);
         if (l_Ret <= 0)
         {
             WriteLog(LL_Error, "recv returned (%d).", l_Ret);
@@ -126,7 +145,7 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         uint32_t l_TotalRecv = 0;
-        l_Ret = krecv(s_Connection->GetSocket(), s_Connection->m_MessageBuffer, l_MessageHeader.payloadLength, 0);
+        l_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer, l_MessageHeader.payloadLength, 0, s_MainThread);
         if (l_Ret <= 0)
         {
             WriteLog(LL_Error, "could not recv data err: (%d).", l_Ret);
@@ -146,7 +165,7 @@ void Connection::ConnectionThread(void* p_Connection)
                 break;
             }
 
-            l_Ret = krecv(s_Connection->GetSocket(), s_Connection->m_MessageBuffer + l_TotalRecv, l_DataLeft, 0);
+            l_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer + l_TotalRecv, l_DataLeft, 0, s_MainThread);
             if (l_Ret <= 0)
             {
                 WriteLog(LL_Error, "could not recv all data err: (%d).", l_Ret);
@@ -188,6 +207,8 @@ void Connection::ConnectionThread(void* p_Connection)
     }
 
     s_Connection->m_Running = false;
+
+    WriteLog(LL_Debug, "connection exiting...");
 
     auto s_Server = s_Connection->m_Server;
     if (s_Server != nullptr)

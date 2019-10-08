@@ -386,7 +386,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	if (s_EntryPoint != nullptr)
 	{
 		printf("[+]entrypoint: %p", s_EntryPoint);
-		(void)kproc_create(s_EntryPoint, initParams, &initParams->process, 0, 0, "miraldr2");
+		(void)kproc_create(s_EntryPoint, initParams, &initParams->process, 0, 200, "miraldr2"); // 8MiB stack
 	}
 	else
 	{

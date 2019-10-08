@@ -53,31 +53,32 @@ enum amd64_regnum
   AMD64_GSBASE_REGNUM
 };
 
-enum regnames {
-               RAX,
-               RBX,
-               RCX,
-               RDX,
-               RSI,
-               RDI,
-               RBP,
-               RSP,
-               R8,
-               R9,
-	           R10,
-               R11,
-               R12,
-               R13,
-               R14,
-               R15,
-               RIP,
-			   EFLAGS,
-			   CS,
-			   SS,
-			   DS,
-			   ES,
-			   FS,
-			   GS
+enum regnames 
+{
+  RAX,
+  RBX,
+  RCX,
+  RDX,
+  RSI,
+  RDI,
+  RBP,
+  RSP,
+  R8,
+  R9,
+  R10,
+  R11,
+  R12,
+  R13,
+  R14,
+  R15,
+  RIP,
+  EFLAGS,
+  CS,
+  SS,
+  DS,
+  ES,
+  FS,
+  GS
 };
 
 namespace Mira

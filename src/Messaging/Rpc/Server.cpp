@@ -59,10 +59,16 @@ bool Server::OnResume()
 
 bool Server::Startup()
 {
-    auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return false;
+    }
 
+    auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
     // Create a socket
-    m_Socket = ksocket(AF_INET, SOCK_STREAM, 0);
+    m_Socket = ksocket_t(AF_INET, SOCK_STREAM, 0, s_MainThread);
     if (m_Socket < 0)
     {
         WriteLog(LL_Error, "could not initialize socket (%d).", m_Socket);
@@ -78,30 +84,30 @@ bool Server::Startup()
     m_Address.sin_len = sizeof(m_Address);
 
     // Bind to port
-    auto s_Ret = kbind(m_Socket, reinterpret_cast<struct sockaddr*>(&m_Address), sizeof(m_Address));
+    auto s_Ret = kbind_t(m_Socket, reinterpret_cast<struct sockaddr*>(&m_Address), sizeof(m_Address), s_MainThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not bind socket (%d).", s_Ret);
-        kshutdown(m_Socket, SHUT_RDWR);
-        kclose(m_Socket);
+        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+		kclose_t(m_Socket, s_MainThread);
         m_Socket = -1;
         return false;
     }
     WriteLog(LL_Info, "socket (%d) bound to port (%d).", m_Socket, m_Port);
 
     // Listen on the port for new connections
-    s_Ret = klisten(m_Socket, RpcServer_MaxConnections);
+    s_Ret = klisten_t(m_Socket, RpcServer_MaxConnections, s_MainThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not listen on socket (%d).", s_Ret);
-        kshutdown(m_Socket, SHUT_RDWR);
-		kclose(m_Socket);
+        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+		kclose_t(m_Socket, s_MainThread);
 		m_Socket = -1;
 		return false;
     }
 
-    // Create the new server processing thread
-    s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 0, "RpcServer");
+    // Create the new server processing thread, 8MiB stack
+    s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "RpcServer");
     WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
 
     return s_Ret == 0;
@@ -109,8 +115,16 @@ bool Server::Startup()
 
 bool Server::Teardown()
 {
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return false;
+    }
+
     // Set that we no longer want to run this server instance
     m_Running = false;
+    WriteLog(LL_Debug, "we are no longer running...");
 
     // Iterate through all connections and disconnect them
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
@@ -125,13 +139,17 @@ bool Server::Teardown()
             l_Connection->Disconnect();
     }
 
+    WriteLog(LL_Debug, "all clients have been disconnected");
+
     // Close the server socket
     if (m_Socket > 0)
     {
-        kshutdown(m_Socket, SHUT_RDWR);
-        kclose(m_Socket);
+        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+		kclose_t(m_Socket, s_MainThread);
         m_Socket = -1;
     }
+
+    WriteLog(LL_Debug, "socket is killed");
 
     return true;
 }
@@ -139,6 +157,15 @@ bool Server::Teardown()
 void Server::ServerThread(void* p_UserArgs)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "no main thread");
+        kthread_exit();
+        return;
+    }
+
     //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
@@ -169,7 +196,7 @@ void Server::ServerThread(void* p_UserArgs)
         l_ClientAddress.sin_len = l_ClientAddressLen;
 
         // Accept a new client
-        auto l_ClientSocket = kaccept(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&l_ClientAddress), &l_ClientAddressLen);
+        auto l_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&l_ClientAddress), &l_ClientAddressLen, s_MainThread);
         if (l_ClientSocket < 0)
         {
             WriteLog(LL_Error, "could not accept socket (%d).", l_ClientSocket);
@@ -195,12 +222,12 @@ void Server::ServerThread(void* p_UserArgs)
 
         // SO_LINGER
         s_Timeout.tv_sec = 0;
-        auto result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout));
+        auto result = ksetsockopt_t(l_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
         if (result < 0)
         {
             WriteLog(LL_Error, "could not set send timeout (%d).", result);
-            kshutdown(l_ClientSocket, SHUT_RDWR);
-            kclose(l_ClientSocket);
+            kshutdown_t(l_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(l_ClientSocket, s_MainThread);
             continue;
         }
 
@@ -217,8 +244,8 @@ void Server::ServerThread(void* p_UserArgs)
         {
             WriteLog(LL_Error, "could not allocate new connection for socket (%d).", l_ClientSocket);
 
-            kshutdown(l_ClientSocket, SHUT_RDWR);
-            kclose(l_ClientSocket);
+            kshutdown_t(l_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(l_ClientSocket, s_MainThread);
             break;
         }
 
@@ -227,8 +254,8 @@ void Server::ServerThread(void* p_UserArgs)
         {
             WriteLog(LL_Error, "could not get free connection index");
 
-            kshutdown(l_ClientSocket, SHUT_RDWR);
-            kclose(l_ClientSocket);
+            kshutdown_t(l_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(l_ClientSocket, s_MainThread);
 
             delete l_Connection;
             l_Connection = nullptr;
@@ -274,8 +301,8 @@ void Server::OnHandleConnection(Rpc::Connection* p_Connection)
         return;
     }
 
-    // Get connection
-    auto s_Ret = kthread_add(Connection::ConnectionThread, p_Connection, s_Process, reinterpret_cast<thread **>(p_Connection->Internal_GetThread()), 0, 0, "RpcConn");
+    // Get connection, 8MiB stack
+    auto s_Ret = kthread_add(Connection::ConnectionThread, p_Connection, s_Process, reinterpret_cast<thread **>(p_Connection->Internal_GetThread()), 0, 200, "RpcConn");
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not start new connection thread (%d).", s_Ret);
