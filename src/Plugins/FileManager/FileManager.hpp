@@ -41,6 +41,7 @@ namespace Mira
                 static void OnMkDir(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
                 static void OnRmDir(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
                 static void OnUnlink(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
+                static void OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
             };
         }
     }

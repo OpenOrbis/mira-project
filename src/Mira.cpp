@@ -4,6 +4,7 @@
 // Boot
 //
 #include <Boot/InitParams.hpp>
+#include <Boot/Patches.hpp>
 
 //
 // Devices
@@ -25,6 +26,7 @@
 #include <Utils/Logger.hpp>
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Types.hpp>
+#include <Utils/Hook.hpp>
 
 //
 //	Free-BSD Specifics
@@ -82,6 +84,12 @@ extern "C" void mira_entry(void* args)
 {
 	// Fill the kernel base address
 	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
+
+	cpu_disable_wp();
+
+	Mira::Boot::Patches::install_prePatches();
+
+	cpu_enable_wp();
 
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 	//auto kproc_exit = (void(*)(int ecode))kdlsym(kproc_exit);
@@ -229,7 +237,7 @@ extern "C" void mira_entry(void* args)
 	{
 		avcontrol_sleep(100);
 		__asm__("nop");
-	}*/
+	}*/	
 	
 	// Write our final goodbyes
 	//WriteLog(LL_Debug, "Mira kernel process is terminating");
@@ -340,7 +348,17 @@ bool Mira::Framework::Initialize()
 	}
 
 	WriteLog(LL_Info, "mira initialized successfully!");*/
+
+	// Hook SceSblSysVeri (Fire fw only)
+	//m_SceSblSysVeriHook = new Mira::Utils::Hook::Hook(kdlsym(SceSblSysVeriThread), OnSceSblSysVeri);
+
 	return true;
+}
+
+void Mira::Framework::OnSceSblSysVeri(void* p_Reserved)
+{
+	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+	kthread_exit();
 }
 
 bool Mira::Framework::Terminate()

@@ -22,7 +22,15 @@ extern "C"
 #define MAP_FAILED      ((void *)-1)
 #endif
 
-int kwait4(int pid, int *status, int options, struct rusage *rusage)
+///
+/// 7: sys_wait4
+//
+int kwait4(int pid, int* status, int options, struct rusage* rusage)
+{
+	return kwait4_t(pid, status, options, rusage, curthread);
+}
+
+int kwait4_internal(int pid, int *status, int options, struct rusage *rusage, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -32,7 +40,6 @@ int kwait4(int pid, int *status, int options, struct rusage *rusage)
 
 	int error;
 	struct wait_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -50,7 +57,36 @@ int kwait4(int pid, int *status, int options, struct rusage *rusage)
 	return td->td_retval[0];
 }
 
+int kwait4_t(int pid, int* status, int options, struct rusage* rusage, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kwait4_internal(pid, status, options, rusage, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+//
+// 203: sys_mlock
+//
 int kmlock(void* address, uint64_t size)
+{
+	return kmlock_t(address, size, curthread);
+}
+
+int kmlock_internal(void* address, uint64_t size, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -60,7 +96,6 @@ int kmlock(void* address, uint64_t size)
 
 	int error;
 	struct mlock_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -76,7 +111,38 @@ int kmlock(void* address, uint64_t size)
 	return td->td_retval[0];
 }
 
+int kmlock_t(void* address, uint64_t size, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kmlock_internal(address, size, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+
+
+//
+// 324: sys_mlockall
+//
 int kmlockall(int how)
+{
+	return kmlockall_t(how, curthread);
+}
+
+int kmlockall_internal(int how, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -86,7 +152,6 @@ int kmlockall(int how)
 
 	int error;
 	struct mlockall_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -101,34 +166,31 @@ int kmlockall(int how)
 	return td->td_retval[0];
 }
 
-off_t klseek(int fd, off_t offset, int whence)
+int kmlockall_t(int how, struct thread* td)
 {
-	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-	struct sysent* sysents = sv->sv_table;
-	auto sys_lseek = (int(*)(struct thread*, struct lseek_args*))(void*)sysents[SYS_LSEEK].sy_call;
-	
-	if (!sys_lseek)
-		return -1;
+	int ret = -EIO;
 
-	int error;
-	struct lseek_args uap;
-	struct thread *td = curthread;
+	for (;;)
+	{
+		ret = kmlockall_internal(how, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
 
-	// clear errors
-	td->td_retval[0] = 0;
+		break;
+	}
 
-	// call syscall
-	uap.fd = fd;
-	uap.offset = offset;
-	uap.whence = whence;
-	error = sys_lseek(td, &uap);
-	if (error)
-		return -error;
-
-	// return socket
-	return td->td_retval[0];
+	return ret;
 }
-caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos)
+
+//
+// 477: sys_mmap
+//
+caddr_t kmmap_internal(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -138,7 +200,6 @@ caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos)
 
 	int error;
 	struct mmap_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -158,7 +219,93 @@ caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos)
 	return (caddr_t)td->td_retval[0];
 }
 
-int kmunmap(void *addr, size_t len)
+caddr_t kmmap_t(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td)
+{
+	uint64_t ret = (uint64_t)(-EIO);
+
+	for (;;)
+	{
+		ret = (uint64_t)kmmap_internal(addr, len, prot, flags, fd, pos, td);
+		if (ret < 0)
+		{
+			if (ret == (-EINTR))
+				continue;
+			
+			return (caddr_t)ret;
+		}
+
+		break;
+	}
+
+	return (caddr_t)ret;
+}
+
+caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos)
+{
+	return kmmap_t(addr, len, prot, flags, fd, pos, curthread);
+}
+
+//
+// 478: sys_lseek
+//
+
+off_t klseek_internal(int fd, off_t offset, int whence, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_lseek = (int(*)(struct thread*, struct lseek_args*))(void*)sysents[SYS_LSEEK].sy_call;
+	
+	if (!sys_lseek)
+		return -1;
+
+	int error;
+	struct lseek_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.fd = fd;
+	uap.offset = offset;
+	uap.whence = whence;
+	error = sys_lseek(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+off_t klseek_t(int fd, off_t offset, int whence, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = klseek_internal(fd, offset, whence, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+off_t klseek(int fd, off_t offset, int whence)
+{
+	return klseek_t(fd, offset, whence, curthread);
+}
+
+//
+// 73: sys_munmap
+//
+int kmunmap_internal(void *addr, size_t len, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -168,7 +315,6 @@ int kmunmap(void *addr, size_t len)
 
 	int error;
 	struct munmap_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -182,6 +328,32 @@ int kmunmap(void *addr, size_t len)
 
 	// return socket
 	return td->td_retval[0];
+}
+
+int kmunmap_t(void *addr, size_t len, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kmunmap_internal(addr, len, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kmunmap(void *addr, size_t len)
+{
+	return kmunmap_t(addr, len, curthread);
 }
 
 ssize_t kread(int fd, void* buf, size_t count)
@@ -985,7 +1157,7 @@ int kptrace(int req, pid_t pid, caddr_t addr, int data)
 	return td->td_retval[0];
 }
 
-int kkill(int pid, int signum)
+int kkill_t(int pid, int signum, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -993,7 +1165,6 @@ int kkill(int pid, int signum)
 
 	int error;
 	struct kill_args uap;
-	struct thread *td = curthread;
 
 	// clear errors
 	td->td_retval[0] = 0;
@@ -1009,6 +1180,12 @@ int kkill(int pid, int signum)
 	// success
 	return td->td_retval[0];
 }
+
+int kkill(int pid, int signum)
+{
+	return kkill_t(pid, signum, curthread);
+}
+
 int ksetsockopt(int socket, int level, int name, caddr_t val, int valsize)
 {
 	return ksetsockopt_t(socket, level, name, val, valsize, curthread);

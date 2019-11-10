@@ -55,6 +55,25 @@ namespace Mira
                 uint32_t ProcessCount;
 
             } GetProcessListResponse;
+
+            typedef struct _Breakpoint
+            {
+                bool Software;
+                bool Enabled;
+                uint8_t Reserved;
+                uint8_t BackupLength;
+                uint8_t BackupData[16];
+                uint64_t Address;
+                uint64_t HitCount;
+            } Breakpoint;
+
+            typedef struct _Watch
+            {
+                uint64_t Address;
+                uint32_t Size;
+                uint8_t PreviousData[8];
+                uint8_t Data[8];
+            } Watch;
         }
     }
 }

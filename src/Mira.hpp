@@ -37,6 +37,11 @@ namespace Mira
         class MessageManager;
     }
 
+    namespace Utils
+    {
+        class Hook;
+    }
+
     class Framework
     {
     private:
@@ -94,5 +99,7 @@ namespace Mira
         static void OnMiraSuspend(void* __unused p_Reserved);
         static void OnMiraResume(void* __unused p_Reserved);
         static void OnMiraShutdown(void* __unused p_Reserved);
+
+        static void OnSceSblSysVeri(void* __unused p_Reserved);
     };
 }

@@ -59,6 +59,7 @@
  */
 #define	MAP_SHARED	0x0001		/* share changes */
 #define	MAP_PRIVATE	0x0002		/* changes are private */
+#define	MAP_SELF	0x80000	/* map self */
 #if __BSD_VISIBLE
 #define	MAP_COPY	MAP_PRIVATE	/* Obsolete */
 #endif

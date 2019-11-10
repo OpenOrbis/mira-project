@@ -38,7 +38,7 @@
 #define	_MACHINE_REG_H_
 
 #if defined(_KERNEL) && !defined(_STANDALONE)
-#include "opt_compat.h"
+//#include "opt_compat.h"
 #endif
 
 /*

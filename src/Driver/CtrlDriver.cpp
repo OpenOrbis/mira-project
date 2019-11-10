@@ -11,6 +11,9 @@ CtrlDriver::CtrlDriver() :
     m_DeviceSw { 0 },
     m_Device(nullptr)
 {
+    // TODO: Re-enable driver
+    return;
+
     // Set up our device driver information
     m_DeviceSw.d_version = D_VERSION;
     m_DeviceSw.d_name = "mira";
@@ -48,6 +51,9 @@ CtrlDriver::CtrlDriver() :
 CtrlDriver::~CtrlDriver()
 {
     WriteLog(LL_Debug, "destroying driver");
+
+    // TODO: Re-enable the driver
+    return;
 
     // Destroy the device driver
     auto destroy_dev = (void(*)(struct cdev *_dev))kdlsym(destroy_dev);

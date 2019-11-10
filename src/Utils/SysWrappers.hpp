@@ -11,10 +11,29 @@ struct thread;
 struct stat;
 struct rusage;
 
+// 7
+extern int kwait4(int pid, int *status, int options, struct rusage *rusage);
+extern int kwait4_t(int pid, int *status, int options, struct rusage *rusage, struct thread* td);
+
+// 203
 extern int kmlock(void* address, uint64_t size);
+extern int kmlock_t(void* address, uint64_t size, struct thread* td);
+
+// 324
 extern int kmlockall(int how);
+extern int kmlockall_t(int how, struct thread* td);
+
+// 477
+extern caddr_t kmmap_t(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td);
+extern caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos);
+
+// 478
+extern off_t klseek_t(int fd, off_t offset, int whence, struct thread* td);
+extern off_t klseek(int fd, off_t offset, int whence);
+
 extern void kclose(int socket);
 extern void kclose_t(int socket, struct thread* td);
+
 extern int ksocket(int, int, int);
 extern int ksocket_t(int, int, int, struct thread* td);
 extern int kbind(int, const struct sockaddr*, size_t);
@@ -44,6 +63,7 @@ extern int ksetuid(uid_t uid);
 extern int ksetuid_t(uid_t uid, struct thread* td);
 extern int kptrace(int req, pid_t pid, caddr_t addr, int data);
 extern int kkill(int pid, int signum);
+extern int kkill_t(int pid, int signum, struct thread* td);
 extern int kdup2(int oldd, int newd);
 extern int kshutdown(int s, int how);
 extern int kshutdown_t(int s, int how, struct thread* td);
@@ -51,10 +71,10 @@ extern int kmkdir(char* path, int mode);
 extern int kmkdir_t(char * path, int mode, struct thread* td);
 extern int krmdir(char* path);
 extern int krmdir_t(char * path, struct thread* td);
-extern off_t klseek(int fd, off_t offset, int whence);
-extern caddr_t kmmap(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos);
+extern int kmunmap_t(void *addr, size_t len, struct thread* td);
 extern int kmunmap(void *addr, size_t len);
-extern int kwait4(int pid, int *status, int options, struct rusage *rusage);
+
+
 extern int ksetsockopt(int socket, int level, int name, caddr_t val, int valsize);
 extern int ksetsockopt_t(int socket, int level, int name, caddr_t val, int valsize, struct thread* td);
 extern int kftruncate(int fd, off_t length);

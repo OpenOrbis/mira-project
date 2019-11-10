@@ -60,6 +60,9 @@ void Connection::Disconnect()
     }
 
     WriteLog(LL_Debug, "client (%p) disconnected.", this);
+
+    if (m_Server != nullptr)
+        m_Server->OnConnectionDisconnected(this);
 }
 
 void Connection::ConnectionThread(void* p_Connection)
@@ -206,13 +209,7 @@ void Connection::ConnectionThread(void* p_Connection)
         s_MessageManager->OnRequest(s_Connection, l_Message);
     }
 
-    s_Connection->m_Running = false;
-
-    WriteLog(LL_Debug, "connection exiting...");
-
-    auto s_Server = s_Connection->m_Server;
-    if (s_Server != nullptr)
-        s_Server->OnConnectionDisconnected(s_Connection);
+    s_Connection->Disconnect();
 
     kthread_exit();
 }

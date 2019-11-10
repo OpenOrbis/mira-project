@@ -17,20 +17,29 @@ namespace Mira
         class Debugger : public Mira::Utils::IModule
         {
         private:
+            enum 
+            { 
+                // Configuration
+                Debugger_MaxTaintedThreads = 20,
+                Debugger_MaxPath = 260
+            };
+            
+            // Remote GDB
             int32_t m_GdbSocket;
             struct sockaddr_in m_GdbAddress;
 
+            // Debugger
             int32_t m_ProcessId;
-            Utils::Hook* m_TrapFatalHook;
-
             struct reg m_Registers;
             struct fpreg m_FloatingRegisters;
             struct dbreg m_DebugRegisters;
+            Utils::Hook* m_TrapFatalHook;
+
 
         protected:
             static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
             static bool IsStackSpace(void* p_Address);
-            
+
         public:
             Debugger();
             virtual ~Debugger();
@@ -57,7 +66,19 @@ namespace Mira
             bool StartStubServer();
             bool TeardownStubServer();
 
-            bool Attach(int32_t p_ProcessId);
+            bool Attach(int32_t p_ProcessId, bool p_StopOnAttach = false);
+            bool Detach(bool p_ResumeOnDetach = false);
+
+            uint32_t ReadData(uint64_t p_Address, uint8_t* p_OutData, uint32_t p_Size);
+            uint32_t WriteData(uint64_t p_Address, uint8_t* p_Data, uint32_t p_Size);
+
+            bool SingleStep();
+
+            bool UpdateRegisters();
+            bool UpdateWatches();
+            bool UpdateBreakpoints();
+
+            bool UpdateAll();
         };
     }
 }

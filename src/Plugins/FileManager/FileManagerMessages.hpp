@@ -166,6 +166,20 @@ namespace Mira
 				uint16_t PathLength;
 				char Path[MaxPathLength];
 			} UnlinkRequest;
+
+			typedef struct MSGPACK _DecryptSelfRequest
+			{
+				int16_t PathLength;
+				char Path[MaxPathLength];
+			} DecryptSelfRequest;
+
+			typedef struct MSGPACK _DecryptSelfResponse
+			{
+				uint64_t Index;
+				uint64_t Offset;
+				uint64_t Length;
+				uint8_t Data[MaxBufferLength];
+			} DecryptSelfResponse;
 		}
 	}
 }

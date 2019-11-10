@@ -136,4 +136,18 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_Xfast_syscall                          0x000001C0
 #define kdlsym_addr_wakeup                                 0x003FB940
 
+#define kdlsym_addr_avcontrol_sleep                        0x006eafb0
+#define kdlsym_addr_eventhandler_deregister                0x001ec790
+#define kdlsym_addr_eventhandler_find_list                 0x001ec980
+
+#define kdlsym_addr_kern_ioctl                             0x00153990
+#define kdlsym_addr_sceSblRngGetRandomNumber               0x00657a50
+
+#define kdlsym_addr_vm_fault_disable_pagefaults            0x002a6c20
+#define kdlsym_addr_vm_fault_enable_pagefaults             0x002a6c50
+
+#define kdlsym_addr_gdt                                    0x01CB90F0
+
+#define kdlsym_addr_destroy_dev                            0x001B9D50
+#define kdlsym_addr_make_dev_p                             0x001B9810
 #endif
