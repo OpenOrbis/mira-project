@@ -160,6 +160,13 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
     if (p_Connection == nullptr)
         return;
 
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return;
+    }
+
     auto s_Framework = Mira::Framework::GetFramework();
     if (s_Framework == nullptr)
     {
@@ -183,7 +190,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
     }
 
     // Get and send the header data
-    auto s_Ret = kwrite(s_Socket, &p_Message.Header, sizeof(p_Message.Header));
+    auto s_Ret = kwrite_t(s_Socket, &p_Message.Header, sizeof(p_Message.Header), s_MainThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not send header data (%p).", &p_Message.Header);
@@ -198,7 +205,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
     if (s_Data == nullptr || s_DataLength == 0)
         return;
     
-    s_Ret = kwrite(s_Socket, s_Data, s_DataLength);
+    s_Ret = kwrite_t(s_Socket, s_Data, s_DataLength, s_MainThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not send payloa data (%p) len (%d).", s_Data, s_DataLength);

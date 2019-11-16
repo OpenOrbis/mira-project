@@ -96,7 +96,7 @@ extern "C" void mira_entry(void* args)
 	auto vmspace_alloc = (struct vmspace* (*)(vm_offset_t min, vm_offset_t max))kdlsym(vmspace_alloc);
 	auto pmap_activate = (void(*)(struct thread *td))kdlsym(pmap_activate);
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
-	auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
+	//auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
 
     // Let'em know we made it
 	printf("[+] mira has reached stage 2\n");
@@ -158,7 +158,7 @@ extern "C" void mira_entry(void* args)
 	WriteLog(LL_Debug, "vmspace_alloc: %p", vmspace_alloc);
 	WriteLog(LL_Debug, "pmap_activate: %p", pmap_activate);
 	WriteLog(LL_Debug, "printf: %p", printf);
-	WriteLog(LL_Debug, "avcontrol_sleep: %p", avcontrol_sleep);
+	//WriteLog(LL_Debug, "avcontrol_sleep: %p", avcontrol_sleep);
 
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
@@ -172,7 +172,7 @@ extern "C" void mira_entry(void* args)
 	}
 
 	// Wait for the process to be filled out
-	const auto s_MaxTimeout = 3;
+	/*const auto s_MaxTimeout = 3;
 	auto s_CurrentTimeout = 0;
 	while (initParams->process == nullptr)
 	{
@@ -188,7 +188,7 @@ extern "C" void mira_entry(void* args)
 		return;
 	}
 
-	WriteLog(LL_Debug, "Got current process");
+	WriteLog(LL_Debug, "Got current process");*/
 
 	// Assign our new vmspace to our process
 	initParams->process->p_vmspace = vmspace;
@@ -201,10 +201,10 @@ extern "C" void mira_entry(void* args)
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
-	int descriptor = kopen(const_cast<char*>("/dev/console"), 1, 0);
+	int descriptor = kopen_t(const_cast<char*>("/dev/console"), 1, 0, curthread);
 	WriteLog(LL_Debug, "/dev/console descriptor: %d", descriptor);
-	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2(descriptor, 1));
-	WriteLog(LL_Info, "dup2(1, 2) result: %d", kdup2(1, 2));
+	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2_t(descriptor, 1, curthread));
+	WriteLog(LL_Info, "dup2(1, 2) result: %d", kdup2_t(1, 2, curthread));
 
 	// Show over UART that we are running in a new process
 	WriteLog(LL_Info, "oni_kernelInitialization in new process!\n");

@@ -6,6 +6,9 @@ void Patches::install_prePatches()
 {
 	switch (ONI_PLATFORM)
 	{
+		case ONI_PLATFORM_ORBIS_BSD_176:
+			install_prerunPatches_176();
+			break;
 		case ONI_PLATFORM_ORBIS_BSD_405:
 			install_prerunPatches_405();
 			break;
@@ -30,6 +33,7 @@ void Patches::install_prePatches()
 		case ONI_PLATFORM_ORBIS_BSD_650:
 			install_prerunPatches_650();
 			break;
+		case ONI_PLATFORM_STEAM_LINK:
 		case ONI_PLATFORM_STEAM_LINK2:
 			install_prerunPatches_SteamLink2();
 			break;

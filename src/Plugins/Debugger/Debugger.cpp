@@ -44,6 +44,7 @@ Debugger::~Debugger()
 
 bool Debugger::OnLoad()
 {
+#if ONI_PLATFORM <= ONI_PLATFORM_ORBIS_BSD_176
 	// Create the trap fatal hook
     WriteLog(LL_Info, "creating trap_fatal hook");
     m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));
@@ -53,6 +54,7 @@ bool Debugger::OnLoad()
         WriteLog(LL_Info, "enabling trap_fatal hook");
         m_TrapFatalHook->Enable();
     }
+	#endif
 
 	// Enable fuzzing
 	return true; // EnableFuzzing();

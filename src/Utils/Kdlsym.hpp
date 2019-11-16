@@ -12,6 +12,8 @@
 #include "Kdlsym/SteamLink2.hpp"
 #elif ONI_PLATFORM==ONI_PLATFORM_RASPI_ZERO
 #include "Kdlsym/RaspberryPiZero.hpp"
+#elif ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_176
+#include "Kdlsym/Orbis176.hpp"
 #elif ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_405
 #include "Kdlsym/Orbis405.hpp"
 #elif ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_455
