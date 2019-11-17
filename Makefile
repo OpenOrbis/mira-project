@@ -94,8 +94,8 @@ post-build: main-build
 	@echo "Post-Build"
 	@echo "Linking $(PROJ_NAME)..."
 	@$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(TARGET) $(LFLAGS) $(LIBS)
-	@echo "Creating Payload..."
-	@$(OBJCOPY) -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD)
+#	@echo "Creating Payload..."
+#	@$(OBJCOPY) -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD)
 	@echo "Building loader..."
 	@$(MAKE) --no-print-directory loader-build
 
