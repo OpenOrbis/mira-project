@@ -325,6 +325,15 @@ typedef struct {
 #define	PT_PHDR		6	/* Location of program header itself. */
 #define	PT_TLS		7	/* Thread local storage segment */
 #define	PT_LOOS		0x60000000	/* First OS-specific. */
+
+#define PT_SCE_RELA 0x60000000
+#define PT_SCE_DYNLIBDATA 0x61000000
+#define PT_SCE_PROCPARAM 0x61000001
+#define PT_SCE_MODULE_PARAM	0x61000002
+#define PT_SCE_RELRO 	0x61000010
+#define PT_SCE_COMMENT 	0x6FFFFF00
+#define PT_SCE_VERSION 	0x6FFFFF01
+
 #define	PT_SUNW_UNWIND	0x6464e550	/* amd64 UNWIND program header */
 #define	PT_GNU_EH_FRAME	0x6474e550
 #define	PT_GNU_STACK	0x6474e551

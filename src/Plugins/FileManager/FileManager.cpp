@@ -13,6 +13,7 @@
 #include <Mira.hpp>
 
 #include "FileManagerMessages.hpp"
+#include "FileManagerSelf.hpp"
 
 #include <sys/dirent.h>
 #include <sys/stat.h>
@@ -555,7 +556,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 		s_MainThread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
 		s_MainThread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
 
-		WriteLog(LL_Debug, "credentials rooted for new proc");
+		WriteLog(LL_Debug, "credentials rooted for main proc");
 	}
 
     if (curthread->td_ucred)
@@ -572,7 +573,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
 
 		if (curthread->td_proc->p_fd)
-			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+			curthread->td_proc->p_fd->fd_rdir = s_MainThread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 		
 		// Set our auth id as debugger
 		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::SceSysCore;
@@ -581,7 +582,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 		curthread->td_ucred->cr_sceCaps[0] = SceCapabilites::Max;
 		curthread->td_ucred->cr_sceCaps[1] = SceCapabilites::Max;
 
-		WriteLog(LL_Debug, "credentials rooted for new proc");
+		WriteLog(LL_Debug, "credentials rooted for current thread");
 	}
 
     // Validate our buffers
@@ -612,352 +613,266 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
         return;
     }
 
-    // Get the file size
-    auto s_FileSize = klseek_t(s_SelfHandle, 0, SEEK_END, s_MainThread);
-    WriteLog(LL_Debug, "fileSize: 0x%llx", s_FileSize);
-    if (s_FileSize == (off_t)-1)
+    size_t s_ElfDataSize = 0;
+
+    auto s_ElfData = DecryptSelfFd(s_SelfHandle, &s_ElfDataSize);
+    if (s_ElfData == nullptr || s_ElfDataSize == 0)
     {
-        // Close the previously opened handle
-        kclose_t(s_SelfHandle, s_MainThread);
-        WriteLog(LL_Error, "could not seek to the end of file");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -EIO);
+        WriteLog(LL_Error, "could not decrypt self");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOEXEC);
         return;
     }
 
-    // Return back to the start
-    auto s_SeekRet = klseek_t(s_SelfHandle, 0, SEEK_SET, s_MainThread);
-    WriteLog(LL_Debug, "seekRet: %llx", s_SeekRet);
-    if (s_SeekRet == (off_t)-1)
+    WriteLog(LL_Debug, "here");
+    Messaging::Message s_Message;
+    memset(&s_Message, 0, sizeof(s_Message));
+
+    WriteLog(LL_Debug, "here");
+    DecryptSelfResponse s_Payload;
+    memset(&s_Payload, 0, sizeof(s_Payload));
+
+    WriteLog(LL_Debug, "here");
+    auto s_ChunkCount = s_ElfDataSize / MaxBufferLength;
+    auto s_LeftoverCount = s_ElfDataSize % MaxBufferLength;
+
+    WriteLog(LL_Debug, "ChunkCount: %lld Leftover: %lld", s_ChunkCount, s_LeftoverCount);
+    auto s_TotalIndex = 0;
+    size_t s_TotalOffset = 0;
+    for (auto l_ChunkIndex = 0; l_ChunkIndex < s_ChunkCount; ++l_ChunkIndex)
     {
-        // Close the previously opened handle
-        kclose_t(s_SelfHandle, s_MainThread);
-        WriteLog(LL_Error, "could not seek to the start of file");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -EIO);
-        return;
+        s_Payload.Index = s_TotalIndex;
+        s_Payload.Offset = s_TotalOffset;
+        s_Payload.Length = MaxBufferLength;
+        memcpy(s_Payload.Data, &s_ElfData[s_TotalOffset], s_Payload.Length);
+
+        s_Message.Header = 
+        {
+            .magic = Messaging::MessageHeaderMagic,
+            .category = Messaging::MessageCategory_File,
+            .isRequest = false,
+            .errorType = static_cast<uint64_t>(0),
+            .payloadLength = sizeof(s_Payload),
+            .padding = 0
+        };
+        s_Message.Buffer = (const uint8_t*)&s_Payload;
+
+        Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Message);
+
+        s_TotalIndex++;
+        s_TotalOffset += MaxBufferLength;
     }
 
-    // Allocate to hold our entire self in memory (this may be dangerous/cause kpanics)
-    auto s_SelfData = new uint8_t[s_FileSize];
-    WriteLog(LL_Debug, "selfData: %p", s_SelfData);
+    if (s_LeftoverCount > 0)
+    {
+        WriteLog(LL_Debug, "here");
+        s_Payload.Index = s_TotalIndex;
+        s_Payload.Offset = s_TotalOffset;
+        s_Payload.Length = s_LeftoverCount;
+        WriteLog(LL_Debug, "here");
+        memcpy(s_Payload.Data, &s_ElfData[s_TotalOffset], s_Payload.Length);
+
+        WriteLog(LL_Debug, "here");
+        s_Message.Header = 
+        {
+            .magic = Messaging::MessageHeaderMagic,
+            .category = Messaging::MessageCategory_File,
+            .isRequest = false,
+            .errorType = static_cast<uint64_t>(0),
+            .payloadLength = sizeof(s_Payload),
+            .padding = 0
+        };
+        s_Message.Buffer = (const uint8_t*)&s_Payload;
+
+        WriteLog(LL_Debug, "here");
+
+        Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Message);
+
+        s_TotalIndex++;
+        s_TotalOffset += MaxBufferLength;
+        WriteLog(LL_Debug, "wrote leftover, total bytes: %lld", s_TotalOffset);
+    }
+
+    // Send "complete" message
+    s_Payload.Index = __UINT64_MAX__;
+    s_Payload.Offset = 0;
+    s_Payload.Length = 0;
+    WriteLog(LL_Debug, "here");
+    s_Message.Header = 
+    {
+        .magic = Messaging::MessageHeaderMagic,
+        .category = Messaging::MessageCategory_File,
+        .isRequest = false,
+        .errorType = static_cast<uint64_t>(0),
+        .payloadLength = sizeof(s_Payload),
+        .padding = 0
+    };
+    s_Message.Buffer = (const uint8_t*)&s_Payload;
+
+    delete[] s_ElfData;
+    WriteLog(LL_Debug, "here");
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Message);
+    WriteLog(LL_Error, "self decryption complete");
+}
+
+uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
+{
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return nullptr;
+    }
+
+    size_t s_Offset = klseek_t(p_SelfFd, 0, SEEK_END, s_MainThread);
+    if (s_Offset <= 0)
+    {
+        WriteLog(LL_Error, "invalid offset (%lld).", s_Offset);
+        return nullptr;
+    }
+
+    size_t s_SelfSize = s_Offset;
+
+    s_Offset = klseek_t(p_SelfFd, 0, SEEK_SET, s_MainThread);
+    if (s_Offset < 0)
+    {
+        WriteLog(LL_Error, "could not seek (%lld).", s_Offset);
+        return nullptr;
+    }
+
+    auto s_SelfData = new uint8_t[s_SelfSize];
     if (s_SelfData == nullptr)
     {
-        // Close the previously opened handle
-        kclose_t(s_SelfHandle, s_MainThread);
-        WriteLog(LL_Error, "could not allocate (%llx) bytes for self", s_FileSize);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
+        WriteLog(LL_Error, "could not allocate self data (%llx).", s_SelfSize);
+        return nullptr;
     }
-    memset(s_SelfData, 0, s_FileSize);
+    memset(s_SelfData, 0, s_SelfSize);
 
-    // Read out the entire self
-    auto s_Read = kread_t(s_SelfHandle, s_SelfData, s_FileSize, s_MainThread);
-    WriteLog(LL_Debug, "read: %lld", s_Read);
-    if (s_Read < 0)
+    s_Offset = kread_t(p_SelfFd, s_SelfData, s_SelfSize, s_MainThread);
+    if (s_Offset != s_SelfSize)
     {
-        // Close the previously opened handle
-        kclose_t(s_SelfHandle, s_MainThread);
+        // Free our allocated buffer
+        delete[] s_SelfData;
 
-        // Free the allocated buffer
-        delete [] s_SelfData;
-
-        WriteLog(LL_Error, "could not read (%llx) bytes for self", s_FileSize);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
-        return;
+        WriteLog(LL_Error, "could not read all of the self data (%lld).", s_Offset);
+        return nullptr;
     }
 
-    // Check to make sure that we haven't already gotten an raw ELF
-    if (s_SelfData[0] == ELFMAG0 && s_SelfData[1] == ELFMAG1 && s_SelfData[2] == ELFMAG2 && s_SelfData[3] == ELFMAG3)
+    return DecryptSelf(s_SelfData, s_SelfSize, p_SelfFd, p_OutElfSize);
+}
+
+uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_SelfFd, size_t* p_OutElfSize)
+{
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
     {
-        kclose_t(s_SelfHandle, s_MainThread);
-
-        // Free the allocated buffer
-        delete [] s_SelfData;
-
-        WriteLog(LL_Error, "tried to decrypt ELF header");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOEXEC);
-        return;
+        WriteLog(LL_Error, "could not get main thread");
+        return nullptr;
     }
-    WriteLog(LL_Debug, "did not get elf");
 
-    // Read out the entity count from the self header
-    auto s_SelfHeader = reinterpret_cast<Utils::SelfHeader*>(s_SelfData);
-    WriteLog(LL_Info, "selfHeader: %p", s_SelfHeader);
-    auto s_ElfHeaderOffset = (s_SelfHeader->EntityCount * 0x20) + 0x20;
-    WriteLog(LL_Info, "elfHeaderOffset: 0x%x", s_ElfHeaderOffset);
-    auto s_ElfInMemory = s_SelfData + s_ElfHeaderOffset;
-    WriteLog(LL_Info, "elfInMemory: %p", s_ElfInMemory);
-
-    auto s_ElfHeader = reinterpret_cast<Elf64_Ehdr*>(s_ElfInMemory);
-
-    // Validate the ELF header
-    if (s_ElfHeader->e_ident[EI_MAG0] != ELFMAG0 ||
-        s_ElfHeader->e_ident[EI_MAG1] != ELFMAG1 ||
-        s_ElfHeader->e_ident[EI_MAG2] != ELFMAG2 ||
-        s_ElfHeader->e_ident[EI_MAG3] != ELFMAG3)
+    if (p_SelfData == nullptr ||
+        p_OutElfSize == nullptr)
     {
-        kclose_t(s_SelfHandle, s_MainThread);
-        
-        // Free the allocated buffer
-        delete [] s_SelfData;
-
-        WriteLog(LL_Error, "invalid elf magic");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOEXEC);
-        return;
+        WriteLog(LL_Error, "invalid self data or out elf size");
+        return nullptr;
     }
-    WriteLog(LL_Debug, "ELF Header validated!");
 
-    // We don't want any of the section headers as they aren't decrypted/pointing to invalid bullshit
-    s_ElfHeader->e_shnum = 0;
-    s_ElfHeader->e_shoff = 0;
-
-    WriteLog(LL_Debug, "disabled section headers");
+    size_t s_EhdrOffset = 0;
+    auto s_Ehdr = reinterpret_cast<Elf64_Ehdr*>(p_SelfData);
     
-    uint64_t s_TotalSentChunks = 0;
-
-    // Iterate all of the program headers
-    auto s_ProgramHeaderStart = reinterpret_cast<Elf64_Phdr*>(s_ElfInMemory + s_ElfHeader->e_phoff);
-    for (auto l_Index = 0; l_Index < s_ElfHeader->e_phnum; ++l_Index)
+    if (IsValidElf(s_Ehdr))
     {
-        auto l_ProgramHeader = &s_ProgramHeaderStart[l_Index];
-        WriteLog(LL_Debug, "programHeader: %p", l_ProgramHeader);
-
-        // Validate file size
-        if (l_ProgramHeader->p_filesz <= 0)
-            continue;
-
-        // Skip SCE_SYM?? section
-        if (l_ProgramHeader->p_type == 0x6fffff01)
-            continue;
-
-        // Check if this program header is overlapping with others
-        if (IsPhOverlapping(l_ProgramHeader, l_Index, s_ProgramHeaderStart, s_ElfHeader->e_phnum))
-            continue;
-
-        // Check if this section is over 32MiB, we have to do this in chunks otherwise
-        const uint64_t c_MaxChunkSize = 0x2000000;
-        auto l_Chunks = l_ProgramHeader->p_filesz / c_MaxChunkSize;
-        auto l_Leftover = l_ProgramHeader->p_filesz % c_MaxChunkSize;
-
-        WriteLog(LL_Debug, "chunks: %llx leftover: %llx", l_Chunks, l_Leftover);
-
-        // Iterate for each program header in 32MiB chunks
-        uint64_t l_ChunkOffset = 0;
-        for (auto l_ChunkIndex = 0; l_ChunkIndex < l_Chunks; ++l_ChunkIndex)
+        auto s_ElfData = new uint8_t[p_SelfSize];
+        if (s_ElfData == nullptr)
         {
-            // Calculate the real offset by ph index << 32 | offset in file from chunk
-            uint64_t l_RealOffset = (static_cast<uint64_t>(l_Index) << 32) | l_ChunkOffset;
-            l_ChunkOffset += c_MaxChunkSize;
-
-            // Decrypt the next 32MiB chunk
-            auto l_DecryptedData = kmmap_t(nullptr, c_MaxChunkSize, PROT_READ, MAP_SELF | MAP_SHARED, s_SelfHandle, l_RealOffset, s_MainThread);
-            WriteLog(LL_Debug, "realOffset: %llx, decryptedData: %p", l_RealOffset, l_DecryptedData);
-            if (l_DecryptedData == MAP_FAILED)
-            {
-                WriteLog(LL_Error, "could not map_self, returned MAP_FAILED ph (%d).", l_Index);
-                continue;
-            }
-
-            // Split up for the transport
-            auto l_TransportChunks = c_MaxChunkSize / MaxBufferLength;
-            auto l_TransportLeftover = c_MaxChunkSize % MaxBufferLength;
-            WriteLog(LL_Info, "here");
-            auto l_TransportOffset = 0;
-            for (auto l_TransportIndex = 0; l_TransportIndex < l_TransportChunks; l_TransportIndex++)
-            {
-                DecryptSelfResponse l_Payload = {
-                    .Index = s_TotalSentChunks,
-                    .Offset = l_ChunkOffset + l_TransportOffset,
-                    .Length = MaxBufferLength,
-                    .Data = { 0 }
-                };
-
-                // Copy the data to our payload
-                memcpy(l_Payload.Data, l_DecryptedData + l_TransportOffset, MaxBufferLength);
-
-                l_TransportOffset += MaxBufferLength;
-                s_TotalSentChunks++;
-
-                // Send the response back
-                Messaging::Message s_Response = 
-                {
-                    .Header = 
-                    {
-                            .magic = Messaging::MessageHeaderMagic,
-                            .category = Messaging::MessageCategory_File,
-                            .isRequest = false,
-                            .errorType = 0,
-                            .payloadLength = sizeof(l_Payload),
-                            .padding = 0
-                    },
-                    .Buffer = reinterpret_cast<const uint8_t*>(&l_Payload)
-                };
-
-                Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-            }
-
-            WriteLog(LL_Info, "here");
-
-            if (l_TransportLeftover > 0)
-            {
-                DecryptSelfResponse l_Payload = {
-                    .Index = s_TotalSentChunks,
-                    .Offset = l_ChunkOffset + l_TransportOffset,
-                    .Length = l_TransportLeftover,
-                    .Data = { 0 }
-                };
-
-                // Copy the data to our payload
-                memcpy(l_Payload.Data, l_DecryptedData + l_TransportOffset, l_TransportLeftover);
-
-                l_TransportOffset += l_TransportLeftover;
-                s_TotalSentChunks++;
-
-                WriteLog(LL_Debug, "TransportOffset: %llx, TotalSentChunks: %llx", l_TransportOffset, s_TotalSentChunks);
-                
-                // Send the response back
-                Messaging::Message s_Response = 
-                {
-                    .Header = 
-                    {
-                            .magic = Messaging::MessageHeaderMagic,
-                            .category = Messaging::MessageCategory_File,
-                            .isRequest = false,
-                            .errorType = 0,
-                            .payloadLength = sizeof(l_Payload),
-                            .padding = 0
-                    },
-                    .Buffer = reinterpret_cast<const uint8_t*>(&l_Payload)
-                };
-
-                Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-            }
-
-            // Unmap the previously mapped data
-            kmunmap_t(l_DecryptedData, c_MaxChunkSize, s_MainThread);
+            WriteLog(LL_Error, "could not allocate elf data");
+            return nullptr;
         }
 
-        if (l_Leftover > 0)
+        memcpy(s_ElfData, p_SelfData, p_SelfSize);
+
+        *p_OutElfSize = p_SelfSize;
+
+        return s_ElfData;
+    }
+    else
+    {
+        // Handle SELF decryption
+        auto s_SelfHeader = reinterpret_cast<self_header_t*>(p_SelfData);
+        s_EhdrOffset += sizeof(*s_SelfHeader);
+        s_EhdrOffset += sizeof(self_entry_t) * s_SelfHeader->num_entries;
+        s_Ehdr = reinterpret_cast<Elf64_Ehdr*>(&p_SelfData[s_EhdrOffset]);
+    }
+
+    uint8_t* s_ElfBase = reinterpret_cast<uint8_t*>(s_Ehdr);
+    if (!IsValidElf(s_Ehdr))
+    {
+        WriteLog(LL_Error, "could not find ELF header in self");
+        return nullptr;
+    }
+
+    s_Ehdr->e_shoff = 0;
+    s_Ehdr->e_shnum = 0;
+    size_t s_ElfSize = s_Ehdr->e_phoff + (s_Ehdr->e_phnum * s_Ehdr->e_phentsize) + (s_Ehdr->e_shnum * s_Ehdr->e_shentsize);
+
+    // Parse PHDRs
+    auto s_Phdr = reinterpret_cast<Elf64_Phdr*>(&s_ElfBase[s_Ehdr->e_phoff]);
+    for (auto i = 0; i < s_Ehdr->e_phnum; ++i)
+    {
+        switch (s_Phdr[i].p_type)
         {
-            uint64_t l_RealOffset = (static_cast<uint64_t>(l_Index) << 32) | l_ChunkOffset;
-            l_ChunkOffset += l_Leftover;
-
-            auto l_DecryptedData = kmmap_t(nullptr, l_Leftover, PROT_READ, MAP_SELF | MAP_SHARED, s_SelfHandle, l_RealOffset, s_MainThread);
-            WriteLog(LL_Debug, "decryptedData: %p", l_DecryptedData);
-            if (l_DecryptedData == MAP_FAILED)
-            {
-                WriteLog(LL_Error, "could not map_self, returned MAP_FAILED ph (%d).", l_Index);
-                continue;
-            }
-
-            // Split up for the transport
-            auto l_TransportChunks = l_Leftover / MaxBufferLength;
-            auto l_TransportLeftover = l_Leftover % MaxBufferLength;
-            
-            WriteLog(LL_Info, "here");
-            auto l_TransportOffset = 0;
-            for (auto l_TransportIndex = 0; l_TransportIndex < l_TransportChunks; l_TransportIndex++)
-            {
-                DecryptSelfResponse l_Payload = {
-                    .Index = s_TotalSentChunks,
-                    .Offset = l_ChunkOffset + l_TransportOffset,
-                    .Length = MaxBufferLength,
-                    .Data = { 0 }
-                };
-
-                // Copy the data to our payload
-                memcpy(l_Payload.Data, l_DecryptedData + l_TransportOffset, MaxBufferLength);
-
-                l_TransportOffset += MaxBufferLength;
-                s_TotalSentChunks++;
-
-                // Send the response back
-                Messaging::Message s_Response = 
-                {
-                    .Header = 
-                    {
-                            .magic = Messaging::MessageHeaderMagic,
-                            .category = Messaging::MessageCategory_File,
-                            .isRequest = false,
-                            .errorType = 0,
-                            .payloadLength = sizeof(l_Payload),
-                            .padding = 0
-                    },
-                    .Buffer = reinterpret_cast<const uint8_t*>(&l_Payload)
-                };
-
-                Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-            }
-            WriteLog(LL_Info, "here");
-            if (l_TransportLeftover > 0)
-            {
-                DecryptSelfResponse l_Payload = {
-                    .Index = s_TotalSentChunks,
-                    .Offset = l_ChunkOffset + l_TransportOffset,
-                    .Length = l_TransportLeftover,
-                    .Data = { 0 }
-                };
-
-                // Copy the data to our payload
-                memcpy(l_Payload.Data, l_DecryptedData + l_TransportOffset, l_TransportLeftover);
-
-                l_TransportOffset += l_TransportLeftover;
-                s_TotalSentChunks++;
-
-                // Send the response back
-                Messaging::Message s_Response = 
-                {
-                    .Header = 
-                    {
-                            .magic = Messaging::MessageHeaderMagic,
-                            .category = Messaging::MessageCategory_File,
-                            .isRequest = false,
-                            .errorType = 0,
-                            .payloadLength = sizeof(l_Payload),
-                            .padding = 0
-                    },
-                    .Buffer = reinterpret_cast<const uint8_t*>(&l_Payload)
-                };
-
-                Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-            }
-
-            // Unmap the previously mapped data
-            kmunmap_t(l_DecryptedData, l_Leftover, s_MainThread);
+        case PT_LOAD:
+        case PT_SCE_DYNLIBDATA:
+        case PT_DYNAMIC:
+            s_ElfSize = MAX(s_ElfSize, s_Phdr[i].p_offset + s_Phdr[i].p_filesz);
+            break;
         }
     }
 
-    WriteLog(LL_Debug, "closing self handle");
-    kclose_t(s_SelfHandle, s_MainThread);
-    s_SelfHandle = -1;
-
-    delete [] s_SelfData;
-    s_SelfData = nullptr;
-
-    WriteLog(LL_Info, "here");
-
-    DecryptSelfResponse s_Payload = {
-        .Index = __UINT64_MAX__,
-        .Offset = 0,
-        .Length = 0,
-        .Data = { 0 }
-    };
-
-    Messaging::Message s_Response = 
+    *p_OutElfSize = s_ElfSize;
+    auto s_ElfData = new uint8_t[s_ElfSize];
+    if (s_ElfData == nullptr)
     {
-        .Header = 
+        WriteLog(LL_Error, "could not allocate raw elf data.");
+        return false;
+    }
+    memset(s_ElfData, 0, s_ElfSize);
+
+    // Copy over the elf header
+    for (auto i = 0; i < s_Ehdr->e_ehsize; ++i)
+        s_ElfData[i] = s_ElfBase[i];
+    
+    // Copy over all program headers
+    for (auto l_PhIndex = 0; l_PhIndex < s_Ehdr->e_phnum; ++l_PhIndex)
+    {
+        for (auto l_PhEntIndex = 0; l_PhEntIndex < s_Ehdr->e_phentsize; ++l_PhEntIndex)
         {
-                .magic = Messaging::MessageHeaderMagic,
-                .category = Messaging::MessageCategory_File,
-                .isRequest = false,
-                .errorType = 0,
-                .payloadLength = sizeof(s_Payload),
-                .padding = 0
-        },
-        .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
-    };
+            auto l_Offset = s_Ehdr->e_phoff + (l_PhIndex * s_Ehdr->e_phentsize) + l_PhEntIndex;
+            s_ElfData[l_Offset] = s_ElfBase[l_Offset];
+        }
 
-    WriteLog(LL_Info, "here");
+        if (s_Phdr[l_PhIndex].p_type == PT_LOAD ||
+            s_Phdr[l_PhIndex].p_type == PT_SCE_DYNLIBDATA)
+        {
+            klseek_t(p_SelfFd, 0, SEEK_SET, s_MainThread);
+            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            
+            WriteLog(LL_Warn, "%p = mmap(%p, 0x%llx, %d, %d, %d, %llx, %p)", l_ElfSegment, nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            if (l_ElfSegment != MAP_FAILED)
+            {
+                // For some strange reason mmap will return ENOMEM for no fucking reason
+                if (l_ElfSegment == (caddr_t)(-ENOMEM))
+                {
+                    WriteLog(LL_Error, "mmap returned (%lld).", l_ElfSegment);
+                    continue;
+                }
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-    WriteLog(LL_Info, "decrypted (%s) successfully!", s_Request->Path);
+                for (auto l_FileIndex = 0; l_FileIndex < s_Phdr[l_PhIndex].p_filesz; ++l_FileIndex)
+                    s_ElfData[s_Phdr[l_PhIndex].p_offset + l_FileIndex] = l_ElfSegment[l_FileIndex];
+            }
+            kmunmap_t(l_ElfSegment, s_Phdr[l_PhIndex].p_filesz, s_MainThread);
+        }
+    }
+
+    return s_ElfData;
 }

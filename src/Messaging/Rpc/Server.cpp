@@ -188,21 +188,14 @@ void Server::ServerThread(void* p_UserArgs)
         .tv_usec = 0
     };
 
-    while (s_Server->m_Running)
+    int s_ClientSocket = -1;
+    struct sockaddr_in s_ClientAddress = { 0 };
+    size_t s_ClientAddressLen = sizeof(s_ClientAddress);
+    memset(&s_ClientAddress, 0, s_ClientAddressLen);
+    s_ClientAddress.sin_len = s_ClientAddressLen;
+
+    while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
-        struct sockaddr_in l_ClientAddress;
-        size_t l_ClientAddressLen = sizeof(l_ClientAddress);
-        memset(&l_ClientAddress, 0, l_ClientAddressLen);
-        l_ClientAddress.sin_len = l_ClientAddressLen;
-
-        // Accept a new client
-        auto l_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&l_ClientAddress), &l_ClientAddressLen, s_MainThread);
-        if (l_ClientSocket < 0)
-        {
-            WriteLog(LL_Error, "could not accept socket (%d).", l_ClientSocket);
-            break;
-        }
-
         // Set the send recv and linger timeouts
         /*int32_t result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
         if (result < 0)
@@ -222,30 +215,30 @@ void Server::ServerThread(void* p_UserArgs)
 
         // SO_LINGER
         s_Timeout.tv_sec = 0;
-        auto result = ksetsockopt_t(l_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
+        auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
         if (result < 0)
         {
             WriteLog(LL_Error, "could not set send timeout (%d).", result);
-            kshutdown_t(l_ClientSocket, SHUT_RDWR, s_MainThread);
-            kclose_t(l_ClientSocket, s_MainThread);
+            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(s_ClientSocket, s_MainThread);
             continue;
         }
 
-        uint32_t l_Addr = (uint32_t)l_ClientAddress.sin_addr.s_addr;
+        uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
 
-		WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", l_ClientSocket, 
+		WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
 			(l_Addr & 0xFF),
 			(l_Addr >> 8) & 0xFF,
 			(l_Addr >> 16) & 0xFF,
 			(l_Addr >> 24) & 0xFF);
         
-        auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, l_ClientSocket, l_ClientAddress);
+        auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, s_ClientSocket, s_ClientAddress);
         if (!l_Connection)
         {
-            WriteLog(LL_Error, "could not allocate new connection for socket (%d).", l_ClientSocket);
+            WriteLog(LL_Error, "could not allocate new connection for socket (%d).", s_ClientSocket);
 
-            kshutdown_t(l_ClientSocket, SHUT_RDWR, s_MainThread);
-            kclose_t(l_ClientSocket, s_MainThread);
+            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(s_ClientSocket, s_MainThread);
             break;
         }
 
@@ -254,8 +247,8 @@ void Server::ServerThread(void* p_UserArgs)
         {
             WriteLog(LL_Error, "could not get free connection index");
 
-            kshutdown_t(l_ClientSocket, SHUT_RDWR, s_MainThread);
-            kclose_t(l_ClientSocket, s_MainThread);
+            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(s_ClientSocket, s_MainThread);
 
             delete l_Connection;
             l_Connection = nullptr;
@@ -265,6 +258,10 @@ void Server::ServerThread(void* p_UserArgs)
 
         // Send off for new client thread creation
         s_Server->OnHandleConnection(l_Connection);
+
+        // Zero out the address information for the next call
+        memset(&s_ClientAddress, 0, s_ClientAddressLen);
+        s_ClientAddress.sin_len = s_ClientAddressLen;
     }
 
     // Disconnects all clients, set running to false

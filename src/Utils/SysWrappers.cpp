@@ -190,7 +190,7 @@ int kmlockall_t(int how, struct thread* td)
 //
 // 477: sys_mmap
 //
-caddr_t kmmap_internal(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td)
+caddr_t __attribute__((noinline)) kmmap_internal(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -221,11 +221,11 @@ caddr_t kmmap_internal(caddr_t addr, size_t len, int prot, int flags, int fd, of
 
 caddr_t kmmap_t(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td)
 {
-	uint64_t ret = (uint64_t)(-EIO);
+	int64_t ret = (-EIO);
 
 	for (;;)
 	{
-		ret = (uint64_t)kmmap_internal(addr, len, prot, flags, fd, pos, td);
+		ret = (int64_t)kmmap_internal(addr, len, prot, flags, fd, pos, td);
 		if (ret < 0)
 		{
 			if (ret == (-EINTR))

@@ -67,14 +67,14 @@ void Connection::Disconnect()
 
 void Connection::ConnectionThread(void* p_Connection)
 {
+    auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
+        kthread_exit();
         return;
     }
-
-    auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
     // Validate connection
     auto s_Connection = reinterpret_cast<Rpc::Connection*>(p_Connection);
@@ -95,38 +95,29 @@ void Connection::ConnectionThread(void* p_Connection)
     // Get the header size
     const auto s_MessageHeaderSize = sizeof(Messaging::MessageHeader);
     const auto s_MessageBufferSize = sizeof(s_Connection->m_MessageBuffer);
-    
-    while (s_Connection->IsRunning())
+    // Zero out our entire buffer for a new message
+    memset(s_Connection->m_MessageBuffer, 0, s_MessageBufferSize);
+    Messaging::MessageHeader s_MessageHeader = { 0 };
+
+    ssize_t s_Ret = -1;
+    while ((s_Ret = krecv_t(s_Connection->GetSocket(), &s_MessageHeader, sizeof(s_MessageHeader), 0, s_MainThread)) > 0)
     {
-        // Zero out our entire buffer for a new message
-        memset(s_Connection->m_MessageBuffer, 0, s_MessageBufferSize);
-
-        Messaging::MessageHeader l_MessageHeader = { 0 };
-
-        // Recv the data length of this message
-        ssize_t l_Ret = krecv_t(s_Connection->GetSocket(), &l_MessageHeader, sizeof(l_MessageHeader), 0, s_MainThread);
-        if (l_Ret <= 0)
-        {
-            WriteLog(LL_Error, "recv returned (%d).", l_Ret);
-            break;
-        }
-
         // Make sure that we got all of the data
-        if (l_Ret != s_MessageHeaderSize)
+        if (s_Ret != s_MessageHeaderSize)
         {
             WriteLog(LL_Error, "could not get message header.");
             break;
         }
 
         // Validate the header magic
-        if (l_MessageHeader.magic != MessageHeaderMagic)
+        if (s_MessageHeader.magic != MessageHeaderMagic)
         {
-            WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", l_MessageHeader.magic, MessageHeaderMagic);
+            WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", s_MessageHeader.magic, MessageHeaderMagic);
             break;
         }
 
         // Validate message category
-        auto s_Category = static_cast<MessageCategory>(l_MessageHeader.category);
+        auto s_Category = static_cast<MessageCategory>(s_MessageHeader.category);
         if (s_Category < MessageCategory_None || s_Category > MessageCategory_Max)
         {
             WriteLog(LL_Error, "invalid category (%d).", s_Category);
@@ -134,31 +125,32 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // We do not want to handle any responses
-        if (l_MessageHeader.isRequest == false)
+        if (s_MessageHeader.isRequest == false)
         {
             WriteLog(LL_Error, "attempted to handle outgoing message, fix ya code");
             break;
         }
 
         // Bounds check the span
-        if (l_MessageHeader.payloadLength > s_MessageBufferSize)
+        if (s_MessageHeader.payloadLength > s_MessageBufferSize)
         {
-            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", l_MessageHeader.payloadLength, s_MessageBufferSize);
+            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", s_MessageHeader.payloadLength, s_MessageBufferSize);
             break;
         }
 
         uint32_t l_TotalRecv = 0;
-        l_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer, l_MessageHeader.payloadLength, 0, s_MainThread);
-        if (l_Ret <= 0)
+        memset(s_Connection->m_MessageBuffer, 0, sizeof(s_Connection->m_MessageBuffer)); // Zero out the buffer
+        s_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer, s_MessageHeader.payloadLength, 0, s_MainThread);
+        if (s_Ret <= 0)
         {
-            WriteLog(LL_Error, "could not recv data err: (%d).", l_Ret);
+            WriteLog(LL_Error, "could not recv data err: (%d).", s_Ret);
             break;
         }
 
-        l_TotalRecv += l_Ret;
-        while (l_TotalRecv < l_MessageHeader.payloadLength)
+        l_TotalRecv += s_Ret;
+        while (l_TotalRecv < s_MessageHeader.payloadLength)
         {
-            auto l_DataLeft = l_MessageHeader.payloadLength - l_TotalRecv;
+            auto l_DataLeft = s_MessageHeader.payloadLength - l_TotalRecv;
             if (l_DataLeft == 0)
                 break;
             
@@ -168,27 +160,27 @@ void Connection::ConnectionThread(void* p_Connection)
                 break;
             }
 
-            l_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer + l_TotalRecv, l_DataLeft, 0, s_MainThread);
-            if (l_Ret <= 0)
+            s_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer + l_TotalRecv, l_DataLeft, 0, s_MainThread);
+            if (s_Ret <= 0)
             {
-                WriteLog(LL_Error, "could not recv all data err: (%d).", l_Ret);
+                WriteLog(LL_Error, "could not recv all data err: (%d).", s_Ret);
                 break;
             }
 
-            l_TotalRecv += l_Ret;
+            l_TotalRecv += s_Ret;
         }
 
         // Validate that we have gotten all data
-        if (l_TotalRecv != l_MessageHeader.payloadLength)
+        if (l_TotalRecv != s_MessageHeader.payloadLength)
         {
-            WriteLog(LL_Error, "did not recv all of payload wanted (%d) got (%d).", l_MessageHeader.payloadLength, l_TotalRecv);
+            WriteLog(LL_Error, "did not recv all of payload wanted (%d) got (%d).", s_MessageHeader.payloadLength, l_TotalRecv);
             break;
         }
 
         // Send out message
         Messaging::Message l_Message = 
         {
-            .Header = l_MessageHeader,
+            .Header = s_MessageHeader,
             .Buffer = s_Connection->m_MessageBuffer
         };
         
@@ -207,6 +199,9 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         s_MessageManager->OnRequest(s_Connection, l_Message);
+
+        // Zero out the header for use next iteration
+        memset(&s_MessageHeader, 0, sizeof(s_MessageHeader));
     }
 
     s_Connection->Disconnect();
