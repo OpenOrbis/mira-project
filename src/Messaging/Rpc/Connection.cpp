@@ -30,14 +30,30 @@ Connection::Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Soc
     m_Thread(nullptr),
     m_Address{0},
     m_Server(p_Server),
-    m_MessageBuffer{0}
+    m_MessageBuffer(new uint8_t[MaxBufferSize])
 {
     memcpy(&m_Address, &p_Address, sizeof(m_Address));
+
+    if (m_MessageBuffer == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate message buffer.");
+        return;
+    }
+
+    // Zero out our buffer
+    memset(m_MessageBuffer, 0, MaxBufferSize);
 }
 
 Connection::~Connection()
 {
+    if (m_Running)
+        Disconnect();
     
+    if (m_MessageBuffer)
+    {
+        delete [] m_MessageBuffer;
+        m_MessageBuffer = nullptr;
+    }
 }
 
 void Connection::Disconnect()
@@ -85,6 +101,14 @@ void Connection::ConnectionThread(void* p_Connection)
         return;
     }
 
+    // Validate that we have a buffer
+    if (s_Connection->m_MessageBuffer == nullptr)
+    {
+        WriteLog(LL_Error, "there is no message buffer");
+        kthread_exit();
+        return;
+    }
+
     WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%x), thread: (%p).", 
                     s_Connection->m_Socket, 
                     s_Connection->m_Address.sin_addr.s_addr, 
@@ -94,9 +118,8 @@ void Connection::ConnectionThread(void* p_Connection)
 
     // Get the header size
     const auto s_MessageHeaderSize = sizeof(Messaging::MessageHeader);
-    const auto s_MessageBufferSize = sizeof(s_Connection->m_MessageBuffer);
     // Zero out our entire buffer for a new message
-    memset(s_Connection->m_MessageBuffer, 0, s_MessageBufferSize);
+    memset(s_Connection->m_MessageBuffer, 0, MaxBufferSize);
     Messaging::MessageHeader s_MessageHeader = { 0 };
 
     ssize_t s_Ret = -1;
@@ -132,14 +155,14 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // Bounds check the span
-        if (s_MessageHeader.payloadLength > s_MessageBufferSize)
+        if (s_MessageHeader.payloadLength > MaxBufferSize)
         {
-            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", s_MessageHeader.payloadLength, s_MessageBufferSize);
+            WriteLog(LL_Error, "span does not have enough data, wanted (%d), have (%d).", s_MessageHeader.payloadLength, MaxBufferSize);
             break;
         }
 
         uint32_t l_TotalRecv = 0;
-        memset(s_Connection->m_MessageBuffer, 0, sizeof(s_Connection->m_MessageBuffer)); // Zero out the buffer
+        memset(s_Connection->m_MessageBuffer, 0, MaxBufferSize); // Zero out the buffer
         s_Ret = krecv_t(s_Connection->GetSocket(), s_Connection->m_MessageBuffer, s_MessageHeader.payloadLength, 0, s_MainThread);
         if (s_Ret <= 0)
         {
@@ -154,7 +177,7 @@ void Connection::ConnectionThread(void* p_Connection)
             if (l_DataLeft == 0)
                 break;
             
-            if (l_TotalRecv + l_DataLeft > s_MessageBufferSize)
+            if (l_TotalRecv + l_DataLeft > MaxBufferSize)
             {
                 WriteLog(LL_Error, "attempted to write out of the bounds of what data we had left.");
                 break;

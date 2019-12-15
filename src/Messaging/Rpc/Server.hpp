@@ -12,7 +12,7 @@ namespace Mira
     {
         namespace Rpc
         {
-            enum {  RpcServer_MaxConnections = 256,
+            enum {  RpcServer_MaxConnections = 8,
                     RpcServer_DefaultPort = 9999, };
             class Connection;
 

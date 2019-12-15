@@ -44,7 +44,7 @@ Debugger::~Debugger()
 
 bool Debugger::OnLoad()
 {
-#if ONI_PLATFORM <= ONI_PLATFORM_ORBIS_BSD_176
+#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
 	// Create the trap fatal hook
     WriteLog(LL_Info, "creating trap_fatal hook");
     m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));
@@ -54,7 +54,7 @@ bool Debugger::OnLoad()
         WriteLog(LL_Info, "enabling trap_fatal hook");
         m_TrapFatalHook->Enable();
     }
-	#endif
+#endif
 
 	// Enable fuzzing
 	return true; // EnableFuzzing();
@@ -118,43 +118,42 @@ void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
-#define MAX_TRAP_MSG		33
-static const char *trap_msg[] = {
-	"",					/*  0 unused */
-	"privileged instruction fault",		/*  1 T_PRIVINFLT */
-	"",					/*  2 unused */
-	"breakpoint instruction fault",		/*  3 T_BPTFLT */
-	"",					/*  4 unused */
-	"",					/*  5 unused */
-	"arithmetic trap",			/*  6 T_ARITHTRAP */
-	"",					/*  7 unused */
-	"",					/*  8 unused */
-	"general protection fault",		/*  9 T_PROTFLT */
-	"trace trap",				/* 10 T_TRCTRAP */
-	"",					/* 11 unused */
-	"page fault",				/* 12 T_PAGEFLT */
-	"",					/* 13 unused */
-	"alignment fault",			/* 14 T_ALIGNFLT */
-	"",					/* 15 unused */
-	"",					/* 16 unused */
-	"",					/* 17 unused */
-	"integer divide fault",			/* 18 T_DIVIDE */
-	"non-maskable interrupt trap",		/* 19 T_NMI */
-	"overflow trap",			/* 20 T_OFLOW */
-	"FPU bounds check fault",		/* 21 T_BOUND */
-	"FPU device not available",		/* 22 T_DNA */
-	"double fault",				/* 23 T_DOUBLEFLT */
-	"FPU operand fetch fault",		/* 24 T_FPOPFLT */
-	"invalid TSS fault",			/* 25 T_TSSFLT */
-	"segment not present fault",		/* 26 T_SEGNPFLT */
-	"stack fault",				/* 27 T_STKFLT */
-	"machine check trap",			/* 28 T_MCHK */
-	"SIMD floating-point exception",	/* 29 T_XMMFLT */
-	"reserved (unknown) fault",		/* 30 T_RESERVED */
-	"",					/* 31 unused (reserved) */
-	"DTrace pid return trap",		/* 32 T_DTRACE_RET */
-	"DTrace fasttrap probe trap",		/* 33 T_DTRACE_PROBE */
-};
+	static const char *trap_msg[] = {
+		"",					/*  0 unused */
+		"privileged instruction fault",		/*  1 T_PRIVINFLT */
+		"",					/*  2 unused */
+		"breakpoint instruction fault",		/*  3 T_BPTFLT */
+		"",					/*  4 unused */
+		"",					/*  5 unused */
+		"arithmetic trap",			/*  6 T_ARITHTRAP */
+		"",					/*  7 unused */
+		"",					/*  8 unused */
+		"general protection fault",		/*  9 T_PROTFLT */
+		"trace trap",				/* 10 T_TRCTRAP */
+		"",					/* 11 unused */
+		"page fault",				/* 12 T_PAGEFLT */
+		"",					/* 13 unused */
+		"alignment fault",			/* 14 T_ALIGNFLT */
+		"",					/* 15 unused */
+		"",					/* 16 unused */
+		"",					/* 17 unused */
+		"integer divide fault",			/* 18 T_DIVIDE */
+		"non-maskable interrupt trap",		/* 19 T_NMI */
+		"overflow trap",			/* 20 T_OFLOW */
+		"FPU bounds check fault",		/* 21 T_BOUND */
+		"FPU device not available",		/* 22 T_DNA */
+		"double fault",				/* 23 T_DOUBLEFLT */
+		"FPU operand fetch fault",		/* 24 T_FPOPFLT */
+		"invalid TSS fault",			/* 25 T_TSSFLT */
+		"segment not present fault",		/* 26 T_SEGNPFLT */
+		"stack fault",				/* 27 T_STKFLT */
+		"machine check trap",			/* 28 T_MCHK */
+		"SIMD floating-point exception",	/* 29 T_XMMFLT */
+		"reserved (unknown) fault",		/* 30 T_RESERVED */
+		"",					/* 31 unused (reserved) */
+		"DTrace pid return trap",		/* 32 T_DTRACE_RET */
+		"DTrace fasttrap probe trap",		/* 33 T_DTRACE_PROBE */
+	};
 
 	int code, ss;
 	u_int type;
@@ -270,14 +269,6 @@ static const char *trap_msg[] = {
 
 	// Allow the debugger to be placed here manually and continue exceution
 	__asm__("pop %rbp;leave;ret;");
-}
-
-uint8_t Debugger::StubGetChar()
-{
-	if (m_GdbSocket < 0)
-		return 0;
-	
-	return 0;
 }
 
 bool Debugger::Attach(int32_t p_ProcessId, bool p_StopOnAttach)
@@ -481,5 +472,18 @@ bool Debugger::UpdateWatches()
 
 bool Debugger::UpdateBreakpoints()
 {
+	return true;
+}
+
+bool Debugger::IsProcessAlive(int32_t p_ProcessId)
+{
+	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+	struct proc* s_Process = pfind(p_ProcessId);
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
+		return false;
+	}
+	PROC_UNLOCK(s_Process);
 	return true;
 }

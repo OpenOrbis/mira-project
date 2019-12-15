@@ -21,12 +21,9 @@ namespace Mira
             { 
                 // Configuration
                 Debugger_MaxTaintedThreads = 20,
-                Debugger_MaxPath = 260
+                Debugger_MaxPath = 260,
+                MAX_TRAP_MSG = 33
             };
-            
-            // Remote GDB
-            int32_t m_GdbSocket;
-            struct sockaddr_in m_GdbAddress;
 
             // Debugger
             int32_t m_ProcessId;
@@ -52,20 +49,9 @@ namespace Mira
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
 
-        protected:
-            uint8_t StubGetChar(void);
-            bool StubPutChar(uint8_t p_Char);
-            int32_t StubReadByte(void* p_Address, char* p_OutValue);
-            int32_t StubWriteByte(void* p_Address, char p_Value);
-            int32_t StubContinue();
-            int32_t StubStep();
-
             bool LaunchApplication(const char* p_Path);
 
         private:
-            bool StartStubServer();
-            bool TeardownStubServer();
-
             bool Attach(int32_t p_ProcessId, bool p_StopOnAttach = false);
             bool Detach(bool p_ResumeOnDetach = false);
 
@@ -79,6 +65,8 @@ namespace Mira
             bool UpdateBreakpoints();
 
             bool UpdateAll();
+
+            bool IsProcessAlive(int32_t p_ProcessId);
         };
     }
 }

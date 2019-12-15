@@ -231,16 +231,6 @@ extern "C" void mira_entry(void* args)
 
 	// At this point we don't need kernel context anymore
 	WriteLog(LL_Info, "Mira initialization complete");
-
-	// This keeps the process alive
-	/*while (s_Framework->GetInitParams()->isRunning)
-	{
-		avcontrol_sleep(100);
-		__asm__("nop");
-	}*/	
-	
-	// Write our final goodbyes
-	//WriteLog(LL_Debug, "Mira kernel process is terminating");
 	kthread_exit();
 }
 
@@ -263,9 +253,10 @@ bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
 bool Mira::Framework::Initialize()
 {
 	// TODO: Load settings
-	WriteLog(LL_Info, "loading settings from (%s)", "MIRA_CONFIG_PATH");
+	WriteLog(LL_Warn, "FIXME: loading settings not implemented!!!!");
 
-	// TODO: Initialize message manager
+	// Initialize message manager
+	WriteLog(LL_Debug, "Initializing the message manager");
 	m_MessageManager = new Mira::Messaging::MessageManager();
 	if (m_MessageManager == nullptr)
 	{
@@ -273,9 +264,8 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
-	WriteLog(LL_Debug, "here");
-
 	// Initialize plugin manager
+	WriteLog(LL_Debug, "Initializing the plugin manager");
 	m_PluginManager = new Mira::Plugins::PluginManager();
 	if (m_PluginManager == nullptr)
 	{
@@ -283,30 +273,29 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
-	WriteLog(LL_Debug, "here");
-
 	// Load the plugin manager
+	WriteLog(LL_Debug, "Loading plugin manager");
 	if (!m_PluginManager->OnLoad())
 	{
 		WriteLog(LL_Error, "could not initialize default plugins");
 		return false;
 	}
 
-	WriteLog(LL_Debug, "here");
-
 	// Install eventhandler's
+	WriteLog(LL_Debug, "Installing event handlers");
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
-	WriteLog(LL_Debug, "here");
-
 	// Initialize the rpc server
+	WriteLog(LL_Debug, "Initializing rpc server");
 	m_RpcServer = new Mira::Messaging::Rpc::Server();
 	if (m_RpcServer == nullptr)
 	{
 		WriteLog(LL_Error, "could not allocate rpc server.");
 		return false;
 	}
+
+	WriteLog(LL_Debug, "Loading rpc server");
 	if (!m_RpcServer->OnLoad())
 	{
 		WriteLog(LL_Error, "could not load rpc server.");
@@ -314,8 +303,11 @@ bool Mira::Framework::Initialize()
 	}
 
 	// TODO: Install needed hooks for Mira
+	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
+	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
 	// Install device driver
+	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
 	m_CtrlDriver = new Mira::Driver::CtrlDriver();
 	if (m_CtrlDriver == nullptr)
 	{
@@ -408,7 +400,7 @@ bool Mira::Framework::InstallEventHandlers()
 	//const int32_t prio = 1337;
 	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
 	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
-	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -424,7 +416,6 @@ bool Mira::Framework::RemoveEventHandlers()
 	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr)
 		return false;
 
-	// TODO: Kdlsym
 	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
 	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
@@ -477,6 +468,8 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
+	auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
+
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
 	if (GetFramework() == nullptr)
@@ -487,4 +480,6 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 		WriteLog(LL_Error, "could not terminate cleanly");
 		return;
 	}
+
+	kproc_exit(0);
 }

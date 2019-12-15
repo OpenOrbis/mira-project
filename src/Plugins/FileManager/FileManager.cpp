@@ -189,29 +189,39 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messagi
 
     //WriteLog(LL_Debug, "here");
 
-    ReadResponse s_Payload = {
+    ReadResponse* s_Payload = new ReadResponse
+    {
         .Count = 0,
         .Buffer = { 0 }
     };
 
+    if (s_Payload == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate response");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, -ENOMEM);
+        return;
+    }
+
     //WriteLog(LL_Debug, "read (%d) cnt: (%d)", s_Request->Handle, s_Request->Count);
 
-    auto s_SizeRead = kread_t(s_Request->Handle, s_Payload.Buffer, s_Request->Count, s_MainThread);
-    if (s_SizeRead < 0)
+    auto s_SizeRead = kread_t(s_Request->Handle, s_Payload->Buffer, s_Request->Count, s_MainThread);
+    if (s_SizeRead <= 0)
     {
+        delete s_Payload;
+
         WriteLog(LL_Error, "there was an error reading (%d).", s_SizeRead);
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, Messaging::MessageCategory_File, s_SizeRead);
         return;
     }
 
-    s_Payload.Count = static_cast<uint16_t>(s_SizeRead);
+    s_Payload->Count = static_cast<uint16_t>(s_SizeRead);
 
     Messaging::MessageHeader s_Header = {
         .magic = Messaging::MessageHeaderMagic,
         .category = Messaging::MessageCategory_File,
         .isRequest = false,
         .errorType = 0,
-        .payloadLength = sizeof(s_Payload),
+        .payloadLength = sizeof(*s_Payload),
         .padding = 0
     };
 
@@ -221,6 +231,8 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messagi
     };
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
+
+    delete s_Payload;
 }
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
@@ -855,10 +867,10 @@ uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_
             s_Phdr[l_PhIndex].p_type == PT_SCE_DYNLIBDATA)
         {
             klseek_t(p_SelfFd, 0, SEEK_SET, s_MainThread);
-            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_PRIVATE | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
             
-            WriteLog(LL_Warn, "%p = mmap(%p, 0x%llx, %d, %d, %d, %llx, %p)", l_ElfSegment, nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
-            if (l_ElfSegment != MAP_FAILED)
+            WriteLog(LL_Warn, "%p = mmap(%p, 0x%llx, %d, %d, %d, %llx, %p)", l_ElfSegment, nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_PRIVATE | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            if (l_ElfSegment != MAP_FAILED || l_ElfSegment == nullptr)
             {
                 // For some strange reason mmap will return ENOMEM for no fucking reason
                 if (l_ElfSegment == (caddr_t)(-ENOMEM))

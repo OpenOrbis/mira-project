@@ -2,8 +2,11 @@
 #include <Utils/Logger.hpp>
 #include <Utils/Kdlsym.hpp>
 
-#include <sys/proc.h>
-
+extern "C"
+{
+    #include <sys/proc.h>
+    #include <sys/stat.h>
+};
 
 using namespace Mira::Driver;
 
@@ -11,9 +14,6 @@ CtrlDriver::CtrlDriver() :
     m_DeviceSw { 0 },
     m_Device(nullptr)
 {
-    // TODO: Re-enable driver
-    return;
-
     // Set up our device driver information
     m_DeviceSw.d_version = D_VERSION;
     m_DeviceSw.d_name = "mira";
@@ -31,7 +31,7 @@ CtrlDriver::CtrlDriver() :
         nullptr,
         UID_ROOT,
         GID_WHEEL,
-        0777,
+        S_IRWXU | S_IRWXG | S_IRWXO,
         "mira");
     
     switch (s_Error)

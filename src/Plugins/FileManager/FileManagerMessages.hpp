@@ -12,7 +12,7 @@ namespace Mira
 				MaxPathLength = 0x400,
 				MaxNameLength = 0xFF,
 				MaxEchoLength = 0x100,
-				MaxBufferLength = 0x1000,
+				MaxBufferLength = 0x4000,
 			};
 
 			typedef enum _Commands
