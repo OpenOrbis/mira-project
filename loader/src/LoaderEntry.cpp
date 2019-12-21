@@ -110,6 +110,7 @@ void mira_escape(struct thread* td, void* uap)
 	// make system credentials
 	td->td_ucred->cr_sceCaps[0] = SceCapabilities_t::Max;
 	td->td_ucred->cr_sceCaps[1] = SceCapabilities_t::Max;
+
 	// Apply patches
 	//critical_enter();
 	cpu_disable_wp();

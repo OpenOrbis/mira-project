@@ -150,4 +150,6 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 
 #define kdlsym_addr_destroy_dev                            0x001B9D50
 #define kdlsym_addr_make_dev_p                             0x001B9810
+
+#define kdlsym_addr_kproc_exit                             0x00138060
 #endif

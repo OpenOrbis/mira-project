@@ -1,4 +1,5 @@
 #include "FuseManager.hpp"
+
 #include <Utils/Kdlsym.hpp>
 
 using namespace Mira::Plugins;
@@ -30,7 +31,7 @@ bool FuseManager::OnLoad()
 
     // TODO: call fuse_ipc_init
     // TODO: call vfs_modevent
-    
+
     return true;
 }
 
@@ -52,6 +53,14 @@ bool FuseManager::OnSuspend()
 bool FuseManager::OnResume()
 {
     return true;
+
+}
+
+int FuseManager::FuseLoader(struct module* p_Module, int p_What, void* p_Arg)
+{
+    //auto fuse_loader = (int(*)(struct module* m, int what, void* arg))kdlsym(fuse_loader);
+
+    return 0;
 }
 
 void FuseManager::OnDeviceClone(void* p_Reserved)

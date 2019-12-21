@@ -333,7 +333,8 @@ bool DebuggerGdb::IsProcessAlive(int32_t p_ProcessId)
 {
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
     auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-	struct proc* s_Process = pfind(p_ProcessId);
+	
+    struct proc* s_Process = pfind(p_ProcessId);
 	if (s_Process == nullptr)
 	{
 		WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
