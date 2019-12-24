@@ -1751,3 +1751,52 @@ int kreboot(int opt)
 {
 	return kreboot_t(opt, curthread);
 }
+
+//
+// 74: mprotect
+int mprotect_internal(const void* addr, size_t len, int prot, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_mprotect = (int(*)(struct thread*, struct mprotect_args*))sysents[SYS_MPROTECT].sy_call;
+	if (!sys_mprotect)
+		return -1;
+
+	int error;
+	struct mprotect_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.addr = addr;
+	uap.len = len;
+	uap.prot = prot;
+	error = sys_mprotect(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kmprotect_t(void* addr, size_t len, int prot, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = mprotect_internal(addr, len, prot, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
