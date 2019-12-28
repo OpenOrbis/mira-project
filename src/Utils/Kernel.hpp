@@ -43,11 +43,11 @@ typedef enum SceCapabilities_t : uint64_t
 	TODO: Description
 */
 extern "C" uint64_t kernelRdmsr(int Register);
-int proc_rw_mem_pid(int pid, void* ptr, size_t size, void* data, size_t* n, int write);
-int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write);
+extern "C" int proc_rw_mem_pid(int pid, void* ptr, size_t size, void* data, size_t* n, int write);
+extern "C" int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write);
 
-struct proc* proc_find_by_name(const char* name);
-int proc_get_vm_map(struct proc* p, struct proc_vm_map_entry** entries, size_t* num_entries);
+extern "C" struct proc* proc_find_by_name(const char* name);
+extern "C" int proc_get_vm_map(struct proc* p, struct proc_vm_map_entry** entries, size_t* num_entries);
 
 
 extern "C" void	*memcpy(void * __restrict, const void * __restrict, size_t);

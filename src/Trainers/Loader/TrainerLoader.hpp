@@ -34,41 +34,41 @@ namespace TrainerLoader
         const Elf64_Phdr* m_SourceInterpreterProgramHeader;
 
         // Allocated data for all loadable segments
-        void* m_AllocatedMap;
+        void* m_UserlandAllocatedMap;
         Elf64_Xword m_AllocatedMapSize;
 
         // Dynamic in mapped elf
-        Elf64_Dyn* m_Dynamic;
+        Elf64_Dyn* m_UserlandDynamic;
 
         // Hash, buckets and chains in mapped elf
         Elf64_Hashelt m_BucketsCount;
         Elf64_Hashelt m_ChainsCount;
-        const Elf64_Hashelt* m_Buckets;
-        const Elf64_Hashelt* m_Chains;
+        const Elf64_Hashelt* m_UserlandBuckets;
+        const Elf64_Hashelt* m_UserlandChains;
 
         // String table in mapped elf
-        const char* m_StringTable;
+        const char* m_UserlandStringTable;
         Elf64_Xword m_StringTableSize;
 
         // Symbol table in mapped elf
-        const Elf64_Sym* m_SymbolTable;
+        const Elf64_Sym* m_UserlandSymbolTable;
 
         // GOT in mapped elf
-        const Elf64_Addr* m_GlobalOffsetTable;
+        const Elf64_Addr* m_UserlandGlobalOffsetTable;
 
         // Relocations (rel) in mapped elf
-        const Elf64_Rel* m_Rel;
+        const Elf64_Rel* m_UserlandRel;
         Elf64_Xword m_RelSize;
 
         // PLT relocations (rel/rela) in mapped elf
-        const Elf64_Rel* m_PltRel;
+        const Elf64_Rel* m_UserlandPltRel;
         Elf64_Xword m_PltRelSize;
 
         const Elf64_Rela* m_PltRela;
         Elf64_Xword m_PltRelaSize;
 
         // Relocations (rela) in mapped elf
-        const Elf64_Rela* m_Rela;
+        const Elf64_Rela* m_UserlandRela;
         Elf64_Xword m_RelaSize;
 
         // Debug in mapped elf
@@ -96,7 +96,7 @@ namespace TrainerLoader
         Elf64_Addr m_PcpuBase;
 
         // Allocated symbol table information
-        Elf64_Addr m_SymbolTableBase;
+        Elf64_Addr m_UserlandSymbolTableBase;
         Elf64_Xword m_SymbolTableSize;
 
         // Allocated string table base
@@ -104,14 +104,16 @@ namespace TrainerLoader
         Elf64_Xword m_StringTableBaseSize;
 
         // Entrypoint tracking
-        void* m_Entrypoint;
+        void* m_UserlandEntrypoint;
+
+        int32_t m_TargetProcessId;
 
     public:
-        Loader(int p_TargetProcessId, const void* p_Elf, uint32_t p_ElfSize);
+        Loader(int32_t p_TargetProcessId, const void* p_Elf, uint32_t p_ElfSize);
         ~Loader();
 
-        void* GetEntrypoint() { return m_Entrypoint; }
-        void* GetAllocatedMap() { return m_AllocatedMap; }
+        void* GetEntrypoint() { return m_UserlandEntrypoint; }
+        void* GetAllocatedMap() { return m_UserlandAllocatedMap; }
         Elf64_Xword GetAllocatedMapSize() { return m_AllocatedMapSize; }
 
     #ifdef _WIN32
@@ -128,7 +130,7 @@ namespace TrainerLoader
 
         
         // elf_lookup
-        Elf64_Addr Lookup(Elf64_Size p_SymbolIndex, bool p_CheckDependencies);
+        Elf64_Addr LookupInUserland(Elf64_Size p_SymbolIndex, bool p_CheckDependencies);
 
         Elf64_Addr LinkerFileLookupSymbol(const char* p_Name, bool p_CheckDependencies);
         Elf64_Sym* LinkerFileLookupSymbolInternal(const char* p_Name, bool p_CheckDependencies);
@@ -141,7 +143,7 @@ namespace TrainerLoader
         bool SetProtection(void* p_Address, Elf64_Xword p_Size, Elf64_Word p_Protection);
         bool SetUserProtection(int32_t p_ProcessId, void* p_UserAddress, Elf64_Xword p_Size, Elf64_Word p_Protection);
 
-        const Elf64_Phdr* GetProgramHeaderByIndex(uint32_t p_Index);
+        const Elf64_Phdr* GetSourceProgramHeaderByIndex(uint32_t p_Index);
 
     private:
         void* Allocate(Elf64_Xword p_Size);
@@ -150,7 +152,14 @@ namespace TrainerLoader
 
         void Free(void* p_Data);
         static int Strcmp(const char* s1, const char* s2);
+        int StrcmpUser(const char* s1, const char* s2);
         static uint32_t Hash(const char* p_Name);
+        uint32_t HashUser(const char* p_UserlandName);
+
+        uint32_t ReadProcessMemory(int32_t p_Process, void* p_Address, uint32_t p_Size, void* p_OutputBuffer);
+        uint32_t WriteProcessMemory(int32_t p_Process, void* p_Address, uint32_t p_Size, void* p_InputBuffer);
+
+        static bool IsProcessAlive(int32_t p_ProcessId);
     };
 }
 

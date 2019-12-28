@@ -56,20 +56,3 @@ namespace Mira
 		};
 	}
 }
-struct logger_t
-{
-	enum LogLevels logLevel;
-
-	char buffer[Logger_MaxBuffer];
-	char finalBuffer[Logger_MaxBuffer];
-
-	// Handle to log file on hdd
-	volatile int logHandle;
-
-	struct mtx mutex;
-};
-
-extern struct logger_t* gLogger;
-
-void logger_init(struct logger_t* logger);
-void logger_writelog(struct logger_t* logger, enum LogLevels level, const char* function, int line, const char* fmt, ...);
