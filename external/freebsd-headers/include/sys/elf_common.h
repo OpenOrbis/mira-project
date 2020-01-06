@@ -136,6 +136,9 @@ typedef struct {
 #define	ET_HIOS		0xfeff	/* Last operating system-specific. */
 #define	ET_LOPROC	0xff00	/* First processor-specific. */
 #define	ET_HIPROC	0xffff	/* Last processor-specific. */
+#define ET_SCE_EXEC      0xFE00
+#define ET_SCE_EXEC_ASLR 0xFE10
+#define ET_SCE_DYNAMIC   0xFE18
 
 /* Values for e_machine. */
 #define	EM_NONE		0	/* Unknown machine. */

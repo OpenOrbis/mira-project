@@ -3,6 +3,7 @@
 // Built in plugins
 #include <Plugins/Debugger/Debugger.hpp>
 #include <Plugins/FileManager/FileManager.hpp>
+#include <Plugins/FakeSelf/FakeSelfManager.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -12,7 +13,8 @@ using namespace Mira::Plugins;
 
 PluginManager::PluginManager() :
     m_Debugger(nullptr),
-    m_FileManager(nullptr)
+    m_FileManager(nullptr),
+    m_FakeSelfManager(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
     m_FileManager = nullptr;
@@ -46,6 +48,19 @@ bool PluginManager::OnLoad()
     }
     if (!m_FileManager->OnLoad())
         WriteLog(LL_Error, "could not load filemanager");
+
+    // Initialize the fself manager
+    m_FakeSelfManager = new Mira::Plugins::FakeSelfManager();
+    if (m_FakeSelfManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate fake self manager.");
+        return false;
+    }
+    if (!m_FakeSelfManager->OnLoad())
+        WriteLog(LL_Error, "could not load fake self manager.");
+    
+    // Initialize the fpkg manager
+    
     
     return true;
 }

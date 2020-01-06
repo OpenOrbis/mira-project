@@ -22,9 +22,11 @@ namespace Mira
         private:
             Mira::Utils::IModule* m_Debugger;
             Mira::Utils::IModule* m_FileManager;
+            Mira::Utils::IModule* m_FakeSelfManager;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }
+            Mira::Utils::IModule* GetFakeSelfManager() { return m_FakeSelfManager; }
         };
     }
 }
