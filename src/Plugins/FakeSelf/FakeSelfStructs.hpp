@@ -4,6 +4,7 @@
 extern "C"
 {
     #include <sys/param.h>
+    #include <sys/lock.h>
     #include <sys/mutex.h>
 };
 
@@ -115,10 +116,10 @@ namespace Mira
 
         typedef struct _SelfFakeAuthInfo
         {
-            uint64_t paid;
+            uint64_t size;
             SelfAuthInfo info;
         } SelfFakeAuthInfo;
-        static_assert(offsetof(SelfFakeAuthInfo, paid) == 0x00);
+        static_assert(offsetof(SelfFakeAuthInfo, size) == 0x00);
         static_assert(offsetof(SelfFakeAuthInfo, info) == 0x08);
         static_assert(sizeof(SelfFakeAuthInfo) == sizeof(uint64_t) + sizeof(SelfAuthInfo));
 
@@ -179,9 +180,9 @@ namespace Mira
             SblKeyDesc desc;
             uint8_t pad[0x4];
             //uint32_t locked; // this seems wrong, it says 0x80, but that's in the SblKeyDesc??
-            SblKeyRbtreeEntry* left;
-            SblKeyRbtreeEntry* right;
-            SblKeyRbtreeEntry* parent;
+            struct _SblKeyRbtreeEntry* left;
+            struct _SblKeyRbtreeEntry* right;
+            struct _SblKeyRbtreeEntry* parent;
             uint32_t set;
         } SblKeyRbtreeEntry;
         static_assert(offsetof(SblKeyRbtreeEntry, handle) == 0x00);
@@ -196,8 +197,8 @@ namespace Mira
 
         typedef struct _SblMapListEntry
         {
-            SblMapListEntry* next;
-            SblMapListEntry* prev;
+            struct _SblMapListEntry* next;
+            struct _SblMapListEntry* prev;
             uint64_t cpuVa;
             uint32_t numPageGroups;
             uint64_t gpuVa;

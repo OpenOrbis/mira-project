@@ -70,75 +70,74 @@ bool PluginManager::OnUnload()
     WriteLog(LL_Debug, "unloading all plugins");
     bool s_AllUnloadSuccess = true;
 
-    WriteLog(LL_Debug, "here");
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
-        WriteLog(LL_Debug, "here");
+        WriteLog(LL_Debug, "unloading plugin idx: (%d).", i);
         auto l_Plugin = m_Plugins[i];
 
-        WriteLog(LL_Debug, "here");
         // Skip any blank spots
         if (l_Plugin == nullptr)
             continue;
-        WriteLog(LL_Debug, "here");
+        
+        WriteLog(LL_Debug, "unloading plugin: (%s).", l_Plugin->GetName());
         // TODO: Handle multiple unloads
         auto s_UnloadResult = l_Plugin->OnUnload();
-
-        WriteLog(LL_Debug, "here");
         if (!s_UnloadResult)
             s_AllUnloadSuccess = false;
-        
-        WriteLog(LL_Debug, "here");
+
         WriteLog(LL_Info, "plugin (%s) unloaded %s", 
             l_Plugin->GetName(), s_UnloadResult ? "successfully" : "unsuccessfully");
         
-        WriteLog(LL_Debug, "here");
+        WriteLog(LL_Debug, "freeing plugin");
         // Delete the plugin
         delete l_Plugin;
 
-        WriteLog(LL_Debug, "here");
+        WriteLog(LL_Debug, "clearing entry");
         m_Plugins[i] = nullptr;
     }
 
-    WriteLog(LL_Debug, "here");
+    WriteLog(LL_Debug, "clearing array");
     // Clear out all entries
     m_Plugins.clear();
 
-    WriteLog(LL_Debug, "here");
     // Free the default plugins
+    // Delete the file manager
     if (m_FileManager)
     {
-        WriteLog(LL_Debug, "here");
+        WriteLog(LL_Debug, "unloading file manager");
 
         if (!m_FileManager->OnUnload())
             WriteLog(LL_Error, "filemanager could not unload");
-    
-        WriteLog(LL_Debug, "here");
 
         // Free the file manager
         delete m_FileManager;
-
-        WriteLog(LL_Debug, "here");
         m_FileManager = nullptr;
     }
     
-    WriteLog(LL_Debug, "here");
+    // Delete the debugger
     if (m_Debugger)
     {
-        WriteLog(LL_Debug, "here");
+        WriteLog(LL_Debug, "unloading debugger");
         if (!m_Debugger->OnUnload())
             WriteLog(LL_Error, "debugger could not unload");
-        
-        WriteLog(LL_Debug, "here");
 
         // Free the debugger
         delete m_Debugger;
-
-        WriteLog(LL_Debug, "here");
         m_Debugger = nullptr;
     }
+
+    // Delete the fake self manager
+    if (m_FakeSelfManager)
+    {
+        WriteLog(LL_Debug, "unloading fake self manager");
+        if (!m_FakeSelfManager->OnUnload())
+            WriteLog(LL_Error, "fake self manager could not unload");
+        
+        delete m_FakeSelfManager;
+        m_FakeSelfManager = nullptr;
+    }
     
-    WriteLog(LL_Debug, "here");
+    WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");
     return s_AllUnloadSuccess;
 }
 
@@ -172,7 +171,10 @@ bool PluginManager::OnSuspend()
 
     if (!m_FileManager->OnSuspend())
         WriteLog(LL_Error, "file manager suspend failed");
-
+    
+    if (!m_FakeSelfManager->OnSuspend())
+        WriteLog(LL_Error, "fake self manager suspend failed");
+    
     // Return final status
     return s_AllSuccess;
 }
@@ -181,42 +183,42 @@ bool PluginManager::OnResume()
 {
     // Hold our "all success" status
     bool s_AllSuccess = true;
-    WriteLog(LL_Debug, "Yerrrrrrrr");
+    WriteLog(LL_Debug, "Resuming all plugins");
 
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
         // Validate that this plugin still exists
-        WriteLog(LL_Error, "Yerrrrrrrr");
+        WriteLog(LL_Error, "Resuming plugin idx: (%d).", i);
         auto l_Plugin = m_Plugins[i];
         if (l_Plugin == nullptr)
             continue;
         
         // Resume the plugin
-        WriteLog(LL_Info, "Yerrrrrrrr");
+        WriteLog(LL_Info, "resuming plugin (%s).", l_Plugin->GetName());
         auto s_ResumeResult = l_Plugin->OnResume();
         if (!s_ResumeResult)
             s_AllSuccess = false;
         
         // Debugging status
-        WriteLog(LL_Warn, "Yerrrrrrrr");
-
         WriteLog(LL_Info, "plugin (%s) resume %s", 
             l_Plugin->GetName(), 
             s_ResumeResult ? "success" : "failure");
     }
 
-    WriteLog(LL_Debug, "ABC1");
-
+    WriteLog(LL_Debug, "resuming debugger");
     if (!m_Debugger->OnResume())
         WriteLog(LL_Error, "debugger resume failed");
 
-    WriteLog(LL_Debug, "ABC2");
-    
+    WriteLog(LL_Debug, "resuming file manager");
     if (!m_FileManager->OnResume())
         WriteLog(LL_Error, "file manager resume failed");
-
-    WriteLog(LL_Debug, "ABC3");
+    
+    WriteLog(LL_Debug, "resuming fake self manager");
+    if (!m_FakeSelfManager->OnResume())
+        WriteLog(LL_Error, "fake self manager resume failed");
+    
+    WriteLog(LL_Debug, "resume all %s", s_AllSuccess ? "successfully" : "un-successfully");
     // Return final status
     return s_AllSuccess;
 }
