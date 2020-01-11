@@ -48,7 +48,7 @@
  * the syscall arguments directly from the beginning of the frame.
  */
 
-#ifndef ONI_PLATFORM
+#ifndef MIRA_PLATFORM
 struct trapframe {
 	register_t	tf_rdi;
 	register_t	tf_rsi;

@@ -44,7 +44,7 @@ Debugger::~Debugger()
 
 bool Debugger::OnLoad()
 {
-#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
 	// Create the trap fatal hook
     WriteLog(LL_Info, "creating trap_fatal hook");
     m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));

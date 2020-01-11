@@ -1,7 +1,7 @@
 #pragma once
 #include <Boot/Config.hpp>
 
-#if ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_650
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_650
 /*
 These are the required functions in order for the Oni Framework to operate properly
 These are all offsets into the base of the kernel. They expect all standard FreeBSD 9 prototypes

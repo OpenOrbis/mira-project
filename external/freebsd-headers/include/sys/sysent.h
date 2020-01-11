@@ -108,7 +108,7 @@ struct sysentvec {
 	int		sv_pagesize;	/* pagesize */
 	vm_offset_t	sv_minuser;	/* VM_MIN_ADDRESS */
 	vm_offset_t	sv_maxuser;	/* VM_MAXUSER_ADDRESS */
-#if ONI_PLATFORM < ONI_PLATFORM_ORBIS_BSD_355
+#if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_355
 	vm_offset_t	sv_usrstack;	/* USRSTACK */
 	vm_offset_t	sv_psstrings;	/* PS_STRINGS */
 #endif

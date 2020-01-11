@@ -443,7 +443,7 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock(uint32_t p_ServiceId, void* p_
     if (s_RequestMessage == nullptr)
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     
-#if ONI_PLATFORM <= ONI_PLATFORM_ORBIS_BSD_455
+#if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_455
     register struct self_context* s_Context __asm__ ("r14");
 #else
     uint8_t* s_Frame = (uint8_t*)__builtin_frame_address(1);
@@ -505,7 +505,7 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment(uint32_t p_ServiceId, void* 
     if (s_ResponseMessage == nullptr)
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     
-#if ONI_PLATFORM <= ONI_PLATFORM_ORBIS_BSD_455
+#if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_455
     register SelfContext* s_Context __asm__ ("r14");
 #else
     uint8_t* s_Frame = (uint8_t*)__builtin_frame_address(1);

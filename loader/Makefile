@@ -1,6 +1,6 @@
 # CHANGEME: Default Orbis Version
-ifeq ($(ONI_PLATFORM),)
-ONI_PLATFORM := ONI_PLATFORM_STEAM_LINK2
+ifeq ($(MIRA_PLATFORM),)
+MIRA_PLATFORM := MIRA_PLATFORM_STEAM_LINK2
 endif
 
 # Project name
@@ -49,7 +49,7 @@ L_DIRS	:=	-L.	-Llib
 LIBS	:= 
 
 # C Defines
-C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"ONI_PLATFORM=${ONI_PLATFORM}" -D__LP64__ -D_M_X64 -D__amd64__ -D__BSD_VISIBLE
+C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"MIRA_PLATFORM=${MIRA_PLATFORM}" -DMIRA_UNSUPPORTED_PLATFORMS -D__LP64__ -D_M_X64 -D__amd64__ -D__BSD_VISIBLE
 
 # C++ Flags, -02 Optimizations break shit badly
 CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpie -fPIC -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
@@ -79,10 +79,10 @@ ALL_OBJ_C := $(ALL_OBJ_CPP:.c=.o)
 ALL_OBJ := $(ALL_OBJ_C:.s=.o)
 
 # Target elf name
-TARGET = "$(PROJ_NAME)_Orbis_${ONI_PLATFORM}.elf"
+TARGET = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.elf"
 
 # Target payload name (data + text only, no elf)
-PAYLOAD = "$(PROJ_NAME)_Orbis_${ONI_PLATFORM}.bin"
+PAYLOAD = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.bin"
 
 .PHONY: all clean
 
@@ -101,7 +101,7 @@ post-build: main-build
 	@$(OBJCOPY) -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD)
 
 main-build: pre-build
-	@echo "Building for Firmware $(ONI_PLATFORM)..."
+	@echo "Building for Firmware $(MIRA_PLATFORM)..."
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c

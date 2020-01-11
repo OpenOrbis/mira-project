@@ -274,11 +274,11 @@ struct thread {
 	
 	char td_unk35C[0x04];
 
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
 	char td_unk360[0x18];
 	#endif
 
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
 	char td_unk378[0x04];
 	#endif
 	
@@ -325,15 +325,15 @@ struct thread {
 	
 	char            td_unk440[0xA8];
 
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
 	char            td_unk4E8[0x58];
 	#endif
 
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
 	char            td_unk540[0x20];
 	#endif
 
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
 	char td_unk560[0x10];
 	#endif
 	
@@ -570,19 +570,19 @@ struct proc {
 	void		*p_dynlib;      /* Sony Dynlib info */
 
 	// extra stuff
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_650
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
 	char            unk348[0x104];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_600
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
 	char            unk348[0x100];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_550
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
 	char            unk348[0x104];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
 	char            unk348[0x0FC];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_455
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
 	char            unk348[0x0F4];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_400
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
 	char            unk348[0x0A0];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
 	char            unk348[0x090];
 	#endif
 	
@@ -635,9 +635,9 @@ struct proc {
 	struct racct	*p_racct;	/* (b) Resource accounting. */
 
 	
-	#if ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_500
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
 	char            unkA08[0xB0];
-	#elif ONI_PLATFORM >= ONI_PLATFORM_ORBIS_BSD_355
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
 	char            unkA08[0xA8];
 	#else
 	char            unkA08[0x98];

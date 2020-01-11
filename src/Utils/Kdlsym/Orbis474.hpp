@@ -3,7 +3,7 @@
 
 // Offsets initially ported by SocraticBliss, and zecoxao, redone by kozarovv
 
-#if ONI_PLATFORM==ONI_PLATFORM_ORBIS_BSD_474
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_474
 /*
 These are the required functions in order for the Oni Framework to operate properly
 These are all offsets into the base of the kernel. They expect all standard FreeBSD 9 prototypes

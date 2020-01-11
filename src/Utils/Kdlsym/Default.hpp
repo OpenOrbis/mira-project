@@ -1,6 +1,6 @@
 #pragma once
 #include <Boot/Config.hpp>
-#if ONI_PLATFORM==ONI_UNKNOWN_PLATFORM
+#if MIRA_PLATFORM==ONI_UNKNOWN_PLATFORM
 
 /*
 These are the required functions in order for the Oni Framework to operate properly
