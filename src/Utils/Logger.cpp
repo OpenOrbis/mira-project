@@ -78,7 +78,7 @@ void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function
 		break;
 	case LL_Debug:
 		s_LevelString = "Debug";
-		s_LevelColor = KMAG;
+		s_LevelColor = KGRY;
 		break;
 	case LL_None:
 	default:

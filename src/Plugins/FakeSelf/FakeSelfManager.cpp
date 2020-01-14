@@ -4,14 +4,12 @@
 #include <Utils/Logger.hpp>
 
 #include <Mira.hpp>
+#include <Boot/Config.hpp>
 #include <Plugins/PluginManager.hpp>
 
-extern "C"
-{
-    
-};
-
 using namespace Mira::Plugins;
+
+SelfContext* FakeSelfManager::m_LastContext = nullptr;
 
 const uint8_t FakeSelfManager::c_ExecAuthInfo[] =
 {
@@ -45,6 +43,9 @@ FakeSelfManager::FakeSelfManager()
     m_SceSblAuthMgrVerifyHeaderHook = new Utils::Hook(kdlsym(sceSblAuthMgrVerifyHeader), reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader));
     m_SceSblAuthMgrIsLoadable2Hook = new Utils::Hook(kdlsym(sceSblAuthMgrIsLoadable2), reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2));
     //m_SceSblACMgrGetPathIdHook = new Utils::Hook(kdlsym(sceSblACMgrGetPathId), OnSceSblACMgrGetPathId);
+
+    m__SceSblAuthMgrSmLoadSelfBlockHook = new Utils::Hook(kdlsym(_sceSblAuthMgrSmLoadSelfBlock), reinterpret_cast<void*>(On_SceSblAuthMgrSmLoadSelfBlock));
+    m__SceSblAuthMgrSmLoadSelfSegmentHook = new Utils::Hook(kdlsym(_sceSblAuthMgrSmLoadSelfSegment), reinterpret_cast<void*>(On_SceSblAuthMgrSmLoadSelfSegment));
 }
 
 FakeSelfManager::~FakeSelfManager()
@@ -52,32 +53,52 @@ FakeSelfManager::~FakeSelfManager()
     if (m_SceSblServiceMailboxHook != nullptr)
     {
         (void)m_SceSblServiceMailboxHook->Disable();
-        delete [] m_SceSblServiceMailboxHook;
+        delete m_SceSblServiceMailboxHook;
         m_SceSblServiceMailboxHook = nullptr;
     }
 
     if (m_SceSblAuthMgrVerifyHeaderHook != nullptr)
     {
         (void)m_SceSblAuthMgrVerifyHeaderHook->Disable();
-        delete [] m_SceSblAuthMgrVerifyHeaderHook;
+        delete m_SceSblAuthMgrVerifyHeaderHook;
         m_SceSblAuthMgrVerifyHeaderHook = nullptr;
     }
 
     if (m_SceSblAuthMgrIsLoadable2Hook != nullptr)
     {
         (void)m_SceSblAuthMgrIsLoadable2Hook->Disable();
-        delete [] m_SceSblAuthMgrIsLoadable2Hook;
+        delete m_SceSblAuthMgrIsLoadable2Hook;
         m_SceSblAuthMgrIsLoadable2Hook = nullptr;
+    }
+
+    if (m__SceSblAuthMgrSmLoadSelfBlockHook != nullptr)
+    {
+        (void)m__SceSblAuthMgrSmLoadSelfBlockHook->Disable();
+        delete m__SceSblAuthMgrSmLoadSelfBlockHook;
+        m__SceSblAuthMgrSmLoadSelfBlockHook = nullptr;
+    }
+
+    if (m__SceSblAuthMgrSmLoadSelfSegmentHook!= nullptr)
+    {
+        (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Disable();
+        delete m__SceSblAuthMgrSmLoadSelfSegmentHook;
+        m__SceSblAuthMgrSmLoadSelfSegmentHook = nullptr;
     }
 }
 
 int FakeSelfManager::OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo)
 {
     if (p_Context == nullptr)
+    {
+        WriteLog(LL_Error, "invalid context");
         return SceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
+    } 
     
     if (p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context))
+    {
+        WriteLog(LL_Debug, "building fake self information");
         return BuildFakeSelfAuthInfo(p_Context, p_OldAuthInfo, p_NewAuthInfo);
+    }        
     else
         return SceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
 }
@@ -162,11 +183,15 @@ int FakeSelfManager::SceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthIn
     return s_Ret;
 }
 
+
 int FakeSelfManager::OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
     auto s_Request = static_cast<MailboxMessage*>(p_Request);
     if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "invalid request");
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
 
     // Only hook on the needed service id
     if (p_ServiceId != 0)
@@ -175,9 +200,9 @@ int FakeSelfManager::OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Reques
     switch (s_Request->funcId)
     {
     case LoadSelfSegment:
-        return SceSblAuthMgrSmLoadSelfSegment(p_ServiceId, p_Request, p_Response);
+        return SceSblAuthMgrSmLoadSelfSegment_Mailbox(p_ServiceId, p_Request, p_Response);
     case LoadSelfBlock:
-        return SceSblAuthMgrSmLoadSelfBlock(p_ServiceId, p_Request, p_Response);
+        return SceSblAuthMgrSmLoadSelfBlock_Mailbox(p_ServiceId, p_Request, p_Response);
     default:
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
@@ -224,10 +249,11 @@ int FakeSelfManager::SceSblAuthMgrVerifyHeader(SelfContext* p_Context)
 }
 
 int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
-{
+{    
     bool s_IsUnsigned = p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context);
     if (s_IsUnsigned)
     {
+        WriteLog(LL_Debug, "fixing unsigned");
         auto s_OldFormat = p_Context->format;
         auto s_OldTotalHeaderSize = p_Context->totalHeaderSize;
 
@@ -283,7 +309,10 @@ int FakeSelfManager::OnSceSblAuthMgrVerifyHeader(SelfContext* p_Context)
 SblMapListEntry* FakeSelfManager::SceSblDriverFindMappedPageListByGpuVa(vm_offset_t p_GpuVa)
 {
     if (p_GpuVa == 0)
+    {
+        WriteLog(LL_Error, "invalid gpu va");
         return nullptr;
+    }
     
     SblMapListEntry* s_Entry = *(SblMapListEntry**)kdlsym(gpu_va_page_list);
     while (s_Entry)
@@ -300,7 +329,10 @@ vm_offset_t FakeSelfManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_
 {
     SblMapListEntry* s_Entry = SceSblDriverFindMappedPageListByGpuVa(p_GpuVa);
     if (s_Entry == nullptr)
+    {
+        WriteLog(LL_Error, "invalid gpu va entry");
         return 0;
+    }
     
     if (p_NumPageGroups != nullptr)
         *p_NumPageGroups = s_Entry->numPageGroups;
@@ -311,18 +343,24 @@ vm_offset_t FakeSelfManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_
 bool FakeSelfManager::IsFakeSelf(SelfContext* p_Context)
 {
     auto _sceSblAuthMgrGetSelfInfo = (int (*)(SelfContext* ctx, void *exInfo))kdlsym(_sceSblAuthMgrGetSelfInfo);
-
     if (p_Context == nullptr)
+    {
+        WriteLog(LL_Error, "invalid context");
         return false;
+    }
     
-    if (p_Context->format == SelfFormat::Elf)
+    SelfExInfo* s_Info = nullptr;
+    if (p_Context != nullptr && p_Context->format == SelfFormat::Self)
+    {
+        auto s_Ret = _sceSblAuthMgrGetSelfInfo(p_Context, &s_Info);  
+        if (s_Ret)
+            s_Ret = 0;
+        
+        WriteLog(LL_Debug, "ptype: (%d)", s_Info->ptype);
+        return (int32_t)s_Info->ptype == SelfPtypeFake;
+    }
+    else
         return false;
-    
-    SelfExInfo* s_ExInfo = nullptr;
-    if (_sceSblAuthMgrGetSelfInfo(p_Context, &s_ExInfo))
-        return false;
-    
-    return s_ExInfo->ptype == SelfPtypeFake;
 }
 
 int FakeSelfManager::SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehdr** p_OutElfHeader)
@@ -332,6 +370,7 @@ int FakeSelfManager::SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehd
     
     if (p_Context->format == SelfFormat::Elf)
     {
+        WriteLog(LL_Debug, "elf format");
         auto s_ElfHeader = reinterpret_cast<Elf64_Ehdr*>(p_Context->header);
         if (s_ElfHeader != nullptr)
             *p_OutElfHeader = s_ElfHeader;
@@ -340,6 +379,7 @@ int FakeSelfManager::SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehd
     }
     else if (p_Context->format == SelfFormat::Self)
     {
+        WriteLog(LL_Debug, "self format");
         auto s_SelfHeader = reinterpret_cast<SelfHeader*>(p_Context->header);
         size_t s_PdataSize = s_SelfHeader->headerSize - sizeof(SelfEntry) * s_SelfHeader->numEntries - sizeof(SelfHeader);
         if (s_PdataSize >= sizeof(Elf64_Ehdr) && (s_PdataSize & 0xF) == 0)
@@ -351,8 +391,11 @@ int FakeSelfManager::SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehd
             return 0;
         }
 
+        WriteLog(LL_Error, "-EALREADY");
         return -EALREADY;
     }
+
+    WriteLog(LL_Error, "-EAGAIN");
     return -EAGAIN;
 }
 
@@ -361,10 +404,16 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
     auto _sceSblAuthMgrGetSelfInfo = (int (*)(SelfContext* ctx, void *exInfo))kdlsym(_sceSblAuthMgrGetSelfInfo);
 
     if (p_Context == nullptr || p_ParentAuthInfo == nullptr || p_AuthInfo == nullptr)
+    {
+        WriteLog(LL_Error, "invalid context (%p) || parentAuthInfo (%p) || authInfo (%p)", p_Context, p_ParentAuthInfo, p_AuthInfo);
         return -EINVAL;
+    }
     
-    if (IsFakeSelf(p_Context))
+    if (!IsFakeSelf(p_Context))
+    {
+        WriteLog(LL_Error, "not fake self");
         return -EINVAL;
+    }
 
     SelfExInfo* s_ExInfo = nullptr;
     int32_t s_Result = _sceSblAuthMgrGetSelfInfo(p_Context, &s_ExInfo);
@@ -383,7 +432,10 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
     }
 
     if (s_ElfHeader == nullptr)
+    {
+        WriteLog(LL_Error, "elf header invalid");
         return -ESRCH;
+    }
     
     SelfAuthInfo s_Info = { 0 };
     s_Result = SceSblAuthMgrGetSelfAuthInfoFake(p_Context, &s_Info);
@@ -418,10 +470,16 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
 int FakeSelfManager::SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, SelfAuthInfo* p_Info)
 {
     if (p_Context == nullptr)
+    {
+        WriteLog(LL_Error, "invalid context");
         return -EAGAIN;
+    }
     
     if (p_Context->format == SelfFormat::Elf)
+    {
+        WriteLog(LL_Error, "invalid format");
         return -EAGAIN;
+    }
     
     SelfHeader* s_Header = reinterpret_cast<SelfHeader*>(p_Context->header);
     SelfFakeAuthInfo* s_FakeInfo = reinterpret_cast<SelfFakeAuthInfo*>(p_Context->header + s_Header->headerSize + s_Header->metaSize - 0x100);
@@ -432,34 +490,34 @@ int FakeSelfManager::SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, Se
         return 0;
     }
 
+    WriteLog(LL_Error, "ealready");
     return -EALREADY;
-
-    return 0;
 }
 
-int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock(uint32_t p_ServiceId, void* p_Request, void* p_Response)
+int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
     auto s_RequestMessage = static_cast<MailboxMessage*>(p_Request);
     if (s_RequestMessage == nullptr)
+    {
+        WriteLog(LL_Error, "invalid request message");
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
     
-#if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_455
-    register struct self_context* s_Context __asm__ ("r14");
-#else
-    uint8_t* s_Frame = (uint8_t*)__builtin_frame_address(1);
-	SelfContext* s_Context = *(SelfContext**)(s_Frame - 0x1C8);
-#endif
-
+    // Disgusting hack, we hook the caller of this, save the context, then continue as normal
+    // Then we pick up the context later
+    SelfContext* s_Context = FakeSelfManager::m_LastContext;
     // Check our context
     if (s_Context == nullptr)
     {
-        WriteLog(LL_Error, "could not get the self context");
+        WriteLog(LL_Error, "could not load self BLOCK, could not get the self context");
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
 
     bool s_IsUnsigned = s_Context->format == SelfFormat::Elf;
     if (!s_IsUnsigned)
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+
+    WriteLog(LL_Error, "unsigned/fake (s)elf detected");
 
     // TODO: Remove after testing
     auto s_Test1 = *(uint32_t*)&s_RequestMessage->unk08;
@@ -499,23 +557,27 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock(uint32_t p_ServiceId, void* p_
     return 0;
 }
 
-int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment(uint32_t p_ServiceId, void* p_Request, void* p_Response)
+int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
-    auto s_ResponseMessage = static_cast<MailboxMessage*>(p_Response);
-    if (s_ResponseMessage == nullptr)
+    auto s_RequestMessage = static_cast<MailboxMessage*>(p_Request);
+    if (s_RequestMessage == nullptr)
+    {
+        WriteLog(LL_Error, "invalid response");
         return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
     
-#if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_455
-    register SelfContext* s_Context __asm__ ("r14");
-#else
-    uint8_t* s_Frame = (uint8_t*)__builtin_frame_address(1);
-	SelfContext* s_Context = *(SelfContext**)(s_Frame - 0x1C8);
-#endif
+    SelfContext* s_Context = FakeSelfManager::m_LastContext;
+    if (s_Context == nullptr)
+    {
+        WriteLog(LL_Error, "could not load segment, could not get self context.");
+        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
 
     bool s_IsUnsigned = s_Context && IsFakeSelf(s_Context);
     if (s_IsUnsigned)
     {
-        s_ResponseMessage->retVal = 0;
+        WriteLog(LL_Debug, "unsigned/fake (s)elf detected clearing ret val");
+        s_RequestMessage->retVal = 0;
         return 0;
     }
     
@@ -524,6 +586,9 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment(uint32_t p_ServiceId, void* 
 
 bool FakeSelfManager::OnLoad()
 {
+    // Clear out any stale contexts
+    m_LastContext = nullptr;
+
     if (m_SceSblAuthMgrIsLoadable2Hook != nullptr)
         (void)m_SceSblAuthMgrIsLoadable2Hook->Enable();
     
@@ -532,6 +597,12 @@ bool FakeSelfManager::OnLoad()
     
     if (m_SceSblServiceMailboxHook != nullptr)
         (void)m_SceSblServiceMailboxHook->Enable();
+
+    if (m__SceSblAuthMgrSmLoadSelfBlockHook != nullptr)
+        (void)m__SceSblAuthMgrSmLoadSelfBlockHook->Enable();
+    
+    if (m__SceSblAuthMgrSmLoadSelfSegmentHook != nullptr)
+        (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Enable();
     
     WriteLog(LL_Debug, "FakeSelfManager loaded...");
     return true;
@@ -547,6 +618,15 @@ bool FakeSelfManager::OnUnload()
     
     if (m_SceSblServiceMailboxHook != nullptr)
         (void)m_SceSblServiceMailboxHook->Disable();
+
+    if (m__SceSblAuthMgrSmLoadSelfBlockHook != nullptr)
+        (void)m__SceSblAuthMgrSmLoadSelfBlockHook->Disable();
+    
+    if (m__SceSblAuthMgrSmLoadSelfSegmentHook != nullptr)
+        (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Disable();
+    
+    // Clear out any stale contexts
+    m_LastContext = nullptr;
     
     WriteLog(LL_Debug, "FakeSelfManager unloaded...");
     return true;
@@ -562,4 +642,116 @@ bool FakeSelfManager::OnResume()
 {
     // Don't touch the hooks here, leave them in-tact
     return true;
+}
+
+int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9)
+{
+    if (FakeSelfManager::m_LastContext != p_Context)
+    {
+        WriteLog(LL_Debug, "%p -> %p", FakeSelfManager::m_LastContext, p_Context);
+        FakeSelfManager::m_LastContext = p_Context;
+    }   
+
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
+    return _SceSblAuthMgrSmLoadSelfSegment(p_Context, a2, a3, a4, a5, a6, a7, a8, a9);
+#else
+// We have to check the prototype on every version, 1.76 and 1.00 appear to be different (having 1 extra argument)
+// 4.05-6.50 seem to all be the same
+// 4.05 - 006167B0
+// 1.76 - 005C9BB0
+// 5.05 - 00642EF0
+#error "_SceSblAuthMgrSmLoadSelfSegment prototype not checked"
+return -EIO;
+#endif 
+}
+
+int FakeSelfManager::_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        return -1;
+    }
+
+    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
+    if (s_Manager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get fake self manager instance");
+        return -1;
+    }
+
+    auto s_Hook = s_Manager->m__SceSblAuthMgrSmLoadSelfSegmentHook;
+    if (s_Hook == nullptr)
+    {
+        WriteLog(LL_Error, "could not find the _sceSblAuthMgrSmLoadSelfSegmentHook hook");
+        return -1;
+    }
+    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
+        return -1;
+
+    int32_t s_Ret = -1;
+
+    if (!s_Hook->Disable())
+        return -1;
+    
+    auto s_Call = (int(*)(SelfContext *, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9))s_Hook->GetOriginalFunctionAddress();
+    
+    // Call the original
+    s_Ret = s_Call(p_Context, a2, a3, a4, a5, a6, a7, a8, a9);
+
+    (void)s_Hook->Enable();
+
+    return s_Ret;
+}
+
+int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
+{
+    if (FakeSelfManager::m_LastContext != p_Context)
+    {
+        WriteLog(LL_Debug, "%p -> %p", FakeSelfManager::m_LastContext, p_Context);
+        FakeSelfManager::m_LastContext = p_Context;
+    }    
+
+    return _SceSblAuthMgrSmLoadSelfBlock(p_Context, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+}
+
+int FakeSelfManager::_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        return -1;
+    }
+
+    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
+    if (s_Manager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get fake self manager instance");
+        return -1;
+    }
+
+    auto s_Hook = s_Manager->m__SceSblAuthMgrSmLoadSelfBlockHook;
+    if (s_Hook == nullptr)
+    {
+        WriteLog(LL_Error, "could not find the _sceSblAuthMgrSmLoadSelfBlockHook hook");
+        return -1;
+    }
+    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
+        return -1;
+
+    int32_t s_Ret = -1;
+
+    if (!s_Hook->Disable())
+        return -1;
+    
+    auto s_Call = (int(*)(SelfContext*, unsigned int , unsigned int , char *, char *, char* , void* , void* , void* , void* , void*))s_Hook->GetOriginalFunctionAddress();
+    
+    // Call the original
+    s_Ret = s_Call(p_Context, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+
+    (void)s_Hook->Enable();
+
+    return s_Ret;
 }

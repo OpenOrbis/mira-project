@@ -113,18 +113,6 @@ bool PluginManager::OnUnload()
         delete m_FileManager;
         m_FileManager = nullptr;
     }
-    
-    // Delete the debugger
-    if (m_Debugger)
-    {
-        WriteLog(LL_Debug, "unloading debugger");
-        if (!m_Debugger->OnUnload())
-            WriteLog(LL_Error, "debugger could not unload");
-
-        // Free the debugger
-        delete m_Debugger;
-        m_Debugger = nullptr;
-    }
 
     // Delete the fake self manager
     if (m_FakeSelfManager)
@@ -135,6 +123,18 @@ bool PluginManager::OnUnload()
         
         delete m_FakeSelfManager;
         m_FakeSelfManager = nullptr;
+    }
+
+    // Delete the debugger
+    if (m_Debugger)
+    {
+        WriteLog(LL_Debug, "unloading debugger");
+        if (!m_Debugger->OnUnload())
+            WriteLog(LL_Error, "debugger could not unload");
+
+        // Free the debugger
+        delete m_Debugger;
+        m_Debugger = nullptr;
     }
     
     WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");
@@ -165,15 +165,15 @@ bool PluginManager::OnSuspend()
             s_SuspendResult ? "success" : "failure");
     }
 
-    // Suspend the built in plugins
-    if (!m_Debugger->OnSuspend())
-        WriteLog(LL_Error, "debugger suspend failed");
-
     if (!m_FileManager->OnSuspend())
         WriteLog(LL_Error, "file manager suspend failed");
     
     if (!m_FakeSelfManager->OnSuspend())
         WriteLog(LL_Error, "fake self manager suspend failed");
+
+    // Suspend the built in plugins
+    if (!m_Debugger->OnSuspend())
+        WriteLog(LL_Error, "debugger suspend failed");
     
     // Return final status
     return s_AllSuccess;
@@ -184,6 +184,10 @@ bool PluginManager::OnResume()
     // Hold our "all success" status
     bool s_AllSuccess = true;
     WriteLog(LL_Debug, "Resuming all plugins");
+
+    WriteLog(LL_Debug, "resuming debugger");
+    if (!m_Debugger->OnResume())
+        WriteLog(LL_Error, "debugger resume failed");
 
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
@@ -205,10 +209,6 @@ bool PluginManager::OnResume()
             l_Plugin->GetName(), 
             s_ResumeResult ? "success" : "failure");
     }
-
-    WriteLog(LL_Debug, "resuming debugger");
-    if (!m_Debugger->OnResume())
-        WriteLog(LL_Error, "debugger resume failed");
 
     WriteLog(LL_Debug, "resuming file manager");
     if (!m_FileManager->OnResume())

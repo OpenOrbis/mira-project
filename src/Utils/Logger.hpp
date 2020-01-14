@@ -22,10 +22,11 @@ enum LogLevels
 #define KMAG  "\x1B[35m"
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
+#define KGRY  "\x1b[90m"
 
 #define Logger_MaxBuffer 0x500
 #ifdef _DEBUG
-#define WriteLog(x, y, ...) Mira::Utils::Logger::GetInstance()->WriteLog_Internal(x, __PRETTY_FUNCTION__, __LINE__, y, ##__VA_ARGS__)
+#define WriteLog(x, y, ...) Mira::Utils::Logger::GetInstance()->WriteLog_Internal(x, __FUNCTION__, __LINE__, y, ##__VA_ARGS__)
 #else
 #define WriteLog(x, y, ...)
 #endif

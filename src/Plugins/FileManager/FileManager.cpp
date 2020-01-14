@@ -555,6 +555,8 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 		s_MainThread->td_ucred->cr_uid = 0;
 		s_MainThread->td_ucred->cr_ruid = 0;
 
+        s_MainThread->td_ucred->cr_groups[0] = 0;
+
 		if (s_MainThread->td_ucred->cr_prison)
 			s_MainThread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
 
@@ -580,6 +582,8 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 		
 		curthread->td_ucred->cr_uid = 0;
 		curthread->td_ucred->cr_ruid = 0;
+
+        curthread->td_ucred->cr_groups[0] = 0;
 
 		if (curthread->td_ucred->cr_prison)
 			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
@@ -867,7 +871,7 @@ uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_
             s_Phdr[l_PhIndex].p_type == PT_SCE_DYNLIBDATA)
         {
             klseek_t(p_SelfFd, 0, SEEK_SET, s_MainThread);
-            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_PRIVATE | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF | MAP_PREFAULT_READ, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
             
             WriteLog(LL_Warn, "%p = mmap(%p, 0x%llx, %d, %d, %d, %llx, %p)", l_ElfSegment, nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_PRIVATE | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
             if (l_ElfSegment != MAP_FAILED || l_ElfSegment == nullptr)
