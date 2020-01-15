@@ -81,8 +81,9 @@ namespace Mira
             // 1.76 __int64 __fastcall sceSblAuthMgrSmLoadSelfBlock(__int64 a1, unsigned int a2, unsigned int a3, char *a4, char *a5, char *a6, void* a7, void* a8, void* a9, void* a10, int (__fastcall *a11)(signed __int64, __int64), __int64 a12)
             // 6.72 __int64 __fastcall sceSblAuthMgrSmLoadSelfBlock(SelfContext* a1, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
             // 5.05 __int64 __fastcall sceSblAuthMgrSmLoadSelfBlock(__int64 a1, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
-            static int _SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11);
-            static int _SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9);
+            // Fixed thanks to the almighty flatz =]
+            static int _SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg);
+            static int _SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg);
 
             
         protected:
@@ -93,8 +94,8 @@ namespace Mira
             static int OnSceSblAuthMgrVerifyHeader(SelfContext* p_Context);
             static int OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo);
 
-            static int On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11);
-            static int On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9);
+            static int On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg);
+            static int On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg);
         };
     }
 }

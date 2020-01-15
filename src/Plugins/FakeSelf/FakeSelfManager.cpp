@@ -644,7 +644,7 @@ bool FakeSelfManager::OnResume()
     return true;
 }
 
-int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9)
+int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
 {
     if (FakeSelfManager::m_LastContext != p_Context)
     {
@@ -653,7 +653,7 @@ int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, u
     }   
 
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
-    return _SceSblAuthMgrSmLoadSelfSegment(p_Context, a2, a3, a4, a5, a6, a7, a8, a9);
+    return _SceSblAuthMgrSmLoadSelfSegment(p_Context, p_SegmentIndex, p_IsBlockTable, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
 #else
 // We have to check the prototype on every version, 1.76 and 1.00 appear to be different (having 1 extra argument)
 // 4.05-6.50 seem to all be the same
@@ -665,7 +665,7 @@ return -EIO;
 #endif 
 }
 
-int FakeSelfManager::_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9)
+int FakeSelfManager::_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -695,17 +695,17 @@ int FakeSelfManager::_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uin
     if (!s_Hook->Disable())
         return -1;
     
-    auto s_Call = (int(*)(SelfContext *, uint32_t a2, int32_t a3, uint8_t *a4, uint64_t a5, int64_t (*a6)(uint64_t, char **, int64_t), int64_t a7, int64_t (*a8)(uint64_t, int64_t), int64_t a9))s_Hook->GetOriginalFunctionAddress();
+    auto s_Call = (int(*)(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg))s_Hook->GetOriginalFunctionAddress();
     
     // Call the original
-    s_Ret = s_Call(p_Context, a2, a3, a4, a5, a6, a7, a8, a9);
+    s_Ret = s_Call(p_Context, p_SegmentIndex, p_IsBlockTable, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
 
     (void)s_Hook->Enable();
 
     return s_Ret;
 }
 
-int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
+int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
 {
     if (FakeSelfManager::m_LastContext != p_Context)
     {
@@ -713,10 +713,10 @@ int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uns
         FakeSelfManager::m_LastContext = p_Context;
     }    
 
-    return _SceSblAuthMgrSmLoadSelfBlock(p_Context, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+    return _SceSblAuthMgrSmLoadSelfBlock(p_Context, p_SegmentIndex, p_BlockIndex, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
 }
 
-int FakeSelfManager::_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
+int FakeSelfManager::_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -746,10 +746,10 @@ int FakeSelfManager::_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, unsig
     if (!s_Hook->Disable())
         return -1;
     
-    auto s_Call = (int(*)(SelfContext*, unsigned int , unsigned int , char *, char *, char* , void* , void* , void* , void* , void*))s_Hook->GetOriginalFunctionAddress();
+    auto s_Call = (int(*)(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg))s_Hook->GetOriginalFunctionAddress();
     
     // Call the original
-    s_Ret = s_Call(p_Context, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+    s_Ret = s_Call(p_Context, p_SegmentIndex, p_BlockIndex, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
 
     (void)s_Hook->Enable();
 
