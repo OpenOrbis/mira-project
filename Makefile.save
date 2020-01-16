@@ -1,6 +1,6 @@
 # CHANGEME: Default Orbis Version
 ifeq ($(MIRA_PLATFORM),)
-MIRA_PLATFORM := MIRA_PLATFORM_ORBIS_BSD_501
+MIRA_PLATFORM := MIRA_PLATFORM_STEAM_LINK2
 endif
 
 # Project name
@@ -120,7 +120,7 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
-	@echo "Assembling $< ..."
+	@echo "Assembling $< ...
 	@$(CC) $(SFLAGS) -c -o $@ $< 
 
 clean:
