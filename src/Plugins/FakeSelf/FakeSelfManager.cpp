@@ -1,4 +1,5 @@
 #include "FakeSelfManager.hpp"
+#include <Utils/_Syscall.hpp>
 #include <Utils/Kernel.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
@@ -7,9 +8,14 @@
 #include <Boot/Config.hpp>
 #include <Plugins/PluginManager.hpp>
 
+extern "C"
+{
+    #include <sys/sysent.h>
+};
+
 using namespace Mira::Plugins;
 
-SelfContext* FakeSelfManager::m_LastContext = nullptr;
+//SelfContext* FakeSelfManager::m_LastContext = nullptr;
 
 const uint8_t FakeSelfManager::c_ExecAuthInfo[] =
 {
@@ -39,18 +45,32 @@ const uint8_t FakeSelfManager::c_DynlibAuthInfo[] =
 
 FakeSelfManager::FakeSelfManager()
 {
-    m_SceSblServiceMailboxHook = new Utils::Hook(kdlsym(sceSblServiceMailbox), reinterpret_cast<void*>(OnSceSblServiceMailbox));
-    m_SceSblAuthMgrVerifyHeaderHook = new Utils::Hook(kdlsym(sceSblAuthMgrVerifyHeader), reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader));
-    m_SceSblAuthMgrIsLoadable2Hook = new Utils::Hook(kdlsym(sceSblAuthMgrIsLoadable2), reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2));
+    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	uint8_t* s_TrampolineA = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_PID].sy_call);
+    uint8_t* s_TrampolineB = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_PROC].sy_call);
+    uint8_t* s_TrampolineC = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_PROC].sy_call);
+    uint8_t* s_TrampolineD = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FD].sy_call);
+    uint8_t* s_TrampolineE = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FILE].sy_call);
+
+    HookFunctionCall(s_TrampolineA, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookA));
+    HookFunctionCall(s_TrampolineB, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookB));
+    HookFunctionCall(s_TrampolineC, reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2), kdlsym(sceSblAuthMgrIsLoadable2_hook));
+    HookFunctionCall(s_TrampolineD, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfBlock_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook));
+    HookFunctionCall(s_TrampolineE, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfSegment_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook));
+
+    //m_SceSblServiceMailboxHook = new Utils::Hook(kdlsym(sceSblServiceMailbox), reinterpret_cast<void*>(OnSceSblServiceMailbox));
+    //m_SceSblAuthMgrVerifyHeaderHook = new Utils::Hook(kdlsym(sceSblAuthMgrVerifyHeader), reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader));
+    //m_SceSblAuthMgrIsLoadable2Hook = new Utils::Hook(kdlsym(sceSblAuthMgrIsLoadable2), reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2));
     //m_SceSblACMgrGetPathIdHook = new Utils::Hook(kdlsym(sceSblACMgrGetPathId), OnSceSblACMgrGetPathId);
 
-    m__SceSblAuthMgrSmLoadSelfBlockHook = new Utils::Hook(kdlsym(_sceSblAuthMgrSmLoadSelfBlock), reinterpret_cast<void*>(On_SceSblAuthMgrSmLoadSelfBlock));
-    m__SceSblAuthMgrSmLoadSelfSegmentHook = new Utils::Hook(kdlsym(_sceSblAuthMgrSmLoadSelfSegment), reinterpret_cast<void*>(On_SceSblAuthMgrSmLoadSelfSegment));
+    //m__SceSblAuthMgrSmLoadSelfBlockHook = new Utils::Hook(kdlsym(_sceSblAuthMgrSmLoadSelfBlock), reinterpret_cast<void*>(On_SceSblAuthMgrSmLoadSelfBlock));
+    //m__SceSblAuthMgrSmLoadSelfSegmentHook = new Utils::Hook(kdlsym(_sceSblAuthMgrSmLoadSelfSegment), reinterpret_cast<void*>(On_SceSblAuthMgrSmLoadSelfSegment));
 }
 
 FakeSelfManager::~FakeSelfManager()
 {
-    if (m_SceSblServiceMailboxHook != nullptr)
+    /*if (m_SceSblServiceMailboxHook != nullptr)
     {
         (void)m_SceSblServiceMailboxHook->Disable();
         delete m_SceSblServiceMailboxHook;
@@ -83,15 +103,17 @@ FakeSelfManager::~FakeSelfManager()
         (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Disable();
         delete m__SceSblAuthMgrSmLoadSelfSegmentHook;
         m__SceSblAuthMgrSmLoadSelfSegmentHook = nullptr;
-    }
+    }*/
 }
 
 int FakeSelfManager::OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo)
 {
+    auto sceSblAuthMgrIsLoadable2 = (int(*)(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo))kdlsym(sceSblAuthMgrIsLoadable2);
+
     if (p_Context == nullptr)
     {
         WriteLog(LL_Error, "invalid context");
-        return SceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
+        return sceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
     } 
     
     if (p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context))
@@ -100,102 +122,23 @@ int FakeSelfManager::OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuth
         return BuildFakeSelfAuthInfo(p_Context, p_OldAuthInfo, p_NewAuthInfo);
     }        
     else
-        return SceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
+        return sceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
 }
 
-int FakeSelfManager::SceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
+/*int FakeSelfManager::OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
-    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
-    if (s_PluginManager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get plugin manager");
-        return -1;
-    }
+    auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
 
-    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
-    if (s_Manager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get fake self manager instance");
-        return -1;
-    }
-
-    auto s_Hook = s_Manager->m_SceSblServiceMailboxHook;
-    if (s_Hook == nullptr)
-    {
-        WriteLog(LL_Error, "could not find the sceSblServiceMailbox hook");
-        return -1;
-    }
-    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
-        return -1;
-
-    int32_t s_Ret = -1;
-
-    if (!s_Hook->Disable())
-        return -1;
-    
-    auto s_Call = (int(*)(uint32_t, void*, void*))s_Hook->GetOriginalFunctionAddress();
-    
-    // Call the original
-    s_Ret = s_Call(p_ServiceId, p_Request, p_Response);
-
-    (void)s_Hook->Enable();
-
-    return s_Ret;
-}
-
-int FakeSelfManager::SceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo)
-{
-    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
-    if (s_PluginManager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get plugin manager");
-        return -1;
-    }
-
-    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
-    if (s_Manager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get fake self manager instance");
-        return -1;
-    }
-
-    auto s_Hook = s_Manager->m_SceSblAuthMgrIsLoadable2Hook;
-    if (s_Hook == nullptr)
-    {
-        WriteLog(LL_Error, "could not find the sceSblAuthMgrIsLoadable2 hook");
-        return -1;
-    }
-    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
-        return -1;
-
-    int32_t s_Ret = -1;
-
-    if (!s_Hook->Disable())
-        return -1;
-    
-    auto s_Call = (int(*)(SelfContext*, SelfAuthInfo*, int32_t, SelfAuthInfo*))s_Hook->GetOriginalFunctionAddress();
-    
-    // Call the original
-    s_Ret = s_Call(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
-
-    (void)s_Hook->Enable();
-
-    return s_Ret;
-}
-
-
-int FakeSelfManager::OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
-{
     auto s_Request = static_cast<MailboxMessage*>(p_Request);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "invalid request");
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
 
     // Only hook on the needed service id
     if (p_ServiceId != 0)
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     
     switch (s_Request->funcId)
     {
@@ -204,52 +147,14 @@ int FakeSelfManager::OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Reques
     case LoadSelfBlock:
         return SceSblAuthMgrSmLoadSelfBlock_Mailbox(p_ServiceId, p_Request, p_Response);
     default:
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
-}
-
-int FakeSelfManager::SceSblAuthMgrVerifyHeader(SelfContext* p_Context)
-{
-    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
-    if (s_PluginManager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get plugin manager");
-        return -1;
-    }
-
-    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
-    if (s_Manager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get fake self manager instance");
-        return -1;
-    }
-
-    auto s_Hook = s_Manager->m_SceSblAuthMgrVerifyHeaderHook;
-    if (s_Hook == nullptr)
-    {
-        WriteLog(LL_Error, "could not find the sceSblAuthMgrVerifyHeader hook");
-        return -1;
-    }
-    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
-        return -1;
-
-    int32_t s_Ret = -1;
-
-    if (!s_Hook->Disable())
-        return -1;
-    
-    auto s_Call = (int(*)(SelfContext*))s_Hook->GetOriginalFunctionAddress();
-    
-    // Call the original
-    s_Ret = s_Call(p_Context);
-
-    (void)s_Hook->Enable();
-
-    return s_Ret;
-}
+}*/
 
 int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
 {    
+    auto sceSblAuthMgrVerifyHeader = (int(*)(SelfContext* p_Context))kdlsym(sceSblAuthMgrVerifyHeader);
+
     bool s_IsUnsigned = p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context);
     if (s_IsUnsigned)
     {
@@ -281,7 +186,7 @@ int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
         p_Context->totalHeaderSize = s_NewTotalHeaderSize;
 
         // xxx: call the original method using a real SELF file
-        auto s_Result = SceSblAuthMgrVerifyHeader(p_Context);
+        auto s_Result = sceSblAuthMgrVerifyHeader(p_Context);
 
         // Restore everything
         memcpy(p_Context->header, s_Temp, s_NewTotalHeaderSize);
@@ -293,7 +198,7 @@ int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
         return s_Result;
     }
     else
-        return SceSblAuthMgrVerifyHeader(p_Context);
+        return sceSblAuthMgrVerifyHeader(p_Context);
 }
 
 int FakeSelfManager::OnSceSblAuthMgrVerifyHeader(SelfContext* p_Context)
@@ -496,26 +401,38 @@ int FakeSelfManager::SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, Se
 
 int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
+    auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455	
+	register SelfContext* s_Context __asm__ ("r14");
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620
+	uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
+	SelfContext* s_Context = *(SelfContext**)(frame - 0x1C8);
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_555
+	uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
+	SelfContext* s_Context = *(SelfContext**)(frame - 0x1B8);
+#endif	
+
     auto s_RequestMessage = static_cast<MailboxMessage*>(p_Request);
     if (s_RequestMessage == nullptr)
     {
         WriteLog(LL_Error, "invalid request message");
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
     
     // Disgusting hack, we hook the caller of this, save the context, then continue as normal
     // Then we pick up the context later
-    SelfContext* s_Context = FakeSelfManager::m_LastContext;
+    //SelfContext* s_Context = FakeSelfManager::m_LastContext;
     // Check our context
     if (s_Context == nullptr)
     {
         WriteLog(LL_Error, "could not load self BLOCK, could not get the self context");
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
 
     bool s_IsUnsigned = s_Context->format == SelfFormat::Elf;
     if (!s_IsUnsigned)
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
 
     WriteLog(LL_Error, "unsigned/fake (s)elf detected");
 
@@ -559,18 +476,29 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint32_t p_ServiceId, 
 
 int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
+    auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455	
+	uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
+	SelfContext* s_Context = *(SelfContext**)(frame - 0x100);
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501
+    register SelfContext* s_Context __asm__ ("r14");
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_555 || MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620
+    uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
+    SelfContext* s_Context = *(SelfContext**)(frame - 0x100);
+#endif
+
     auto s_RequestMessage = static_cast<MailboxMessage*>(p_Request);
     if (s_RequestMessage == nullptr)
     {
         WriteLog(LL_Error, "invalid response");
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
     
-    SelfContext* s_Context = FakeSelfManager::m_LastContext;
+    //SelfContext* s_Context = FakeSelfManager::m_LastContext;
     if (s_Context == nullptr)
     {
         WriteLog(LL_Error, "could not load segment, could not get self context.");
-        return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
 
     bool s_IsUnsigned = s_Context && IsFakeSelf(s_Context);
@@ -581,15 +509,15 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint32_t p_ServiceId
         return 0;
     }
     
-    return SceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
 }
 
 bool FakeSelfManager::OnLoad()
 {
     // Clear out any stale contexts
-    m_LastContext = nullptr;
+    //m_LastContext = nullptr;
 
-    if (m_SceSblAuthMgrIsLoadable2Hook != nullptr)
+    /*if (m_SceSblAuthMgrIsLoadable2Hook != nullptr)
         (void)m_SceSblAuthMgrIsLoadable2Hook->Enable();
     
     if (m_SceSblAuthMgrVerifyHeaderHook != nullptr)
@@ -602,7 +530,7 @@ bool FakeSelfManager::OnLoad()
         (void)m__SceSblAuthMgrSmLoadSelfBlockHook->Enable();
     
     if (m__SceSblAuthMgrSmLoadSelfSegmentHook != nullptr)
-        (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Enable();
+        (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Enable();*/
     
     WriteLog(LL_Debug, "FakeSelfManager loaded...");
     return true;
@@ -610,7 +538,7 @@ bool FakeSelfManager::OnLoad()
 
 bool FakeSelfManager::OnUnload()
 {
-    if (m_SceSblAuthMgrIsLoadable2Hook != nullptr)
+    /*if (m_SceSblAuthMgrIsLoadable2Hook != nullptr)
         (void)m_SceSblAuthMgrIsLoadable2Hook->Disable();
     
     if (m_SceSblAuthMgrVerifyHeaderHook != nullptr)
@@ -626,7 +554,7 @@ bool FakeSelfManager::OnUnload()
         (void)m__SceSblAuthMgrSmLoadSelfSegmentHook->Disable();
     
     // Clear out any stale contexts
-    m_LastContext = nullptr;
+    m_LastContext = nullptr;*/
     
     WriteLog(LL_Debug, "FakeSelfManager unloaded...");
     return true;
@@ -644,114 +572,31 @@ bool FakeSelfManager::OnResume()
     return true;
 }
 
-int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
+// Credits: m0rph
+void FakeSelfManager::HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address)
 {
-    if (FakeSelfManager::m_LastContext != p_Context)
-    {
-        WriteLog(LL_Debug, "%p -> %p", FakeSelfManager::m_LastContext, p_Context);
-        FakeSelfManager::m_LastContext = p_Context;
-    }   
+    uint8_t* s_HookPayload = p_HookTrampoline;
+    uint16_t* s_TempAddress = reinterpret_cast<uint16_t*>(p_HookTrampoline);
+    s_TempAddress++;
 
-#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
-    return _SceSblAuthMgrSmLoadSelfSegment(p_Context, p_SegmentIndex, p_IsBlockTable, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
-#else
-// We have to check the prototype on every version, 1.76 and 1.00 appear to be different (having 1 extra argument)
-// 4.05-6.50 seem to all be the same
-// 4.05 - 006167B0
-// 1.76 - 005C9BB0
-// 5.05 - 00642EF0
-#error "_SceSblAuthMgrSmLoadSelfSegment prototype not checked"
-return -EIO;
-#endif 
-}
+    uint64_t* s_FunctionAddress = reinterpret_cast<uint64_t*>(s_TempAddress);
 
-int FakeSelfManager::_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
-{
-    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
-    if (s_PluginManager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get plugin manager");
-        return -1;
-    }
+    cpu_disable_wp();
 
-    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
-    if (s_Manager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get fake self manager instance");
-        return -1;
-    }
+    // mov rax
+    s_HookPayload[0] = 0x48;
+    s_HookPayload[1] = 0xB8;
 
-    auto s_Hook = s_Manager->m__SceSblAuthMgrSmLoadSelfSegmentHook;
-    if (s_Hook == nullptr)
-    {
-        WriteLog(LL_Error, "could not find the _sceSblAuthMgrSmLoadSelfSegmentHook hook");
-        return -1;
-    }
-    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
-        return -1;
+    *s_FunctionAddress = reinterpret_cast<uint64_t>(p_Function);
 
-    int32_t s_Ret = -1;
+    s_HookPayload[0x0A] = 0xFF;
+    s_HookPayload[0x0B] = 0xE0;
 
-    if (!s_Hook->Disable())
-        return -1;
-    
-    auto s_Call = (int(*)(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg))s_Hook->GetOriginalFunctionAddress();
-    
-    // Call the original
-    s_Ret = s_Call(p_Context, p_SegmentIndex, p_IsBlockTable, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
+    int32_t s_CallAddress = (int32_t)(p_HookTrampoline - (uint8_t*)p_Address) - 5;
+    s_HookPayload = reinterpret_cast<uint8_t*>(p_Address);
+    s_HookPayload++;
+    int32_t* s_Pointer = reinterpret_cast<int32_t*>(s_HookPayload);
+    *s_Pointer = s_CallAddress;
 
-    (void)s_Hook->Enable();
-
-    return s_Ret;
-}
-
-int FakeSelfManager::On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
-{
-    if (FakeSelfManager::m_LastContext != p_Context)
-    {
-        WriteLog(LL_Debug, "%p -> %p", FakeSelfManager::m_LastContext, p_Context);
-        FakeSelfManager::m_LastContext = p_Context;
-    }    
-
-    return _SceSblAuthMgrSmLoadSelfBlock(p_Context, p_SegmentIndex, p_BlockIndex, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
-}
-
-int FakeSelfManager::_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg)
-{
-    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
-    if (s_PluginManager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get plugin manager");
-        return -1;
-    }
-
-    auto s_Manager = static_cast<FakeSelfManager*>(s_PluginManager->GetFakeSelfManager());
-    if (s_Manager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get fake self manager instance");
-        return -1;
-    }
-
-    auto s_Hook = s_Manager->m__SceSblAuthMgrSmLoadSelfBlockHook;
-    if (s_Hook == nullptr)
-    {
-        WriteLog(LL_Error, "could not find the _sceSblAuthMgrSmLoadSelfBlockHook hook");
-        return -1;
-    }
-    if (s_Hook->GetOriginalFunctionAddress() == nullptr)
-        return -1;
-
-    int32_t s_Ret = -1;
-
-    if (!s_Hook->Disable())
-        return -1;
-    
-    auto s_Call = (int(*)(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg))s_Hook->GetOriginalFunctionAddress();
-    
-    // Call the original
-    s_Ret = s_Call(p_Context, p_SegmentIndex, p_BlockIndex, p_Data, p_Size, p_ReadCallback, p_CallbackArg);
-
-    (void)s_Hook->Enable();
-
-    return s_Ret;
+    cpu_enable_wp();
 }

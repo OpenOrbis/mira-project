@@ -20,32 +20,6 @@ namespace Mira
             Count
         } SelfFormat;
 
-        typedef struct _SelfContext
-        {
-            SelfFormat format;          // 0x00
-            int32_t elfAuthType;        // 0x04
-            uint32_t totalHeaderSize;   // 0x08
-            uint8_t unk12[0x10];        // 0x0C
-            int32_t contextId;          // 0x1C
-            uint64_t serviceId;         // 0x20
-            uint8_t unk40[8];           // 0x28
-            int32_t bufferId;           // 0x30
-            uint8_t unk52[4];          // 0x34
-            uint8_t* header;            // 0x38
-            struct mtx lock;            // 0x40
-        } SelfContext;
-        static_assert(offsetof(SelfContext, format) == 0x00);
-        static_assert(offsetof(SelfContext, elfAuthType) == 0x04);
-        static_assert(offsetof(SelfContext, totalHeaderSize) == 0x08);
-        static_assert(offsetof(SelfContext, unk12) == 0x0C);
-        static_assert(offsetof(SelfContext, contextId) == 0x1C);
-        static_assert(offsetof(SelfContext, serviceId) == 0x20);
-        static_assert(offsetof(SelfContext, bufferId) == 0x30);
-        static_assert(offsetof(SelfContext, unk52) == 0x34);
-        static_assert(offsetof(SelfContext, header) == 0x38);
-        static_assert(offsetof(SelfContext, lock) == 0x40);
-        static_assert(sizeof(SelfContext) == 0x60);
-
         typedef struct _SelfHeader
         {
             uint32_t magic;
@@ -72,6 +46,35 @@ namespace Mira
         static_assert(offsetof(SelfHeader, numEntries) == 0x18);
         static_assert(offsetof(SelfHeader, flags) == 0x1A);
         static_assert(sizeof(SelfHeader) == 0x20);
+
+        typedef struct _SelfContext
+        {
+            SelfFormat format;          // 0x00
+            int32_t elfAuthType;        // 0x04
+            uint32_t totalHeaderSize;   // 0x08
+            uint32_t unk12;             // 0x0C
+            void* segment;              // 0x10
+            uint32_t unk24;             // 0x18
+            int32_t contextId;          // 0x1C
+            uint64_t serviceId;         // 0x20
+            uint64_t unk40;             // 0x28
+            int32_t bufferId;           // 0x30
+            uint32_t unk52;             // 0x34
+            _SelfHeader* header;        // 0x38
+            struct mtx lock;            // 0x40
+        } SelfContext;
+        static_assert(offsetof(SelfContext, format) == 0x00);
+        static_assert(offsetof(SelfContext, elfAuthType) == 0x04);
+        static_assert(offsetof(SelfContext, totalHeaderSize) == 0x08);
+        static_assert(offsetof(SelfContext, unk12) == 0x0C);
+        static_assert(offsetof(SelfContext, segment) == 0x10);
+        static_assert(offsetof(SelfContext, contextId) == 0x1C);
+        static_assert(offsetof(SelfContext, serviceId) == 0x20);
+        static_assert(offsetof(SelfContext, bufferId) == 0x30);
+        static_assert(offsetof(SelfContext, unk52) == 0x34);
+        static_assert(offsetof(SelfContext, header) == 0x38);
+        static_assert(offsetof(SelfContext, lock) == 0x40);
+        static_assert(sizeof(SelfContext) == 0x60);
 
         typedef struct _SelfEntry
         {
