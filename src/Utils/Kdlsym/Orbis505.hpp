@@ -78,9 +78,14 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x02790C90
 #define kdlsym_addr_sbl_pfs_sx                             0x0271E5D8
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x0063C4F0
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook          0x0063E3A1
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0064318B
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook 0x00643DA2
 #define kdlsym_addr__sceSblAuthMgrSmStart                  0x006418E0
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader            0x00642B40
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader              0x0063C550
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA        0x0063EAFC
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB        0x0063F718
 #define kdlsym_addr_sceSblDriverSendMsg                    0x0061D7F0
 #define kdlsym_addr_sceSblGetEAPInternalPartitionKey       0x006256E0
 #define kdlsym_addr_sceSblKeymgrClearKey                   0x0062DB10
