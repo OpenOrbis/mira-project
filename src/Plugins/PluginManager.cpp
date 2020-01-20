@@ -2,6 +2,7 @@
 
 // Built in plugins
 #include <Plugins/Debugger/Debugger.hpp>
+#include <Plugins/LogServer/LogManager.hpp>
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 
