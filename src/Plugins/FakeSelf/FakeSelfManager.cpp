@@ -261,7 +261,7 @@ bool FakeSelfManager::IsFakeSelf(SelfContext* p_Context)
         if (s_Ret)
             s_Ret = 0;
         
-        WriteLog(LL_Debug, "ptype: (%d)", s_Info->ptype);
+        //WriteLog(LL_Debug, "ptype: (%d)", s_Info->ptype);
         return (int32_t)s_Info->ptype == SelfPtypeFake;
     }
     else
@@ -403,9 +403,12 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint32_t p_ServiceId, 
 {
     auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
 
-#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455	
-	register SelfContext* s_Context __asm__ ("r14");
-#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455
+    // Not supported anymore
+	//register SelfContext* s_Context __asm__ ("r14");
+    SelfContext* s_Context = nullptr;
+    __asm__("\t movq %%r14, %0" : "=r"(s_Context));
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505
 	uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
 	SelfContext* s_Context = *(SelfContext**)(frame - 0x1C8);
 #elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_555
@@ -477,11 +480,16 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint32_t p_ServiceId, 
 int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response)
 {
     auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455	
 	uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
 	SelfContext* s_Context = *(SelfContext**)(frame - 0x100);
-#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501
-    register SelfContext* s_Context __asm__ ("r14");
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505
+    // register variables are deprecated in clang, and "not supported" by gcc
+    // https://gcc.gnu.org/onlinedocs/gcc/Local-Register-Variables.html
+    //register uint64_t s_Context __asm__ ("r14") = nullptr;
+    SelfContext* s_Context = nullptr;
+    __asm__("\t movq %%r14, %0" : "=r"(s_Context));
 #elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_555 || MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620
     uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
     SelfContext* s_Context = *(SelfContext**)(frame - 0x100);

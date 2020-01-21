@@ -152,4 +152,11 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_make_dev_p                             0x001B9810
 
 #define kdlsym_addr_kproc_exit                             0x00138060
+
+// self function patches
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                    0x63EAFC
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                    0x63F718
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                      0x63E3A1
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook        0x643DA2
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook      0x64318B
 #endif

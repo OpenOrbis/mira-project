@@ -263,7 +263,25 @@ void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	// Intentionally hang the thread
 	/*for (;;)
 		__asm__("nop");*/
+
+	/*auto s_TrapFatalHook = ((Debugger*)s_Framework->GetPluginManager()->GetDebugger())->m_TrapFatalHook;
+	if (s_TrapFatalHook != nullptr)
+	{
+		
+		uint32_t s_TrampSize = 0;
+		auto s_OrigTrapFatal = (void(*)(struct trapframe* frame, vm_offset_t eva))s_TrapFatalHook->GetTrampolineFunctionAddress(&s_TrampSize);
+		
+		printf("tramp: %p orig: %p this: %p\n", s_OrigTrapFatal, kdlsym(trap_fatal), OnTrapFatal);
+
+		for (auto i = 0; i < s_TrampSize; ++i)
+			printf("0x%02X ", ((uint8_t*)s_OrigTrapFatal)[i]);
+		printf("\n\n");
+
+		printf("calling original trap fatal\n");
+		s_OrigTrapFatal(frame, eva);
+	}
 	
+	s_TrapFatalHook->Disable();*/
 	printf("exiting crashed thread\n");
 	kthread_exit();
 
