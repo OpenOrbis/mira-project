@@ -2,6 +2,7 @@
 
 // Built in plugins
 #include <Plugins/Debugger/Debugger.hpp>
+#include <Plugins/LogServer/LogManager.hpp>
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 
@@ -12,11 +13,13 @@
 using namespace Mira::Plugins;
 
 PluginManager::PluginManager() :
+	m_Logger(nullptr),
     m_Debugger(nullptr),
     m_FileManager(nullptr),
     m_FakeSelfManager(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
+	m_Logger = nullptr;
     m_FileManager = nullptr;
 }
 
@@ -28,7 +31,15 @@ PluginManager::~PluginManager()
 bool PluginManager::OnLoad()
 {
     WriteLog(LL_Debug, "loading all plugins");
-
+    // Initialize Logger
+    m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
+    if (m_Logger == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate log manager.");
+        return false;
+    }
+    if (!m_Logger->OnLoad())
+        WriteLog(LL_Error, "could not load logmanager");
     // Initialize debugger
     m_Debugger = new Mira::Plugins::Debugger();
     if (m_Debugger == nullptr)
@@ -113,6 +124,19 @@ bool PluginManager::OnUnload()
         delete m_FileManager;
         m_FileManager = nullptr;
     }
+	
+    // Delete the log server
+    if (m_Logger)
+    {
+        WriteLog(LL_Debug, "unloading log manager");
+
+        if (!m_Logger->OnUnload())
+            WriteLog(LL_Error, "logmanager could not unload");
+
+        // Free the file manager
+        delete m_Logger;
+        m_Logger = nullptr;
+    }	
 
     // Delete the fake self manager
     if (m_FakeSelfManager)
@@ -168,6 +192,9 @@ bool PluginManager::OnSuspend()
     if (!m_FileManager->OnSuspend())
         WriteLog(LL_Error, "file manager suspend failed");
     
+     if (!m_Logger->OnSuspend())
+        WriteLog(LL_Error, "log manager suspend failed");
+	
     if (!m_FakeSelfManager->OnSuspend())
         WriteLog(LL_Error, "fake self manager suspend failed");
 
@@ -213,7 +240,11 @@ bool PluginManager::OnResume()
     WriteLog(LL_Debug, "resuming file manager");
     if (!m_FileManager->OnResume())
         WriteLog(LL_Error, "file manager resume failed");
-    
+ 
+    WriteLog(LL_Debug, "resuming log manager");
+    if (!m_Logger->OnResume())
+        WriteLog(LL_Error, "log manager resume failed");    
+ 
     WriteLog(LL_Debug, "resuming fake self manager");
     if (!m_FakeSelfManager->OnResume())
         WriteLog(LL_Error, "fake self manager resume failed");
