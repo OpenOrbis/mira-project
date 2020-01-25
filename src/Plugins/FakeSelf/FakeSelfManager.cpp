@@ -52,12 +52,14 @@ FakeSelfManager::FakeSelfManager()
     uint8_t* s_TrampolineC = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_PROC].sy_call);
     uint8_t* s_TrampolineD = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FILE].sy_call);
     uint8_t* s_TrampolineE = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FD].sy_call);
+    uint8_t* s_TrampolineF = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_FILE].sy_call);
 
     HookFunctionCall(s_TrampolineA, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookA));
     HookFunctionCall(s_TrampolineB, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookB));
     HookFunctionCall(s_TrampolineC, reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2), kdlsym(sceSblAuthMgrIsLoadable2_hook));
     HookFunctionCall(s_TrampolineD, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfSegment_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook));
     HookFunctionCall(s_TrampolineE, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfBlock_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook));
+    HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId), kdlsym(sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook));
 
     //m_SceSblServiceMailboxHook = new Utils::Hook(kdlsym(sceSblServiceMailbox), reinterpret_cast<void*>(OnSceSblServiceMailbox));
     //m_SceSblAuthMgrVerifyHeaderHook = new Utils::Hook(kdlsym(sceSblAuthMgrVerifyHeader), reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader));
@@ -463,12 +465,12 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, 
             if (s_CurrentData2GpuVa && s_CurrentData2GpuVa != s_CurrentDataGpuVa && s_DataOffset > 0) {
 
                 /* data spans two consecutive memory's pages, so we need to copy twice */
-                uint32_t size = PAGE_SIZE - s_DataOffset;
-                memcpy((char*)s_SegmentDataCpuVa, (char*)s_CurrentDataCpuVa + s_DataOffset, size);
+                uint32_t s_Size = PAGE_SIZE - s_DataOffset;
+                memcpy((char*)s_SegmentDataCpuVa, (char*)s_CurrentDataCpuVa + s_DataOffset, s_Size);
 
                 // prevent *potential* kpanic here
                 if (s_CurrentData2CpuVa) {
-                    memcpy((char *) s_SegmentDataCpuVa + size, (char *) s_CurrentData2CpuVa, s_DataSize - size);
+                    memcpy((char *) s_SegmentDataCpuVa + s_Size, (char *) s_CurrentData2CpuVa, s_DataSize - s_Size);
                 }
             } else {
                 memcpy((char*)s_SegmentDataCpuVa, (char*)s_CurrentDataCpuVa + s_DataOffset, s_DataSize);
@@ -480,6 +482,22 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, 
 
         return 0;
     }
+}
+
+int FakeSelfManager::SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* path) {
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+    auto sceSblACMgrGetPathId = (int(*)(const char* path))kdlsym(sceSblACMgrGetPathId);
+
+    static const char* s_SelfDirPrefix = "/data/self/";
+    const char* p;
+
+    if (path) {
+        p = strstr(path, s_SelfDirPrefix);
+        if (p)
+            path = p + strlen(s_SelfDirPrefix) - 1;
+    }
+
+    return sceSblACMgrGetPathId(path);
 }
 
 bool FakeSelfManager::OnLoad()

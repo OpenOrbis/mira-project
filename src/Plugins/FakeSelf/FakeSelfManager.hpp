@@ -68,8 +68,7 @@ namespace Mira
             static int BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo* p_ParentAuthInfo, SelfAuthInfo* p_AuthInfo);
             static int SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, SelfAuthInfo* p_Info);
             static int SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehdr** p_OutElfHeader);
-
-        
+            static int SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* path);
 
             //
             // Hook Helper Functions

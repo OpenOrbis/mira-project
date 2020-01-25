@@ -90,7 +90,8 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblKeymgrSmCallfunc                 0x00611530 
 #define kdlsym_addr_sceSblPfsSetKeys                       0x006095E0 
 #define kdlsym_addr_sceSblServiceMailbox                   0x00617AB0 
-#define kdlsym_addr_self_orbis_sysvec                      0x01468700 
+#define kdlsym_addr_sceSblACMgrGetPathId                   0x00169840
+#define kdlsym_addr_self_orbis_sysvec                      0x01468700
 #define kdlsym_addr_Sha256Hmac                             0x002D7E00 
 #define kdlsym_addr_snprintf                               0x00018230 
 #define kdlsym_addr_sscanf                                 0x00304300 
@@ -137,5 +138,13 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vsnprintf                              0x000182D0 
 #define kdlsym_addr_Xfast_syscall                          0x0030B7D0 
 #define kdlsym_addr_wakeup                                 0x002635C0 
+
+// FakeSelf hooks
+#define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x006224EC
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x0
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x0
 
 #endif
