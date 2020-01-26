@@ -78,14 +78,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x02790C90
 #define kdlsym_addr_sbl_pfs_sx                             0x0271E5D8
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x0063C4F0
-#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook          0x0063E3A1
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0064318B
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook 0x00643DA2
 #define kdlsym_addr__sceSblAuthMgrSmStart                  0x006418E0
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader            0x00642B40
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader              0x0063C550
-#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA        0x0063EAFC
-#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB        0x0063F718
 #define kdlsym_addr_sceSblDriverSendMsg                    0x0061D7F0
 #define kdlsym_addr_sceSblGetEAPInternalPartitionKey       0x006256E0
 #define kdlsym_addr_sceSblKeymgrClearKey                   0x0062DB10
@@ -93,6 +88,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblKeymgrSmCallfunc                 0x0062E2A0
 #define kdlsym_addr_sceSblPfsSetKeys                       0x0061EFA0
 #define kdlsym_addr_sceSblServiceMailbox                   0x00632540
+#define kdlsym_addr_sceSblACMgrGetPathId                   0x000117E0
 #define kdlsym_addr_self_orbis_sysvec                      0x019BBCD0
 #define kdlsym_addr_Sha256Hmac                             0x002D55B0
 #define kdlsym_addr_snprintf                               0x00436350
@@ -157,5 +153,13 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_make_dev_p                             0x001B9810
 
 #define kdlsym_addr_kproc_exit                             0x00138060
+
+// FakeSelf hooks
+#define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0063E25D
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0063E3A1
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0064318B
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x00643DA2
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0063EAFC
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x0063F718
 
 #endif
