@@ -169,25 +169,6 @@ extern "C" void mira_entry(void* args)
 		return;
 	}
 
-	// Wait for the process to be filled out
-	/*const auto s_MaxTimeout = 3;
-	auto s_CurrentTimeout = 0;
-	while (initParams->process == nullptr)
-	{
-		WriteLog(LL_Error, "waiting for process waiting 1s");
-		avcontrol_sleep(1000);
-		s_CurrentTimeout++;
-
-		if (s_CurrentTimeout < s_MaxTimeout)
-			continue;
-		
-		WriteLog(LL_Error, "error waiting for process");
-		kthread_exit();
-		return;
-	}
-
-	WriteLog(LL_Debug, "Got current process");*/
-
 	// Assign our new vmspace to our process
 	initParams->process->p_vmspace = vmspace;
 	if (initParams->process == curthread->td_proc)
@@ -283,8 +264,7 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Debug, "Installing event handlers");
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
-/*
-	// TODO: Re-enable below after HEN testing is finished
+
 	// Initialize the rpc server
 	WriteLog(LL_Debug, "Initializing rpc server");
 	m_RpcServer = new Mira::Messaging::Rpc::Server();
@@ -313,7 +293,7 @@ bool Mira::Framework::Initialize()
 		WriteLog(LL_Error, "could not allocate control driver.");
 		return false;
 	}
-*/
+
 	// Set the running flag
 	m_InitParams.isRunning = true;
 

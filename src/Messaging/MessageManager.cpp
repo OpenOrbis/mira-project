@@ -208,7 +208,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
     s_Ret = kwrite_t(s_Socket, s_Data, s_DataLength, s_MainThread);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "could not send payloa data (%p) len (%d).", s_Data, s_DataLength);
+        WriteLog(LL_Error, "could not send payload data (%p) len (%d) ret (%d).", s_Data, s_DataLength, s_Ret);
         return;
     }
 }

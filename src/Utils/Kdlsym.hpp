@@ -9,10 +9,6 @@
 #if defined(MIRA_UNSUPPORTED_PLATFORMS)
     #if MIRA_PLATFORM==ONI_UNKNOWN_PLATFORM
     #include "Kdlsym/Default.hpp"
-    #elif MIRA_PLATFORM==MIRA_PLATFORM_STEAM_LINK2
-    #include "Kdlsym/SteamLink2.hpp"
-    #elif MIRA_PLATFORM==MIRA_PLATFORM_RASPI_ZERO
-    #include "Kdlsym/RaspberryPiZero.hpp"
     #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_176
     #include "Kdlsym/Orbis176.hpp"
     #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_405
@@ -27,6 +23,10 @@
     #include "Kdlsym/Orbis620.hpp"
     #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_650
     #include "Kdlsym/Orbis650.hpp"
+    #elif MIRA_PLATFORM==MIRA_PLATFORM_RASPI_ZERO
+    #include "Kdlsym/RaspberryPiZero.hpp"
+    #elif MIRA_PLATFORM==MIRA_PLATFORM_STEAM_LINK2
+    #include "Kdlsym/SteamLink2.hpp"
     #endif
 #endif
 

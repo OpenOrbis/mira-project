@@ -227,7 +227,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const Messagi
 
     Messaging::Message s_Response = {
         .Header = s_Header,
-        .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
+        .Buffer = reinterpret_cast<const uint8_t*>(s_Payload)
     };
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
