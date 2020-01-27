@@ -3,7 +3,7 @@
 #include <Utils/Types.hpp>
 #include <Utils/Hook.hpp>
 
-#include "FakeSelfStructs.hpp"
+#include <OrbisOS/FakeStructs.hpp>
 
 extern "C"
 {

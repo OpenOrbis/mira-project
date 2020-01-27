@@ -14,6 +14,7 @@ extern "C"
 };
 
 using namespace Mira::Plugins;
+using namespace Mira::OrbisOS;
 
 //SelfContext* FakeSelfManager::m_LastContext = nullptr;
 
@@ -52,14 +53,14 @@ FakeSelfManager::FakeSelfManager()
     uint8_t* s_TrampolineC = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_PROC].sy_call);
     uint8_t* s_TrampolineD = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FILE].sy_call);
     uint8_t* s_TrampolineE = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FD].sy_call);
-    uint8_t* s_TrampolineF = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_FILE].sy_call);
+    //uint8_t* s_TrampolineF = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_FILE].sy_call);
 
     HookFunctionCall(s_TrampolineA, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookA));
     HookFunctionCall(s_TrampolineB, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookB));
     HookFunctionCall(s_TrampolineC, reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2), kdlsym(sceSblAuthMgrIsLoadable2_hook));
     HookFunctionCall(s_TrampolineD, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfSegment_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook));
     HookFunctionCall(s_TrampolineE, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfBlock_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook));
-    HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId), kdlsym(sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook));
+    //HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId), kdlsym(sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook));
 
     //m_SceSblServiceMailboxHook = new Utils::Hook(kdlsym(sceSblServiceMailbox), reinterpret_cast<void*>(OnSceSblServiceMailbox));
     //m_SceSblAuthMgrVerifyHeaderHook = new Utils::Hook(kdlsym(sceSblAuthMgrVerifyHeader), reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader));
@@ -485,7 +486,7 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, 
 }
 
 int FakeSelfManager::SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* path) {
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+    /*auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto sceSblACMgrGetPathId = (int(*)(const char* path))kdlsym(sceSblACMgrGetPathId);
 
     static const char* s_SelfDirPrefix = "/data/self/";
@@ -497,7 +498,8 @@ int FakeSelfManager::SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* pa
             path = p + strlen(s_SelfDirPrefix) - 1;
     }
 
-    return sceSblACMgrGetPathId(path);
+    return sceSblACMgrGetPathId(path);*/
+    return 0;
 }
 
 bool FakeSelfManager::OnLoad()

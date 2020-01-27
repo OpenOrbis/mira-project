@@ -10,7 +10,7 @@ extern "C"
 
 namespace Mira
 {
-    namespace Plugins
+    namespace OrbisOS
     {
         typedef enum _SelfFormat
         {
@@ -19,6 +19,30 @@ namespace Mira
             Self,
             Count
         } SelfFormat;
+
+        enum
+        {
+            EKPFS_SIZE = 0x20,
+            EEKPFS_SIZE = 0x100,
+            PFS_SEED_SIZE = 0x10,
+            PFS_FINAL_KEY_SIZE = 0x20,
+            SIZEOF_PFS_KEY_BLOB = 0x140,
+            CONTENT_KEY_SEED_SIZE = 0x10,
+            SELF_KEY_SEED_SIZE = 0x10,
+            EEKC_SIZE = 0x20,
+            MAX_FAKE_KEYS = 32,
+            SIZEOF_RSA_KEY = 0x48,
+            PFS_FAKE_OBF_KEY_ID = 0x1337,
+            SIZEOF_PFS_HEADER = 0x5A0,
+            RIF_DATA_SIZE = 0x90,
+            RIF_DIGEST_SIZE = 0x10,
+            RIF_KEY_TABLE_SIZE = 0x230,
+            RIF_MAX_KEY_SIZE = 0x20,
+            SIZEOF_ACTDAT = 0x200,
+            SIZEOF_RSA_KEY = 0x48,
+            SIZEOF_RIF = 0x400,
+            RIF_PAYLOAD_SIZE = (RIF_DIGEST_SIZE + RIF_DATA_SIZE)
+        };
 
         typedef struct _SelfHeader
         {
@@ -222,5 +246,23 @@ namespace Mira
         static_assert(offsetof(SblMapListEntry, proc) == 0x40);
         static_assert(offsetof(SblMapListEntry, vmPage) == 0x48);
         static_assert(sizeof(SblMapListEntry) == 0x50);
+
+        typedef struct _FakeKeyDesc
+        {
+            uint8_t key[0x20];
+            bool occupied;
+        } FakeKeyDesc;
+
+        typedef struct _FakeKeyD
+        {
+            uint32_t index;
+            uint8_t seed[PFS_SEED_SIZE];
+        } FakeKeyD;
+
+        typedef struct _Ekc
+        {
+            uint8_t contentKeySeed[CONTENT_KEY_SEED_SIZE];
+            uint8_t selfKeySeed[SELF_KEY_SEED_SIZE];
+        };
     }
 }
