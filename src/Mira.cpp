@@ -265,6 +265,7 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
+	/*
 	// Initialize the rpc server
 	WriteLog(LL_Debug, "Initializing rpc server");
 	m_RpcServer = new Mira::Messaging::Rpc::Server();
@@ -292,7 +293,7 @@ bool Mira::Framework::Initialize()
 	{
 		WriteLog(LL_Error, "could not allocate control driver.");
 		return false;
-	}
+	}*/
 
 	// Set the running flag
 	m_InitParams.isRunning = true;

@@ -5,6 +5,7 @@
 #include <Plugins/LogServer/LogManager.hpp>
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
+#include <Plugins/FakePkg/FakePkgManager.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -40,6 +41,7 @@ bool PluginManager::OnLoad()
     }
     if (!m_Logger->OnLoad())
         WriteLog(LL_Error, "could not load logmanager");
+    
     // Initialize debugger
     m_Debugger = new Mira::Plugins::Debugger();
     if (m_Debugger == nullptr)
@@ -71,7 +73,14 @@ bool PluginManager::OnLoad()
         WriteLog(LL_Error, "could not load fake self manager.");
     
     // Initialize the fpkg manager
-    
+    m_FakePkgManager = new Mira::Plugins::FakePkgManager();
+    if (m_FakePkgManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate fake pkg manager.");
+        return false;
+    }
+    if (!m_FakePkgManager->OnLoad())
+        WriteLog(LL_Error, "could not load fake pkg manager.");
     
     return true;
 }
@@ -147,6 +156,17 @@ bool PluginManager::OnUnload()
         
         delete m_FakeSelfManager;
         m_FakeSelfManager = nullptr;
+    }
+
+    // Delete the fake pkg manager
+    if (m_FakePkgManager)
+    {
+        WriteLog(LL_Debug, "unloading fake pkg manager");
+        if (!m_FakePkgManager->OnUnload())
+            WriteLog(LL_Error, "fake pkg manager could not unload");
+        
+        delete m_FakePkgManager;
+        m_FakePkgManager = nullptr;
     }
 
     // Delete the debugger

@@ -1,5 +1,6 @@
 #pragma once
 #include <Utils/Types.hpp>
+#include <Boot/Config.hpp>
 
 extern "C"
 {
@@ -34,14 +35,38 @@ namespace Mira
             SIZEOF_RSA_KEY = 0x48,
             PFS_FAKE_OBF_KEY_ID = 0x1337,
             SIZEOF_PFS_HEADER = 0x5A0,
+
+            // RIF
             RIF_DATA_SIZE = 0x90,
             RIF_DIGEST_SIZE = 0x10,
             RIF_KEY_TABLE_SIZE = 0x230,
             RIF_MAX_KEY_SIZE = 0x20,
             SIZEOF_ACTDAT = 0x200,
-            SIZEOF_RSA_KEY = 0x48,
             SIZEOF_RIF = 0x400,
-            RIF_PAYLOAD_SIZE = (RIF_DIGEST_SIZE + RIF_DATA_SIZE)
+            RIF_PAYLOAD_SIZE = (RIF_DIGEST_SIZE + RIF_DATA_SIZE),
+
+            
+            #define CCP_OP(cmd) (cmd >> 24)
+            CCP_MAX_PAYLOAD_SIZE = 0x88,
+            CCP_OP_AES =  0,
+            CCP_OP_XTS = 2,
+            CCP_OP_HMAC= 9,
+            CCP_USE_KEY_FROM_SLOT   = (1 << 18),
+            CCP_GENERATE_KEY_AT_SLOT= (1 << 19),
+            CCP_USE_KEY_HANDLE      = (1 << 20),
+
+            SCE_SBL_ERROR_NPDRM_ENOTSUP = 0x800F0A25,
+            SIZEOF_SBL_KEY_RBTREE_ENTRY = 0xA8, // sceSblKeymgrSetKey
+            SIZEOF_SBL_MAP_LIST_ENTRY = 0x50, // sceSblDriverMapPages
+            TYPE_SBL_KEY_RBTREE_ENTRY_DESC_OFFSET = 0x04,
+            TYPE_SBL_KEY_RBTREE_ENTRY_LOCKED_OFFSET = 0x80,
+            SIZEOF_SBL_KEY_DESC = 0x7C, // sceSblKeymgrSetKey
+            SBL_MSG_SERVICE_MAILBOX_MAX_SIZE = 0x80,
+            SBL_MSG_CCP = 0x8,
+
+            #define SWAP_16(x) ((((uint16_t)(x) & 0xff) << 8) | ((uint16_t)(x) >> 8))
+            #define BE16(val) SWAP_16(val)
+            #define LE32(val) (val)
         };
 
         typedef struct _SelfHeader
@@ -263,6 +288,269 @@ namespace Mira
         {
             uint8_t contentKeySeed[CONTENT_KEY_SEED_SIZE];
             uint8_t selfKeySeed[SELF_KEY_SEED_SIZE];
+        } Ekc;
+
+        struct ccp_link
+        {
+            void* p;
         };
+
+        union ccp_op
+        {
+            struct
+            {
+                uint32_t cmd;
+                uint32_t status;
+            } common;
+            struct 
+            {
+                uint32_t cmd;
+                uint32_t status;
+                uint64_t data_size;
+                uint64_t in_data;
+                uint64_t out_data;
+                union 
+                {
+                    uint32_t key_index;
+                    uint8_t key[0x20];
+                };
+                uint8_t iv[0x10];
+            } aes;
+            uint8_t buf[CCP_MAX_PAYLOAD_SIZE];
+        };
+
+        struct ccp_msg
+        {
+            union ccp_op op;
+            uint32_t index;
+            uint32_t result;
+            TAILQ_ENTRY(ccp_msg) next;
+            uint64_t message_id;
+            LIST_ENTRY(ccp_link) links;
+        };
+
+        struct ccp_req
+        {
+            TAILQ_HEAD(, ccp_msg) msgs;
+            void (*cb)(void* arg, int result);
+            void* arg;
+            uint64_t message_id;
+            LIST_ENTRY(ccp_link) links;
+        };
+
+        typedef union _SblMsgService
+        {
+            struct
+            {
+                union ccp_op op;
+            } ccp;
+            
+        } SblMsgService;
+
+        typedef struct _SblMsgHeader
+        {
+            uint32_t cmd;
+            uint32_t status;
+            uint64_t message_id;
+            uint64_t extended_msgs;
+        } _SblMsgHeader;
+
+        typedef struct _SblMsg
+        {
+            _SblMsgHeader hdr;
+            union 
+            {
+                SblMsgService service;
+                uint8_t raw[0x1000];
+            };
+            
+        } SblMsg;
+
+        typedef struct _RifKeyBlob
+        {
+            Ekc eekc;
+            uint8_t entitlementKey[0x10];
+        } RifKeyBlob;
+
+        typedef union _PfsKeyBlob
+        {
+            struct _In
+            {
+                uint8_t eekpfs[EEKPFS_SIZE];
+                Ekc eekc;
+                uint32_t pubkeyVer; /* 0x1/0x80000001/0xC0000001 */
+                uint32_t keyVer;    /* 1 (if (rif_ver_major & 0x1) != 0, then pfs_key_ver=1, otherwise pfs_key_ver=0) */
+                uint64_t headerGva;
+                uint32_t headerSize;
+                uint32_t type;
+                uint32_t finalized;
+                uint32_t isDisc;
+            } In;
+            struct _Out
+            {
+                uint8_t escrowedKeys[0x40];
+            } Out;
+            
+        } PfsKeyBlob;
+        static_assert(sizeof(_PfsKeyBlob) == SIZEOF_PFS_KEY_BLOB);
+
+        typedef union _KeymgrPayload
+        {
+            struct
+            {
+                uint32_t cmd;
+                uint32_t status;
+                uint64_t data;
+            };
+            uint8_t buf[0x80];
+        } KeymgrPayload;
+
+        typedef struct _RsaKey
+        {
+            uint8_t _pad00[0x20];
+            uint8_t* p;
+            uint8_t* q;
+            uint8_t* dmp1;
+            uint8_t* dmq1;
+            uint8_t* iqmp;
+        } RsaKey;
+        static_assert(offsetof(_RsaKey, p) == 0x20);
+        static_assert(offsetof(_RsaKey, q) == 0x28);
+        static_assert(offsetof(_RsaKey, dmp1) == 0x30);
+        static_assert(offsetof(_RsaKey, dmq1) == 0x38);
+        static_assert(offsetof(_RsaKey, iqmp) == 0x40);
+        static_assert(sizeof(_RsaKey) == SIZEOF_RSA_KEY);
+
+        typedef struct _ActDat
+        {
+            uint32_t magic;
+            uint16_t versionMajor;
+            uint16_t versionMinor;
+            uint64_t accountId;
+            uint64_t startTime;
+            uint64_t endTime;
+            uint64_t flags;
+            uint32_t unk3;
+            uint32_t unk4;
+            uint8_t _pad30[0x30];
+            uint8_t openPsidHash[0x20];
+            uint8_t staticPerConsoleData1[0x20];
+            uint8_t digest[0x10];
+            uint8_t keyTable[0x20];
+            uint8_t staticPerConsoleData2[0x10];
+            uint8_t staticPerConsoleData3[0x20];
+            uint8_t signature[0x100];
+        } ActDat;
+        static_assert(offsetof(_ActDat, magic) == 0x00);
+        static_assert(offsetof(_ActDat, versionMajor) == 0x04);
+        static_assert(offsetof(_ActDat, versionMinor) == 0x06);
+        static_assert(offsetof(_ActDat, accountId) == 0x08);
+        static_assert(offsetof(_ActDat, startTime) == 0x10);
+        static_assert(offsetof(_ActDat, endTime) == 0x18);
+        static_assert(offsetof(_ActDat, flags) == 0x20);
+        static_assert(offsetof(_ActDat, unk3) == 0x28);
+        static_assert(offsetof(_ActDat, unk4) == 0x2C);
+        static_assert(offsetof(_ActDat, openPsidHash) == 0x60);
+        static_assert(offsetof(_ActDat, staticPerConsoleData1) == 0x80);
+        static_assert(offsetof(_ActDat, digest) == 0xA0);
+        static_assert(offsetof(_ActDat, keyTable) == 0xB0);
+        static_assert(offsetof(_ActDat, staticPerConsoleData2) == 0xD0);
+        static_assert(offsetof(_ActDat, staticPerConsoleData3) == 0xE0);
+        static_assert(offsetof(_ActDat, signature) == 0x100);
+        static_assert(sizeof(_ActDat) == SIZEOF_ACTDAT);
+
+        typedef struct _Rif
+        {
+            uint32_t magic;
+            uint16_t versionMajor;
+            uint16_t versionMinor;
+            uint64_t accountId;
+            uint64_t startTime;
+            uint64_t endTime;
+            char contentId[0x30];
+            uint16_t format;
+            uint16_t drmType;
+            uint16_t contentType;
+            uint16_t skuFlag;
+            uint64_t contentFlags;
+            uint32_t iroTag;
+            uint32_t ekcVersion;
+            uint8_t _pad6A[2];
+            uint16_t unk3;
+            uint16_t unk4;
+            uint8_t _pad6E[0x1F2];
+            uint8_t digest[0x10];
+            uint8_t data[RIF_DATA_SIZE];
+            uint8_t signature[0x100];
+        } Rif;
+        static_assert(offsetof(_Rif, magic) == 0x00);
+        static_assert(offsetof(_Rif, versionMajor) == 0x04);
+        static_assert(offsetof(_Rif, versionMinor) == 0x06);
+        static_assert(offsetof(_Rif, accountId) == 0x08);
+        static_assert(offsetof(_Rif, startTime) == 0x10);
+        static_assert(offsetof(_Rif, endTime) == 0x18);
+        static_assert(offsetof(_Rif, contentId) == 0x20);
+        static_assert(offsetof(_Rif, format) == 0x50);
+        static_assert(offsetof(_Rif, drmType) == 0x52);
+        static_assert(offsetof(_Rif, contentType) == 0x54);
+        static_assert(offsetof(_Rif, skuFlag) == 0x56);
+        static_assert(offsetof(_Rif, contentFlags) == 0x58);
+        static_assert(offsetof(_Rif, iroTag) == 0x60);
+        static_assert(offsetof(_Rif, ekcVersion) == 0x64);
+        static_assert(offsetof(_Rif, unk3) == 0x6A);
+        static_assert(offsetof(_Rif, unk4) == 0x6C);
+        static_assert(offsetof(_Rif, digest) == 0x260);
+        static_assert(offsetof(_Rif, data) == 0x270);
+        static_assert(offsetof(_Rif, signature) == 0x300);
+        static_assert(sizeof(_Rif) == SIZEOF_RIF);
+
+        typedef struct _RsaBuffer
+        {
+            uint8_t* ptr;
+            size_t size;
+        } RsaBuffer;
+
+        typedef struct _PfsHeader
+        {
+            uint8_t _pad00[0x370];
+            uint8_t cryptSeed[0x10];
+            uint8_t _pad380[0x220];
+        } PfsHeader;
+        static_assert(offsetof(_PfsHeader, cryptSeed) == 0x370);
+        static_assert(sizeof(_PfsHeader) == SIZEOF_PFS_HEADER);
+
+                typedef union _KeymgrResponse
+        {
+            struct
+            {
+                uint32_t type;
+                uint8_t key[RIF_MAX_KEY_SIZE];
+                uint8_t data[RIF_DIGEST_SIZE + RIF_DATA_SIZE];
+            } DecryptRif;
+            struct
+            {
+                uint8_t raw[SIZEOF_RIF];
+            } DecryptEntireRif;
+        } KeymgrResponse;
+
+        typedef union _KeymgrRequest
+        {
+            struct
+            {
+                uint32_t type;
+                uint8_t key[RIF_MAX_KEY_SIZE];
+                uint8_t data[RIF_DIGEST_SIZE + RIF_DATA_SIZE];
+            } DecryptRif;
+
+//#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_555
+            struct 
+            {
+                _Rif rif;
+                uint8_t keyTable[RIF_KEY_TABLE_SIZE];
+                uint64_t timestamp;
+                int status;
+            } DecryptEntireRif;
+//# endif
+        } KeymgrRequest;
     }
 }

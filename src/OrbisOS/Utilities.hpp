@@ -15,7 +15,7 @@ namespace Mira
         public:
             static Utilities* GetInstance();
 
-
+            static void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
         };
     }
 }

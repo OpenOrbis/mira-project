@@ -1,6 +1,15 @@
 #include "FakePkgManager.hpp"
 #include <Utils/Kernel.hpp>
 #include <Utils/Kdlsym.hpp>
+#include <Utils/_Syscall.hpp>
+#include <Utils/Logger.hpp>
+
+#include <OrbisOS/Utilities.hpp>
+
+extern "C"
+{
+    #include <sys/sysent.h>
+};
 
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
@@ -85,6 +94,21 @@ FakePkgManager::FakePkgManager() :
     m_SceSblKeymgrInvalidateKey(nullptr),
     m_SceSblPfsSetKeysHook(nullptr)
 {
+    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	uint8_t* s_TrampolineF = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_LINK].sy_call); // syscall #410
+    uint8_t* s_TrampolineG = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_FD].sy_call); // syscall #388
+    uint8_t* s_TrampolineH = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_FILE].sy_call); // syscall #389
+    uint8_t* s_TrampolineI = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_LINK].sy_call); // syscall #411
+    uint8_t* s_TrampolineJ = reinterpret_cast<uint8_t*>(sysents[SYS_MAC_SYSCALL].sy_call); // syscall #394
+
+    Utilities::HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(OnNpdrmDecryptIsolatedRif), kdlsym(npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc__hook));
+    Utilities::HookFunctionCall(s_TrampolineG, reinterpret_cast<void*>(OnNpdrmDecryptRifNew), kdlsym(npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook));
+    Utilities::HookFunctionCall(s_TrampolineH, reinterpret_cast<void*>(OnSceSblPfsSetKeys), kdlsym(mountpfs__sceSblPfsSetKeys__hookA));
+    Utilities::HookFunctionCall(s_TrampolineI, reinterpret_cast<void*>(OnSceSblPfsSetKeys), kdlsym(mountpfs__sceSblPfsSetKeys__hookB));
+    Utilities::HookFunctionCall(s_TrampolineJ, reinterpret_cast<void*>(OnSceSblDriverSendMsg), kdlsym(sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg__hook));
+
+    WriteLog(LL_Debug, "Installed fpkg hooks");
 }
 
 FakePkgManager::~FakePkgManager()
@@ -114,16 +138,12 @@ bool FakePkgManager::OnResume()
 
 void FakePkgManager::GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[PFS_FINAL_KEY_SIZE])
 {
-    auto s_Thread = curthread;
-    if (s_Thread == nullptr)
-        return;
-
+    auto s_Thread = __curthread();
     FakeKeyD s_D =
     {
         .index = p_Index,
         .seed = { 0 }
     };
-
     memcpy(s_D.seed, p_Seed, PFS_SEED_SIZE);
 
 
@@ -151,9 +171,9 @@ void FakePkgManager::GenPfsSignKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[P
 
 int FakePkgManager::DecryptNpdrmDebugRif(uint32_t p_Type, uint8_t* p_Data)
 {
-    auto s_Thread = curthread;
+    auto s_Thread = __curthread();
     if (s_Thread == nullptr)
-        return 0x800F0A25; // SCE_SBL_ERROR_NPDRM_ENOTSUP
+        return SCE_SBL_ERROR_NPDRM_ENOTSUP;
     
     auto fpu_kern_enter = (int(*)(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags))kdlsym(fpu_kern_enter);
     auto fpu_kern_leave = (int (*)(struct thread *td, struct fpu_kern_ctx *ctx))kdlsym(fpu_kern_leave);
@@ -167,8 +187,8 @@ int FakePkgManager::DecryptNpdrmDebugRif(uint32_t p_Type, uint8_t* p_Data)
 
     // NOTE: in original hen implementation this is bugged
     // if AesCbcCfb128Decrypt fails, then the fpu_ctx is never released causing kpanic later on down the line
-    if (s_Ret != 0)
-        return 0x800F0A25; // SCE_SBL_ERROR_NPDRM_ENOTSUP
+    if (s_Ret)
+        return SCE_SBL_ERROR_NPDRM_ENOTSUP;
 
     return s_Ret;
 }
@@ -199,4 +219,367 @@ vm_offset_t FakePkgManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t
         *p_NumPageGroups = s_Entry->numPageGroups;
     
     return s_Entry->cpuVa;
+}
+
+
+int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size)
+{
+    auto sceSblDriverSendMsg = (int (*)(SblMsg* msg, size_t size))kdlsym(sceSblDriverSendMsg);
+    if (p_Message->hdr.cmd != SBL_MSG_CCP)
+        return sceSblDriverSendMsg(p_Message, p_Size);
+    
+    union ccp_op* s_Op = &p_Message->service.ccp.op;
+    if (CCP_OP(s_Op->common.cmd) != CCP_OP_AES)
+        return sceSblDriverSendMsg(p_Message, p_Size);
+    
+    uint32_t s_Mask = CCP_USE_KEY_FROM_SLOT | CCP_GENERATE_KEY_AT_SLOT;
+    if ((s_Op->aes.cmd & s_Mask) != s_Mask || (s_Op->aes.key_index != PFS_FAKE_OBF_KEY_ID))
+        return sceSblDriverSendMsg(p_Message, p_Size);
+
+    s_Op->aes.cmd &= ~CCP_USE_KEY_FROM_SLOT;
+
+    for (auto i = 0; i < 16; ++i)
+        s_Op->aes.key[i] = g_FakeKeySeed[16 - i - 1];
+    
+    return sceSblDriverSendMsg(p_Message, p_Size);
+}
+
+int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* eekpfs, Ekc* eekc, uint32_t pubkey_ver, uint32_t key_ver, PfsHeader* hdr, size_t hdr_size, uint32_t type, uint32_t finalized, uint32_t is_disc)
+{
+    auto sceSblPfsSetKeys = (int(*)(uint32_t* p_Ekh, uint32_t* p_Skh, uint8_t* p_Eekpfs, Ekc* p_Eekc, unsigned int p_PubkeyVer, unsigned int p_KeyVer, PfsHeader* p_Header, size_t p_HeaderSize, unsigned int p_Type, unsigned int p_Finalized, unsigned int p_IsDisc))kdlsym(sceSblPfsSetKeys);
+    auto RsaesPkcs1v15Dec2048CRT = (int (*)(RsaBuffer* out, RsaBuffer* in, RsaKey* key))kdlsym(RsaesPkcs1v15Dec2048CRT);
+    auto fpu_kern_enter = (int(*)(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags))kdlsym(fpu_kern_enter);
+    auto fpu_kern_leave = (int (*)(struct thread *td, struct fpu_kern_ctx *ctx))kdlsym(fpu_kern_leave);
+    auto sbl_pfs_sx = (struct sx*)kdlsym(sbl_pfs_sx);
+    auto fpu_kern_ctx = (struct fpu_kern_ctx*)kdlsym(fpu_kern_ctx);
+    //int	(*A_sx_xlock_hard)(struct sx *sx, uintptr_t tid, int opts, const char *file, int line) = kdlsym(_sx_xlock);
+	//void (*A_sx_xunlock_hard)(struct sx *sx, uintptr_t tid, const char *file, int line) = kdlsym(_sx_xunlock);
+    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+    auto AesCbcCfb128Encrypt = (int (*)(uint8_t* out, const uint8_t* in, size_t data_size, const uint8_t* key, int key_size, uint8_t* iv))kdlsym(AesCbcCfb128Encrypt);
+    auto sceSblKeymgrSetKeyForPfs = (int (*)(SblKeyDesc* key, unsigned int* handle))kdlsym(sceSblKeymgrSetKeyForPfs);
+    auto sceSblKeymgrClearKey = (int (*)(uint32_t kh))kdlsym(sceSblKeymgrClearKey);
+
+    struct thread* td;
+    RsaBuffer in_data;
+    RsaBuffer out_data;
+    RsaKey key;
+    uint8_t ekpfs[EKPFS_SIZE];
+    uint8_t iv[16];
+    SblKeyDesc enc_key_desc;
+    SblKeyDesc sign_key_desc;
+    int32_t ret, orig_ret = 0;
+
+    ret = orig_ret = sceSblPfsSetKeys(ekh, skh, eekpfs, eekc, pubkey_ver, key_ver, hdr, hdr_size, type, finalized, is_disc);
+	
+	if (ret) {
+		if (finalized && is_disc != 0) 
+		{
+			ret = sceSblPfsSetKeys(ekh, skh, eekpfs, eekc, pubkey_ver, key_ver, hdr, hdr_size, type, finalized, 0); /* always use is_disc=0 here */
+			if (ret) {
+				ret = orig_ret;
+				goto err;
+			}
+		} else {
+			memset(&in_data, 0, sizeof(in_data));
+			in_data.ptr = eekpfs;
+			in_data.size = EEKPFS_SIZE;
+
+			memset(&out_data, 0, sizeof(out_data));
+			out_data.ptr = ekpfs;
+			out_data.size = EKPFS_SIZE;
+
+			memset(&key, 0, sizeof(key));
+			key.p = (uint8_t*)g_ypkg_p;
+			key.q = (uint8_t*)g_ypkg_q;
+			key.dmp1 = (uint8_t*)g_ypkg_dmp1;
+			key.dmq1 = (uint8_t*)g_ypkg_dmq1;
+			key.iqmp = (uint8_t*)g_ypkg_iqmp;
+
+			td = curthread;
+
+			fpu_kern_enter(td, fpu_kern_ctx, 0);
+			{
+				ret = RsaesPkcs1v15Dec2048CRT(&out_data, &in_data, &key);
+			}
+			fpu_kern_leave(td, fpu_kern_ctx);
+
+			if (ret) {
+				ret = orig_ret;
+				goto err;
+			}
+
+			A_sx_xlock_hard(sbl_pfs_sx,0);
+			{
+				memset(&enc_key_desc, 0, sizeof(enc_key_desc));
+				{
+					enc_key_desc.Pfs.obfuscatedKeyId = PFS_FAKE_OBF_KEY_ID;
+					enc_key_desc.Pfs.keySize = sizeof(enc_key_desc.Pfs.escrowedKey);
+
+					GenPfsEncKey(ekpfs, hdr->cryptSeed, enc_key_desc.Pfs.escrowedKey);
+
+					fpu_kern_enter(td, fpu_kern_ctx, 0);
+					{
+						memset(iv, 0, sizeof(iv));
+						ret = AesCbcCfb128Encrypt(enc_key_desc.Pfs.escrowedKey, enc_key_desc.Pfs.escrowedKey, sizeof(enc_key_desc.Pfs.escrowedKey), g_FakeKeySeed, sizeof(g_FakeKeySeed) * 8, iv);
+					}
+					fpu_kern_leave(td, fpu_kern_ctx);
+				}
+				if (ret) {
+					A_sx_xunlock_hard(sbl_pfs_sx);
+					ret = orig_ret;
+					goto err;
+				}
+
+				memset(&sign_key_desc, 0, sizeof(sign_key_desc));
+				{
+					sign_key_desc.Pfs.obfuscatedKeyId = PFS_FAKE_OBF_KEY_ID;
+					sign_key_desc.Pfs.keySize = sizeof(sign_key_desc.Pfs.escrowedKey);
+
+					GenPfsSignKey(ekpfs, hdr->cryptSeed, sign_key_desc.Pfs.escrowedKey);
+
+					fpu_kern_enter(td, fpu_kern_ctx, 0);
+					{
+						memset(iv, 0, sizeof(iv));
+						ret = AesCbcCfb128Encrypt(sign_key_desc.Pfs.escrowedKey, sign_key_desc.Pfs.escrowedKey, sizeof(sign_key_desc.Pfs.escrowedKey), g_FakeKeySeed, sizeof(g_FakeKeySeed) * 8, iv);
+					}
+					fpu_kern_leave(td, fpu_kern_ctx);
+				}
+				if (ret) {
+					A_sx_xunlock_hard(sbl_pfs_sx);
+					ret = orig_ret;
+					goto err;
+				}
+
+				ret = sceSblKeymgrSetKeyForPfs(&enc_key_desc, ekh);
+				if (ret) {
+					if (*ekh != -1)
+						sceSblKeymgrClearKey(*ekh);
+
+					A_sx_xunlock_hard(sbl_pfs_sx);
+					ret = orig_ret;
+					goto err;
+				}
+
+				ret = sceSblKeymgrSetKeyForPfs(&sign_key_desc, skh);
+				if (ret) {
+					if (*skh != -1)
+						sceSblKeymgrClearKey(*skh);
+					A_sx_xunlock_hard(sbl_pfs_sx);
+					ret = orig_ret;
+					goto err;
+				}
+			}
+			A_sx_xunlock_hard(sbl_pfs_sx);
+
+			ret = 0;
+		}
+	}
+
+err:
+	return ret;
+
+    /*
+    auto sceSblPfsSetKeys = (int(*)(uint32_t* p_Ekh, uint32_t* p_Skh, uint8_t* p_Eekpfs, Ekc* p_Eekc, unsigned int p_PubkeyVer, unsigned int p_KeyVer, PfsHeader* p_Header, size_t p_HeaderSize, unsigned int p_Type, unsigned int p_Finalized, unsigned int p_IsDisc))kdlsym(sceSblPfsSetKeys);
+
+    // Call original function, if it succeeds it's not fake signed
+    int s_Ret = sceSblPfsSetKeys(p_Ekh, p_Skh, p_EekPfs, p_Eekc, p_PubKeyVersion, p_KeyVersion, p_Header, p_HeaderSize, p_Type, p_Finalized, p_IsDisc);
+    int s_OriginalRet = s_Ret;
+    if (s_Ret == 0)
+    {
+        WriteLog(LL_Error, "sceSblPfsSetKeys returned (%x).", s_Ret);
+        return s_Ret;
+    }
+    
+    if (p_Finalized && p_IsDisc != 0)
+    
+    
+    uint8_t s_Ekpfs[EKPFS_SIZE] = { 0 };
+    RsaBuffer s_InData
+    {
+        .ptr = s_Ekpfs,
+        .size = EEKPFS_SIZE
+    };
+    RsaBuffer s_OutData
+    {
+        .ptr = s_Ekpfs,
+        .size = EKPFS_SIZE
+    };
+
+    RsaKey s_Key;
+    memset(&s_Key, 0, sizeof(s_Key));
+    s_Key.p = (uint8_t*)g_ypkg_p;
+    s_Key.q = (uint8_t*)g_ypkg_q;
+    s_Key.dmp1 = (uint8_t*)g_ypkg_dmp1;
+    s_Key.dmq1 = (uint8_t*)g_ypkg_dmq1;
+    s_Key.iqmp = (uint8_t*)g_ypkg_iqmp;
+
+    auto s_Thread = __curthread();
+    auto RsaesPkcs1v15Dec2048CRT = (int (*)(RsaBuffer* out, RsaBuffer* in, RsaKey* key))kdlsym(RsaesPkcs1v15Dec2048CRT);
+    auto fpu_kern_enter = (int(*)(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags))kdlsym(fpu_kern_enter);
+    auto fpu_kern_leave = (int (*)(struct thread *td, struct fpu_kern_ctx *ctx))kdlsym(fpu_kern_leave);
+    auto sbl_pfs_sx = (struct sx*)kdlsym(sbl_pfs_sx);
+
+    auto fpu_ctx = (fpu_kern_ctx*)kdlsym(fpu_kern_ctx);
+
+    fpu_kern_enter(s_Thread, fpu_ctx, 0);
+    s_Ret = RsaesPkcs1v15Dec2048CRT(&s_OutData, &s_InData, &s_Key);
+    fpu_kern_leave(s_Thread, fpu_ctx);
+
+    if (s_Ret)
+    {
+        WriteLog(LL_Error, "RsaesPkcs1v15Dec2048CRT returned (%x).", s_Ret);
+        return s_OriginalRet;
+    }
+    
+    auto _sx_xlock = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto _sx_xunlock = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+
+    //auto _sx_xlock_hard = (int(*)(struct sx *sx, uintptr_t tid, int opts, const char *file, int line))kdlsym(_sx_xlock);
+    //auto _sx_xunlock_hard = (int(*)(struct sx *sx, uintptr_t tid, const char *file, int line))kdlsym(_sx_xunlock);
+    auto AesCbcCfb128Encrypt = (int (*)(uint8_t* out, const uint8_t* in, size_t data_size, const uint8_t* key, int key_size, uint8_t* iv))kdlsym(AesCbcCfb128Encrypt);
+
+    _sx_xlock(sbl_pfs_sx, 0);
+
+    SblKeyDesc s_EncKeyDesc;
+    memset(&s_EncKeyDesc, 0, sizeof(s_EncKeyDesc));
+
+    s_EncKeyDesc.Pfs.obfuscatedKeyId = PFS_FAKE_OBF_KEY_ID;
+    s_EncKeyDesc.Pfs.keySize = sizeof(s_EncKeyDesc.Pfs.escrowedKey);
+
+    GenPfsEncKey(s_Ekpfs, p_Header->cryptSeed, s_EncKeyDesc.Pfs.escrowedKey);
+
+    uint8_t s_Iv[16];
+    memset(&s_Iv, 0, sizeof(s_Iv));
+
+    fpu_kern_enter(s_Thread, fpu_ctx, 0);
+    s_Ret = AesCbcCfb128Encrypt(s_EncKeyDesc.Pfs.escrowedKey, s_EncKeyDesc.Pfs.escrowedKey, sizeof(s_EncKeyDesc.Pfs.escrowedKey), g_FakeKeySeed, sizeof(g_FakeKeySeed) * 8, s_Iv);
+    fpu_kern_leave(s_Thread, fpu_ctx);
+
+    if (s_Ret)
+    {
+        WriteLog(LL_Error, "AesCbcCfb128Encrypt returned (%x)", s_Ret);
+        _sx_xunlock(sbl_pfs_sx);
+        return s_OriginalRet;
+    }
+
+    SblKeyDesc s_SignKeyDesc;
+    memset(&s_SignKeyDesc, 0, sizeof(s_SignKeyDesc));
+
+    s_SignKeyDesc.Pfs.obfuscatedKeyId = PFS_FAKE_OBF_KEY_ID;
+    s_SignKeyDesc.Pfs.keySize = sizeof(s_SignKeyDesc.Pfs.escrowedKey);
+
+    GenPfsSignKey(s_Ekpfs, p_Header->cryptSeed, s_SignKeyDesc.Pfs.escrowedKey);
+    memset(&s_Iv, 0, sizeof(s_Iv));
+
+    fpu_kern_enter(s_Thread, fpu_ctx, 0);
+    s_Ret = AesCbcCfb128Encrypt(s_SignKeyDesc.Pfs.escrowedKey, s_SignKeyDesc.Pfs.escrowedKey, sizeof(s_SignKeyDesc.Pfs.escrowedKey), g_FakeKeySeed, sizeof(g_FakeKeySeed) * 8, s_Iv);
+    fpu_kern_leave(s_Thread, fpu_ctx);
+
+    if (s_Ret)
+    {
+        WriteLog(LL_Error, "AesCbcCfb128Encrypt returned (%x).", s_Ret);
+        _sx_xunlock(sbl_pfs_sx);
+        return s_OriginalRet;
+    }
+
+    auto sceSblKeymgrSetKeyForPfs = (int (*)(SblKeyDesc* key, unsigned int* handle))kdlsym(sceSblKeymgrSetKeyForPfs);
+    auto sceSblKeymgrClearKey = (int (*)(uint32_t kh))kdlsym(sceSblKeymgrClearKey);
+
+    s_Ret = sceSblKeymgrSetKeyForPfs(&s_EncKeyDesc, p_Ekh);
+    if (s_Ret)
+    {
+        if (*p_Ekh != -1)
+            sceSblKeymgrClearKey(*p_Ekh);
+        
+        _sx_xunlock(sbl_pfs_sx);
+        return s_OriginalRet;
+    }
+
+    s_Ret = sceSblKeymgrSetKeyForPfs(&s_SignKeyDesc, p_Skh);
+    if (s_Ret)
+    {
+        if (*p_Skh != -1)
+            sceSblKeymgrClearKey(*p_Skh);
+        
+        _sx_xunlock(sbl_pfs_sx);
+        return s_OriginalRet;
+    }
+
+    _sx_xunlock(sbl_pfs_sx);
+    return 0;*/
+}
+
+int FakePkgManager::OnNpdrmDecryptIsolatedRif(KeymgrPayload* p_Payload)
+{
+    auto sceSblKeymgrSmCallfunc = (int (*)(KeymgrPayload* payload))kdlsym(sceSblKeymgrSmCallfunc);
+
+    // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address
+    KeymgrRequest* s_Request = reinterpret_cast<KeymgrRequest*>(SceSblDriverGpuVaToCpuVa(p_Payload->data, nullptr));
+
+    // // try to decrypt rif normally 
+    int s_Ret = sceSblKeymgrSmCallfunc(p_Payload);
+    if ((s_Ret != 0 || p_Payload->status != 0) && s_Request)
+    {
+        if (s_Request->DecryptRif.type == 0x200)
+        {
+            // fake?
+            s_Ret = DecryptNpdrmDebugRif(s_Request->DecryptRif.type, s_Request->DecryptRif.data);
+            p_Payload->status = s_Ret;
+            s_Ret = 0;
+        }
+    }
+
+    return s_Ret;
+}
+
+int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
+{
+    auto sceSblKeymgrSmCallfunc = (int (*)(KeymgrPayload* payload))kdlsym(sceSblKeymgrSmCallfunc);
+
+    // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address 
+    uint64_t s_BufferGpuVa = p_Payload->data;
+    auto s_Request = reinterpret_cast<KeymgrRequest*>(SceSblDriverGpuVaToCpuVa(s_BufferGpuVa, nullptr));
+    auto s_Response = reinterpret_cast<KeymgrResponse*>(s_Request);
+    
+    // try to decrypt rif normally
+    int s_Ret = sceSblKeymgrSmCallfunc(p_Payload);
+    int s_OriginalRet = s_Ret;
+
+    // and if it fails then we check if it's fake rif and try to decrypt it by ourselves
+    if ((s_Ret != 0 || p_Payload->status != 0) && s_Request)
+    {
+        if (s_Request->DecryptEntireRif.rif.format != 2)
+        { 
+            // not fake?
+            s_Ret = s_OriginalRet;
+            goto err;
+        }
+
+        s_Ret = DecryptNpdrmDebugRif(s_Request->DecryptEntireRif.rif.format, s_Request->DecryptEntireRif.rif.digest);
+
+        if (s_Ret)
+        {
+            s_Ret = s_OriginalRet;
+            goto err;
+        }
+
+        /* XXX: sorry, i'm lazy to refactor this crappy code :D basically, we're copying decrypted data to proper place,
+        consult with kernel code if offsets needs to be changed */
+        memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest) + sizeof(s_Request->DecryptEntireRif.rif.data));
+
+        memset(s_Response->DecryptEntireRif.raw + 
+        sizeof(s_Request->DecryptEntireRif.rif.digest) +
+        sizeof(s_Request->DecryptEntireRif.rif.data), 
+        0,
+        sizeof(s_Response->DecryptEntireRif.raw) - 
+        (sizeof(s_Request->DecryptEntireRif.rif.digest) + 
+        sizeof(s_Request->DecryptEntireRif.rif.data)));
+
+        p_Payload->status = s_Ret;
+        s_Ret = 0;
+    }
+
+err:
+    return s_Ret;
 }

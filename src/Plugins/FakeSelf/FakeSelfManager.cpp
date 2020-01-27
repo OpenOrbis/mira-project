@@ -8,6 +8,8 @@
 #include <Boot/Config.hpp>
 #include <Plugins/PluginManager.hpp>
 
+#include <OrbisOS/Utilities.hpp>
+
 extern "C"
 {
     #include <sys/sysent.h>
@@ -48,18 +50,18 @@ FakeSelfManager::FakeSelfManager()
 {
     auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
+
 	uint8_t* s_TrampolineA = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_PID].sy_call);
     uint8_t* s_TrampolineB = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_PROC].sy_call);
     uint8_t* s_TrampolineC = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_PROC].sy_call);
     uint8_t* s_TrampolineD = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FILE].sy_call);
     uint8_t* s_TrampolineE = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_GET_FD].sy_call);
-    //uint8_t* s_TrampolineF = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_FILE].sy_call);
 
-    HookFunctionCall(s_TrampolineA, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookA));
-    HookFunctionCall(s_TrampolineB, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookB));
-    HookFunctionCall(s_TrampolineC, reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2), kdlsym(sceSblAuthMgrIsLoadable2_hook));
-    HookFunctionCall(s_TrampolineD, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfSegment_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook));
-    HookFunctionCall(s_TrampolineE, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfBlock_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook));
+    Utilities::HookFunctionCall(s_TrampolineA, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookA));
+    Utilities::HookFunctionCall(s_TrampolineB, reinterpret_cast<void*>(OnSceSblAuthMgrVerifyHeader), kdlsym(sceSblAuthMgrVerifyHeader_hookB));
+    Utilities::HookFunctionCall(s_TrampolineC, reinterpret_cast<void*>(OnSceSblAuthMgrIsLoadable2), kdlsym(sceSblAuthMgrIsLoadable2_hook));
+    Utilities::HookFunctionCall(s_TrampolineD, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfSegment_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook));
+    Utilities::HookFunctionCall(s_TrampolineE, reinterpret_cast<void*>(SceSblAuthMgrSmLoadSelfBlock_Mailbox), kdlsym(sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook));
     //HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId), kdlsym(sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook));
 
     //m_SceSblServiceMailboxHook = new Utils::Hook(kdlsym(sceSblServiceMailbox), reinterpret_cast<void*>(OnSceSblServiceMailbox));
@@ -560,33 +562,4 @@ bool FakeSelfManager::OnResume()
 {
     // Don't touch the hooks here, leave them in-tact
     return true;
-}
-
-// Credits: m0rph
-void FakeSelfManager::HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address)
-{
-    uint8_t* s_HookPayload = p_HookTrampoline;
-    uint16_t* s_TempAddress = reinterpret_cast<uint16_t*>(p_HookTrampoline);
-    s_TempAddress++;
-
-    uint64_t* s_FunctionAddress = reinterpret_cast<uint64_t*>(s_TempAddress);
-
-    cpu_disable_wp();
-
-    // mov rax
-    s_HookPayload[0] = 0x48;
-    s_HookPayload[1] = 0xB8;
-
-    *s_FunctionAddress = reinterpret_cast<uint64_t>(p_Function);
-
-    s_HookPayload[0x0A] = 0xFF;
-    s_HookPayload[0x0B] = 0xE0;
-
-    int32_t s_CallAddress = (int32_t)(p_HookTrampoline - (uint8_t*)p_Address) - 5;
-    s_HookPayload = reinterpret_cast<uint8_t*>(p_Address);
-    s_HookPayload++;
-    int32_t* s_Pointer = reinterpret_cast<int32_t*>(s_HookPayload);
-    *s_Pointer = s_CallAddress;
-
-    cpu_enable_wp();
 }

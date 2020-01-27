@@ -39,21 +39,21 @@ namespace Mira
 
         private:
             // Helper functions
-            static void GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[PFS_FINAL_KEY_SIZE]);
-            static void GenPfsEncKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint8_t p_Key[PFS_FINAL_KEY_SIZE]);
-            static void GenPfsSignKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint8_t p_Key[PFS_FINAL_KEY_SIZE]);
+            static void GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[OrbisOS::PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[OrbisOS::PFS_FINAL_KEY_SIZE]);
+            static void GenPfsEncKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[OrbisOS::PFS_SEED_SIZE], uint8_t p_Key[OrbisOS::PFS_FINAL_KEY_SIZE]);
+            static void GenPfsSignKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[OrbisOS::PFS_SEED_SIZE], uint8_t p_Key[OrbisOS::PFS_FINAL_KEY_SIZE]);
             static int DecryptNpdrmDebugRif(uint32_t p_Type, uint8_t* p_Data);
-            static SblMapListEntry* SceSblDriverFindMappedPageListByGpuVa(vm_offset_t p_GpuVa);
+            static OrbisOS::SblMapListEntry* SceSblDriverFindMappedPageListByGpuVa(vm_offset_t p_GpuVa);
             static vm_offset_t SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t* p_NumPageGroups);
 
-
+            static int SceSblPfsSetKeys(uint32_t* p_Ekh, uint32_t* p_Skh, uint8_t* p_EekPfs, OrbisOS::Ekc* p_Eekc, uint32_t p_PubKeyVersion, uint32_t p_KeyVersion, OrbisOS::PfsHeader* p_Header, size_t p_HeaderSize, uint32_t p_Type, uint32_t p_Finalized, uint32_t p_IsDisc);
 
         protected:
             // Hooked Functions
-            static int OnSceSblPfsSetKeys(uint32_t* p_Ekh, uint32_t* p_Skh, uint8_t* p_EekPfs, struct ekc* p_Eekc, uint32_t p_PubKeyVersion, uint32_t p_KeyVersion, struct pfs_header* p_Header, size_t p_HeaderSize, uint32_t p_Type, uint32_t p_Finalized, uint32_t p_IsDisc);
-            static int OnNpdrmDecryptIsolatedRif(union keymgr_payload* p_Payload);
-            static int OnNpdrmDecryptRifNew(union keymgr_payload* p_Payload);
-            static int OnSceSblDriverSendMsg(struct sbl_msg* p_Message, size_t p_Size);
+            static int OnSceSblPfsSetKeys(uint32_t* p_Ekh, uint32_t* p_Skh, uint8_t* p_EekPfs, OrbisOS::Ekc* p_Eekc, uint32_t p_PubKeyVersion, uint32_t p_KeyVersion, OrbisOS::PfsHeader* p_Header, size_t p_HeaderSize, uint32_t p_Type, uint32_t p_Finalized, uint32_t p_IsDisc);
+            static int OnNpdrmDecryptIsolatedRif(OrbisOS::KeymgrPayload* p_Payload);
+            static int OnNpdrmDecryptRifNew(OrbisOS::KeymgrPayload* p_Payload);
+            static int OnSceSblDriverSendMsg(OrbisOS::SblMsg* p_Message, size_t p_Size);
         };
     }
 }
