@@ -192,6 +192,7 @@ bool FakePkgManager::OnLoad()
 #    define SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET 0xEA7B67 // fake -> free
 #elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505
 #error "please implement 5.05 shellcore (pfs, debugrif1, debugrif2) patches"
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_STEAM_LINK
 #else
 #error "please implement shellcore patches"
 #endif

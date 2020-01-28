@@ -265,7 +265,7 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
-	/*
+	
 	// Initialize the rpc server
 	WriteLog(LL_Debug, "Initializing rpc server");
 	m_RpcServer = new Mira::Messaging::Rpc::Server();
@@ -287,6 +287,7 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
 	// Install device driver
+	/*
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
 	m_CtrlDriver = new Mira::Driver::CtrlDriver();
 	if (m_CtrlDriver == nullptr)

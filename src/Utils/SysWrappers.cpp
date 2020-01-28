@@ -1800,3 +1800,52 @@ int kmprotect_t(void* addr, size_t len, int prot, struct thread* td)
 
 	return ret;
 }
+
+int kselect_internal(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, struct	timeval	*timeout, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_select = (int(*)(struct thread*, struct select_args*))sysents[SYS_SELECT].sy_call;
+	if (!sys_select)
+		return -1;
+
+	int error;
+	struct select_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.nd = nfds;
+	uap.in = readfds;
+	uap.ou = writefds;
+	uap.ex = exceptfds;
+	uap.tv = timeout;
+	error = sys_select(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, struct	timeval	*timeout, struct thread* td)
+{
+	int ret = -EIO;
+
+	for (;;)
+	{
+		ret = kselect_internal(nfds, readfds, writefds, exceptfds, timeout, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+				continue;
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}

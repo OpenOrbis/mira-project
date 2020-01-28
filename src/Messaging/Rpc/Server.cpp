@@ -194,74 +194,97 @@ void Server::ServerThread(void* p_UserArgs)
     memset(&s_ClientAddress, 0, s_ClientAddressLen);
     s_ClientAddress.sin_len = s_ClientAddressLen;
 
-    while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
+    fd_set s_ReadFds;
+    FD_ZERO(&s_ReadFds);
+    FD_SET(s_Server->m_Socket, &s_ReadFds);
+    int32_t s_SelectStatus = 0;
+    while (true)
     {
-        // Set the send recv and linger timeouts
-        /*int32_t result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
-        if (result < 0)
+        s_SelectStatus = kselect_t(s_Server->m_Socket+1, &s_ReadFds, nullptr, nullptr, &s_Timeout, s_MainThread);
+        if (s_SelectStatus == -1)
         {
-            WriteLog(LL_Error, "could not set recv timeout (%d).", result);
-            kclose(l_ClientSocket);
-            continue;
+            WriteLog(LL_Error, "there was an error from select()");
+            break;
+        }
+        else if (s_SelectStatus > 0)
+        {
+            // We have some data, we can accept now
+            WriteLog(LL_Info, "attempting to accept client");
+            if ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
+            {
+                // Set the send recv and linger timeouts
+                /*int32_t result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
+                if (result < 0)
+                {
+                    WriteLog(LL_Error, "could not set recv timeout (%d).", result);
+                    kclose(l_ClientSocket);
+                    continue;
+                }
+
+                result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
+                if (result < 0)
+                {
+                    WriteLog(LL_Error, "could not set send timeout (%d).", result);
+                    kclose(l_ClientSocket);
+                    continue;
+                }*/
+
+                // SO_LINGER
+                s_Timeout.tv_sec = 0;
+                auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
+                if (result < 0)
+                {
+                    WriteLog(LL_Error, "could not set send timeout (%d).", result);
+                    kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+                    kclose_t(s_ClientSocket, s_MainThread);
+                    continue;
+                }
+
+                uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
+
+                WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
+                    (l_Addr & 0xFF),
+                    (l_Addr >> 8) & 0xFF,
+                    (l_Addr >> 16) & 0xFF,
+                    (l_Addr >> 24) & 0xFF);
+                
+                auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, s_ClientSocket, s_ClientAddress);
+                if (!l_Connection)
+                {
+                    WriteLog(LL_Error, "could not allocate new connection for socket (%d).", s_ClientSocket);
+
+                    kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+                    kclose_t(s_ClientSocket, s_MainThread);
+                    break;
+                }
+
+                auto s_FreeIndex = s_Server->GetFreeConnectionIndex();
+                if (s_FreeIndex < 0)
+                {
+                    WriteLog(LL_Error, "could not get free connection index");
+
+                    kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+                    kclose_t(s_ClientSocket, s_MainThread);
+
+                    delete l_Connection;
+                    l_Connection = nullptr;
+                    break;
+                }
+                s_Server->m_Connections[s_FreeIndex] = l_Connection;
+
+                // Send off for new client thread creation
+                s_Server->OnHandleConnection(l_Connection);
+
+                // Zero out the address information for the next call
+                memset(&s_ClientAddress, 0, s_ClientAddressLen);
+                s_ClientAddress.sin_len = s_ClientAddressLen;
+            }
         }
 
-        result = ksetsockopt(l_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout));
-        if (result < 0)
-        {
-            WriteLog(LL_Error, "could not set send timeout (%d).", result);
-            kclose(l_ClientSocket);
-            continue;
-        }*/
-
-        // SO_LINGER
-        s_Timeout.tv_sec = 0;
-        auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
-        if (result < 0)
-        {
-            WriteLog(LL_Error, "could not set send timeout (%d).", result);
-            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
-            kclose_t(s_ClientSocket, s_MainThread);
-            continue;
-        }
-
-        uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
-
-		WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
-			(l_Addr & 0xFF),
-			(l_Addr >> 8) & 0xFF,
-			(l_Addr >> 16) & 0xFF,
-			(l_Addr >> 24) & 0xFF);
+        if (!s_Server->m_Running)
+            break;
         
-        auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, s_ClientSocket, s_ClientAddress);
-        if (!l_Connection)
-        {
-            WriteLog(LL_Error, "could not allocate new connection for socket (%d).", s_ClientSocket);
-
-            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
-            kclose_t(s_ClientSocket, s_MainThread);
-            break;
-        }
-
-        auto s_FreeIndex = s_Server->GetFreeConnectionIndex();
-        if (s_FreeIndex < 0)
-        {
-            WriteLog(LL_Error, "could not get free connection index");
-
-            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
-            kclose_t(s_ClientSocket, s_MainThread);
-
-            delete l_Connection;
-            l_Connection = nullptr;
-            break;
-        }
-        s_Server->m_Connections[s_FreeIndex] = l_Connection;
-
-        // Send off for new client thread creation
-        s_Server->OnHandleConnection(l_Connection);
-
-        // Zero out the address information for the next call
-        memset(&s_ClientAddress, 0, s_ClientAddressLen);
-        s_ClientAddress.sin_len = s_ClientAddressLen;
+        // TODO: Handle timeout
     }
 
     // Disconnects all clients, set running to false

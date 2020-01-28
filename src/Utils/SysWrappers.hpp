@@ -112,4 +112,6 @@ extern "C"
     extern int kreboot_t(int opt, struct thread* td);
 
     extern int kmprotect_t(void* addr, size_t len, int prot, struct thread* td);
+
+    extern int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, struct	timeval	*timeout, struct thread* td);
 };
