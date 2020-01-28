@@ -34,7 +34,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_exec_new_vmspace                       0x0038AD10 //	FFFFFFFF8231AA80
 #define kdlsym_addr_faultin                                0x00006DD0 //	FFFFFFFF825E0060
 #define kdlsym_addr_fget_unlocked                          0x000C34B0 //	FFFFFFFF825E0060
-#define kdlsym_addr_fpu_ctx                                0x0274C040
+#define kdlsym_addr_fpu_kern_ctx                           0x0274C040
 #define kdlsym_addr_fpu_kern_enter                         0x001BFF90 //	FFFFFFFF8256B330
 #define kdlsym_addr_fpu_kern_leave                         0x001C0090 //	FFFFFFFF8256B420
 #define kdlsym_addr_free                                   0x0010E460 //	FFFFFFFF8220D9A0
@@ -141,5 +141,13 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x0
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x0
+
+// FakePkg hooks
+#define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook       0x0
+#define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook                  0x0
+#define kdlsym_addr_npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook   0x0
+#define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook        0x0
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0x0
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0
 
 #endif

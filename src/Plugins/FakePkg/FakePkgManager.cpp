@@ -111,11 +111,11 @@ FakePkgManager::FakePkgManager() :
     uint8_t* s_TrampolineI = reinterpret_cast<uint8_t*>(sysents[SYS___MAC_SET_LINK].sy_call); // syscall #411
     uint8_t* s_TrampolineJ = reinterpret_cast<uint8_t*>(sysents[SYS_MAC_SYSCALL].sy_call); // syscall #394
 
-    Utilities::HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(OnNpdrmDecryptIsolatedRif), kdlsym(npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc__hook));
+    Utilities::HookFunctionCall(s_TrampolineF, reinterpret_cast<void*>(OnNpdrmDecryptIsolatedRif), kdlsym(npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook));
     Utilities::HookFunctionCall(s_TrampolineG, reinterpret_cast<void*>(OnNpdrmDecryptRifNew), kdlsym(npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook));
-    Utilities::HookFunctionCall(s_TrampolineH, reinterpret_cast<void*>(OnSceSblPfsSetKeys), kdlsym(mountpfs__sceSblPfsSetKeys__hookA));
-    Utilities::HookFunctionCall(s_TrampolineI, reinterpret_cast<void*>(OnSceSblPfsSetKeys), kdlsym(mountpfs__sceSblPfsSetKeys__hookB));
-    Utilities::HookFunctionCall(s_TrampolineJ, reinterpret_cast<void*>(OnSceSblDriverSendMsg), kdlsym(sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg__hook));
+    Utilities::HookFunctionCall(s_TrampolineH, reinterpret_cast<void*>(OnSceSblPfsSetKeys), kdlsym(mountpfs__sceSblPfsSetKeys_hookA));
+    Utilities::HookFunctionCall(s_TrampolineI, reinterpret_cast<void*>(OnSceSblPfsSetKeys), kdlsym(mountpfs__sceSblPfsSetKeys_hookB));
+    Utilities::HookFunctionCall(s_TrampolineJ, reinterpret_cast<void*>(OnSceSblDriverSendMsg), kdlsym(sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook));
 
     WriteLog(LL_Debug, "Installed fpkg hooks");
 }
@@ -180,22 +180,6 @@ bool FakePkgManager::OnLoad()
     delete [] s_Entries;
     s_Entries = nullptr;
 
-#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET 0x16D05B // call sceKernelIsGenuineCEX
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET 0x79941B // call sceKernelIsGenuineCEX
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET 0x7E5623 // call sceKernelIsGenuineCEX
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET 0x946D5B // call sceKernelIsGenuineCEX
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET 0x16D087 // call nidf_libSceDipsw_0xD21CE9E2F639A83C
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET 0x23747B // call nidf_libSceDipsw_0xD21CE9E2F639A83C
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET 0x799447 // call nidf_libSceDipsw_0xD21CE9E2F639A83C
-#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET 0x946D87 // call nidf_libSceDipsw_0xD21CE9E2F639A83C
-#    define SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET 0xEA7B67 // fake -> free
-#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505
-#error "please implement 5.05 shellcore (pfs, debugrif1, debugrif2) patches"
-#elif MIRA_PLATFORM >= MIRA_PLATFORM_STEAM_LINK
-#else
-#error "please implement shellcore patches"
-#endif
     uint8_t xor__eax_eax[5] = { 0x31, 0xC0, 0x90, 0x90, 0x90 };
 
     /*
@@ -210,66 +194,73 @@ bool FakePkgManager::OnLoad()
     s_Ret = kwait4_t(s_Process->p_pid, &s_Status, WUNTRACED, nullptr, s_MainThread);
     WriteLog(LL_Debug, "wait4 returned (%d)", s_Ret);*/
 
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET");
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchA");
         return false;
     }
 
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET");
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchB");
         return false;
     }
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET");
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchC");
         return false;
     }
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET");
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchD");
         return false;
     }
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET");
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchA");
         return false;
     }
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET");
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchB");
         return false;
     }
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET");
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchC");
         return false;
     }
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET");
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchD");
         return false;
     }
+
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x96\x00\x00\x00\x90\x90\x90", nullptr, true);
+	if (s_Ret < 0)
+	{
+		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
+		return false;
+	}
     
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET), 4, (void*)"free", nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_fake_to_free_patch), 4, (void*)"free", nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET");
+        WriteLog(LL_Error, "ssc_fake_to_free_patch");
         return false;
     }
 
@@ -287,6 +278,8 @@ bool FakePkgManager::OnLoad()
         WriteLog(LL_Error, "could not detach from shellcore");
         return false;
     }*/
+
+	WriteLog(LL_Error, "shellcore successfully patched");
 
     return true;
 }

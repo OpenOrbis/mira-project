@@ -27,8 +27,8 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_AesCbcCfb128Encrypt                    0x00459250
 #define kdlsym_addr_allproc                                0x010CC350
 #define kdlsym_addr_allproc_lock                           0x010CC2F0
-#define kdlsym_addr_contigfree							   0x003A65B0
-#define kdlsym_addr_contigmalloc						   0x003A6280
+#define kdlsym_addr_contigfree                             0x003A65B0
+#define kdlsym_addr_contigmalloc                           0x003A6280
 #define kdlsym_addr_copyin                                 0x00413CC0
 #define kdlsym_addr_copyinstr                              0x00414010
 #define kdlsym_addr_critical_enter                         0x0023DC30
@@ -38,7 +38,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_exec_new_vmspace                       0x00206A10
 #define kdlsym_addr_faultin                                0x003AA000
 #define kdlsym_addr_fget_unlocked                          0x001FB130
-#define kdlsym_addr_fpu_ctx                                0x013E2840 
+#define kdlsym_addr_fpu_kern_ctx                           0x013E2840
 #define kdlsym_addr_fpu_kern_enter                         0x004009D0
 #define kdlsym_addr_fpu_kern_leave                         0x00400AC0
 #define kdlsym_addr_free                                   0x00222820
@@ -51,7 +51,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_kern_readv                             0x0027AD30
 #define kdlsym_addr_kern_reboot                            0x002354B0
 #define kdlsym_addr_kern_sysents                           0x0102DC70
-#define kdlsym_addr_kern_thr_create						   0x00243F40
+#define kdlsym_addr_kern_thr_create                        0x00243F40
 #define kdlsym_addr_kernel_map                             0x010F6D70
 #define kdlsym_addr_kmem_alloc                             0x003AB260
 #define kdlsym_addr_kmem_free                              0x003AB410
@@ -64,10 +64,10 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_malloc                                 0x00222660
 #define kdlsym_addr_memcmp                                 0x002D6570
 #define kdlsym_addr_memcpy                                 0x00413BC0
-#define kdlsym_addr_memmove								   0x0041EB10
+#define kdlsym_addr_memmove                                0x0041EB10
 #define kdlsym_addr_memset                                 0x0041EB30
 #define kdlsym_addr_mini_syscore_self_binary               0x00D2CC98 // 1.76 (b2ca78 phys addr)
-#define kdlsym_addr_mtx_destroy							   0x00226670
+#define kdlsym_addr_mtx_destroy                            0x00226670
 #define kdlsym_addr_mtx_init                               0x00226600
 #define kdlsym_addr_mtx_lock_sleep                         0x00225D80 //  '_' doubled
 #define kdlsym_addr_mtx_unlock_sleep                       0x00225FF0 //  ----||----
@@ -100,7 +100,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_strcmp                                 0x002D7A20
 #define kdlsym_addr_strdup                                 0x002D7B30
 #define kdlsym_addr_strlen                                 0x002D7C80
-#define kdlsym_addr_strncmp								   0x002D7CA0
+#define kdlsym_addr_strncmp                                0x002D7CA0
 #define kdlsym_addr_strstr                                 0x002D7E40
 #define kdlsym_addr_trap_fatal                             0x00415A30
 #define kdlsym_addr_utilUSleep                             0x005DBAF0 
@@ -127,5 +127,13 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x0
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x0
+
+// FakePkg hooks
+#define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook       0x0
+#define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook                  0x0
+#define kdlsym_addr_npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook   0x0
+#define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook        0x0
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0x0
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0
 
 #endif
