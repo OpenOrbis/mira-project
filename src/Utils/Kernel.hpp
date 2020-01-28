@@ -6,14 +6,23 @@ struct proc;
 struct proc_vm_map_entry;
 struct vnode;
 
-struct proc_vm_map_entry
+#define  VM_PROT_GPU_READ ((vm_prot_t)0x10)
+#define  VM_PROT_GPU_WRITE ((vm_prot_t)0x20)
+
+#define PROT_CPU_READ 0x1
+#define PROT_CPU_WRITE 0x2
+#define PROT_CPU_EXEC 0x4
+#define PROT_GPU_READ 0x10
+#define PROT_GPU_WRITE 0x20
+
+typedef struct _ProcVmMapEntry
 {
 	char name[32];
 	vm_offset_t start;
 	vm_offset_t end;
 	vm_offset_t offset;
 	uint16_t prot;
-};
+}ProcVmMapEntry;
 
 typedef enum SceAuthenticationId_t : uint64_t
 {

@@ -3,12 +3,21 @@
 #include <Utils/Kdlsym.hpp>
 #include <Utils/_Syscall.hpp>
 #include <Utils/Logger.hpp>
+#include <Utils/SysWrappers.hpp>
+#include <Boot/Config.hpp>
 
 #include <OrbisOS/Utilities.hpp>
+
+#include <Mira.hpp>
 
 extern "C"
 {
     #include <sys/sysent.h>
+    #include <sys/proc.h>
+    #include <sys/mman.h>
+    #include <sys/ptrace.h>
+    #include <sys/wait.h>
+    #include <sys/signal.h>
 };
 
 using namespace Mira::Plugins;
@@ -118,6 +127,166 @@ FakePkgManager::~FakePkgManager()
 
 bool FakePkgManager::OnLoad()
 {
+    WriteLog(LL_Debug, "patching shellcore");
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main mira thread");
+        return false;
+    }
+
+    struct ::proc* s_Process = Utilities::FindProcessByName("SceShellCore");
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find shellcore");
+        return false;
+    }
+
+    ProcVmMapEntry* s_Entries = nullptr;
+    size_t s_NumEntries = 0;
+    auto s_Ret = Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not get vm map");
+        return false;
+    }
+
+    if (s_Entries == nullptr || s_NumEntries == 0)
+    {
+        WriteLog(LL_Error, "invalid entries (%p) or numEntries (%d)", s_Entries, s_NumEntries);
+        return false;
+    }
+
+    uint8_t* s_TextStart = nullptr;
+    for (auto i = 0; i < s_NumEntries; ++i)
+    {
+        if (s_Entries[i].prot == (PROT_READ | PROT_EXEC))
+        {
+            s_TextStart = (uint8_t*)s_Entries[i].start;
+            break;
+        }
+    }
+
+    if (s_TextStart == nullptr)
+    {
+        WriteLog(LL_Error, "could not find shellcore text start");
+        return false;
+    }
+
+    WriteLog(LL_Debug, "shellcore .text: (%p)", s_TextStart);
+
+    // Free the entries we got returned
+    delete [] s_Entries;
+    s_Entries = nullptr;
+
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET 0x16D05B // call sceKernelIsGenuineCEX
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET 0x79941B // call sceKernelIsGenuineCEX
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET 0x7E5623 // call sceKernelIsGenuineCEX
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET 0x946D5B // call sceKernelIsGenuineCEX
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET 0x16D087 // call nidf_libSceDipsw_0xD21CE9E2F639A83C
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET 0x23747B // call nidf_libSceDipsw_0xD21CE9E2F639A83C
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET 0x799447 // call nidf_libSceDipsw_0xD21CE9E2F639A83C
+#    define SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET 0x946D87 // call nidf_libSceDipsw_0xD21CE9E2F639A83C
+#    define SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET 0xEA7B67 // fake -> free
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505
+#error "please implement 5.05 shellcore (pfs, debugrif1, debugrif2) patches"
+#else
+#error "please implement shellcore patches"
+#endif
+    uint8_t xor__eax_eax[5] = { 0x31, 0xC0, 0x90, 0x90, 0x90 };
+
+    /*
+    s_Ret = kptrace_t(PT_ATTACH, s_Process->p_pid, 0, 0, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not attach to shellcore");
+        return false;
+    }
+
+    int32_t s_Status = 0;
+    s_Ret = kwait4_t(s_Process->p_pid, &s_Status, WUNTRACED, nullptr, s_MainThread);
+    WriteLog(LL_Debug, "wait4 returned (%d)", s_Ret);*/
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET");
+        return false;
+    }
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET), 4, (void*)"free", nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET");
+        return false;
+    }
+
+    /*Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET), (void*)"free", 4);
+    if (kptrace_t(PT_DETACH, s_Process->p_pid, (caddr_t)SIGCONT, 0, s_MainThread) < 0)
+    {
+        WriteLog(LL_Error, "could not detach from shellcore");
+        return false;
+    }*/
+
     return true;
 }
 
@@ -138,14 +307,12 @@ bool FakePkgManager::OnResume()
 
 void FakePkgManager::GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[PFS_FINAL_KEY_SIZE])
 {
-    auto s_Thread = __curthread();
-    FakeKeyD s_D =
-    {
-        .index = p_Index,
-        .seed = { 0 }
-    };
-    memcpy(s_D.seed, p_Seed, PFS_SEED_SIZE);
+    auto s_Thread = curthread;
+    FakeKeyD s_D;
+    memset(&s_D, 0, sizeof(s_D));
 
+    s_D.index = p_Index;
+    memcpy(s_D.seed, p_Seed, PFS_SEED_SIZE);
 
     // fpu_kern_enter
     auto fpu_kern_enter = (int(*)(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags))kdlsym(fpu_kern_enter);
@@ -154,9 +321,11 @@ void FakePkgManager::GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed
     auto fpu_ctx = (fpu_kern_ctx*)kdlsym(fpu_kern_ctx);
     auto Sha256Hmac = (void (*)(uint8_t hash[0x20], const uint8_t* data, size_t data_size, const uint8_t* key, int key_size))kdlsym(Sha256Hmac);
 
+    WriteLog(LL_Debug, "sha256hmac before");
     fpu_kern_enter(s_Thread, fpu_ctx, 0);
     Sha256Hmac(p_Key, (const uint8_t*)&s_D, sizeof(s_D), p_EncryptionKeyPFS, EKPFS_SIZE);
     fpu_kern_leave(s_Thread, fpu_ctx);
+    WriteLog(LL_Debug, "sha256hmac after");
 }
 
 void FakePkgManager::GenPfsEncKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint8_t p_Key[PFS_FINAL_KEY_SIZE])
@@ -181,12 +350,10 @@ int FakePkgManager::DecryptNpdrmDebugRif(uint32_t p_Type, uint8_t* p_Data)
     //auto AesCbcCfb128Encrypt = (int (*)(uint8_t* out, const uint8_t* in, size_t data_size, const uint8_t* key, int key_size, uint8_t* iv))kdlsym(AesCbcCfb128Encrypt);
     auto AesCbcCfb128Decrypt = (int (*)(uint8_t* out, const uint8_t* in, size_t data_size, const uint8_t* key, int key_size, uint8_t* iv))kdlsym(AesCbcCfb128Decrypt);
     
+    auto s_Ret = 0;
     fpu_kern_enter(s_Thread, fpu_ctx, 0);
-    auto s_Ret = AesCbcCfb128Decrypt(p_Data + RIF_DIGEST_SIZE, p_Data + RIF_DIGEST_SIZE, RIF_DATA_SIZE, g_RifDebugKey, sizeof(g_RifDebugKey) * 8, p_Data);
+    s_Ret = AesCbcCfb128Decrypt(p_Data + RIF_DIGEST_SIZE, p_Data + RIF_DIGEST_SIZE, RIF_DATA_SIZE, g_RifDebugKey, sizeof(g_RifDebugKey) * 8, p_Data);
     fpu_kern_leave(s_Thread, fpu_ctx);
-
-    // NOTE: in original hen implementation this is bugged
-    // if AesCbcCfb128Decrypt fails, then the fpu_ctx is never released causing kpanic later on down the line
     if (s_Ret)
         return SCE_SBL_ERROR_NPDRM_ENOTSUP;
 
@@ -222,7 +389,7 @@ vm_offset_t FakePkgManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t
 }
 
 
-int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size)
+int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size) __attribute__ ((optnone))
 {
     auto sceSblDriverSendMsg = (int (*)(SblMsg* msg, size_t size))kdlsym(sceSblDriverSendMsg);
     if (p_Message->hdr.cmd != SBL_MSG_CCP)
@@ -238,9 +405,14 @@ int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size)
 
     s_Op->aes.cmd &= ~CCP_USE_KEY_FROM_SLOT;
 
-    for (auto i = 0; i < 16; ++i)
-        s_Op->aes.key[i] = g_FakeKeySeed[16 - i - 1];
-    
+    size_t key_len = 16;
+
+    /* reverse key bytes */
+    //WriteLog(LL_Debug, "before");
+    for (auto i = 0; i < key_len; ++i)
+        s_Op->aes.key[i] = g_FakeKeySeed[key_len - i - 1];
+    //WriteLog(LL_Debug, "after");
+
     return sceSblDriverSendMsg(p_Message, p_Size);
 }
 
@@ -326,6 +498,7 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
 					fpu_kern_leave(td, fpu_kern_ctx);
 				}
 				if (ret) {
+                    WriteLog(LL_Error, "AesCbcCfb128Encrypt returned (%d)", ret);
 					A_sx_xunlock_hard(sbl_pfs_sx);
 					ret = orig_ret;
 					goto err;
@@ -346,6 +519,7 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
 					fpu_kern_leave(td, fpu_kern_ctx);
 				}
 				if (ret) {
+                    WriteLog(LL_Error, "AesCbcCfb128Encrypt returned (%d).", ret);
 					A_sx_xunlock_hard(sbl_pfs_sx);
 					ret = orig_ret;
 					goto err;
@@ -353,7 +527,7 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
 
 				ret = sceSblKeymgrSetKeyForPfs(&enc_key_desc, ekh);
 				if (ret) {
-					if (*ekh != -1)
+					if (*ekh != 0xFFFFFFFF)
 						sceSblKeymgrClearKey(*ekh);
 
 					A_sx_xunlock_hard(sbl_pfs_sx);
@@ -363,7 +537,7 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
 
 				ret = sceSblKeymgrSetKeyForPfs(&sign_key_desc, skh);
 				if (ret) {
-					if (*skh != -1)
+					if (*skh != 0xFFFFFFFF)
 						sceSblKeymgrClearKey(*skh);
 					A_sx_xunlock_hard(sbl_pfs_sx);
 					ret = orig_ret;

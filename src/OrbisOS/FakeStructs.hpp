@@ -206,10 +206,10 @@ namespace Mira
             struct _Portability
             {
                 uint16_t command;
-                uint16_t unk02;
+                uint16_t pad;
                 uint16_t keyId;
             } Portability;
-            uint8_t raw[0x7C];
+            uint8_t raw[SIZEOF_SBL_KEY_DESC];
         } SblKeyDesc;
         static_assert(sizeof(SblKeyDesc) == 0x7C);
 
