@@ -109,4 +109,20 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vsnprintf                              0xDEADC0DE
 #define kdlsym_addr_Xfast_syscall                          0xDEADC0DE
 
+// FakeSelf hooks
+#define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0xDEADC0DE
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0xDEADC0DE
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0xDEADC0DE
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0xDEADC0DE
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0xDEADC0DE
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0xDEADC0DE
+
+// FakePkg hooks
+#define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook       0xDEADC0DE
+#define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook                  0xDEADC0DE
+#define kdlsym_addr_npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook   0xDEADC0DE
+#define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook        0xDEADC0DE
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0xDEADC0DE
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0xDEADC0DE
+
 #endif
