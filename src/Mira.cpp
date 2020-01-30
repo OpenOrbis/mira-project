@@ -383,7 +383,7 @@ bool Mira::Framework::InstallEventHandlers()
 	//const int32_t prio = 1337;
 	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
 	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
-	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	//m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -404,7 +404,7 @@ bool Mira::Framework::RemoveEventHandlers()
 
 	EVENTHANDLER_DEREGISTER(power_suspend, m_SuspendTag);
 	EVENTHANDLER_DEREGISTER(power_resume, m_ResumeTag);
-	EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
+	//EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
 
 	m_SuspendTag = nullptr;
 	m_ResumeTag = nullptr;

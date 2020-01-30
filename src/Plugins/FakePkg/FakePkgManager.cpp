@@ -250,13 +250,15 @@ bool FakePkgManager::OnLoad()
         return false;
     }
 
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_505
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x96\x00\x00\x00\x90\x90\x90", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
 	}
-    
+#endif
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_fake_to_free_patch), 4, (void*)"free", nullptr, true);
     if (s_Ret < 0)
     {
