@@ -32,15 +32,6 @@ PluginManager::~PluginManager()
 bool PluginManager::OnLoad()
 {
     WriteLog(LL_Debug, "loading all plugins");
-    // Initialize Logger
-    m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
-    if (m_Logger == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate log manager.");
-        return false;
-    }
-    if (!m_Logger->OnLoad())
-        WriteLog(LL_Error, "could not load logmanager");
     
     // Initialize debugger
     m_Debugger = new Mira::Plugins::Debugger();
@@ -52,6 +43,16 @@ bool PluginManager::OnLoad()
     if (!m_Debugger->OnLoad())
         WriteLog(LL_Error, "could not load debugger.");
 
+    // Initialize Logger
+    m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
+    if (m_Logger == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate log manager.");
+        return false;
+    }
+    if (!m_Logger->OnLoad())
+        WriteLog(LL_Error, "could not load logmanager");
+    
     // Initialize file manager
     m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
     if (m_FileManager == nullptr)
@@ -132,19 +133,6 @@ bool PluginManager::OnUnload()
         // Free the file manager
         delete m_FileManager;
         m_FileManager = nullptr;
-    }
-	
-    // Delete the log server
-    if (m_Logger)
-    {
-        WriteLog(LL_Debug, "unloading log manager");
-
-        if (!m_Logger->OnUnload())
-            WriteLog(LL_Error, "logmanager could not unload");
-
-        // Free the file manager
-        delete m_Logger;
-        m_Logger = nullptr;
     }	
 
     // Delete the fake self manager
@@ -167,6 +155,19 @@ bool PluginManager::OnUnload()
         
         delete m_FakePkgManager;
         m_FakePkgManager = nullptr;
+    }
+
+    // Delete the log server
+    if (m_Logger)
+    {
+        WriteLog(LL_Debug, "unloading log manager");
+
+        if (!m_Logger->OnUnload())
+            WriteLog(LL_Error, "logmanager could not unload");
+
+        // Free the file manager
+        delete m_Logger;
+        m_Logger = nullptr;
     }
 
     // Delete the debugger
@@ -209,16 +210,16 @@ bool PluginManager::OnSuspend()
             s_SuspendResult ? "success" : "failure");
     }
 
+    // Suspend the built in plugins
     if (!m_FileManager->OnSuspend())
         WriteLog(LL_Error, "file manager suspend failed");
-    
-     if (!m_Logger->OnSuspend())
-        WriteLog(LL_Error, "log manager suspend failed");
 	
     if (!m_FakeSelfManager->OnSuspend())
         WriteLog(LL_Error, "fake self manager suspend failed");
 
-    // Suspend the built in plugins
+    if (!m_Logger->OnSuspend())
+        WriteLog(LL_Error, "log manager suspend failed");
+    
     if (!m_Debugger->OnSuspend())
         WriteLog(LL_Error, "debugger suspend failed");
     
@@ -235,6 +236,10 @@ bool PluginManager::OnResume()
     WriteLog(LL_Debug, "resuming debugger");
     if (!m_Debugger->OnResume())
         WriteLog(LL_Error, "debugger resume failed");
+
+    WriteLog(LL_Debug, "resuming log manager");
+    if (!m_Logger->OnResume())
+        WriteLog(LL_Error, "log manager resume failed"); 
 
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
@@ -259,11 +264,7 @@ bool PluginManager::OnResume()
 
     WriteLog(LL_Debug, "resuming file manager");
     if (!m_FileManager->OnResume())
-        WriteLog(LL_Error, "file manager resume failed");
- 
-    WriteLog(LL_Debug, "resuming log manager");
-    if (!m_Logger->OnResume())
-        WriteLog(LL_Error, "log manager resume failed");    
+        WriteLog(LL_Error, "file manager resume failed");   
  
     WriteLog(LL_Debug, "resuming fake self manager");
     if (!m_FakeSelfManager->OnResume())

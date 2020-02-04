@@ -1,6 +1,4 @@
 #pragma once
-#include "MessageCategory.hpp"
-#include "Message.hpp"
 
 namespace Mira
 {

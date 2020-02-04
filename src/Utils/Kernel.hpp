@@ -1,6 +1,10 @@
 #pragma once
 #include <Utils/Types.hpp>
 
+#ifdef __cplusplus
+extern "C"{
+#endif
+
 struct task_struct;
 struct proc;
 struct proc_vm_map_entry;
@@ -24,50 +28,56 @@ typedef struct _ProcVmMapEntry
 	uint16_t prot;
 }ProcVmMapEntry;
 
-typedef enum SceAuthenticationId_t : uint64_t
+#ifdef __cplusplus
+typedef enum SceAuthenticationId_t
 {
-	SceVdecProxy = 0x3800000000000003,
-	SceVencProxy = 0x3800000000000004,
-	Orbis_audiod = 0x3800000000000005,
-	Coredump = 0x3800000000000006,
-	SceSysCore = 0x3800000000000007,
-	Orbis_setip = 0x3800000000000008,
-	GnmCompositor = 0x3800000000000009,
-	SceShellUI = 0x380000000000000f, // NPXS20001
-	SceShellCore = 0x3800000000000010,
-	NPXS20103 = 0x3800000000000011,
-	NPXS21000 = 0x3800000000000012,
+	SceVdecProxy = 0x3800000000000003ULL,
+	SceVencProxy = 0x3800000000000004ULL,
+	Orbis_audiod = 0x3800000000000005ULL,
+	Coredump = 0x3800000000000006ULL,
+	SceSysCore = 0x3800000000000007ULL,
+	Orbis_setip = 0x3800000000000008ULL,
+	GnmCompositor = 0x3800000000000009ULL,
+	SceShellUI = 0x380000000000000fULL, // NPXS20001
+	SceShellCore = 0x3800000000000010ULL,
+	NPXS20103 = 0x3800000000000011ULL,
+	NPXS21000 = 0x3800000000000012ULL,
 	// TODO: Fill in the rest
 	Decid = 0x3800000000010003,
 } SceAuthenticationId;
 
-typedef enum SceCapabilities_t : uint64_t
+typedef enum SceCapabilities_t
 {
 	Max = 0xFFFFFFFFFFFFFFFFULL,
 } SceCapabilites;
+#endif
 
 /*
 	kernelRdmsr
 
 	TODO: Description
 */
-extern "C" uint64_t kernelRdmsr(int Register);
-extern "C" int proc_rw_mem_pid(int pid, void* ptr, size_t size, void* data, size_t* n, int write);
-extern "C" int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write);
+extern uint64_t kernelRdmsr(int Register);
+extern int proc_rw_mem_pid(int pid, void* ptr, size_t size, void* data, size_t* n, int write);
+extern int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write);
 
-extern "C" struct proc* proc_find_by_name(const char* name);
-extern "C" int proc_get_vm_map(struct proc* p, struct proc_vm_map_entry** entries, size_t* num_entries);
+extern struct proc* proc_find_by_name(const char* name);
+extern int proc_get_vm_map(struct proc* p, struct proc_vm_map_entry** entries, size_t* num_entries);
 
 
-extern "C" void	*memcpy(void * __restrict, const void * __restrict, size_t);
-extern "C" void	*memmove(void *, const void *, size_t);
-extern "C" void	*memset(void *, int, size_t);
-extern "C" int	 memcmp(const void *, const void *, size_t);
+extern void	*memcpy(void * __restrict, const void * __restrict, size_t);
+extern void	*memmove(void *, const void *, size_t);
+extern void	*memset(void *, int, size_t);
+extern int	 memcmp(const void *, const void *, size_t);
 
-extern "C" size_t strlen(const char *str);
-extern "C" int strcmp(const char *str1, const char *str2);
+extern size_t strlen(const char *str);
+extern int strcmp(const char *str1, const char *str2);
 
-extern "C" void cpu_enable_wp();
-extern "C" void cpu_disable_wp();
+extern void cpu_enable_wp();
+extern void cpu_disable_wp();
 
-bool orbisThreadEscape(int32_t p_RealGroupId, int32_t p_SavedGroupId, int32_t p_EffectiveUserId, int32_t p_RealUserId, void* p_Prison, struct vnode* p_RootDir, struct vnode* p_JailRootDir, SceAuthenticationId p_AuthId, SceCapabilites p_SceCaps);
+//bool orbisThreadEscape(int32_t p_RealGroupId, int32_t p_SavedGroupId, int32_t p_EffectiveUserId, int32_t p_RealUserId, void* p_Prison, struct vnode* p_RootDir, struct vnode* p_JailRootDir, enum SceAuthenticationId_t p_AuthId, enum SceCapabilities_t p_SceCaps);
+
+#ifdef __cplusplus
+}
+#endif

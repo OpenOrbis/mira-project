@@ -2,6 +2,10 @@
 #include <Utils/Types.hpp>
 #include <Boot/Config.hpp>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef MIRA_PLATFORM
 #error MIRA_PLATFORM not set
 #endif
@@ -36,9 +40,13 @@
 #endif
 
 // Kernel base address, this must be filled out on-startup (normally done in oni_initializeKernel)
-extern "C" uint8_t* gKernelBase;
+extern uint8_t* gKernelBase;
 
 // Define kdlsym macro
 #ifndef kdlsym
 #define kdlsym(x) ((void*)((uint8_t *)&gKernelBase[kdlsym_addr_ ## x]))
+#endif
+
+#ifdef __cplusplus
+}
 #endif

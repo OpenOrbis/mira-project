@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+enum RpcCategory {
+    NONE = 0;
+    SYSTEM = 1;
+    LOG = 2;
+    DEBUG = 3;
+    FILE = 4;
+    COMMAND = 5;
+    MAX = 6;
+}
+
+message RpcHeader {
+    uint32 magic = 1;
+    RpcCategory category = 2;
+    uint32 type = 3;
+    int64 error = 4;
+    bool isRequest = 5;
+}
+
+message RpcTransport {
+    RpcHeader header = 1;
+    uint32 dataLength = 2;
+    bytes data = 3;
+}

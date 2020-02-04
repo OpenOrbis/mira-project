@@ -44,6 +44,8 @@ extern "C"
 	#include <machine/psl.h>
 	#include <machine/segments.h>
 	#include <machine/trap.h>
+
+	#include "mira.pb-c.h"
 }
 
 
@@ -286,6 +288,27 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
 	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
+	/*MessageHeader header = MESSAGE_HEADER__INIT;
+	header.magic = 2;
+	header.error = 0;
+	header.category = MESSAGE_CATEGORY__SYSTEM;
+	header.type = 0xEBDB1342;
+
+
+	FmEchoRequest msg = FM_ECHO_REQUEST__INIT;
+	msg.header = &header;
+	msg.message = (char*)"dsdadasdasdas fuck you";
+
+	auto s_Len = fm_echo_request__get_packed_size(&msg);
+	WriteLog(LL_Debug, "length (%d)", s_Len);
+
+	auto s_Buffer = new uint8_t[s_Len];
+	WriteLog(LL_Error, "buf: (%p) sz: (%d)", s_Buffer, s_Len);
+
+	fm_echo_request__pack(&msg, s_Buffer);
+
+	delete [] s_Buffer;*/
+
 	// Install device driver
 	/*
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
@@ -381,8 +404,8 @@ bool Mira::Framework::InstallEventHandlers()
 
 	// Register our event handlers
 	//const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
-	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
 	//m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
@@ -402,8 +425,8 @@ bool Mira::Framework::RemoveEventHandlers()
 	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
 	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
-	EVENTHANDLER_DEREGISTER(power_suspend, m_SuspendTag);
-	EVENTHANDLER_DEREGISTER(power_resume, m_ResumeTag);
+	EVENTHANDLER_DEREGISTER(system_suspend_phase1, m_SuspendTag);
+	EVENTHANDLER_DEREGISTER(system_resume_phase1, m_ResumeTag);
 	//EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
 
 	m_SuspendTag = nullptr;
