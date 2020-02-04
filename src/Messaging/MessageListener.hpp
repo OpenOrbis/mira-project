@@ -1,4 +1,5 @@
 #pragma once
+#include "Rpc/rpc.pb-c.h"
 
 namespace Mira
 {
@@ -12,20 +13,20 @@ namespace Mira
         class MessageListener
         {
         private:
-            MessageCategory m_Category;
+            RpcCategory m_Category;
             int32_t m_Type;
-            void(*m_Callback)(Rpc::Connection* p_Connection, const Message& p_Message);
+            void(*m_Callback)(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
         public:
             MessageListener() :
-                m_Category(MessageCategory_None),
+                m_Category(RPC_CATEGORY__NONE),
                 m_Type(0),
                 m_Callback(nullptr)
             {
 
             }
 
-            MessageListener(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection* p_Connection, const Message& p_Message)) :
+            MessageListener(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection* p_Connection, const RpcTransport& p_Message)) :
                 m_Category(p_Category),
                 m_Type(p_Type),
                 m_Callback(p_Callback)
@@ -35,7 +36,7 @@ namespace Mira
 
             ~MessageListener()
             {
-                m_Category = MessageCategory_None;
+                m_Category = RPC_CATEGORY__NONE;
                 m_Type = 0;
                 m_Callback = nullptr;
             }
@@ -84,16 +85,16 @@ namespace Mira
                 return *this;
             }
 
-            MessageCategory GetCategory() { return m_Category; }
+            RpcCategory GetCategory() { return m_Category; }
             int32_t GetType() { return m_Type; }
-            auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, const Message& p_Message)
+            auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
             {
                 return m_Callback;
             };
 
             void Zero()
             {
-                m_Category = MessageCategory_None;
+                m_Category = RPC_CATEGORY__NONE;
                 m_Type = 0;
                 m_Callback = nullptr;
             }

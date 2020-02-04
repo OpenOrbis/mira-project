@@ -1,10 +1,10 @@
 #pragma once
-#include <Utils/Vector.hpp>
-
-#include "MessageCategory.hpp"
 #include "MessageListener.hpp"
-#include "Message.hpp"
 
+extern "C"
+{
+    #include "Rpc/rpc.pb-c.h"
+}
 
 namespace Mira
 {
@@ -30,15 +30,15 @@ namespace Mira
             MessageManager();
             ~MessageManager();
 
-            bool RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&));
-            bool UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&));
+            bool RegisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&));
+            bool UnregisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&));
             void UnregisterAllCallbacks();
 
-            void SendErrorResponse(Rpc::Connection* p_Connection, MessageCategory p_Category, int32_t p_Error);
+            void SendErrorResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, int32_t p_Error);
 
-            void SendResponse(Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
+            void SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
-            void OnRequest(Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
+            void OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
         };
     }
 }

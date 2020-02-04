@@ -44,8 +44,6 @@ extern "C"
 	#include <machine/psl.h>
 	#include <machine/segments.h>
 	#include <machine/trap.h>
-
-	#include "mira.pb-c.h"
 }
 
 

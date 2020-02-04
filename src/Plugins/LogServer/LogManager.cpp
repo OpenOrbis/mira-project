@@ -1,6 +1,5 @@
 #include "LogManager.hpp"
 #include <Messaging/Rpc/Connection.hpp>
-#include <Messaging/Message.hpp>
 #include <Messaging/MessageManager.hpp>
 
 #include <Utils/Kdlsym.hpp>

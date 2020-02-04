@@ -2,8 +2,6 @@
 #include <Utils/Vector.hpp>
 #include <netinet/in.h>
 
-#include <Messaging/Message.hpp>
-
 namespace Mira
 {
     namespace Messaging

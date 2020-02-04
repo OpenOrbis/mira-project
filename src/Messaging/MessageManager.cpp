@@ -1,3 +1,4 @@
+#include "MessageManager.hpp"
 #include "MessageListener.hpp"
 
 #include <Utils/Kdlsym.hpp>
@@ -21,9 +22,9 @@ MessageManager::~MessageManager()
 
 }
 
-bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&))
+bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&))
 {
-    if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
+    if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
     {
         WriteLog(LL_Error, "could not register callback, invalid category (%d).", p_Category);
         return false;
@@ -82,9 +83,9 @@ bool MessageManager::RegisterCallback(MessageCategory p_Category, int32_t p_Type
     return true;
 }
 
-bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const Messaging::Message&))
+bool MessageManager::UnregisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&))
 {
-    if (p_Category < MessageCategory_None || p_Category >= MessageCategory_Max)
+    if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
     {
         WriteLog(LL_Error, "could not register callback, invalid category (%d).", p_Category);
         return false;
@@ -131,12 +132,13 @@ bool MessageManager::UnregisterCallback(MessageCategory p_Category, int32_t p_Ty
     return true;
 }
 
-void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, MessageCategory p_Category, int32_t p_Error)
+void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, int32_t p_Error)
 {
     if (p_Connection == nullptr)
         return;
 
-    Messaging::Message s_Message = {
+    // TODO: FIXME
+    /*Messaging::Message s_Message = {
         .Header = 
         {
             .magic = MessageHeaderMagic,
@@ -149,10 +151,10 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, MessageCat
         .Buffer = nullptr
     };
 
-    SendResponse(p_Connection, s_Message);
+    SendResponse(p_Connection, s_Message);*/
 }
 
-void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
+void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
     if (p_Connection == nullptr)
         return;
@@ -186,8 +188,9 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
         return;
     }
 
+    // TODO: FIXME
     // Get and send the header data
-    auto s_Ret = kwrite_t(s_Socket, &p_Message.Header, sizeof(p_Message.Header), s_MainThread);
+    /*auto s_Ret = kwrite_t(s_Socket, &p_Message.Header, sizeof(p_Message.Header), s_MainThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not send header data (%p).", &p_Message.Header);
@@ -207,10 +210,10 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const Messaging
     {
         WriteLog(LL_Error, "could not send payload data (%p) len (%d) ret (%d).", s_Data, s_DataLength, s_Ret);
         return;
-    }
+    }*/
 }
 
-void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::Message& p_Message)
+void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
     MessageListener* s_FoundEntry = nullptr;
     int32_t s_FoundIndex = -1;
@@ -220,10 +223,10 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const Messaging::M
         if (l_CategoryEntry == nullptr)
             continue;
                     
-        if (l_CategoryEntry->GetCategory() != p_Message.Header.category)
+        if (l_CategoryEntry->GetCategory() != p_Message.header->category)
             continue;
         
-        if (l_CategoryEntry->GetType() != p_Message.Header.errorType)
+        if (l_CategoryEntry->GetType() != p_Message.header->type)
             continue;
         
         s_FoundEntry = &m_Listeners[i];
