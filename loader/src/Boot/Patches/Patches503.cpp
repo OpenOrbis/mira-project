@@ -4,7 +4,7 @@
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
 */
-void Mira::Boot::Patches::install_prerunPatches_505()
+void Mira::Boot::Patches::install_prerunPatches_503()
 {
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
