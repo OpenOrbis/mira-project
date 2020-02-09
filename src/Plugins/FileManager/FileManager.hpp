@@ -60,6 +60,8 @@ namespace Mira
                             p_Header->e_ident[EI_MAG2] == ELFMAG2 &&
                             p_Header->e_ident[EI_MAG3] == ELFMAG3);
                 }
+
+                static uint64_t GetDentCount(const char* p_Path);
             };
         }
     }

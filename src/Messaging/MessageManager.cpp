@@ -138,21 +138,7 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, RpcCategor
     if (p_Connection == nullptr)
         return;
 
-    // TODO: FIXME
-    /*Messaging::Message s_Message = {
-        .Header = 
-        {
-            .magic = MessageHeaderMagic,
-            .category = p_Category,
-            .isRequest = false,
-            .errorType = static_cast<uint64_t>(p_Error > 0 ? -p_Error : p_Error),
-            .payloadLength = 0,
-            .padding = 0
-        },
-        .Buffer = nullptr
-    };
-
-    SendResponse(p_Connection, s_Message);*/
+    SendResponse(p_Connection, p_Category, 0,  p_Error < 0 ? p_Error : (-p_Error), nullptr, 0);
 }
 
 void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
@@ -232,6 +218,36 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
     }
 
     delete [] s_SerializedData;
+}
+
+void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, uint32_t p_Type, int64_t p_Error, void* p_Data, uint32_t p_DataSize)
+{
+    if (p_Connection == nullptr)
+    {
+        WriteLog(LL_Error, "invalid connection");
+        return;
+    }
+
+    if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
+    {
+        WriteLog(LL_Error, "invalid category (%d)", p_Category);
+        return;
+    }
+
+    RpcHeader s_Header = RPC_HEADER__INIT;
+    s_Header.category = p_Category;
+    s_Header.type = p_Type;
+    s_Header.error = p_Error;
+    s_Header.isrequest = false;
+    s_Header.magic = 2;
+
+    RpcTransport s_Response = RPC_TRANSPORT__INIT;
+    s_Response.header = &s_Header;
+
+    s_Response.data.data = static_cast<uint8_t*>(p_Data);
+    s_Response.data.len = p_DataSize;
+
+    SendResponse(p_Connection, s_Response);
 }
 
 void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message)

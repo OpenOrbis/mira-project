@@ -26,6 +26,7 @@
 extern "C"
 {
     #include "filemanager.pb-c.h"
+    #include <Messaging/Rpc/rpc.pb-c.h>
 };
 
 using namespace Mira::Plugins;
@@ -89,7 +90,7 @@ void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -97,38 +98,31 @@ void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(OpenRequest))
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
-        WriteLog(LL_Error, "invalid open message");
+        WriteLog(LL_Error, "invalid open message (%p) (%x)", p_Message.data, p_Message.data.len);
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    auto s_Request = reinterpret_cast<const OpenRequest*>(p_Message.Buffer);
+    FmOpenRequest* s_Request = fm_open_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "invalid message");
+        return;
+    }
 
-	//WriteLog(LL_Debug, "open: (%s) (%d) (%d)", s_Request->path, s_Request->flags, s_Request->mode);
+    int32_t s_Ret = kopen_t(s_Request->path, s_Request->flags, s_Request->mode, s_MainThread);
 
-    int32_t s_Ret = kopen_t(s_Request->Path, s_Request->Flags, s_Request->Mode, s_MainThread);
+    fm_open_request__free_unpacked(s_Request, nullptr);
 
-    RpcTransport s_Response = {
-        .Header = {
-            .magic = RpcTransportHeaderMagic,
-            .category = RPC_CATEGORY__FILE,
-            .isRequest = false,
-            .errorType = static_cast<uint64_t>(s_Ret),
-            .payloadLength = 0,
-            .padding = 0
-        },
-        .Buffer = nullptr
-    };
-
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);*/
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Open, s_Ret, nullptr, 0);
 }
 
 
 void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -136,35 +130,31 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTra
         return;
     }
 
-    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(CloseRequest))
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    auto s_Request = reinterpret_cast<const CloseRequest*>(p_Message.Buffer);
-    kclose_t(s_Request->Handle, s_MainThread);
+    FmCloseRequest* s_Request = fm_close_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
 
-    RpcTransport s_Response = {
-        .Header = 
-        {
-            .magic = RpcTransportHeaderMagic,
-            .category = RPC_CATEGORY__FILE,
-            .isRequest = false,
-            .errorType = 0,
-            .payloadLength = 0,
-            .padding = 0
-        },
-        .Buffer = nullptr
-    };
+    kclose_t(s_Request->handle, s_MainThread);
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);*/
+    fm_close_request__free_unpacked(s_Request, nullptr);
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Close, 0, nullptr, 0);
 }
 
 void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -172,72 +162,48 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(ReadRequest))
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    auto s_Request = reinterpret_cast<const ReadRequest*>(p_Message.Buffer);
-    if (s_Request->Count > sizeof(ReadResponse::Buffer))
+    FmReadRequest* s_Request = fm_read_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
     {
-        WriteLog(LL_Error, "read request size too large (%x) > (%x).", s_Request->Count, sizeof(ReadResponse::Buffer));
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -EOVERFLOW);
-        return;
-    }
-
-    //WriteLog(LL_Debug, "here");
-
-    ReadResponse* s_Payload = new ReadResponse
-    {
-        .Count = 0,
-        .Buffer = { 0 }
-    };
-
-    if (s_Payload == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate response");
+        WriteLog(LL_Error, "could not unpack request");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    //WriteLog(LL_Debug, "read (%d) cnt: (%d)", s_Request->Handle, s_Request->Count);
-
-    auto s_SizeRead = kread_t(s_Request->Handle, s_Payload->Buffer, s_Request->Count, s_MainThread);
-    if (s_SizeRead <= 0)
+    uint8_t* s_Data = new uint8_t[s_Request->size];
+    if (s_Data == nullptr)
     {
-        delete s_Payload;
+        WriteLog(LL_Error, "could not allocate (%x) bytes", s_Request->size);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        fm_read_request__free_unpacked(s_Request, nullptr);
+        return;
+    }
+    memset(s_Data, 0, s_Request->size);
 
-        WriteLog(LL_Error, "there was an error reading (%d).", s_SizeRead);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_SizeRead);
+    auto s_Ret = kread_t(s_Request->handle, s_Data, s_Request->size, s_MainThread);
+
+    fm_read_request__free_unpacked(s_Request, nullptr);
+
+    if (s_Ret <= 0)
+    {
+        WriteLog(LL_Error, "read returned (%d)", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_Ret);
         return;
     }
 
-    s_Payload->Count = static_cast<uint16_t>(s_SizeRead);
-
-    RpcTransportHeader s_Header = {
-        .magic = RpcTransportHeaderMagic,
-        .category = RPC_CATEGORY__FILE,
-        .isRequest = false,
-        .errorType = 0,
-        .payloadLength = sizeof(*s_Payload),
-        .padding = 0
-    };
-
-    RpcTransport s_Response = {
-        .Header = s_Header,
-        .Buffer = reinterpret_cast<const uint8_t*>(s_Payload)
-    };
-
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
-
-    delete s_Payload;*/
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Close, 0, nullptr, 0);
 }
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -245,45 +211,38 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
         return;
     }
 
-    if (p_Message.Buffer == nullptr)
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
-        WriteLog(LL_Error, "invalid message");
+        WriteLog(LL_Error, "could not get main thread");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    if (p_Message.Header.payloadLength != sizeof(GetDentsRequest))
+    FmGetDentsRequest* s_Request = fm_get_dents_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
     {
-        WriteLog(LL_Error, "payloadLength (%d) != sizeof(GetDentsRequest) (%d)", p_Message.Header.payloadLength, sizeof(GetDentsRequest));
+        WriteLog(LL_Error, "could not unpack request");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    // BUG: This keeps getting called for a read request, don't know fucking why.
-    if (p_Message.Header.errorType != FileManager_GetDents)
-    {
-        WriteLog(LL_Error, "this is not a dents command (%d) != (%d)", p_Message.Header.errorType, FileManager_GetDents);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
-
-    auto s_Request = reinterpret_cast<const GetDentsRequest*>(p_Message.Buffer);
-       if (s_Request->PathLength > sizeof(s_Request->Path))
-    {
-        WriteLog(LL_Error, "path length out of bounds.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
-
-    auto s_DirectoryHandle = kopen_t(s_Request->Path, 0x0000 | 0x00020000, 0777, s_MainThread);
+    auto s_DirectoryHandle = kopen_t(s_Request->path, 0x0000 | 0x00020000, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
-		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->Path, s_DirectoryHandle);
+		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->path, s_DirectoryHandle);
+        fm_get_dents_request__free_unpacked(s_Request, nullptr);
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_DirectoryHandle);
         return;
     }
 
-    uint64_t s_DentCount = 0;
+    uint64_t s_DentCount = GetDentCount(s_Request->path);
+
+    fm_get_dents_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
+
+    uint64_t s_CurrentDentIndex = 0;
+
+    FmDent* s_Dents = new FmDent[s_DentCount];
 
     // Switch this to use stack
     char s_Buffer[0x1000] = { 0 };
@@ -300,73 +259,150 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
         
         for (auto l_Pos = 0; l_Pos < s_ReadCount;)
         {
+            // Bounds check
+            if (s_CurrentDentIndex >= s_DentCount)
+            {
+                WriteLog(LL_Error, "current index (%lld) >= (%lld)", s_CurrentDentIndex, s_DentCount);
+                break;
+            }
+
             auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
 
-            GetDentsResponse s_Payload = 
+            s_Dents[s_CurrentDentIndex] = FM_DENT__INIT;
+            s_Dents[s_CurrentDentIndex].fileno = l_Dent->d_fileno;
+            s_Dents[s_CurrentDentIndex].type = l_Dent->d_type;
+            s_Dents[s_CurrentDentIndex].name = new char[l_Dent->d_namlen + 1];
+            if (s_Dents[s_CurrentDentIndex].name == nullptr)
             {
-                .DentIndex = s_DentCount,
-                .Info = {
-                    .fileno = l_Dent->d_fileno,
-                    .reclen = l_Dent->d_reclen,
-                    .type = l_Dent->d_type,
-                    .namlen = l_Dent->d_namlen
-                }
-            };
-            
-            if (l_Dent->d_namlen <= sizeof(s_Payload.Info.name))
-                (void)memcpy(s_Payload.Info.name, l_Dent->d_name, l_Dent->d_namlen);
+                WriteLog(LL_Error, "could not allocate memory for name");
+                break;
+            }
+            memset(s_Dents[s_CurrentDentIndex].name, 0, l_Dent->d_namlen + 1);
+            memcpy(s_Dents[s_CurrentDentIndex].name, l_Dent->d_name, l_Dent->d_namlen);
 
-            s_DentCount++;
-
-            RpcTransport s_Response = {
-                .Header = {
-                    .magic = RpcTransportHeaderMagic,
-                    .category = RPC_CATEGORY__FILE,
-                    .isRequest = false,
-                    .errorType = 0,
-                    .payloadLength = sizeof(s_Payload),
-                    .padding = 0
-                },
-                .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
-            };
-
-            Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);
             l_Pos += l_Dent->d_reclen;
         }
     }
     kclose_t(s_DirectoryHandle, s_MainThread);
 
-    GetDentsResponse s_Payload = 
+    FmGetDentsResponse s_Response = FM_GET_DENTS_RESPONSE__INIT;
+    s_Response.n_dents = s_DentCount;
+    s_Response.dents = &s_Dents;
+
+    auto s_PackedSize = fm_get_dents_response__get_packed_size(&s_Response);
+    if (s_PackedSize <= 0)
     {
-        .DentIndex = __UINT64_MAX__,
-        .Info = {
-            .fileno = 0,
-            .reclen = 0,
-            .type = 0,
-            .namlen = 0,
-            .name = { 0 }
-        }
-    };
+        WriteLog(LL_Error, "could not get packed size");
 
-    RpcTransport s_Response = {
-        .Header = 
+        // Free all of the allocated names
+        for (auto i = 0; i < s_DentCount; ++i)
         {
-                .magic = RpcTransportHeaderMagic,
-                .category = RPC_CATEGORY__FILE,
-                .isRequest = false,
-                .errorType = 0,
-                .payloadLength = sizeof(s_Payload),
-                .padding = 0
-        },
-        .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
-    };
+            if (s_Dents[i].name != nullptr)
+                delete [] s_Dents[i].name;
+            
+            s_Dents[i].name = nullptr;
+        }
+        delete [] s_Dents;
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);*/
+    auto s_Data = new uint8_t[s_PackedSize];
+    if (s_Data == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate (%llx)", s_Data);
+
+        // Free all of the allocated names
+        for (auto i = 0; i < s_DentCount; ++i)
+        {
+            if (s_Dents[i].name != nullptr)
+                delete [] s_Dents[i].name;
+            
+            s_Dents[i].name = nullptr;
+        }
+        delete [] s_Dents;
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
+
+    auto s_Ret = fm_get_dents_response__pack(&s_Response, s_Data);
+    if (s_Ret != s_PackedSize)
+    {
+        WriteLog(LL_Error, "could not pack");
+
+        // Free all of the allocated names
+        for (auto i = 0; i < s_DentCount; ++i)
+        {
+            if (s_Dents[i].name != nullptr)
+                delete [] s_Dents[i].name;
+            
+            s_Dents[i].name = nullptr;
+        }
+        delete [] s_Dents;
+        delete [] s_Data;
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_GetDents, 0, s_Data, s_PackedSize);
+
+    // Free all of the allocated names
+    for (auto i = 0; i < s_DentCount; ++i)
+    {
+        if (s_Dents[i].name != nullptr)
+            delete [] s_Dents[i].name;
+        
+        s_Dents[i].name = nullptr;
+    }
+
+    delete [] s_Dents;
+}
+
+uint64_t FileManager::GetDentCount(const char* p_Path)
+{
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        return 0;
+    }
+
+    auto s_DirectoryHandle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_MainThread);
+    if (s_DirectoryHandle < 0)
+    {
+		WriteLog(LL_Error, "could not open directory (%s) (%d).", p_Path, s_DirectoryHandle);
+        return 0;
+    }
+
+    uint64_t s_DentCount = 0;
+
+    // Switch this to use stack
+    char s_Buffer[0x1000] = { 0 };
+    memset(s_Buffer, 0, sizeof(s_Buffer));
+
+    int32_t s_ReadCount = 0;
+    for (;;)
+    {
+        memset(s_Buffer, 0, sizeof(s_Buffer));
+        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_MainThread);
+        if (s_ReadCount <= 0)
+            break;
+        
+        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+        {
+            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+            s_DentCount++;
+            l_Pos += l_Dent->d_reclen;
+        }
+    }
+    kclose_t(s_DirectoryHandle, s_MainThread);
+
+    return s_DentCount;
 }
 
 void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -374,105 +410,123 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(StatRequest))
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
-        WriteLog(LL_Error, "invalid message");
+        WriteLog(LL_Error, "could not get main thread");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    auto s_Request = reinterpret_cast<const StatRequest*>(p_Message.Buffer);
+    FmStatRequest* s_Request = fm_stat_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
 
     // Check to see if we have a valid file handle
     struct stat s_Stat = { 0 };
 
-    if (s_Request->Handle < 0)
+    if (s_Request->handle < 0)
     {
-        if (s_Request->PathLength == 0)
+        if (s_Request->path == nullptr)
         {
             WriteLog(LL_Error, "invalid path length");
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOENT);
             return;
         }
 
-        if (s_Request->PathLength > sizeof(s_Request->Path))
-        {
-            WriteLog(LL_Error, "path length too long for remaining data.");
-            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOENT);
-            return;
-        }
-
-        int32_t s_Ret = kstat_t(const_cast<char*>(s_Request->Path), &s_Stat, s_MainThread);
+        int32_t s_Ret = kstat_t(const_cast<char*>(s_Request->path), &s_Stat, s_MainThread);
         if (s_Ret < 0)
         {
-            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->Path, s_Ret);
+            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_Ret);
             return;
         }
     }
     else
     {
-        auto s_Ret = kfstat_t(s_Request->Handle, &s_Stat, s_MainThread);
+        auto s_Ret = kfstat_t(s_Request->handle, &s_Stat, s_MainThread);
         if (s_Ret < 0)
         {
-            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->Path, s_Ret);
+            WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_Ret);
             return;
         }
     }
+
+    // Free the unpacked
+    fm_stat_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
     
     // Send a success response back
-	StatResponse s_Payload = 
-	{
-		.st_dev = s_Stat.st_dev,
-		.st_ino = s_Stat.st_ino,
-		.st_mode = s_Stat.st_mode,
-		.st_nlink = s_Stat.st_nlink,
-		.st_uid = s_Stat.st_uid,
-		.st_gid = s_Stat.st_gid,
-		.st_rdev = s_Stat.st_rdev,
-		.st_atim = 
-		{
-			.tv_sec = s_Stat.st_atim.tv_sec,
-			.tv_nsec = s_Stat.st_atim.tv_nsec
-		},
-		.st_mtim =
-		{
-			.tv_sec = s_Stat.st_mtim.tv_sec,
-			.tv_nsec = s_Stat.st_mtim.tv_nsec
-		},
-		.st_ctim = 
-		{
-			.tv_sec = s_Stat.st_ctim.tv_sec,
-			.tv_nsec = s_Stat.st_ctim.tv_nsec
-		},
-		.st_size = s_Stat.st_size,
-		.st_blocks = s_Stat.st_blocks,
-		.st_blksize = s_Stat.st_blksize,
-		.st_flags = s_Stat.st_flags,
-		.st_gen = s_Stat.st_gen,
-		.st_lspare = s_Stat.st_lspare,
-		.st_birthtim =
-		{
-			.tv_sec = s_Stat.st_birthtim.tv_sec,
-			.tv_nsec = s_Stat.st_birthtim.tv_nsec
-		}
-	};
+    FmStatResponse s_Response = FM_STAT_RESPONSE__INIT;
+    s_Response.st_dev = s_Stat.st_dev;
+    s_Response.st_ino = s_Stat.st_ino;
+    s_Response.st_mode = s_Stat.st_mode;
+    s_Response.st_nlink = s_Stat.st_nlink;
+    s_Response.st_uid = s_Stat.st_uid;
+    s_Response.st_gid = s_Stat.st_gid;
+    s_Response.st_rdev = s_Stat.st_rdev;
 
-    RpcTransport s_Response = {
-        .Header = 
-        {
-            .magic = RpcTransportHeaderMagic,
-            .category = RPC_CATEGORY__FILE,
-            .isRequest = false,
-            .errorType = 0,
-            .payloadLength = sizeof(s_Payload),
-            .padding = 0
-        },
-        .Buffer = reinterpret_cast<const uint8_t*>(&s_Payload)
-    };
+    FmTimespec s_Atim = FM_TIMESPEC__INIT;
+    s_Atim.tv_sec = s_Stat.st_atim.tv_sec;
+    s_Atim.tv_nsec = s_Stat.st_atim.tv_nsec;
+    s_Response.st_atim = &s_Atim;
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);*/
+    FmTimespec s_Mtim = FM_TIMESPEC__INIT;
+    s_Mtim.tv_sec = s_Stat.st_mtim.tv_sec;
+    s_Mtim.tv_nsec = s_Stat.st_mtim.tv_nsec;
+
+    s_Response.st_mtim = &s_Mtim;
+
+    FmTimespec s_Ctim = FM_TIMESPEC__INIT;
+    s_Ctim.tv_sec = s_Stat.st_ctim.tv_sec;
+    s_Ctim.tv_nsec = s_Stat.st_ctim.tv_nsec;
+    s_Response.st_ctim = &s_Ctim;
+
+    s_Response.st_size = s_Stat.st_size;
+    s_Response.st_blocks = s_Stat.st_blocks;
+    s_Response.st_blksize = s_Stat.st_blksize;
+    s_Response.st_flags = s_Stat.st_flags;
+    s_Response.st_gen = s_Stat.st_gen;
+    s_Response.st_lspare = s_Stat.st_lspare;
+
+    FmTimespec s_Birthtim = FM_TIMESPEC__INIT;
+    s_Birthtim.tv_sec = s_Stat.st_birthtim.tv_sec;
+    s_Birthtim.tv_nsec = s_Stat.st_birthtim.tv_nsec;
+    s_Response.st_birthtim = &s_Birthtim;
+
+    auto s_ResponseSize = fm_stat_response__get_packed_size(&s_Response);
+    if (s_ResponseSize <= 0)
+    {
+        WriteLog(LL_Error, "could not get packed size");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
+
+    auto s_ResponseData = new uint8_t[s_ResponseSize];
+    if (s_ResponseData == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate (%llx)", s_ResponseSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
+    memset(s_ResponseData, 0, s_ResponseSize);
+
+    auto s_Ret = fm_stat_response__pack(&s_Response, s_ResponseData);
+    if (s_Ret != s_ResponseSize)
+    {
+        WriteLog(LL_Error, "could not pack (%lld) != (%lld)", s_Ret, s_ResponseSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        delete [] s_ResponseData;
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Stat, 0, s_ResponseData, s_ResponseSize);
+
+    delete [] s_ResponseData;
 }
 
 void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
@@ -542,7 +596,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
-    WriteLog(LL_Debug, "mainThread: %p", s_MainThread);
+    WriteLog(LL_Debug, "mainThread: %p", s_MainThread);/*
 
     // Root and escape our thread
 	if (s_MainThread->td_ucred)
@@ -602,7 +656,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 	}
 
     // Validate our buffers
-    /*if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(DecryptSelfRequest))
+    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(DecryptSelfRequest))
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);

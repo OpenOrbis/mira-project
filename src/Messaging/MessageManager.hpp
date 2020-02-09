@@ -37,7 +37,8 @@ namespace Mira
             void SendErrorResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, int32_t p_Error);
 
             void SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-
+            void SendResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, uint32_t p_Type, int64_t p_Error, void* p_Data, uint32_t p_DataSize);
+            
             void OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
         };
     }
