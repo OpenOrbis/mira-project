@@ -196,6 +196,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
     if (s_Ret <= 0)
     {
         WriteLog(LL_Error, "read returned (%d)", s_Ret);
+        delete [] s_Data;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_Ret);
         return;
     }
@@ -208,6 +209,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
     if (s_PackedSize <= 0)
     {
         WriteLog(LL_Error, "could not get packed size");
+        delete [] s_Data;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -EIO);
         return;
     }
@@ -216,6 +218,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
     if (s_PackedData == nullptr)
     {
         WriteLog(LL_Error, "could not allocated packed data (%llx)", s_PackedSize);
+        delete [] s_Data;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
@@ -226,6 +229,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
     {
         WriteLog(LL_Error, "packed ret (%llx) != packed size (%llx)", s_PackedRet, s_PackedSize);
         delete [] s_PackedData;
+        delete [] s_Data;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
@@ -234,6 +238,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
     // Free the allocated data for packing
     delete [] s_PackedData;
+    delete [] s_Data;
 }
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)

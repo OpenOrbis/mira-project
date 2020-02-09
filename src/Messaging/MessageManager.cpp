@@ -206,6 +206,12 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
 
     // Pack the message
     auto s_Ret = rpc_transport__pack(&p_Message, s_MessageStart);
+    if (s_Ret != s_SerializedSize)
+    {
+        WriteLog(LL_Error, "could not serialize data");
+        delete [] s_SerializedData;
+        return;
+    }
     //WriteLog(LL_Debug, "packed message size (%x)", s_Ret);
 
     // Get and send the data
