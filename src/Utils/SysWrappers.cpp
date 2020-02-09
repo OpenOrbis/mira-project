@@ -885,6 +885,7 @@ int kaccept_internal(int sock, struct sockaddr * b, size_t* c, struct thread* td
 
 int kaccept_t(int sock, struct sockaddr * b, size_t* c, struct thread* td)
 {
+	int retry = 0;
 	int ret = -EIO;
 
 	for (;;)
@@ -893,7 +894,14 @@ int kaccept_t(int sock, struct sockaddr * b, size_t* c, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > 3)
+					break;
+					
+				//auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}

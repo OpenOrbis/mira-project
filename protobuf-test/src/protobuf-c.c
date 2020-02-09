@@ -45,34 +45,15 @@
  * \todo Use size_t consistently.
  */
 
-//#include <stdlib.h>	/* for malloc, free */
-//#include <string.h>	/* for strcmp, strlen, memcpy, memmove, memset */
-#include <sys/malloc.h>
+#include <stdlib.h>	/* for malloc, free */
+#include <string.h>	/* for strcmp, strlen, memcpy, memmove, memset */
 
-#include "protobuf-c/protobuf-c.h"
-
-
-#include <Utils/Kernel.hpp>
-#include <Utils/Kdlsym.hpp>
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-variable"
-#pragma clang diagnostic ignored "-Wunused-value"
+#include "protobuf-c.h"
 
 #define TRUE				1
 #define FALSE				0
 
-#define PROTOBUF_C__ASSERT_NOT_REACHED()
-void __assert(const char * a, const char * b, int c, const char * d) 
-{
-	//WriteLog(LL_Error, "assert failed (%s) (%s) (%d) (%s)", a, b, c, d);
-	//auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
-	//auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-	//auto vsnprintf = (int(*)(char *str, size_t size, const char *format, va_list ap))kdlsym(vsnprintf);
-	((void(*)(char *, ...))kdlsym(printf))("Assrtion failed: (%s), file %s, line %d.\n", a, b, c);
-    for (;;)
-        __asm__("nop");
-}
+#define PROTOBUF_C__ASSERT_NOT_REACHED() assert(0)
 
 /* Workaround for Microsoft compilers. */
 #ifdef _MSC_VER
@@ -100,7 +81,7 @@ void __assert(const char * a, const char * b, int c, const char * d)
 #define MAX_UINT64_ENCODED_SIZE		10
 
 #ifndef PROTOBUF_C_UNPACK_ERROR
-# define PROTOBUF_C_UNPACK_ERROR(...) ((void(*)(char *, ...))kdlsym(printf))(__VA_ARGS__)
+# define PROTOBUF_C_UNPACK_ERROR(...)
 #endif
 
 const char protobuf_c_empty_string[] = "";
@@ -167,19 +148,13 @@ protobuf_c_version_number(void)
 static void *
 system_alloc(void *allocator_data, size_t size)
 {
-	//return malloc(size);
-	struct malloc_type* M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
-
-	return ((void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc))(size, M_TEMP, M_ZERO | M_WAITOK);
+	return malloc(size);
 }
 
 static void
 system_free(void *allocator_data, void *data)
 {
-	//free(data);
-	struct malloc_type* M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
-
-	((void(*)(void* addr, struct malloc_type* type))kdlsym(free))(data, M_TEMP);
+	free(data);
 }
 
 static inline void *
@@ -1063,7 +1038,6 @@ binary_data_pack(const ProtobufCBinaryData *bd, uint8_t *out)
 static inline size_t
 prefixed_message_pack(const ProtobufCMessage *message, uint8_t *out)
 {
-    
 	if (message == NULL) {
 		out[0] = 0;
 		return 1;
@@ -1071,8 +1045,7 @@ prefixed_message_pack(const ProtobufCMessage *message, uint8_t *out)
 		size_t rv = protobuf_c_message_pack(message, out + 1);
 		uint32_t rv_packed_size = uint32_size(rv);
 		if (rv_packed_size != 1)
-            ((void * (*)(void *dst,	const void *src, size_t	len))kdlsym(memmove))(out + rv_packed_size, out + 1, rv);
-			//memmove(out + rv_packed_size, out + 1, rv);
+			memmove(out + rv_packed_size, out + 1, rv);
 		return uint32_pack(rv, out) + rv;
 	}
 }
@@ -1463,7 +1436,7 @@ repeated_field_pack(const ProtobufCFieldDescriptor *field,
 		actual_length_size = uint32_size(payload_len);
 		if (length_size_min != actual_length_size) {
 			assert(actual_length_size == length_size_min + 1);
-			(void)memmove(out + header_len + 1, out + header_len,
+			memmove(out + header_len + 1, out + header_len,
 				payload_len);
 			header_len++;
 		}
@@ -2357,7 +2330,7 @@ merge_messages(ProtobufCMessage *earlier_msg,
 				 * message, earlier message will be freed after
 				 * this function is called anyway
 				 */
-				(void)memset(earlier_elem, 0, el_size);
+				memset(earlier_elem, 0, el_size);
 
 				if (field->quantifier_offset != 0) {
 					/* Set the has field or the case enum,
@@ -2709,7 +2682,7 @@ parse_oneof_member (ScannedMember *scanned_member,
 			break;
 		}
 
-		(void)memset (member, 0, el_size);
+		memset (member, 0, el_size);
 	}
 	if (!parse_required_member (scanned_member, member, allocator, TRUE))
 		return FALSE;
@@ -2971,7 +2944,7 @@ message_init_generic(const ProtobufCMessageDescriptor *desc,
 {
 	unsigned i;
 
-	(void)memset(message, 0, desc->sizeof_message);
+	memset(message, 0, desc->sizeof_message);
 	message->descriptor = desc;
 	for (i = 0; i < desc->n_fields; i++) {
 		if (desc->fields[i].default_value != NULL &&
@@ -3086,10 +3059,7 @@ protobuf_c_message_unpack(const ProtobufCMessageDescriptor *desc,
 
 	rv = do_alloc(allocator, desc->sizeof_message);
 	if (!rv)
-	{
-		((void(*)(char *, ...))kdlsym(printf))("do_alloc failed (%d).", __LINE__);
 		return (NULL);
-	}
 	scanned_member_slabs[0] = first_member_slab;
 
 	required_fields_bitmap_len = (desc->n_fields + 7) / 8;
@@ -3097,12 +3067,11 @@ protobuf_c_message_unpack(const ProtobufCMessageDescriptor *desc,
 		required_fields_bitmap = do_alloc(allocator, required_fields_bitmap_len);
 		if (!required_fields_bitmap) {
 			do_free(allocator, rv);
-			((void(*)(char *, ...))kdlsym(printf))("do_free failed (%d).", __LINE__);
 			return (NULL);
 		}
 		required_fields_bitmap_alloced = TRUE;
 	}
-	(void)memset(required_fields_bitmap, 0, required_fields_bitmap_len);
+	memset(required_fields_bitmap, 0, required_fields_bitmap_len);
 
 	/*
 	 * Generated code always defines "message_init". However, we provide a
@@ -3568,7 +3537,7 @@ protobuf_c_service_generated_init(ProtobufCService *service,
 	service->descriptor = descriptor;
 	service->destroy = destroy;
 	service->invoke = protobuf_c_service_invoke_internal;
-	(void)memset(service + 1, 0, descriptor->n_methods * sizeof(GenericHandler));
+	memset(service + 1, 0, descriptor->n_methods * sizeof(GenericHandler));
 }
 
 void protobuf_c_service_destroy(ProtobufCService *service)
@@ -3695,5 +3664,3 @@ protobuf_c_service_descriptor_get_method_by_name(const ProtobufCServiceDescripto
 		return desc->methods + desc->method_indices_by_name[start];
 	return NULL;
 }
-
-#pragma clang diagnostic pop // unused-variable, unused-value

@@ -27,22 +27,19 @@ message FmReadRequest {
 }
 
 message FmReadResponse {
-    uint32 dataSize = 1;
-    bytes data = 2;
+    bytes data = 1;
 }
 
 message FmWriteRequest {
     int32 handle = 1;
-    uint32 dataSize = 2;
-    bytes data = 3;
+    bytes data = 2;
 }
 
 message FmDent {
     uint32 fileno = 1;
     uint32 recLen = 2;
     uint32 type = 3;
-    uint32 namelen = 4;
-    string name = 5;
+    string name = 4;
 }
 
 message FmGetDentsRequest {

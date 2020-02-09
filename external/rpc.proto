@@ -20,6 +20,5 @@ message RpcHeader {
 
 message RpcTransport {
     RpcHeader header = 1;
-    uint32 dataLength = 2;
-    bytes data = 3;
+    bytes data = 2;
 }

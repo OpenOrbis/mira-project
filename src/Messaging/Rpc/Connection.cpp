@@ -117,7 +117,7 @@ void Connection::ConnectionThread(void* p_Connection)
 
     s_Connection->m_Running = true;
 
-    uint32_t s_IncomingMessageSize = 0;
+    uint64_t s_IncomingMessageSize = 0;
     ssize_t s_Ret = -1;
     while ((s_Ret = krecv_t(s_Connection->GetSocket(), &s_IncomingMessageSize, sizeof(s_IncomingMessageSize), 0, s_MainThread)) > 0)
     {
@@ -136,12 +136,13 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // Allocate data for our incoming message size
-        auto s_IncomingMessageData = new uint8_t[s_IncomingMessageSize];
+        auto s_IncomingMessageData = new uint8_t[MaxBufferSize];
         if (s_IncomingMessageData == nullptr)
         {
             WriteLog(LL_Error, "could not allocate incoming message size (%llx)", s_IncomingMessageSize);
             break;
         }
+        memset(s_IncomingMessageData, 0, MaxBufferSize);
 
         // Get the message data from the wire
         s_Ret = krecv_t(s_Connection->GetSocket(), s_IncomingMessageData, s_IncomingMessageSize, 0, s_MainThread);
@@ -169,6 +170,7 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_Header->magic != 2)
         {
             WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", s_Header->magic, 2);
+            rpc_transport__free_unpacked(s_Transport, nullptr);
             break;
         }
 
@@ -177,6 +179,7 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_Category < RPC_CATEGORY__NONE || s_Category > RPC_CATEGORY__MAX)
         {
             WriteLog(LL_Error, "invalid category (%d).", s_Category);
+            rpc_transport__free_unpacked(s_Transport, nullptr);
             break;
         }
 
@@ -184,13 +187,15 @@ void Connection::ConnectionThread(void* p_Connection)
         if (!s_Header->isrequest)
         {
             WriteLog(LL_Error, "attempted to handle outgoing message, fix ya code");
+            rpc_transport__free_unpacked(s_Transport, nullptr);
             break;
         }
 
         // Bounds check the span
-        if (s_Transport->datalength > MaxBufferSize)
+        if (s_Transport->data.len > MaxBufferSize)
         {
-            WriteLog(LL_Error, "transport data does not have enough data, wanted (%d), have (%d).", s_Transport->datalength, MaxBufferSize);
+            WriteLog(LL_Error, "transport data does not have enough data, wanted (%d), have (%d).", s_Transport->data.len, MaxBufferSize);
+            rpc_transport__free_unpacked(s_Transport, nullptr);
             break;
         }
         
@@ -198,6 +203,7 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_Framework == nullptr)
         {
             WriteLog(LL_Error, "could not get mira framework.");
+            rpc_transport__free_unpacked(s_Transport, nullptr);
             break;
         }
 
@@ -205,6 +211,7 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_MessageManager == nullptr)
         {
             WriteLog(LL_Error, "could not get message manager");
+            rpc_transport__free_unpacked(s_Transport, nullptr);
             break;
         }
 
@@ -212,6 +219,8 @@ void Connection::ConnectionThread(void* p_Connection)
 
         // Zero out the header for use next iteration
         s_IncomingMessageSize = 0;
+
+        rpc_transport__free_unpacked(s_Transport, nullptr);
     }
 
     s_Connection->Disconnect();

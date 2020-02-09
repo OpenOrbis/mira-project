@@ -1059,11 +1059,23 @@ const ProtobufCMessageDescriptor fm_read_request__descriptor =
   (ProtobufCMessageInit) fm_read_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor fm_read_response__field_descriptors[1] =
+static const ProtobufCFieldDescriptor fm_read_response__field_descriptors[2] =
 {
   {
-    "data",
+    "dataSize",
     1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(FmReadResponse, datasize),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    2,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_BYTES,
     0,   /* quantifier_offset */
@@ -1075,12 +1087,13 @@ static const ProtobufCFieldDescriptor fm_read_response__field_descriptors[1] =
   },
 };
 static const unsigned fm_read_response__field_indices_by_name[] = {
-  0,   /* field[0] = data */
+  1,   /* field[1] = data */
+  0,   /* field[0] = dataSize */
 };
 static const ProtobufCIntRange fm_read_response__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 1 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor fm_read_response__descriptor =
 {
@@ -1090,14 +1103,14 @@ const ProtobufCMessageDescriptor fm_read_response__descriptor =
   "FmReadResponse",
   "",
   sizeof(FmReadResponse),
-  1,
+  2,
   fm_read_response__field_descriptors,
   fm_read_response__field_indices_by_name,
   1,  fm_read_response__number_ranges,
   (ProtobufCMessageInit) fm_read_response__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor fm_write_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor fm_write_request__field_descriptors[3] =
 {
   {
     "handle",
@@ -1112,8 +1125,20 @@ static const ProtobufCFieldDescriptor fm_write_request__field_descriptors[2] =
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "data",
+    "dataSize",
     2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(FmWriteRequest, datasize),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    3,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_BYTES,
     0,   /* quantifier_offset */
@@ -1125,13 +1150,14 @@ static const ProtobufCFieldDescriptor fm_write_request__field_descriptors[2] =
   },
 };
 static const unsigned fm_write_request__field_indices_by_name[] = {
-  1,   /* field[1] = data */
+  2,   /* field[2] = data */
+  1,   /* field[1] = dataSize */
   0,   /* field[0] = handle */
 };
 static const ProtobufCIntRange fm_write_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 3 }
 };
 const ProtobufCMessageDescriptor fm_write_request__descriptor =
 {
@@ -1141,14 +1167,14 @@ const ProtobufCMessageDescriptor fm_write_request__descriptor =
   "FmWriteRequest",
   "",
   sizeof(FmWriteRequest),
-  2,
+  3,
   fm_write_request__field_descriptors,
   fm_write_request__field_indices_by_name,
   1,  fm_write_request__number_ranges,
   (ProtobufCMessageInit) fm_write_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor fm_dent__field_descriptors[4] =
+static const ProtobufCFieldDescriptor fm_dent__field_descriptors[5] =
 {
   {
     "fileno",
@@ -1187,8 +1213,20 @@ static const ProtobufCFieldDescriptor fm_dent__field_descriptors[4] =
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "name",
+    "namelen",
     4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(FmDent, namelen),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "name",
+    5,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_STRING,
     0,   /* quantifier_offset */
@@ -1201,14 +1239,15 @@ static const ProtobufCFieldDescriptor fm_dent__field_descriptors[4] =
 };
 static const unsigned fm_dent__field_indices_by_name[] = {
   0,   /* field[0] = fileno */
-  3,   /* field[3] = name */
+  4,   /* field[4] = name */
+  3,   /* field[3] = namelen */
   1,   /* field[1] = recLen */
   2,   /* field[2] = type */
 };
 static const ProtobufCIntRange fm_dent__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 4 }
+  { 0, 5 }
 };
 const ProtobufCMessageDescriptor fm_dent__descriptor =
 {
@@ -1218,7 +1257,7 @@ const ProtobufCMessageDescriptor fm_dent__descriptor =
   "FmDent",
   "",
   sizeof(FmDent),
-  4,
+  5,
   fm_dent__field_descriptors,
   fm_dent__field_indices_by_name,
   1,  fm_dent__number_ranges,

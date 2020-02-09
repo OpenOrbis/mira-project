@@ -23,6 +23,11 @@
 #include <sys/filedesc.h>
 #include <sys/file.h>
 
+extern "C"
+{
+    #include "filemanager.pb-c.h"
+};
+
 using namespace Mira::Plugins;
 using namespace Mira::Plugins::FileManagerExtent;
 
@@ -70,20 +75,16 @@ bool FileManager::OnUnload()
 
 void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(EchoRequest))
+    FmEchoRequest* s_Request = fm_echo_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "invalid message");
         return;
     }
 
-    auto s_Request = reinterpret_cast<const EchoRequest*>(p_Message.Buffer);
-    if (s_Request->Length > MaxEchoLength)
-    {
-        WriteLog(LL_Error, "invalid length");
-        return;
-    }
+    WriteLog(LL_Error, "echo: (%s).", s_Request->message);
 
-    WriteLog(LL_Error, "echo: (%s).", s_Request->Message);*/
+    fm_echo_request__free_unpacked(s_Request, nullptr);
 }
 
 void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)

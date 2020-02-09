@@ -3,6 +3,7 @@
 
 #include <Utils/Kdlsym.hpp>
 #include <Utils/SysWrappers.hpp>
+#include <Utils/Kernel.hpp>
 
 #include "Rpc/Server.hpp"
 #include "Rpc/Connection.hpp"
@@ -188,29 +189,49 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
-    // TODO: FIXME
-    // Get and send the header data
-    /*auto s_Ret = kwrite_t(s_Socket, &p_Message.Header, sizeof(p_Message.Header), s_MainThread);
-    if (s_Ret < 0)
+    auto s_SerializedSize = rpc_transport__get_packed_size(&p_Message);
+    if (s_SerializedSize <= 0)
     {
-        WriteLog(LL_Error, "could not send header data (%p).", &p_Message.Header);
+        WriteLog(LL_Error, "invalid serialized size (%x)", s_SerializedSize);
         return;
     }
 
-    // Send the payload
-    auto s_Data = p_Message.Buffer;
-    auto s_DataLength = p_Message.Header.payloadLength;
-
-    // If there is no payload then we don't send anything
-    if (s_Data == nullptr || s_DataLength == 0)
-        return;
-    
-    s_Ret = kwrite_t(s_Socket, s_Data, s_DataLength, s_MainThread);
-    if (s_Ret < 0)
+    if (s_SerializedSize > 0x10000)
     {
-        WriteLog(LL_Error, "could not send payload data (%p) len (%d) ret (%d).", s_Data, s_DataLength, s_Ret);
+        WriteLog(LL_Error, "serialized size too large (%x) > (0x10000)", s_SerializedSize);
         return;
-    }*/
+    }
+
+    // Allocate enough space for size + message data
+    auto s_TotalSize = sizeof(uint64_t) + s_SerializedSize;
+    auto s_SerializedData = new uint8_t[s_TotalSize];
+    if (s_SerializedData == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate (%x).", s_SerializedSize);
+        return;
+    }
+    memset(s_SerializedData, 0, s_TotalSize);
+
+    // Set the message size
+    *(uint64_t*)s_SerializedData = s_SerializedSize;
+
+    // Get the message start
+    auto s_MessageStart = s_SerializedData + sizeof(uint64_t);
+
+    // Pack the message
+    auto s_Ret = rpc_transport__pack(&p_Message, s_MessageStart);
+    WriteLog(LL_Debug, "packed message size (%x)", s_Ret);
+
+    // Get and send the data
+    auto s_BytesWritten = kwrite_t(s_Socket, s_SerializedData, s_TotalSize, s_MainThread);
+    if (s_BytesWritten < 0)
+    {
+        WriteLog(LL_Error, "could not send data (%lld).", s_BytesWritten);
+        delete [] s_SerializedData;
+        return;
+    }
+
+    delete [] s_SerializedData;
 }
 
 void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
@@ -239,9 +260,6 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
         WriteLog(LL_Error, "could not find the right shit");
         return;
     }
-
-    //WriteLog(LL_Warn, "foundIndex: %d", s_FoundIndex);
-    //WriteLog(LL_Warn, "call entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
 
     if (s_FoundEntry->GetCallback())
         s_FoundEntry->GetCallback()(p_Connection, p_Message);

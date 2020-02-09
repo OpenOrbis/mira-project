@@ -473,6 +473,7 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
 	auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
+	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
@@ -486,4 +487,5 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 	}
 
 	kproc_exit(0);
+	kthread_exit();
 }
