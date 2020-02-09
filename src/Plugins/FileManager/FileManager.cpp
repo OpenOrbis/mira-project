@@ -236,18 +236,22 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
     }
 
     uint64_t s_DentCount = GetDentCount(s_Request->path);
+    //WriteLog(LL_Info, "dentCount: (%lld)", s_DentCount);
 
     fm_get_dents_request__free_unpacked(s_Request, nullptr);
     s_Request = nullptr;
 
+    FmDent* s_Dents[s_DentCount];
+    memset(s_Dents, 0, sizeof(s_Dents));
+
     uint64_t s_CurrentDentIndex = 0;
 
-    FmDent* s_Dents = new FmDent[s_DentCount];
+    //WriteLog(LL_Info, "dents: (%p)", s_Dents);
 
     // Switch this to use stack
     char s_Buffer[0x1000] = { 0 };
     memset(s_Buffer, 0, sizeof(s_Buffer));
-    WriteLog(LL_Debug, "here");
+    //WriteLog(LL_Debug, "here");
 
     int32_t s_ReadCount = 0;
     for (;;)
@@ -268,77 +272,113 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
 
             auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
 
-            s_Dents[s_CurrentDentIndex] = FM_DENT__INIT;
-            s_Dents[s_CurrentDentIndex].fileno = l_Dent->d_fileno;
-            s_Dents[s_CurrentDentIndex].type = l_Dent->d_type;
-            s_Dents[s_CurrentDentIndex].name = new char[l_Dent->d_namlen + 1];
-            if (s_Dents[s_CurrentDentIndex].name == nullptr)
+            auto l_FmDent = new FmDent();
+            if (l_FmDent == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate fmdent");
+                break;
+            }
+            memset(l_FmDent, 0, sizeof(*l_FmDent));
+
+            // Initialize dent
+            *l_FmDent = FM_DENT__INIT;
+            l_FmDent->fileno = l_Dent->d_fileno;
+            l_FmDent->type = l_Dent->d_type;
+            l_FmDent->name = new char[l_Dent->d_namlen + 1];
+            if (l_FmDent->name == nullptr)
             {
                 WriteLog(LL_Error, "could not allocate memory for name");
                 break;
             }
-            memset(s_Dents[s_CurrentDentIndex].name, 0, l_Dent->d_namlen + 1);
-            memcpy(s_Dents[s_CurrentDentIndex].name, l_Dent->d_name, l_Dent->d_namlen);
+            memset(l_FmDent->name, 0, l_Dent->d_namlen + 1);
+            memcpy(l_FmDent->name, l_Dent->d_name, l_Dent->d_namlen);
+
+            //WriteLog(LL_Info, "dent: (%d) (%s)", s_CurrentDentIndex, l_FmDent->name);
+
+            s_Dents[s_CurrentDentIndex] = l_FmDent;
+
+            //WriteLog(LL_Debug, "s_CurrentDentIndex: %lld", s_CurrentDentIndex);
+            s_CurrentDentIndex++;
 
             l_Pos += l_Dent->d_reclen;
         }
     }
     kclose_t(s_DirectoryHandle, s_MainThread);
 
+    //WriteLog(LL_Debug, "here");
     FmGetDentsResponse s_Response = FM_GET_DENTS_RESPONSE__INIT;
     s_Response.n_dents = s_DentCount;
-    s_Response.dents = &s_Dents;
+    s_Response.dents = s_Dents;
 
+    //WriteLog(LL_Debug, "here");
     auto s_PackedSize = fm_get_dents_response__get_packed_size(&s_Response);
+    //WriteLog(LL_Debug, "packedSize: %lld", s_PackedSize);
     if (s_PackedSize <= 0)
     {
         WriteLog(LL_Error, "could not get packed size");
 
-        // Free all of the allocated names
+         // Free all of the allocated names
         for (auto i = 0; i < s_DentCount; ++i)
         {
-            if (s_Dents[i].name != nullptr)
-                delete [] s_Dents[i].name;
+            if (s_Dents[i] == nullptr)
+                continue;
+                
+            if (s_Dents[i]->name != nullptr)
+                delete [] s_Dents[i]->name;
             
-            s_Dents[i].name = nullptr;
+            s_Dents[i]->name = nullptr;
+
+            delete s_Dents[i];
+            s_Dents[i] = nullptr;
         }
-        delete [] s_Dents;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
     auto s_Data = new uint8_t[s_PackedSize];
+    //WriteLog(LL_Debug, "data: (%p) size: %lld", s_Data, s_PackedSize);
     if (s_Data == nullptr)
     {
         WriteLog(LL_Error, "could not allocate (%llx)", s_Data);
 
-        // Free all of the allocated names
+         // Free all of the allocated names
         for (auto i = 0; i < s_DentCount; ++i)
         {
-            if (s_Dents[i].name != nullptr)
-                delete [] s_Dents[i].name;
+            if (s_Dents[i] == nullptr)
+                continue;
+
+            if (s_Dents[i]->name != nullptr)
+                delete [] s_Dents[i]->name;
             
-            s_Dents[i].name = nullptr;
+            s_Dents[i]->name = nullptr;
+
+            delete s_Dents[i];
+            s_Dents[i] = nullptr;
         }
-        delete [] s_Dents;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
     auto s_Ret = fm_get_dents_response__pack(&s_Response, s_Data);
+    //WriteLog(LL_Debug, "pack result (%lld)", s_Ret);
     if (s_Ret != s_PackedSize)
     {
         WriteLog(LL_Error, "could not pack");
 
-        // Free all of the allocated names
+         // Free all of the allocated names
         for (auto i = 0; i < s_DentCount; ++i)
         {
-            if (s_Dents[i].name != nullptr)
-                delete [] s_Dents[i].name;
+            if (s_Dents[i] == nullptr)
+                continue;
+                
+            if (s_Dents[i]->name != nullptr)
+                delete [] s_Dents[i]->name;
             
-            s_Dents[i].name = nullptr;
+            s_Dents[i]->name = nullptr;
+
+            delete s_Dents[i];
+            s_Dents[i] = nullptr;
         }
-        delete [] s_Dents;
         delete [] s_Data;
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
@@ -349,13 +389,17 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
     // Free all of the allocated names
     for (auto i = 0; i < s_DentCount; ++i)
     {
-        if (s_Dents[i].name != nullptr)
-            delete [] s_Dents[i].name;
+        if (s_Dents[i] == nullptr)
+            continue;
+            
+        if (s_Dents[i]->name != nullptr)
+            delete [] s_Dents[i]->name;
         
-        s_Dents[i].name = nullptr;
-    }
+        s_Dents[i]->name = nullptr;
 
-    delete [] s_Dents;
+        delete s_Dents[i];
+        s_Dents[i] = nullptr;
+    }
 }
 
 uint64_t FileManager::GetDentCount(const char* p_Path)
