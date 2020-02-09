@@ -206,7 +206,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
 
     // Pack the message
     auto s_Ret = rpc_transport__pack(&p_Message, s_MessageStart);
-    WriteLog(LL_Debug, "packed message size (%x)", s_Ret);
+    //WriteLog(LL_Debug, "packed message size (%x)", s_Ret);
 
     // Get and send the data
     auto s_BytesWritten = kwrite_t(s_Socket, s_SerializedData, s_TotalSize, s_MainThread);

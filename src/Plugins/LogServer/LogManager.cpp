@@ -189,7 +189,7 @@ void LogManager::ServerThread(void* p_UserArgs)
     while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
         // Set the send recv and linger timeouts
-        auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
+        /*auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
         if (result < 0)
         {
             WriteLog(LL_Error, "could not set recv timeout (%d).", result);
@@ -203,11 +203,11 @@ void LogManager::ServerThread(void* p_UserArgs)
             WriteLog(LL_Error, "could not set send timeout (%d).", result);
             kclose_t(s_ClientSocket, s_MainThread);
             continue;
-        }
+        }*/
 
         // SO_LINGER
         s_Timeout.tv_sec = 0;
-        result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
+        auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
         if (result < 0)
         {
             WriteLog(LL_Error, "could not set send timeout (%d).", result);
