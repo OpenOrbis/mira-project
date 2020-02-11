@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "rpc.proto";
-
 message DbgGetProcessList {
     
 }

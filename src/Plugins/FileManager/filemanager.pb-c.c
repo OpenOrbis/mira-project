@@ -1026,7 +1026,7 @@ static const ProtobufCFieldDescriptor fm_read_request__field_descriptors[2] =
     "size",
     2,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_UINT32,
+    PROTOBUF_C_TYPE_UINT64,
     0,   /* quantifier_offset */
     offsetof(FmReadRequest, size),
     NULL,

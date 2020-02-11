@@ -1,7 +1,5 @@
 syntax = "proto3";
 
-import "rpc.proto";
-
 message FmEchoRequest {
     string message = 1;
 }
@@ -23,7 +21,7 @@ message FmSeekRequest {
 
 message FmReadRequest {
     int32 handle = 1;
-    uint32 size = 2;
+    uint64 size = 2;
 }
 
 message FmReadResponse {

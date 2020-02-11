@@ -286,27 +286,6 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
 	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
-	/*MessageHeader header = MESSAGE_HEADER__INIT;
-	header.magic = 2;
-	header.error = 0;
-	header.category = MESSAGE_CATEGORY__SYSTEM;
-	header.type = 0xEBDB1342;
-
-
-	FmEchoRequest msg = FM_ECHO_REQUEST__INIT;
-	msg.header = &header;
-	msg.message = (char*)"dsdadasdasdas fuck you";
-
-	auto s_Len = fm_echo_request__get_packed_size(&msg);
-	WriteLog(LL_Debug, "length (%d)", s_Len);
-
-	auto s_Buffer = new uint8_t[s_Len];
-	WriteLog(LL_Error, "buf: (%p) sz: (%d)", s_Buffer, s_Len);
-
-	fm_echo_request__pack(&msg, s_Buffer);
-
-	delete [] s_Buffer;*/
-
 	// Install device driver
 	/*
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");

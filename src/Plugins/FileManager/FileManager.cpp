@@ -519,6 +519,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
         if (s_Request->path == nullptr)
         {
             WriteLog(LL_Error, "invalid path length");
+            fm_stat_request__free_unpacked(s_Request, nullptr);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOENT);
             return;
         }
@@ -527,6 +528,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
+            fm_stat_request__free_unpacked(s_Request, nullptr);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_Ret);
             return;
         }
@@ -537,6 +539,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
+            fm_stat_request__free_unpacked(s_Request, nullptr);
             Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, s_Ret);
             return;
         }
