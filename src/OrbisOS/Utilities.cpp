@@ -23,7 +23,8 @@ extern "C"
 
 using namespace Mira::OrbisOS;
 
-// Credits: m0rph
+// Credits: m0rph (https://github.com/m0rph3us1987)
+// This allows the short jump hooks to jump far (into Mira's dynamically allocated memory, which could be anywhere)
 void Utilities::HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address)
 {
     uint8_t* s_HookPayload = p_HookTrampoline;
@@ -74,7 +75,7 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         return (uint64_t)s_Desc.piod_len;
 }
 
-// Credits: flatz
+// Credits: flatz (https://github.com/flatz)
 int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_BytesReadWrote, bool p_Write)
 {
 	if (p_Process == nullptr)

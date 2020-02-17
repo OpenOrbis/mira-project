@@ -281,6 +281,14 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
     fm_get_dents_request__free_unpacked(s_Request, nullptr);
     s_Request = nullptr;
 
+    // Protect against zero-size deref
+    if (s_DentCount == 0)
+    {
+        WriteLog(LL_Error, "could not get dents");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOENT);
+        return;
+    }
+
     FmDent* s_Dents[s_DentCount];
     memset(s_Dents, 0, sizeof(s_Dents));
 
@@ -620,7 +628,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -628,33 +636,34 @@ void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTr
         return;
     }
 
-    if (p_Message.Buffer == nullptr || p_Message.Header.payloadLength < sizeof(UnlinkRequest))
+    if (p_Message.data.data == nullptr)
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
 
-    auto s_Request = reinterpret_cast<const UnlinkRequest*>(p_Message.Buffer);
-    
-    auto s_Ret = kunlink_t(const_cast<char*>(s_Request->Path), s_MainThread);
+    FmUnlinkRequest* s_Request = fm_unlink_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack unlink request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
 
-    WriteLog(LL_Info, "unlink: (%d) (%s).", s_Ret, s_Request->Path);
+    auto s_Ret = kunlink_t(s_Request->path, s_MainThread);
+    if (s_Ret < 0)
+    {
+        fm_unlink_request__free_unpacked(s_Request, nullptr);
+        WriteLog(LL_Error, "could not unlink (%d)", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
+        return;
+    }
 
-    RpcTransport s_Response = {
-        .Header = 
-        {
-            .magic = RpcTransportHeaderMagic,
-            .category = RPC_CATEGORY__FILE,
-            .isRequest = false,
-            .errorType = static_cast<uint64_t>(s_Ret),
-            .payloadLength = 0,
-            .padding = 0
-        },
-        .Buffer = nullptr
-    };
+    fm_unlink_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, s_Response);*/
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Unlink, 0, nullptr, 0);
 }
 
 bool IsPhOverlapping(Elf64_Phdr* p_ProgramHeader, int p_ProgramHeaderIndex, Elf64_Phdr* p_ProgramHeaders, int p_ProgramHeaderCount)
