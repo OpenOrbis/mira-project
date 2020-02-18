@@ -23,6 +23,8 @@ extern "C" {
     #include "Kdlsym/Orbis474.hpp"
     #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_501
     #include "Kdlsym/Orbis501.hpp"
+    #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_503
+    #include "Kdlsym/Orbis503.hpp"
     #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_620
     #include "Kdlsym/Orbis620.hpp"
     #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_650
