@@ -6,6 +6,7 @@
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
+#include <Plugins/EmuRegistry/EmuRegistryPlugin.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -17,7 +18,9 @@ PluginManager::PluginManager() :
 	m_Logger(nullptr),
     m_Debugger(nullptr),
     m_FileManager(nullptr),
-    m_FakeSelfManager(nullptr)
+    m_FakeSelfManager(nullptr),
+    m_FakePkgManager(nullptr),
+    m_EmuRegistry(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
@@ -83,6 +86,15 @@ bool PluginManager::OnLoad()
     if (!m_FakePkgManager->OnLoad())
         WriteLog(LL_Error, "could not load fake pkg manager.");
     
+    // Initialize emu-registry
+    m_EmuRegistry = new Mira::Plugins::EmuRegistryPlugin();
+    if (m_EmuRegistry == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate emulated registry.");
+        return false;
+    }
+    if (!m_EmuRegistry->OnLoad())
+        WriteLog(LL_Error, "could not load emulated registry.");
     return true;
 }
 
@@ -157,6 +169,17 @@ bool PluginManager::OnUnload()
         m_FakePkgManager = nullptr;
     }
 
+    // Delete the emulated registry
+    if (m_EmuRegistry)
+    {
+        WriteLog(LL_Debug, "unloading emulated registry");
+        if (!m_EmuRegistry->OnUnload())
+            WriteLog(LL_Error, "emuRegistry could not unload");
+        
+        delete m_EmuRegistry;
+        m_EmuRegistry = nullptr;
+    }
+
     // Delete the log server
     if (m_Logger)
     {
@@ -216,6 +239,9 @@ bool PluginManager::OnSuspend()
 	
     if (!m_FakeSelfManager->OnSuspend())
         WriteLog(LL_Error, "fake self manager suspend failed");
+    
+    if (!m_EmuRegistry->OnSuspend())
+        WriteLog(LL_Error, "emuRegistry suspend failed");
 
     if (!m_Logger->OnSuspend())
         WriteLog(LL_Error, "log manager suspend failed");
@@ -240,7 +266,11 @@ bool PluginManager::OnResume()
     WriteLog(LL_Debug, "resuming log manager");
     if (!m_Logger->OnResume())
         WriteLog(LL_Error, "log manager resume failed"); 
-
+    
+    WriteLog(LL_Debug, "resuming emuRegistry");
+    if (!m_EmuRegistry->OnResume())
+        WriteLog(LL_Error, "emuRegistry resume failed");
+    
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
