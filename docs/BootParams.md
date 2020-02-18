@@ -1,7 +1,16 @@
+
+
+=== Registry Key ===
+
 SCE_REGMGR_ENT_KEY_DEVENV_TOOL_boot_param
 
 
-=== Default uint32 Values ===
+=== RE Location ===
+
+Sce.Vsh.ShellUI.Settings.DebugSettings > CategoryBootParam
+
+
+=== Default UInt32 Values ===
 
 bootParam_uint_0_31    = 2863311530
 bootParam_uint_32_63   = 65535
@@ -44,7 +53,7 @@ private const int Bit_No_Disable_Utoken = 9;
 private const int Bit_No_Disable_Razor = 24;
 
 
-=== Bytes 4 - 8 === // (32 - Bit)
+=== Bytes 4 - 8 === // Bit - 32
 
 private const int Bit_No_Fs_Reverted = 32; // 0
 
@@ -57,7 +66,7 @@ private const int Bit_No_Slow_Hdd_Mode = 40; // 8
 private const int Bit_No_Repeat_Kernel_System_Suspend = 62; // 30
 
 
-=== Bytes 8 - 12 === // (64 - Bit)
+=== Bytes 8 - 12 === // Bit - 64
 
 private const int Bit_No_Cpu_Restrict = 64; // 0
 
@@ -68,7 +77,7 @@ private const int Bit_No_Disable_Unapproved_Sysctl = 70; // 6
 private const int Bit_No_Vm_Compressor_Mode0 = 72; // 8
 
 
-=== Bytes 12 - 16 === // (96 - Bit)
+=== Bytes 12 - 16 === // Bit - 96
 
 private const int Bit_No_Kratos_Swap_Off = 96; // 0
 
@@ -77,7 +86,7 @@ private const int Bit_No_Kratos_Nfs_Mode = 97; // 1
 private const int Bit_No_Kratos_Wlan_Off = 100; // 4
 
 
-=== Bytes 16 - 20 === // (128 - Bit)
+=== Bytes 16 - 20 === // Bit - 128
 
 private const int Bit_No_Vsh_4k_Mode = 128; // 0
 
