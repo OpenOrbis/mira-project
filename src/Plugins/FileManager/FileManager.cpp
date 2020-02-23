@@ -253,7 +253,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
 
     if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
-        WriteLog(LL_Error, "could not get main thread");
+        WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }

@@ -7,66 +7,4618 @@
 #endif
 
 #include "debugger.pb-c.h"
-void   dbg_proc_list_request__init
-                     (DbgProcListRequest         *message)
+void   dbg_gp_registers__init
+                     (DbgGpRegisters         *message)
 {
-  static const DbgProcListRequest init_value = DBG_PROC_LIST_REQUEST__INIT;
+  static const DbgGpRegisters init_value = DBG_GP_REGISTERS__INIT;
   *message = init_value;
 }
-size_t dbg_proc_list_request__get_packed_size
-                     (const DbgProcListRequest *message)
+size_t dbg_gp_registers__get_packed_size
+                     (const DbgGpRegisters *message)
 {
-  assert(message->base.descriptor == &dbg_proc_list_request__descriptor);
+  assert(message->base.descriptor == &dbg_gp_registers__descriptor);
   return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
 }
-size_t dbg_proc_list_request__pack
-                     (const DbgProcListRequest *message,
+size_t dbg_gp_registers__pack
+                     (const DbgGpRegisters *message,
                       uint8_t       *out)
 {
-  assert(message->base.descriptor == &dbg_proc_list_request__descriptor);
+  assert(message->base.descriptor == &dbg_gp_registers__descriptor);
   return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
 }
-size_t dbg_proc_list_request__pack_to_buffer
-                     (const DbgProcListRequest *message,
+size_t dbg_gp_registers__pack_to_buffer
+                     (const DbgGpRegisters *message,
                       ProtobufCBuffer *buffer)
 {
-  assert(message->base.descriptor == &dbg_proc_list_request__descriptor);
+  assert(message->base.descriptor == &dbg_gp_registers__descriptor);
   return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
 }
-DbgProcListRequest *
-       dbg_proc_list_request__unpack
+DbgGpRegisters *
+       dbg_gp_registers__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data)
 {
-  return (DbgProcListRequest *)
-     protobuf_c_message_unpack (&dbg_proc_list_request__descriptor,
+  return (DbgGpRegisters *)
+     protobuf_c_message_unpack (&dbg_gp_registers__descriptor,
                                 allocator, len, data);
 }
-void   dbg_proc_list_request__free_unpacked
-                     (DbgProcListRequest *message,
+void   dbg_gp_registers__free_unpacked
+                     (DbgGpRegisters *message,
                       ProtobufCAllocator *allocator)
 {
   if(!message)
     return;
-  assert(message->base.descriptor == &dbg_proc_list_request__descriptor);
+  assert(message->base.descriptor == &dbg_gp_registers__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-#define dbg_proc_list_request__field_descriptors NULL
-#define dbg_proc_list_request__field_indices_by_name NULL
-#define dbg_proc_list_request__number_ranges NULL
-const ProtobufCMessageDescriptor dbg_proc_list_request__descriptor =
+void   dbg_fp_registers__init
+                     (DbgFpRegisters         *message)
+{
+  static const DbgFpRegisters init_value = DBG_FP_REGISTERS__INIT;
+  *message = init_value;
+}
+size_t dbg_fp_registers__get_packed_size
+                     (const DbgFpRegisters *message)
+{
+  assert(message->base.descriptor == &dbg_fp_registers__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_fp_registers__pack
+                     (const DbgFpRegisters *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_fp_registers__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_fp_registers__pack_to_buffer
+                     (const DbgFpRegisters *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_fp_registers__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgFpRegisters *
+       dbg_fp_registers__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgFpRegisters *)
+     protobuf_c_message_unpack (&dbg_fp_registers__descriptor,
+                                allocator, len, data);
+}
+void   dbg_fp_registers__free_unpacked
+                     (DbgFpRegisters *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_fp_registers__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_db_registers__init
+                     (DbgDbRegisters         *message)
+{
+  static const DbgDbRegisters init_value = DBG_DB_REGISTERS__INIT;
+  *message = init_value;
+}
+size_t dbg_db_registers__get_packed_size
+                     (const DbgDbRegisters *message)
+{
+  assert(message->base.descriptor == &dbg_db_registers__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_db_registers__pack
+                     (const DbgDbRegisters *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_db_registers__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_db_registers__pack_to_buffer
+                     (const DbgDbRegisters *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_db_registers__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgDbRegisters *
+       dbg_db_registers__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgDbRegisters *)
+     protobuf_c_message_unpack (&dbg_db_registers__descriptor,
+                                allocator, len, data);
+}
+void   dbg_db_registers__free_unpacked
+                     (DbgDbRegisters *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_db_registers__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_thread_limited__init
+                     (DbgThreadLimited         *message)
+{
+  static const DbgThreadLimited init_value = DBG_THREAD_LIMITED__INIT;
+  *message = init_value;
+}
+size_t dbg_thread_limited__get_packed_size
+                     (const DbgThreadLimited *message)
+{
+  assert(message->base.descriptor == &dbg_thread_limited__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_thread_limited__pack
+                     (const DbgThreadLimited *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_thread_limited__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_thread_limited__pack_to_buffer
+                     (const DbgThreadLimited *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_thread_limited__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgThreadLimited *
+       dbg_thread_limited__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgThreadLimited *)
+     protobuf_c_message_unpack (&dbg_thread_limited__descriptor,
+                                allocator, len, data);
+}
+void   dbg_thread_limited__free_unpacked
+                     (DbgThreadLimited *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_thread_limited__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_thread_full__init
+                     (DbgThreadFull         *message)
+{
+  static const DbgThreadFull init_value = DBG_THREAD_FULL__INIT;
+  *message = init_value;
+}
+size_t dbg_thread_full__get_packed_size
+                     (const DbgThreadFull *message)
+{
+  assert(message->base.descriptor == &dbg_thread_full__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_thread_full__pack
+                     (const DbgThreadFull *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_thread_full__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_thread_full__pack_to_buffer
+                     (const DbgThreadFull *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_thread_full__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgThreadFull *
+       dbg_thread_full__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgThreadFull *)
+     protobuf_c_message_unpack (&dbg_thread_full__descriptor,
+                                allocator, len, data);
+}
+void   dbg_thread_full__free_unpacked
+                     (DbgThreadFull *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_thread_full__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_cred__init
+                     (DbgCred         *message)
+{
+  static const DbgCred init_value = DBG_CRED__INIT;
+  *message = init_value;
+}
+size_t dbg_cred__get_packed_size
+                     (const DbgCred *message)
+{
+  assert(message->base.descriptor == &dbg_cred__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_cred__pack
+                     (const DbgCred *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_cred__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_cred__pack_to_buffer
+                     (const DbgCred *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_cred__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgCred *
+       dbg_cred__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgCred *)
+     protobuf_c_message_unpack (&dbg_cred__descriptor,
+                                allocator, len, data);
+}
+void   dbg_cred__free_unpacked
+                     (DbgCred *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_cred__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_file_desc__init
+                     (DbgFileDesc         *message)
+{
+  static const DbgFileDesc init_value = DBG_FILE_DESC__INIT;
+  *message = init_value;
+}
+size_t dbg_file_desc__get_packed_size
+                     (const DbgFileDesc *message)
+{
+  assert(message->base.descriptor == &dbg_file_desc__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_file_desc__pack
+                     (const DbgFileDesc *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_file_desc__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_file_desc__pack_to_buffer
+                     (const DbgFileDesc *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_file_desc__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgFileDesc *
+       dbg_file_desc__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgFileDesc *)
+     protobuf_c_message_unpack (&dbg_file_desc__descriptor,
+                                allocator, len, data);
+}
+void   dbg_file_desc__free_unpacked
+                     (DbgFileDesc *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_file_desc__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_process_full__init
+                     (DbgProcessFull         *message)
+{
+  static const DbgProcessFull init_value = DBG_PROCESS_FULL__INIT;
+  *message = init_value;
+}
+size_t dbg_process_full__get_packed_size
+                     (const DbgProcessFull *message)
+{
+  assert(message->base.descriptor == &dbg_process_full__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_process_full__pack
+                     (const DbgProcessFull *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_process_full__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_process_full__pack_to_buffer
+                     (const DbgProcessFull *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_process_full__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgProcessFull *
+       dbg_process_full__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgProcessFull *)
+     protobuf_c_message_unpack (&dbg_process_full__descriptor,
+                                allocator, len, data);
+}
+void   dbg_process_full__free_unpacked
+                     (DbgProcessFull *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_process_full__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_vm_entry__init
+                     (DbgVmEntry         *message)
+{
+  static const DbgVmEntry init_value = DBG_VM_ENTRY__INIT;
+  *message = init_value;
+}
+size_t dbg_vm_entry__get_packed_size
+                     (const DbgVmEntry *message)
+{
+  assert(message->base.descriptor == &dbg_vm_entry__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_vm_entry__pack
+                     (const DbgVmEntry *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_vm_entry__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_vm_entry__pack_to_buffer
+                     (const DbgVmEntry *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_vm_entry__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgVmEntry *
+       dbg_vm_entry__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgVmEntry *)
+     protobuf_c_message_unpack (&dbg_vm_entry__descriptor,
+                                allocator, len, data);
+}
+void   dbg_vm_entry__free_unpacked
+                     (DbgVmEntry *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_vm_entry__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_process_limited__init
+                     (DbgProcessLimited         *message)
+{
+  static const DbgProcessLimited init_value = DBG_PROCESS_LIMITED__INIT;
+  *message = init_value;
+}
+size_t dbg_process_limited__get_packed_size
+                     (const DbgProcessLimited *message)
+{
+  assert(message->base.descriptor == &dbg_process_limited__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_process_limited__pack
+                     (const DbgProcessLimited *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_process_limited__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_process_limited__pack_to_buffer
+                     (const DbgProcessLimited *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_process_limited__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgProcessLimited *
+       dbg_process_limited__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgProcessLimited *)
+     protobuf_c_message_unpack (&dbg_process_limited__descriptor,
+                                allocator, len, data);
+}
+void   dbg_process_limited__free_unpacked
+                     (DbgProcessLimited *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_process_limited__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_process_list_response__init
+                     (DbgGetProcessListResponse         *message)
+{
+  static const DbgGetProcessListResponse init_value = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_get_process_list_response__get_packed_size
+                     (const DbgGetProcessListResponse *message)
+{
+  assert(message->base.descriptor == &dbg_get_process_list_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_process_list_response__pack
+                     (const DbgGetProcessListResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_process_list_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_process_list_response__pack_to_buffer
+                     (const DbgGetProcessListResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_process_list_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetProcessListResponse *
+       dbg_get_process_list_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetProcessListResponse *)
+     protobuf_c_message_unpack (&dbg_get_process_list_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_process_list_response__free_unpacked
+                     (DbgGetProcessListResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_process_list_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_read_process_memory_request__init
+                     (DbgReadProcessMemoryRequest         *message)
+{
+  static const DbgReadProcessMemoryRequest init_value = DBG_READ_PROCESS_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_read_process_memory_request__get_packed_size
+                     (const DbgReadProcessMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_read_process_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_read_process_memory_request__pack
+                     (const DbgReadProcessMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_read_process_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_read_process_memory_request__pack_to_buffer
+                     (const DbgReadProcessMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_read_process_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgReadProcessMemoryRequest *
+       dbg_read_process_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgReadProcessMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_read_process_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_read_process_memory_request__free_unpacked
+                     (DbgReadProcessMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_read_process_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_read_process_memory_response__init
+                     (DbgReadProcessMemoryResponse         *message)
+{
+  static const DbgReadProcessMemoryResponse init_value = DBG_READ_PROCESS_MEMORY_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_read_process_memory_response__get_packed_size
+                     (const DbgReadProcessMemoryResponse *message)
+{
+  assert(message->base.descriptor == &dbg_read_process_memory_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_read_process_memory_response__pack
+                     (const DbgReadProcessMemoryResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_read_process_memory_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_read_process_memory_response__pack_to_buffer
+                     (const DbgReadProcessMemoryResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_read_process_memory_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgReadProcessMemoryResponse *
+       dbg_read_process_memory_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgReadProcessMemoryResponse *)
+     protobuf_c_message_unpack (&dbg_read_process_memory_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_read_process_memory_response__free_unpacked
+                     (DbgReadProcessMemoryResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_read_process_memory_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_write_process_memory_request__init
+                     (DbgWriteProcessMemoryRequest         *message)
+{
+  static const DbgWriteProcessMemoryRequest init_value = DBG_WRITE_PROCESS_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_write_process_memory_request__get_packed_size
+                     (const DbgWriteProcessMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_write_process_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_write_process_memory_request__pack
+                     (const DbgWriteProcessMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_write_process_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_write_process_memory_request__pack_to_buffer
+                     (const DbgWriteProcessMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_write_process_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgWriteProcessMemoryRequest *
+       dbg_write_process_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgWriteProcessMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_write_process_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_write_process_memory_request__free_unpacked
+                     (DbgWriteProcessMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_write_process_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_protect_process_memory_request__init
+                     (DbgProtectProcessMemoryRequest         *message)
+{
+  static const DbgProtectProcessMemoryRequest init_value = DBG_PROTECT_PROCESS_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_protect_process_memory_request__get_packed_size
+                     (const DbgProtectProcessMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_protect_process_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_protect_process_memory_request__pack
+                     (const DbgProtectProcessMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_protect_process_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_protect_process_memory_request__pack_to_buffer
+                     (const DbgProtectProcessMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_protect_process_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgProtectProcessMemoryRequest *
+       dbg_protect_process_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgProtectProcessMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_protect_process_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_protect_process_memory_request__free_unpacked
+                     (DbgProtectProcessMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_protect_process_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_scan_process_memory_request__init
+                     (DbgScanProcessMemoryRequest         *message)
+{
+  static const DbgScanProcessMemoryRequest init_value = DBG_SCAN_PROCESS_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_scan_process_memory_request__get_packed_size
+                     (const DbgScanProcessMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_scan_process_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_scan_process_memory_request__pack
+                     (const DbgScanProcessMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_scan_process_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_scan_process_memory_request__pack_to_buffer
+                     (const DbgScanProcessMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_scan_process_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgScanProcessMemoryRequest *
+       dbg_scan_process_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgScanProcessMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_scan_process_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_scan_process_memory_request__free_unpacked
+                     (DbgScanProcessMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_scan_process_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_process_info_request__init
+                     (DbgGetProcessInfoRequest         *message)
+{
+  static const DbgGetProcessInfoRequest init_value = DBG_GET_PROCESS_INFO_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_get_process_info_request__get_packed_size
+                     (const DbgGetProcessInfoRequest *message)
+{
+  assert(message->base.descriptor == &dbg_get_process_info_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_process_info_request__pack
+                     (const DbgGetProcessInfoRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_process_info_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_process_info_request__pack_to_buffer
+                     (const DbgGetProcessInfoRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_process_info_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetProcessInfoRequest *
+       dbg_get_process_info_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetProcessInfoRequest *)
+     protobuf_c_message_unpack (&dbg_get_process_info_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_process_info_request__free_unpacked
+                     (DbgGetProcessInfoRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_process_info_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_allocate_process_memory_request__init
+                     (DbgAllocateProcessMemoryRequest         *message)
+{
+  static const DbgAllocateProcessMemoryRequest init_value = DBG_ALLOCATE_PROCESS_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_allocate_process_memory_request__get_packed_size
+                     (const DbgAllocateProcessMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_allocate_process_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_allocate_process_memory_request__pack
+                     (const DbgAllocateProcessMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_allocate_process_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_allocate_process_memory_request__pack_to_buffer
+                     (const DbgAllocateProcessMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_allocate_process_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgAllocateProcessMemoryRequest *
+       dbg_allocate_process_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgAllocateProcessMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_allocate_process_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_allocate_process_memory_request__free_unpacked
+                     (DbgAllocateProcessMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_allocate_process_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_allocate_process_memory_response__init
+                     (DbgAllocateProcessMemoryResponse         *message)
+{
+  static const DbgAllocateProcessMemoryResponse init_value = DBG_ALLOCATE_PROCESS_MEMORY_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_allocate_process_memory_response__get_packed_size
+                     (const DbgAllocateProcessMemoryResponse *message)
+{
+  assert(message->base.descriptor == &dbg_allocate_process_memory_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_allocate_process_memory_response__pack
+                     (const DbgAllocateProcessMemoryResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_allocate_process_memory_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_allocate_process_memory_response__pack_to_buffer
+                     (const DbgAllocateProcessMemoryResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_allocate_process_memory_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgAllocateProcessMemoryResponse *
+       dbg_allocate_process_memory_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgAllocateProcessMemoryResponse *)
+     protobuf_c_message_unpack (&dbg_allocate_process_memory_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_allocate_process_memory_response__free_unpacked
+                     (DbgAllocateProcessMemoryResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_allocate_process_memory_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_free_process_memory_request__init
+                     (DbgFreeProcessMemoryRequest         *message)
+{
+  static const DbgFreeProcessMemoryRequest init_value = DBG_FREE_PROCESS_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_free_process_memory_request__get_packed_size
+                     (const DbgFreeProcessMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_free_process_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_free_process_memory_request__pack
+                     (const DbgFreeProcessMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_free_process_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_free_process_memory_request__pack_to_buffer
+                     (const DbgFreeProcessMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_free_process_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgFreeProcessMemoryRequest *
+       dbg_free_process_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgFreeProcessMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_free_process_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_free_process_memory_request__free_unpacked
+                     (DbgFreeProcessMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_free_process_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_process_maps_request__init
+                     (DbgGetProcessMapsRequest         *message)
+{
+  static const DbgGetProcessMapsRequest init_value = DBG_GET_PROCESS_MAPS_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_get_process_maps_request__get_packed_size
+                     (const DbgGetProcessMapsRequest *message)
+{
+  assert(message->base.descriptor == &dbg_get_process_maps_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_process_maps_request__pack
+                     (const DbgGetProcessMapsRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_process_maps_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_process_maps_request__pack_to_buffer
+                     (const DbgGetProcessMapsRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_process_maps_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetProcessMapsRequest *
+       dbg_get_process_maps_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetProcessMapsRequest *)
+     protobuf_c_message_unpack (&dbg_get_process_maps_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_process_maps_request__free_unpacked
+                     (DbgGetProcessMapsRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_process_maps_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_attach_request__init
+                     (DbgAttachRequest         *message)
+{
+  static const DbgAttachRequest init_value = DBG_ATTACH_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_attach_request__get_packed_size
+                     (const DbgAttachRequest *message)
+{
+  assert(message->base.descriptor == &dbg_attach_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_attach_request__pack
+                     (const DbgAttachRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_attach_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_attach_request__pack_to_buffer
+                     (const DbgAttachRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_attach_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgAttachRequest *
+       dbg_attach_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgAttachRequest *)
+     protobuf_c_message_unpack (&dbg_attach_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_attach_request__free_unpacked
+                     (DbgAttachRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_attach_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_detach_request__init
+                     (DbgDetachRequest         *message)
+{
+  static const DbgDetachRequest init_value = DBG_DETACH_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_detach_request__get_packed_size
+                     (const DbgDetachRequest *message)
+{
+  assert(message->base.descriptor == &dbg_detach_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_detach_request__pack
+                     (const DbgDetachRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_detach_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_detach_request__pack_to_buffer
+                     (const DbgDetachRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_detach_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgDetachRequest *
+       dbg_detach_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgDetachRequest *)
+     protobuf_c_message_unpack (&dbg_detach_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_detach_request__free_unpacked
+                     (DbgDetachRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_detach_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_breakpoint_request__init
+                     (DbgBreakpointRequest         *message)
+{
+  static const DbgBreakpointRequest init_value = DBG_BREAKPOINT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_breakpoint_request__get_packed_size
+                     (const DbgBreakpointRequest *message)
+{
+  assert(message->base.descriptor == &dbg_breakpoint_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_breakpoint_request__pack
+                     (const DbgBreakpointRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_breakpoint_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_breakpoint_request__pack_to_buffer
+                     (const DbgBreakpointRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_breakpoint_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgBreakpointRequest *
+       dbg_breakpoint_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgBreakpointRequest *)
+     protobuf_c_message_unpack (&dbg_breakpoint_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_breakpoint_request__free_unpacked
+                     (DbgBreakpointRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_breakpoint_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_breakpoint_response__init
+                     (DbgBreakpointResponse         *message)
+{
+  static const DbgBreakpointResponse init_value = DBG_BREAKPOINT_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_breakpoint_response__get_packed_size
+                     (const DbgBreakpointResponse *message)
+{
+  assert(message->base.descriptor == &dbg_breakpoint_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_breakpoint_response__pack
+                     (const DbgBreakpointResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_breakpoint_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_breakpoint_response__pack_to_buffer
+                     (const DbgBreakpointResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_breakpoint_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgBreakpointResponse *
+       dbg_breakpoint_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgBreakpointResponse *)
+     protobuf_c_message_unpack (&dbg_breakpoint_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_breakpoint_response__free_unpacked
+                     (DbgBreakpointResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_breakpoint_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_watchpoint_request__init
+                     (DbgWatchpointRequest         *message)
+{
+  static const DbgWatchpointRequest init_value = DBG_WATCHPOINT_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_watchpoint_request__get_packed_size
+                     (const DbgWatchpointRequest *message)
+{
+  assert(message->base.descriptor == &dbg_watchpoint_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_watchpoint_request__pack
+                     (const DbgWatchpointRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_watchpoint_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_watchpoint_request__pack_to_buffer
+                     (const DbgWatchpointRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_watchpoint_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgWatchpointRequest *
+       dbg_watchpoint_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgWatchpointRequest *)
+     protobuf_c_message_unpack (&dbg_watchpoint_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_watchpoint_request__free_unpacked
+                     (DbgWatchpointRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_watchpoint_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_watchpoint_response__init
+                     (DbgWatchpointResponse         *message)
+{
+  static const DbgWatchpointResponse init_value = DBG_WATCHPOINT_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_watchpoint_response__get_packed_size
+                     (const DbgWatchpointResponse *message)
+{
+  assert(message->base.descriptor == &dbg_watchpoint_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_watchpoint_response__pack
+                     (const DbgWatchpointResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_watchpoint_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_watchpoint_response__pack_to_buffer
+                     (const DbgWatchpointResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_watchpoint_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgWatchpointResponse *
+       dbg_watchpoint_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgWatchpointResponse *)
+     protobuf_c_message_unpack (&dbg_watchpoint_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_watchpoint_response__free_unpacked
+                     (DbgWatchpointResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_watchpoint_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_process_threads_request__init
+                     (DbgGetProcessThreadsRequest         *message)
+{
+  static const DbgGetProcessThreadsRequest init_value = DBG_GET_PROCESS_THREADS_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_get_process_threads_request__get_packed_size
+                     (const DbgGetProcessThreadsRequest *message)
+{
+  assert(message->base.descriptor == &dbg_get_process_threads_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_process_threads_request__pack
+                     (const DbgGetProcessThreadsRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_process_threads_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_process_threads_request__pack_to_buffer
+                     (const DbgGetProcessThreadsRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_process_threads_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetProcessThreadsRequest *
+       dbg_get_process_threads_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetProcessThreadsRequest *)
+     protobuf_c_message_unpack (&dbg_get_process_threads_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_process_threads_request__free_unpacked
+                     (DbgGetProcessThreadsRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_process_threads_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_process_threads_response__init
+                     (DbgGetProcessThreadsResponse         *message)
+{
+  static const DbgGetProcessThreadsResponse init_value = DBG_GET_PROCESS_THREADS_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_get_process_threads_response__get_packed_size
+                     (const DbgGetProcessThreadsResponse *message)
+{
+  assert(message->base.descriptor == &dbg_get_process_threads_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_process_threads_response__pack
+                     (const DbgGetProcessThreadsResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_process_threads_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_process_threads_response__pack_to_buffer
+                     (const DbgGetProcessThreadsResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_process_threads_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetProcessThreadsResponse *
+       dbg_get_process_threads_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetProcessThreadsResponse *)
+     protobuf_c_message_unpack (&dbg_get_process_threads_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_process_threads_response__free_unpacked
+                     (DbgGetProcessThreadsResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_process_threads_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_signal_process_request__init
+                     (DbgSignalProcessRequest         *message)
+{
+  static const DbgSignalProcessRequest init_value = DBG_SIGNAL_PROCESS_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_signal_process_request__get_packed_size
+                     (const DbgSignalProcessRequest *message)
+{
+  assert(message->base.descriptor == &dbg_signal_process_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_signal_process_request__pack
+                     (const DbgSignalProcessRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_signal_process_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_signal_process_request__pack_to_buffer
+                     (const DbgSignalProcessRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_signal_process_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgSignalProcessRequest *
+       dbg_signal_process_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgSignalProcessRequest *)
+     protobuf_c_message_unpack (&dbg_signal_process_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_signal_process_request__free_unpacked
+                     (DbgSignalProcessRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_signal_process_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_registers_request__init
+                     (DbgGetRegistersRequest         *message)
+{
+  static const DbgGetRegistersRequest init_value = DBG_GET_REGISTERS_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_get_registers_request__get_packed_size
+                     (const DbgGetRegistersRequest *message)
+{
+  assert(message->base.descriptor == &dbg_get_registers_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_registers_request__pack
+                     (const DbgGetRegistersRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_registers_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_registers_request__pack_to_buffer
+                     (const DbgGetRegistersRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_registers_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetRegistersRequest *
+       dbg_get_registers_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetRegistersRequest *)
+     protobuf_c_message_unpack (&dbg_get_registers_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_registers_request__free_unpacked
+                     (DbgGetRegistersRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_registers_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_registers_response__init
+                     (DbgGetRegistersResponse         *message)
+{
+  static const DbgGetRegistersResponse init_value = DBG_GET_REGISTERS_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_get_registers_response__get_packed_size
+                     (const DbgGetRegistersResponse *message)
+{
+  assert(message->base.descriptor == &dbg_get_registers_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_registers_response__pack
+                     (const DbgGetRegistersResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_registers_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_registers_response__pack_to_buffer
+                     (const DbgGetRegistersResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_registers_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetRegistersResponse *
+       dbg_get_registers_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetRegistersResponse *)
+     protobuf_c_message_unpack (&dbg_get_registers_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_registers_response__free_unpacked
+                     (DbgGetRegistersResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_registers_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_set_registers_request__init
+                     (DbgSetRegistersRequest         *message)
+{
+  static const DbgSetRegistersRequest init_value = DBG_SET_REGISTERS_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_set_registers_request__get_packed_size
+                     (const DbgSetRegistersRequest *message)
+{
+  assert(message->base.descriptor == &dbg_set_registers_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_set_registers_request__pack
+                     (const DbgSetRegistersRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_set_registers_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_set_registers_request__pack_to_buffer
+                     (const DbgSetRegistersRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_set_registers_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgSetRegistersRequest *
+       dbg_set_registers_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgSetRegistersRequest *)
+     protobuf_c_message_unpack (&dbg_set_registers_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_set_registers_request__free_unpacked
+                     (DbgSetRegistersRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_set_registers_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_thread_info_request__init
+                     (DbgGetThreadInfoRequest         *message)
+{
+  static const DbgGetThreadInfoRequest init_value = DBG_GET_THREAD_INFO_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_get_thread_info_request__get_packed_size
+                     (const DbgGetThreadInfoRequest *message)
+{
+  assert(message->base.descriptor == &dbg_get_thread_info_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_thread_info_request__pack
+                     (const DbgGetThreadInfoRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_thread_info_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_thread_info_request__pack_to_buffer
+                     (const DbgGetThreadInfoRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_thread_info_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetThreadInfoRequest *
+       dbg_get_thread_info_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetThreadInfoRequest *)
+     protobuf_c_message_unpack (&dbg_get_thread_info_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_thread_info_request__free_unpacked
+                     (DbgGetThreadInfoRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_thread_info_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_thread_singlestep_request__init
+                     (DbgThreadSinglestepRequest         *message)
+{
+  static const DbgThreadSinglestepRequest init_value = DBG_THREAD_SINGLESTEP_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_thread_singlestep_request__get_packed_size
+                     (const DbgThreadSinglestepRequest *message)
+{
+  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_thread_singlestep_request__pack
+                     (const DbgThreadSinglestepRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_thread_singlestep_request__pack_to_buffer
+                     (const DbgThreadSinglestepRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgThreadSinglestepRequest *
+       dbg_thread_singlestep_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgThreadSinglestepRequest *)
+     protobuf_c_message_unpack (&dbg_thread_singlestep_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_thread_singlestep_request__free_unpacked
+                     (DbgThreadSinglestepRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_get_kernel_info_response__init
+                     (DbgGetKernelInfoResponse         *message)
+{
+  static const DbgGetKernelInfoResponse init_value = DBG_GET_KERNEL_INFO_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_get_kernel_info_response__get_packed_size
+                     (const DbgGetKernelInfoResponse *message)
+{
+  assert(message->base.descriptor == &dbg_get_kernel_info_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_get_kernel_info_response__pack
+                     (const DbgGetKernelInfoResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_get_kernel_info_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_get_kernel_info_response__pack_to_buffer
+                     (const DbgGetKernelInfoResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_get_kernel_info_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgGetKernelInfoResponse *
+       dbg_get_kernel_info_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgGetKernelInfoResponse *)
+     protobuf_c_message_unpack (&dbg_get_kernel_info_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_get_kernel_info_response__free_unpacked
+                     (DbgGetKernelInfoResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_get_kernel_info_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_read_kernel_memory_request__init
+                     (DbgReadKernelMemoryRequest         *message)
+{
+  static const DbgReadKernelMemoryRequest init_value = DBG_READ_KERNEL_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_read_kernel_memory_request__get_packed_size
+                     (const DbgReadKernelMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_read_kernel_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_read_kernel_memory_request__pack
+                     (const DbgReadKernelMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_read_kernel_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_read_kernel_memory_request__pack_to_buffer
+                     (const DbgReadKernelMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_read_kernel_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgReadKernelMemoryRequest *
+       dbg_read_kernel_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgReadKernelMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_read_kernel_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_read_kernel_memory_request__free_unpacked
+                     (DbgReadKernelMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_read_kernel_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_write_kernel_memory_request__init
+                     (DbgWriteKernelMemoryRequest         *message)
+{
+  static const DbgWriteKernelMemoryRequest init_value = DBG_WRITE_KERNEL_MEMORY_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_write_kernel_memory_request__get_packed_size
+                     (const DbgWriteKernelMemoryRequest *message)
+{
+  assert(message->base.descriptor == &dbg_write_kernel_memory_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_write_kernel_memory_request__pack
+                     (const DbgWriteKernelMemoryRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_write_kernel_memory_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_write_kernel_memory_request__pack_to_buffer
+                     (const DbgWriteKernelMemoryRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_write_kernel_memory_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgWriteKernelMemoryRequest *
+       dbg_write_kernel_memory_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgWriteKernelMemoryRequest *)
+     protobuf_c_message_unpack (&dbg_write_kernel_memory_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_write_kernel_memory_request__free_unpacked
+                     (DbgWriteKernelMemoryRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_write_kernel_memory_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+void   dbg_command_request__init
+                     (DbgCommandRequest         *message)
+{
+  static const DbgCommandRequest init_value = DBG_COMMAND_REQUEST__INIT;
+  *message = init_value;
+}
+size_t dbg_command_request__get_packed_size
+                     (const DbgCommandRequest *message)
+{
+  assert(message->base.descriptor == &dbg_command_request__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_command_request__pack
+                     (const DbgCommandRequest *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_command_request__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_command_request__pack_to_buffer
+                     (const DbgCommandRequest *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_command_request__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgCommandRequest *
+       dbg_command_request__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgCommandRequest *)
+     protobuf_c_message_unpack (&dbg_command_request__descriptor,
+                                allocator, len, data);
+}
+void   dbg_command_request__free_unpacked
+                     (DbgCommandRequest *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_command_request__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
+static const ProtobufCFieldDescriptor dbg_gp_registers__field_descriptors[26] =
+{
+  {
+    "r_r15",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r15),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r14",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r14),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r13",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r13),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r12",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r12),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r11",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r11),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r10",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r10),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r9",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r9),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_r8",
+    8,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_r8),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rdi",
+    9,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rdi),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rsi",
+    10,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rsi),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rbp",
+    11,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rbp),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rbx",
+    12,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rbx),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rdx",
+    13,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rdx),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rcx",
+    14,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rcx),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rax",
+    15,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rax),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_trapno",
+    16,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_trapno),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_fs",
+    17,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_fs),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_gs",
+    18,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_gs),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_err",
+    19,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_err),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_es",
+    20,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_es),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_ds",
+    21,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_ds),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rip",
+    22,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rip),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_cs",
+    23,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_cs),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rflags",
+    24,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rflags),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_rsp",
+    25,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_rsp),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "r_ss",
+    26,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGpRegisters, r_ss),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_gp_registers__field_indices_by_name[] = {
+  22,   /* field[22] = r_cs */
+  20,   /* field[20] = r_ds */
+  18,   /* field[18] = r_err */
+  19,   /* field[19] = r_es */
+  16,   /* field[16] = r_fs */
+  17,   /* field[17] = r_gs */
+  5,   /* field[5] = r_r10 */
+  4,   /* field[4] = r_r11 */
+  3,   /* field[3] = r_r12 */
+  2,   /* field[2] = r_r13 */
+  1,   /* field[1] = r_r14 */
+  0,   /* field[0] = r_r15 */
+  7,   /* field[7] = r_r8 */
+  6,   /* field[6] = r_r9 */
+  14,   /* field[14] = r_rax */
+  10,   /* field[10] = r_rbp */
+  11,   /* field[11] = r_rbx */
+  13,   /* field[13] = r_rcx */
+  8,   /* field[8] = r_rdi */
+  12,   /* field[12] = r_rdx */
+  23,   /* field[23] = r_rflags */
+  21,   /* field[21] = r_rip */
+  9,   /* field[9] = r_rsi */
+  24,   /* field[24] = r_rsp */
+  25,   /* field[25] = r_ss */
+  15,   /* field[15] = r_trapno */
+};
+static const ProtobufCIntRange dbg_gp_registers__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 26 }
+};
+const ProtobufCMessageDescriptor dbg_gp_registers__descriptor =
 {
   PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "DbgProcListRequest",
-  "DbgProcListRequest",
-  "DbgProcListRequest",
+  "DbgGpRegisters",
+  "DbgGpRegisters",
+  "DbgGpRegisters",
   "",
-  sizeof(DbgProcListRequest),
-  0,
-  dbg_proc_list_request__field_descriptors,
-  dbg_proc_list_request__field_indices_by_name,
-  0,  dbg_proc_list_request__number_ranges,
-  (ProtobufCMessageInit) dbg_proc_list_request__init,
+  sizeof(DbgGpRegisters),
+  26,
+  dbg_gp_registers__field_descriptors,
+  dbg_gp_registers__field_indices_by_name,
+  1,  dbg_gp_registers__number_ranges,
+  (ProtobufCMessageInit) dbg_gp_registers__init,
   NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_fp_registers__field_descriptors[1] =
+{
+  {
+    "data",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(DbgFpRegisters, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_fp_registers__field_indices_by_name[] = {
+  0,   /* field[0] = data */
+};
+static const ProtobufCIntRange dbg_fp_registers__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_fp_registers__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgFpRegisters",
+  "DbgFpRegisters",
+  "DbgFpRegisters",
+  "",
+  sizeof(DbgFpRegisters),
+  1,
+  dbg_fp_registers__field_descriptors,
+  dbg_fp_registers__field_indices_by_name,
+  1,  dbg_fp_registers__number_ranges,
+  (ProtobufCMessageInit) dbg_fp_registers__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_db_registers__field_descriptors[1] =
+{
+  {
+    "debugRegs",
+    1,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT32,
+    offsetof(DbgDbRegisters, n_debugregs),
+    offsetof(DbgDbRegisters, debugregs),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_db_registers__field_indices_by_name[] = {
+  0,   /* field[0] = debugRegs */
+};
+static const ProtobufCIntRange dbg_db_registers__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_db_registers__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgDbRegisters",
+  "DbgDbRegisters",
+  "DbgDbRegisters",
+  "",
+  sizeof(DbgDbRegisters),
+  1,
+  dbg_db_registers__field_descriptors,
+  dbg_db_registers__field_indices_by_name,
+  1,  dbg_db_registers__number_ranges,
+  (ProtobufCMessageInit) dbg_db_registers__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_thread_limited__field_descriptors[7] =
+{
+  {
+    "proc",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, proc),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "threadId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, threadid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "name",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "retval",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, retval),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "kernelStack",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, kernelstack),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "kernelStackPages",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, kernelstackpages),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "errno",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadLimited, errno),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_thread_limited__field_indices_by_name[] = {
+  6,   /* field[6] = errno */
+  4,   /* field[4] = kernelStack */
+  5,   /* field[5] = kernelStackPages */
+  2,   /* field[2] = name */
+  0,   /* field[0] = proc */
+  3,   /* field[3] = retval */
+  1,   /* field[1] = threadId */
+};
+static const ProtobufCIntRange dbg_thread_limited__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 7 }
+};
+const ProtobufCMessageDescriptor dbg_thread_limited__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgThreadLimited",
+  "DbgThreadLimited",
+  "DbgThreadLimited",
+  "",
+  sizeof(DbgThreadLimited),
+  7,
+  dbg_thread_limited__field_descriptors,
+  dbg_thread_limited__field_indices_by_name,
+  1,  dbg_thread_limited__number_ranges,
+  (ProtobufCMessageInit) dbg_thread_limited__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_thread_full__field_descriptors[10] =
+{
+  {
+    "proc",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, proc),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "threadId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, threadid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "name",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "retval",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, retval),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "kernelStack",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, kernelstack),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "kernelStackPages",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, kernelstackpages),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "errno",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, errno),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "gpRegisters",
+    8,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, gpregisters),
+    &dbg_gp_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "fpRegisters",
+    9,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, fpregisters),
+    &dbg_fp_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dbRegisters",
+    10,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadFull, dbregisters),
+    &dbg_db_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_thread_full__field_indices_by_name[] = {
+  9,   /* field[9] = dbRegisters */
+  6,   /* field[6] = errno */
+  8,   /* field[8] = fpRegisters */
+  7,   /* field[7] = gpRegisters */
+  4,   /* field[4] = kernelStack */
+  5,   /* field[5] = kernelStackPages */
+  2,   /* field[2] = name */
+  0,   /* field[0] = proc */
+  3,   /* field[3] = retval */
+  1,   /* field[1] = threadId */
+};
+static const ProtobufCIntRange dbg_thread_full__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 10 }
+};
+const ProtobufCMessageDescriptor dbg_thread_full__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgThreadFull",
+  "DbgThreadFull",
+  "DbgThreadFull",
+  "",
+  sizeof(DbgThreadFull),
+  10,
+  dbg_thread_full__field_descriptors,
+  dbg_thread_full__field_indices_by_name,
+  1,  dbg_thread_full__number_ranges,
+  (ProtobufCMessageInit) dbg_thread_full__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_cred__field_descriptors[10] =
+{
+  {
+    "effectiveUserId",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, effectiveuserid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "realUserId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, realuserid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "savedUserId",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, saveduserid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "numGroups",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, numgroups),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "realGroupId",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, realgroupid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "savedGroupId",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, savedgroupid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "prison",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, prison),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "sceAuthId",
+    8,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgCred, sceauthid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "sceCaps",
+    9,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT64,
+    offsetof(DbgCred, n_scecaps),
+    offsetof(DbgCred, scecaps),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "sceAttr",
+    10,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_UINT64,
+    offsetof(DbgCred, n_sceattr),
+    offsetof(DbgCred, sceattr),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_cred__field_indices_by_name[] = {
+  0,   /* field[0] = effectiveUserId */
+  3,   /* field[3] = numGroups */
+  6,   /* field[6] = prison */
+  4,   /* field[4] = realGroupId */
+  1,   /* field[1] = realUserId */
+  5,   /* field[5] = savedGroupId */
+  2,   /* field[2] = savedUserId */
+  9,   /* field[9] = sceAttr */
+  7,   /* field[7] = sceAuthId */
+  8,   /* field[8] = sceCaps */
+};
+static const ProtobufCIntRange dbg_cred__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 10 }
+};
+const ProtobufCMessageDescriptor dbg_cred__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgCred",
+  "DbgCred",
+  "DbgCred",
+  "",
+  sizeof(DbgCred),
+  10,
+  dbg_cred__field_descriptors,
+  dbg_cred__field_indices_by_name,
+  1,  dbg_cred__number_ranges,
+  (ProtobufCMessageInit) dbg_cred__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+#define dbg_file_desc__field_descriptors NULL
+#define dbg_file_desc__field_indices_by_name NULL
+#define dbg_file_desc__number_ranges NULL
+const ProtobufCMessageDescriptor dbg_file_desc__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgFileDesc",
+  "DbgFileDesc",
+  "DbgFileDesc",
+  "",
+  sizeof(DbgFileDesc),
+  0,
+  dbg_file_desc__field_descriptors,
+  dbg_file_desc__field_indices_by_name,
+  0,  dbg_file_desc__number_ranges,
+  (ProtobufCMessageInit) dbg_file_desc__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_process_full__field_descriptors[21] =
+{
+  {
+    "threads",
+    1,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(DbgProcessFull, n_threads),
+    offsetof(DbgProcessFull, threads),
+    &dbg_thread_limited__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "cred",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, cred),
+    &dbg_cred__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "pid",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "parentProc",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, parentproc),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "oppid",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, oppid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dbgChild",
+    6,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, dbgchild),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "vmspace",
+    7,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, vmspace),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "exitThreads",
+    8,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, exitthreads),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "sigParent",
+    9,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, sigparent),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "sig",
+    10,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, sig),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "code",
+    11,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, code),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "stops",
+    12,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, stops),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "stype",
+    13,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, stype),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "singleThread",
+    14,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, singlethread),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "suspendCount",
+    15,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, suspendcount),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dynlib",
+    16,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, dynlib),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "name",
+    17,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "elfPath",
+    18,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, elfpath),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "randomizedPath",
+    19,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, randomizedpath),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "numThreads",
+    20,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessFull, numthreads),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "mapEntries",
+    21,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(DbgProcessFull, n_mapentries),
+    offsetof(DbgProcessFull, mapentries),
+    &dbg_vm_entry__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_process_full__field_indices_by_name[] = {
+  10,   /* field[10] = code */
+  1,   /* field[1] = cred */
+  5,   /* field[5] = dbgChild */
+  15,   /* field[15] = dynlib */
+  17,   /* field[17] = elfPath */
+  7,   /* field[7] = exitThreads */
+  20,   /* field[20] = mapEntries */
+  16,   /* field[16] = name */
+  19,   /* field[19] = numThreads */
+  4,   /* field[4] = oppid */
+  3,   /* field[3] = parentProc */
+  2,   /* field[2] = pid */
+  18,   /* field[18] = randomizedPath */
+  9,   /* field[9] = sig */
+  8,   /* field[8] = sigParent */
+  13,   /* field[13] = singleThread */
+  11,   /* field[11] = stops */
+  12,   /* field[12] = stype */
+  14,   /* field[14] = suspendCount */
+  0,   /* field[0] = threads */
+  6,   /* field[6] = vmspace */
+};
+static const ProtobufCIntRange dbg_process_full__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 21 }
+};
+const ProtobufCMessageDescriptor dbg_process_full__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgProcessFull",
+  "DbgProcessFull",
+  "DbgProcessFull",
+  "",
+  sizeof(DbgProcessFull),
+  21,
+  dbg_process_full__field_descriptors,
+  dbg_process_full__field_indices_by_name,
+  1,  dbg_process_full__number_ranges,
+  (ProtobufCMessageInit) dbg_process_full__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_vm_entry__field_descriptors[5] =
+{
+  {
+    "name",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgVmEntry, name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "start",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgVmEntry, start),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "end",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgVmEntry, end),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "offset",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgVmEntry, offset),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "protection",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgVmEntry, protection),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_vm_entry__field_indices_by_name[] = {
+  2,   /* field[2] = end */
+  0,   /* field[0] = name */
+  3,   /* field[3] = offset */
+  4,   /* field[4] = protection */
+  1,   /* field[1] = start */
+};
+static const ProtobufCIntRange dbg_vm_entry__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 5 }
+};
+const ProtobufCMessageDescriptor dbg_vm_entry__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgVmEntry",
+  "DbgVmEntry",
+  "DbgVmEntry",
+  "",
+  sizeof(DbgVmEntry),
+  5,
+  dbg_vm_entry__field_descriptors,
+  dbg_vm_entry__field_indices_by_name,
+  1,  dbg_vm_entry__number_ranges,
+  (ProtobufCMessageInit) dbg_vm_entry__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_process_limited__field_descriptors[3] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessLimited, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "name",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_STRING,
+    0,   /* quantifier_offset */
+    offsetof(DbgProcessLimited, name),
+    NULL,
+    &protobuf_c_empty_string,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "entries",
+    3,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(DbgProcessLimited, n_entries),
+    offsetof(DbgProcessLimited, entries),
+    &dbg_vm_entry__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_process_limited__field_indices_by_name[] = {
+  2,   /* field[2] = entries */
+  1,   /* field[1] = name */
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_process_limited__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor dbg_process_limited__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgProcessLimited",
+  "DbgProcessLimited",
+  "DbgProcessLimited",
+  "",
+  sizeof(DbgProcessLimited),
+  3,
+  dbg_process_limited__field_descriptors,
+  dbg_process_limited__field_indices_by_name,
+  1,  dbg_process_limited__number_ranges,
+  (ProtobufCMessageInit) dbg_process_limited__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_process_list_response__field_descriptors[1] =
+{
+  {
+    "processes",
+    1,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(DbgGetProcessListResponse, n_processes),
+    offsetof(DbgGetProcessListResponse, processes),
+    &dbg_process_limited__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_process_list_response__field_indices_by_name[] = {
+  0,   /* field[0] = processes */
+};
+static const ProtobufCIntRange dbg_get_process_list_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_get_process_list_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetProcessListResponse",
+  "DbgGetProcessListResponse",
+  "DbgGetProcessListResponse",
+  "",
+  sizeof(DbgGetProcessListResponse),
+  1,
+  dbg_get_process_list_response__field_descriptors,
+  dbg_get_process_list_response__field_indices_by_name,
+  1,  dbg_get_process_list_response__number_ranges,
+  (ProtobufCMessageInit) dbg_get_process_list_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_read_process_memory_request__field_descriptors[3] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadProcessMemoryRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "address",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadProcessMemoryRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadProcessMemoryRequest, size),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_read_process_memory_request__field_indices_by_name[] = {
+  1,   /* field[1] = address */
+  0,   /* field[0] = pid */
+  2,   /* field[2] = size */
+};
+static const ProtobufCIntRange dbg_read_process_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor dbg_read_process_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgReadProcessMemoryRequest",
+  "DbgReadProcessMemoryRequest",
+  "DbgReadProcessMemoryRequest",
+  "",
+  sizeof(DbgReadProcessMemoryRequest),
+  3,
+  dbg_read_process_memory_request__field_descriptors,
+  dbg_read_process_memory_request__field_indices_by_name,
+  1,  dbg_read_process_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_read_process_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_read_process_memory_response__field_descriptors[2] =
+{
+  {
+    "bytesRead",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadProcessMemoryResponse, bytesread),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadProcessMemoryResponse, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_read_process_memory_response__field_indices_by_name[] = {
+  0,   /* field[0] = bytesRead */
+  1,   /* field[1] = data */
+};
+static const ProtobufCIntRange dbg_read_process_memory_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_read_process_memory_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgReadProcessMemoryResponse",
+  "DbgReadProcessMemoryResponse",
+  "DbgReadProcessMemoryResponse",
+  "",
+  sizeof(DbgReadProcessMemoryResponse),
+  2,
+  dbg_read_process_memory_response__field_descriptors,
+  dbg_read_process_memory_response__field_indices_by_name,
+  1,  dbg_read_process_memory_response__number_ranges,
+  (ProtobufCMessageInit) dbg_read_process_memory_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_write_process_memory_request__field_descriptors[3] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgWriteProcessMemoryRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "address",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgWriteProcessMemoryRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(DbgWriteProcessMemoryRequest, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_write_process_memory_request__field_indices_by_name[] = {
+  1,   /* field[1] = address */
+  2,   /* field[2] = data */
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_write_process_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor dbg_write_process_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgWriteProcessMemoryRequest",
+  "DbgWriteProcessMemoryRequest",
+  "DbgWriteProcessMemoryRequest",
+  "",
+  sizeof(DbgWriteProcessMemoryRequest),
+  3,
+  dbg_write_process_memory_request__field_descriptors,
+  dbg_write_process_memory_request__field_indices_by_name,
+  1,  dbg_write_process_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_write_process_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_protect_process_memory_request__field_descriptors[4] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProtectProcessMemoryRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "address",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgProtectProcessMemoryRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "length",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgProtectProcessMemoryRequest, length),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "protection",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgProtectProcessMemoryRequest, protection),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_protect_process_memory_request__field_indices_by_name[] = {
+  1,   /* field[1] = address */
+  2,   /* field[2] = length */
+  0,   /* field[0] = pid */
+  3,   /* field[3] = protection */
+};
+static const ProtobufCIntRange dbg_protect_process_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor dbg_protect_process_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgProtectProcessMemoryRequest",
+  "DbgProtectProcessMemoryRequest",
+  "DbgProtectProcessMemoryRequest",
+  "",
+  sizeof(DbgProtectProcessMemoryRequest),
+  4,
+  dbg_protect_process_memory_request__field_descriptors,
+  dbg_protect_process_memory_request__field_indices_by_name,
+  1,  dbg_protect_process_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_protect_process_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+#define dbg_scan_process_memory_request__field_descriptors NULL
+#define dbg_scan_process_memory_request__field_indices_by_name NULL
+#define dbg_scan_process_memory_request__number_ranges NULL
+const ProtobufCMessageDescriptor dbg_scan_process_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgScanProcessMemoryRequest",
+  "DbgScanProcessMemoryRequest",
+  "DbgScanProcessMemoryRequest",
+  "",
+  sizeof(DbgScanProcessMemoryRequest),
+  0,
+  dbg_scan_process_memory_request__field_descriptors,
+  dbg_scan_process_memory_request__field_indices_by_name,
+  0,  dbg_scan_process_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_scan_process_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_process_info_request__field_descriptors[1] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetProcessInfoRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_process_info_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_get_process_info_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_get_process_info_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetProcessInfoRequest",
+  "DbgGetProcessInfoRequest",
+  "DbgGetProcessInfoRequest",
+  "",
+  sizeof(DbgGetProcessInfoRequest),
+  1,
+  dbg_get_process_info_request__field_descriptors,
+  dbg_get_process_info_request__field_indices_by_name,
+  1,  dbg_get_process_info_request__number_ranges,
+  (ProtobufCMessageInit) dbg_get_process_info_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_allocate_process_memory_request__field_descriptors[3] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgAllocateProcessMemoryRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgAllocateProcessMemoryRequest, size),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "zero",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BOOL,
+    0,   /* quantifier_offset */
+    offsetof(DbgAllocateProcessMemoryRequest, zero),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_allocate_process_memory_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+  1,   /* field[1] = size */
+  2,   /* field[2] = zero */
+};
+static const ProtobufCIntRange dbg_allocate_process_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor dbg_allocate_process_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgAllocateProcessMemoryRequest",
+  "DbgAllocateProcessMemoryRequest",
+  "DbgAllocateProcessMemoryRequest",
+  "",
+  sizeof(DbgAllocateProcessMemoryRequest),
+  3,
+  dbg_allocate_process_memory_request__field_descriptors,
+  dbg_allocate_process_memory_request__field_indices_by_name,
+  1,  dbg_allocate_process_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_allocate_process_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_allocate_process_memory_response__field_descriptors[1] =
+{
+  {
+    "address",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgAllocateProcessMemoryResponse, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_allocate_process_memory_response__field_indices_by_name[] = {
+  0,   /* field[0] = address */
+};
+static const ProtobufCIntRange dbg_allocate_process_memory_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_allocate_process_memory_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgAllocateProcessMemoryResponse",
+  "DbgAllocateProcessMemoryResponse",
+  "DbgAllocateProcessMemoryResponse",
+  "",
+  sizeof(DbgAllocateProcessMemoryResponse),
+  1,
+  dbg_allocate_process_memory_response__field_descriptors,
+  dbg_allocate_process_memory_response__field_indices_by_name,
+  1,  dbg_allocate_process_memory_response__number_ranges,
+  (ProtobufCMessageInit) dbg_allocate_process_memory_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_free_process_memory_request__field_descriptors[2] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgFreeProcessMemoryRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "address",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgFreeProcessMemoryRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_free_process_memory_request__field_indices_by_name[] = {
+  1,   /* field[1] = address */
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_free_process_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_free_process_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgFreeProcessMemoryRequest",
+  "DbgFreeProcessMemoryRequest",
+  "DbgFreeProcessMemoryRequest",
+  "",
+  sizeof(DbgFreeProcessMemoryRequest),
+  2,
+  dbg_free_process_memory_request__field_descriptors,
+  dbg_free_process_memory_request__field_indices_by_name,
+  1,  dbg_free_process_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_free_process_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_process_maps_request__field_descriptors[1] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetProcessMapsRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_process_maps_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_get_process_maps_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_get_process_maps_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetProcessMapsRequest",
+  "DbgGetProcessMapsRequest",
+  "DbgGetProcessMapsRequest",
+  "",
+  sizeof(DbgGetProcessMapsRequest),
+  1,
+  dbg_get_process_maps_request__field_descriptors,
+  dbg_get_process_maps_request__field_indices_by_name,
+  1,  dbg_get_process_maps_request__number_ranges,
+  (ProtobufCMessageInit) dbg_get_process_maps_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_attach_request__field_descriptors[1] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgAttachRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_attach_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_attach_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_attach_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgAttachRequest",
+  "DbgAttachRequest",
+  "DbgAttachRequest",
+  "",
+  sizeof(DbgAttachRequest),
+  1,
+  dbg_attach_request__field_descriptors,
+  dbg_attach_request__field_indices_by_name,
+  1,  dbg_attach_request__number_ranges,
+  (ProtobufCMessageInit) dbg_attach_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_detach_request__field_descriptors[1] =
+{
+  {
+    "force",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BOOL,
+    0,   /* quantifier_offset */
+    offsetof(DbgDetachRequest, force),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_detach_request__field_indices_by_name[] = {
+  0,   /* field[0] = force */
+};
+static const ProtobufCIntRange dbg_detach_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_detach_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgDetachRequest",
+  "DbgDetachRequest",
+  "DbgDetachRequest",
+  "",
+  sizeof(DbgDetachRequest),
+  1,
+  dbg_detach_request__field_descriptors,
+  dbg_detach_request__field_indices_by_name,
+  1,  dbg_detach_request__number_ranges,
+  (ProtobufCMessageInit) dbg_detach_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_breakpoint_request__field_descriptors[4] =
+{
+  {
+    "enabled",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BOOL,
+    0,   /* quantifier_offset */
+    offsetof(DbgBreakpointRequest, enabled),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "address",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgBreakpointRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "original",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgBreakpointRequest, original),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "breakpointType",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_ENUM,
+    0,   /* quantifier_offset */
+    offsetof(DbgBreakpointRequest, breakpointtype),
+    &dbg_breakpoint_type__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_breakpoint_request__field_indices_by_name[] = {
+  1,   /* field[1] = address */
+  3,   /* field[3] = breakpointType */
+  0,   /* field[0] = enabled */
+  2,   /* field[2] = original */
+};
+static const ProtobufCIntRange dbg_breakpoint_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor dbg_breakpoint_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgBreakpointRequest",
+  "DbgBreakpointRequest",
+  "DbgBreakpointRequest",
+  "",
+  sizeof(DbgBreakpointRequest),
+  4,
+  dbg_breakpoint_request__field_descriptors,
+  dbg_breakpoint_request__field_indices_by_name,
+  1,  dbg_breakpoint_request__number_ranges,
+  (ProtobufCMessageInit) dbg_breakpoint_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_breakpoint_response__field_descriptors[1] =
+{
+  {
+    "breakpointHandle",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgBreakpointResponse, breakpointhandle),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_breakpoint_response__field_indices_by_name[] = {
+  0,   /* field[0] = breakpointHandle */
+};
+static const ProtobufCIntRange dbg_breakpoint_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_breakpoint_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgBreakpointResponse",
+  "DbgBreakpointResponse",
+  "DbgBreakpointResponse",
+  "",
+  sizeof(DbgBreakpointResponse),
+  1,
+  dbg_breakpoint_response__field_descriptors,
+  dbg_breakpoint_response__field_indices_by_name,
+  1,  dbg_breakpoint_response__number_ranges,
+  (ProtobufCMessageInit) dbg_breakpoint_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_watchpoint_request__field_descriptors[4] =
+{
+  {
+    "enabled",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BOOL,
+    0,   /* quantifier_offset */
+    offsetof(DbgWatchpointRequest, enabled),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "address",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgWatchpointRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "breakpointType",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgWatchpointRequest, breakpointtype),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "length",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgWatchpointRequest, length),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_watchpoint_request__field_indices_by_name[] = {
+  1,   /* field[1] = address */
+  2,   /* field[2] = breakpointType */
+  0,   /* field[0] = enabled */
+  3,   /* field[3] = length */
+};
+static const ProtobufCIntRange dbg_watchpoint_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 4 }
+};
+const ProtobufCMessageDescriptor dbg_watchpoint_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgWatchpointRequest",
+  "DbgWatchpointRequest",
+  "DbgWatchpointRequest",
+  "",
+  sizeof(DbgWatchpointRequest),
+  4,
+  dbg_watchpoint_request__field_descriptors,
+  dbg_watchpoint_request__field_indices_by_name,
+  1,  dbg_watchpoint_request__number_ranges,
+  (ProtobufCMessageInit) dbg_watchpoint_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_watchpoint_response__field_descriptors[1] =
+{
+  {
+    "watchpointHandle",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgWatchpointResponse, watchpointhandle),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_watchpoint_response__field_indices_by_name[] = {
+  0,   /* field[0] = watchpointHandle */
+};
+static const ProtobufCIntRange dbg_watchpoint_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_watchpoint_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgWatchpointResponse",
+  "DbgWatchpointResponse",
+  "DbgWatchpointResponse",
+  "",
+  sizeof(DbgWatchpointResponse),
+  1,
+  dbg_watchpoint_response__field_descriptors,
+  dbg_watchpoint_response__field_indices_by_name,
+  1,  dbg_watchpoint_response__number_ranges,
+  (ProtobufCMessageInit) dbg_watchpoint_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_process_threads_request__field_descriptors[1] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetProcessThreadsRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_process_threads_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+};
+static const ProtobufCIntRange dbg_get_process_threads_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_get_process_threads_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetProcessThreadsRequest",
+  "DbgGetProcessThreadsRequest",
+  "DbgGetProcessThreadsRequest",
+  "",
+  sizeof(DbgGetProcessThreadsRequest),
+  1,
+  dbg_get_process_threads_request__field_descriptors,
+  dbg_get_process_threads_request__field_indices_by_name,
+  1,  dbg_get_process_threads_request__number_ranges,
+  (ProtobufCMessageInit) dbg_get_process_threads_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_process_threads_response__field_descriptors[1] =
+{
+  {
+    "threads",
+    1,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_MESSAGE,
+    offsetof(DbgGetProcessThreadsResponse, n_threads),
+    offsetof(DbgGetProcessThreadsResponse, threads),
+    &dbg_thread_limited__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_process_threads_response__field_indices_by_name[] = {
+  0,   /* field[0] = threads */
+};
+static const ProtobufCIntRange dbg_get_process_threads_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_get_process_threads_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetProcessThreadsResponse",
+  "DbgGetProcessThreadsResponse",
+  "DbgGetProcessThreadsResponse",
+  "",
+  sizeof(DbgGetProcessThreadsResponse),
+  1,
+  dbg_get_process_threads_response__field_descriptors,
+  dbg_get_process_threads_response__field_indices_by_name,
+  1,  dbg_get_process_threads_response__number_ranges,
+  (ProtobufCMessageInit) dbg_get_process_threads_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_signal_process_request__field_descriptors[2] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgSignalProcessRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "signal",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgSignalProcessRequest, signal),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_signal_process_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+  1,   /* field[1] = signal */
+};
+static const ProtobufCIntRange dbg_signal_process_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_signal_process_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgSignalProcessRequest",
+  "DbgSignalProcessRequest",
+  "DbgSignalProcessRequest",
+  "",
+  sizeof(DbgSignalProcessRequest),
+  2,
+  dbg_signal_process_request__field_descriptors,
+  dbg_signal_process_request__field_indices_by_name,
+  1,  dbg_signal_process_request__number_ranges,
+  (ProtobufCMessageInit) dbg_signal_process_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_registers_request__field_descriptors[2] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetRegistersRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "threadId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetRegistersRequest, threadid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_registers_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+  1,   /* field[1] = threadId */
+};
+static const ProtobufCIntRange dbg_get_registers_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_get_registers_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetRegistersRequest",
+  "DbgGetRegistersRequest",
+  "DbgGetRegistersRequest",
+  "",
+  sizeof(DbgGetRegistersRequest),
+  2,
+  dbg_get_registers_request__field_descriptors,
+  dbg_get_registers_request__field_indices_by_name,
+  1,  dbg_get_registers_request__number_ranges,
+  (ProtobufCMessageInit) dbg_get_registers_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_registers_response__field_descriptors[3] =
+{
+  {
+    "gpRegisters",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetRegistersResponse, gpregisters),
+    &dbg_gp_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "fpRegisters",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetRegistersResponse, fpregisters),
+    &dbg_fp_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dbRegisters",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetRegistersResponse, dbregisters),
+    &dbg_db_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_registers_response__field_indices_by_name[] = {
+  2,   /* field[2] = dbRegisters */
+  1,   /* field[1] = fpRegisters */
+  0,   /* field[0] = gpRegisters */
+};
+static const ProtobufCIntRange dbg_get_registers_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 3 }
+};
+const ProtobufCMessageDescriptor dbg_get_registers_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetRegistersResponse",
+  "DbgGetRegistersResponse",
+  "DbgGetRegistersResponse",
+  "",
+  sizeof(DbgGetRegistersResponse),
+  3,
+  dbg_get_registers_response__field_descriptors,
+  dbg_get_registers_response__field_indices_by_name,
+  1,  dbg_get_registers_response__number_ranges,
+  (ProtobufCMessageInit) dbg_get_registers_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_set_registers_request__field_descriptors[5] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgSetRegistersRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "threadId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgSetRegistersRequest, threadid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "gpRegisters",
+    3,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgSetRegistersRequest, gpregisters),
+    &dbg_gp_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "fpRegisters",
+    4,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgSetRegistersRequest, fpregisters),
+    &dbg_fp_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "dbRegisters",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_MESSAGE,
+    0,   /* quantifier_offset */
+    offsetof(DbgSetRegistersRequest, dbregisters),
+    &dbg_db_registers__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_set_registers_request__field_indices_by_name[] = {
+  4,   /* field[4] = dbRegisters */
+  3,   /* field[3] = fpRegisters */
+  2,   /* field[2] = gpRegisters */
+  0,   /* field[0] = pid */
+  1,   /* field[1] = threadId */
+};
+static const ProtobufCIntRange dbg_set_registers_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 5 }
+};
+const ProtobufCMessageDescriptor dbg_set_registers_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgSetRegistersRequest",
+  "DbgSetRegistersRequest",
+  "DbgSetRegistersRequest",
+  "",
+  sizeof(DbgSetRegistersRequest),
+  5,
+  dbg_set_registers_request__field_descriptors,
+  dbg_set_registers_request__field_indices_by_name,
+  1,  dbg_set_registers_request__number_ranges,
+  (ProtobufCMessageInit) dbg_set_registers_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_thread_info_request__field_descriptors[2] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetThreadInfoRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "threadId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetThreadInfoRequest, threadid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_thread_info_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+  1,   /* field[1] = threadId */
+};
+static const ProtobufCIntRange dbg_get_thread_info_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_get_thread_info_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetThreadInfoRequest",
+  "DbgGetThreadInfoRequest",
+  "DbgGetThreadInfoRequest",
+  "",
+  sizeof(DbgGetThreadInfoRequest),
+  2,
+  dbg_get_thread_info_request__field_descriptors,
+  dbg_get_thread_info_request__field_indices_by_name,
+  1,  dbg_get_thread_info_request__number_ranges,
+  (ProtobufCMessageInit) dbg_get_thread_info_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_thread_singlestep_request__field_descriptors[2] =
+{
+  {
+    "pid",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadSinglestepRequest, pid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "threadId",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_INT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgThreadSinglestepRequest, threadid),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_thread_singlestep_request__field_indices_by_name[] = {
+  0,   /* field[0] = pid */
+  1,   /* field[1] = threadId */
+};
+static const ProtobufCIntRange dbg_thread_singlestep_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_thread_singlestep_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgThreadSinglestepRequest",
+  "DbgThreadSinglestepRequest",
+  "DbgThreadSinglestepRequest",
+  "",
+  sizeof(DbgThreadSinglestepRequest),
+  2,
+  dbg_thread_singlestep_request__field_descriptors,
+  dbg_thread_singlestep_request__field_indices_by_name,
+  1,  dbg_thread_singlestep_request__number_ranges,
+  (ProtobufCMessageInit) dbg_thread_singlestep_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_get_kernel_info_response__field_descriptors[2] =
+{
+  {
+    "version",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetKernelInfoResponse, version),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "gloablConfigData",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(DbgGetKernelInfoResponse, gloablconfigdata),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_get_kernel_info_response__field_indices_by_name[] = {
+  1,   /* field[1] = gloablConfigData */
+  0,   /* field[0] = version */
+};
+static const ProtobufCIntRange dbg_get_kernel_info_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_get_kernel_info_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgGetKernelInfoResponse",
+  "DbgGetKernelInfoResponse",
+  "DbgGetKernelInfoResponse",
+  "",
+  sizeof(DbgGetKernelInfoResponse),
+  2,
+  dbg_get_kernel_info_response__field_descriptors,
+  dbg_get_kernel_info_response__field_indices_by_name,
+  1,  dbg_get_kernel_info_response__number_ranges,
+  (ProtobufCMessageInit) dbg_get_kernel_info_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_read_kernel_memory_request__field_descriptors[2] =
+{
+  {
+    "address",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadKernelMemoryRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "size",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadKernelMemoryRequest, size),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_read_kernel_memory_request__field_indices_by_name[] = {
+  0,   /* field[0] = address */
+  1,   /* field[1] = size */
+};
+static const ProtobufCIntRange dbg_read_kernel_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 2 }
+};
+const ProtobufCMessageDescriptor dbg_read_kernel_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgReadKernelMemoryRequest",
+  "DbgReadKernelMemoryRequest",
+  "DbgReadKernelMemoryRequest",
+  "",
+  sizeof(DbgReadKernelMemoryRequest),
+  2,
+  dbg_read_kernel_memory_request__field_descriptors,
+  dbg_read_kernel_memory_request__field_indices_by_name,
+  1,  dbg_read_kernel_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_read_kernel_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_write_kernel_memory_request__field_descriptors[1] =
+{
+  {
+    "data",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(DbgWriteKernelMemoryRequest, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_write_kernel_memory_request__field_indices_by_name[] = {
+  0,   /* field[0] = data */
+};
+static const ProtobufCIntRange dbg_write_kernel_memory_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_write_kernel_memory_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgWriteKernelMemoryRequest",
+  "DbgWriteKernelMemoryRequest",
+  "DbgWriteKernelMemoryRequest",
+  "",
+  sizeof(DbgWriteKernelMemoryRequest),
+  1,
+  dbg_write_kernel_memory_request__field_descriptors,
+  dbg_write_kernel_memory_request__field_indices_by_name,
+  1,  dbg_write_kernel_memory_request__number_ranges,
+  (ProtobufCMessageInit) dbg_write_kernel_memory_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCEnumValue dbg_command_request__dbg_commands__enum_values_by_number[6] =
+{
+  { "DBG_NONE", "DBG_COMMAND_REQUEST__DBG_COMMANDS__DBG_NONE", 0 },
+  { "DBG_REBOOT", "DBG_COMMAND_REQUEST__DBG_COMMANDS__DBG_REBOOT", 1 },
+  { "DBG_SHUTDOWN", "DBG_COMMAND_REQUEST__DBG_COMMANDS__DBG_SHUTDOWN", 2 },
+  { "DBG_PRINT", "DBG_COMMAND_REQUEST__DBG_COMMANDS__DBG_PRINT", 3 },
+  { "DBG_NOTIFY", "DBG_COMMAND_REQUEST__DBG_COMMANDS__DBG_NOTIFY", 4 },
+  { "DBG_INFO", "DBG_COMMAND_REQUEST__DBG_COMMANDS__DBG_INFO", 5 },
+};
+static const ProtobufCIntRange dbg_command_request__dbg_commands__value_ranges[] = {
+{0, 0},{0, 6}
+};
+static const ProtobufCEnumValueIndex dbg_command_request__dbg_commands__enum_values_by_name[6] =
+{
+  { "DBG_INFO", 5 },
+  { "DBG_NONE", 0 },
+  { "DBG_NOTIFY", 4 },
+  { "DBG_PRINT", 3 },
+  { "DBG_REBOOT", 1 },
+  { "DBG_SHUTDOWN", 2 },
+};
+const ProtobufCEnumDescriptor dbg_command_request__dbg_commands__descriptor =
+{
+  PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,
+  "DbgCommandRequest.DbgCommands",
+  "DbgCommands",
+  "DbgCommandRequest__DbgCommands",
+  "",
+  6,
+  dbg_command_request__dbg_commands__enum_values_by_number,
+  6,
+  dbg_command_request__dbg_commands__enum_values_by_name,
+  1,
+  dbg_command_request__dbg_commands__value_ranges,
+  NULL,NULL,NULL,NULL   /* reserved[1234] */
+};
+static const ProtobufCFieldDescriptor dbg_command_request__field_descriptors[1] =
+{
+  {
+    "command",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_ENUM,
+    0,   /* quantifier_offset */
+    offsetof(DbgCommandRequest, command),
+    &dbg_command_request__dbg_commands__descriptor,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_command_request__field_indices_by_name[] = {
+  0,   /* field[0] = command */
+};
+static const ProtobufCIntRange dbg_command_request__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_command_request__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgCommandRequest",
+  "DbgCommandRequest",
+  "DbgCommandRequest",
+  "",
+  sizeof(DbgCommandRequest),
+  1,
+  dbg_command_request__field_descriptors,
+  dbg_command_request__field_indices_by_name,
+  1,  dbg_command_request__number_ranges,
+  (ProtobufCMessageInit) dbg_command_request__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCEnumValue dbg_breakpoint_type__enum_values_by_number[3] =
+{
+  { "BP_NONE", "DBG_BREAKPOINT_TYPE__BP_NONE", 0 },
+  { "BP_SOFTWARE", "DBG_BREAKPOINT_TYPE__BP_SOFTWARE", 1 },
+  { "BP_HARDWARE", "DBG_BREAKPOINT_TYPE__BP_HARDWARE", 2 },
+};
+static const ProtobufCIntRange dbg_breakpoint_type__value_ranges[] = {
+{0, 0},{0, 3}
+};
+static const ProtobufCEnumValueIndex dbg_breakpoint_type__enum_values_by_name[3] =
+{
+  { "BP_HARDWARE", 2 },
+  { "BP_NONE", 0 },
+  { "BP_SOFTWARE", 1 },
+};
+const ProtobufCEnumDescriptor dbg_breakpoint_type__descriptor =
+{
+  PROTOBUF_C__ENUM_DESCRIPTOR_MAGIC,
+  "DbgBreakpointType",
+  "DbgBreakpointType",
+  "DbgBreakpointType",
+  "",
+  3,
+  dbg_breakpoint_type__enum_values_by_number,
+  3,
+  dbg_breakpoint_type__enum_values_by_name,
+  1,
+  dbg_breakpoint_type__value_ranges,
+  NULL,NULL,NULL,NULL   /* reserved[1234] */
 };

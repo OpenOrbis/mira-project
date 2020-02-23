@@ -41,7 +41,7 @@ message DbgThreadLimited {
     uint64 proc = 1;
     int32 threadId = 2;
     string name = 3;
-    repeated int64 retval = 4; // len 2
+    int64 retval = 4; // len 2
     uint64 kernelStack = 5;
     int32 kernelStackPages = 6;
     int32 errno = 7;
@@ -51,7 +51,7 @@ message DbgThreadFull {
     uint64 proc = 1;
     int32 threadId = 2;
     string name = 3;
-    repeated int64 retval = 4; // len 2
+    int64 retval = 4; // len 2
     uint64 kernelStack = 5;
     int32 kernelStackPages = 6;
     int32 errno = 7;
@@ -152,7 +152,7 @@ message DbgGetProcessInfoRequest {
 
 message DbgAllocateProcessMemoryRequest {
     int32 pid = 1;
-    uint64 size = 2;
+    uint32 size = 2;
     bool zero = 3;
 }
 
@@ -171,16 +171,16 @@ message DbgGetProcessMapsRequest {
 
 message DbgAttachRequest {
     int32 pid = 1;
-} // No response payload
+} // No response payload, pid in error
 
 message DbgDetachRequest {
-    int32 pid = 1;
+    bool force = 1;
 } // No response payload
 
 enum DbgBreakpointType {
-    NONE = 0;
-    SOFTWARE = 1;
-    HARDWARE = 2;
+    BP_NONE = 0;
+    BP_SOFTWARE = 1;
+    BP_HARDWARE = 2;
 }
 
 message DbgBreakpointRequest {
@@ -213,7 +213,7 @@ message DbgGetProcessThreadsResponse {
     repeated DbgThreadLimited threads = 1;
 }
 
-message DbgSignalThreadRequest {
+message DbgSignalProcessRequest {
     int32 pid = 1;
     int32 signal = 2;
 } // No response message
@@ -279,11 +279,12 @@ message DbgWriteKernelMemoryRequest {
 
 message DbgCommandRequest {
     enum DbgCommands {
-        NONE = 0;
-        REBOOT = 1;
-        SHUTDOWN = 2;
-        PRINT = 3;
-        NOTIFY = 4;
-        INFO = 5;
+        DBG_NONE = 0;
+        DBG_REBOOT = 1;
+        DBG_SHUTDOWN = 2;
+        DBG_PRINT = 3;
+        DBG_NOTIFY = 4;
+        DBG_INFO = 5;
     }
+    DbgCommands command = 1;
 }
