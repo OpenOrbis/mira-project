@@ -1106,3 +1106,125 @@ void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTran
     dbg_detach_request__free_unpacked(s_Request, nullptr);
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, 0, nullptr, 0);
 }
+
+void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    
+}
+
+void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgReadProcessMemoryRequest* s_Request = dbg_read_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack rpm request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    // Get the address
+    auto s_Address = s_Request->address;
+    if (s_Address == 0)
+    {
+        WriteLog(LL_Error, "invalid address");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EINVAL);
+        return;
+    }
+
+    // Allocate buffer for the response
+    size_t s_BufferSize = s_Request->size;
+    auto s_Buffer = new uint8_t[s_BufferSize];
+    if (s_Buffer == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate buffer of size (%x).", s_BufferSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_Buffer, 0, s_BufferSize);
+
+    auto s_Ret = proc_rw_mem_pid(s_Debugger->m_AttachedPid, reinterpret_cast<void*>(s_Request->address), s_Request->size, s_Buffer, &s_BufferSize, 0);
+    if (s_Ret < 0)
+    {
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "could not read (%p) size (%x).", s_BufferSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgReadProcessMemoryResponse s_Response = DBG_READ_PROCESS_MEMORY_RESPONSE__INIT;
+    s_Response.data.data = s_Buffer;
+    s_Response.data.len = s_BufferSize;
+
+    auto s_SerializedSize = dbg_read_process_memory_response__get_packed_size(&s_Response);
+    if (s_SerializedSize == 0)
+    {
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "invalid packed size");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_SerializedData = new uint8_t[s_SerializedSize];
+    if (s_SerializedData == nullptr)
+    {
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "could not allocate serialized data of size (%x).", s_SerializedSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_SerializedData, 0, s_SerializedSize);
+
+    auto s_PackedRet = dbg_read_process_memory_response__pack(&s_Response, s_SerializedData);
+    if (s_PackedRet != s_SerializedSize)
+    {
+        delete [] s_SerializedData;
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "could not allocate serialized data of size (%x).", s_SerializedSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ReadMem, 0, s_SerializedData, s_SerializedSize);
+
+    delete [] s_SerializedData;
+    delete [] s_Buffer;
+}

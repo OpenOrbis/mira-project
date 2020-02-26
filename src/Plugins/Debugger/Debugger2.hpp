@@ -50,6 +50,7 @@ namespace Mira
                 DbgCmd_ThreadSinglestep = 0x080B3752,
                 DbgCmd_ReadKernelMem = 0x844AE491,
                 DbgCmd_WriteKernelMem = 0xCFD904E7,
+                DbgCmd_GetProcList = 0x7CF61ABE
             } Commands;
 
             // Remote GDB extension
@@ -258,6 +259,8 @@ namespace Mira
         private:
             static void OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
             static void OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            static void OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
             static void OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
             static void OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);

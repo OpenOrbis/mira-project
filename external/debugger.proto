@@ -114,32 +114,29 @@ message DbgProcessLimited {
     repeated DbgVmEntry entries = 3;
 }
 
+// Has no request payload
 message DbgGetProcessListResponse {
     repeated DbgProcessLimited processes = 1;
 }
 
 message DbgReadProcessMemoryRequest {
-    int32 pid = 1;
-    uint64 address = 2;
-    uint32 size = 3;
+    uint64 address = 1;
+    uint32 size = 2;
 }
 
 message DbgReadProcessMemoryResponse {
-    uint32 bytesRead = 1;
-    bytes data = 2;
+    bytes data = 1;
 }
 
 message DbgWriteProcessMemoryRequest {
-    int32 pid = 1;
-    uint64 address = 2;
-    bytes data = 3; // Size is inside here
+    uint64 address = 1;
+    bytes data = 2; // Size is inside here
 } // Bytes are returned in error, no response payload
 
 message DbgProtectProcessMemoryRequest {
-    int32 pid = 1;
-    uint64 address = 2;
-    uint64 length = 3;
-    int32 protection = 4;
+    uint64 address = 1;
+    uint64 length = 2;
+    int32 protection = 3;
 } // No response payload
 
 message DbgScanProcessMemoryRequest {
@@ -151,9 +148,8 @@ message DbgGetProcessInfoRequest {
 }// Response payload = DbgProcessFull
 
 message DbgAllocateProcessMemoryRequest {
-    int32 pid = 1;
-    uint32 size = 2;
-    bool zero = 3;
+    uint32 size = 1;
+    bool zero = 2;
 }
 
 message DbgAllocateProcessMemoryResponse {
@@ -161,8 +157,7 @@ message DbgAllocateProcessMemoryResponse {
 }
 
 message DbgFreeProcessMemoryRequest {
-    int32 pid = 1;
-    uint64 address = 2;
+    uint64 address = 1;
 }
 
 message DbgGetProcessMapsRequest {
