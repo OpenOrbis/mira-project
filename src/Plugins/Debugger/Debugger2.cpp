@@ -18,6 +18,7 @@ extern "C"
 	#include <sys/ioccom.h>
     #include <sys/ptrace.h>
     #include <sys/mman.h>
+    #include <sys/sx.h>
 
 	#include <vm/vm.h>
 	#include <vm/pmap.h>
@@ -1125,7 +1126,145 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         return;
     }
 
+    struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+    auto __sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+	auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    struct proc* s_Proc = nullptr;
+    uint64_t s_ProcCount = 0;
+    uint64_t s_CurrentProcIndex = 0;
+    bool s_Error = false;
+
+    // DO NOT RETURN ANYWHERE IN HERE, WE MUST ALWAYS RELEASE THE LOCK
+    sx_slock(allproclock);
+	FOREACH_PROC_IN_SYSTEM(s_Proc)
+		s_ProcCount++;
     
+    DbgProcessLimited* s_ProcessList[s_ProcCount];
+    memset(s_ProcessList, 0, sizeof(s_ProcessList));
+
+    FOREACH_PROC_IN_SYSTEM(s_Proc)
+	{
+        if (s_CurrentProcIndex >= s_ProcCount)
+            break;
+        
+        DbgProcessLimited* l_ProcLimited = new DbgProcessLimited;
+        if (l_ProcLimited == nullptr)
+        {
+            WriteLog(LL_Error, "procLimited null");
+            s_Error = true;
+            break;
+        }
+
+        *l_ProcLimited = DBG_PROCESS_LIMITED__INIT;
+
+        l_ProcLimited->pid = s_Proc->p_pid;
+
+        // Name
+        auto s_NameLength = sizeof(s_Proc->p_comm);
+        auto s_Name = new char[s_NameLength];
+        if (s_Name == nullptr)
+        {
+            delete l_ProcLimited;
+            s_Error = true;
+            WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
+            break;
+        }
+        memset(s_Name, 0, s_NameLength);
+        memcpy(s_Name, s_Proc->p_comm, s_NameLength);
+        l_ProcLimited->name = s_Name;
+
+        // Get the VM Entries
+        ProcVmMapEntry* s_Entries = nullptr;
+        size_t s_NumEntries = 0;
+        auto s_Ret = OrbisOS::Utilities::GetProcessVmMap(s_Proc, &s_Entries, &s_NumEntries);
+        if (s_Ret < 0)
+        {
+            delete [] s_Name;
+            l_ProcLimited->name = nullptr;
+
+            delete l_ProcLimited;
+            s_Error = true;
+
+            WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
+            break;
+        }
+
+        DbgVmEntry* s_VmEntries[s_NumEntries];
+        memset(&s_VmEntries, 0, sizeof(s_VmEntries));
+
+        for (auto i = 0; i < s_NumEntries; ++i)
+        {
+            auto l_Entry = new DbgVmEntry();
+            if (l_Entry == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate dbg vm entry");
+                continue;
+            }
+            memset(l_Entry, 0, sizeof(*l_Entry));
+
+            *l_Entry = DBG_VM_ENTRY__INIT;
+            auto l_NameLen = sizeof(s_Entries[i].name);
+            auto l_Name = new char[l_NameLen];
+            if (l_Name == nullptr)
+            {
+                // TODO: Free resources
+                delete l_Entry;
+                WriteLog(LL_Error, "could not allocate name (%d)", l_NameLen);
+                continue;
+            }
+            memset(l_Name, 0, l_NameLen);
+            memcpy(l_Name, s_Entries[i].name, l_NameLen);
+
+            l_Entry->name = l_Name;
+
+            l_Entry->start = s_Entries[i].start;
+            l_Entry->end = s_Entries[i].end;
+            l_Entry->offset = s_Entries[i].offset;
+            l_Entry->protection = s_Entries[i].prot;
+
+            s_VmEntries[i] = l_Entry;
+        }
+
+        delete [] s_Entries;
+        s_Entries = nullptr;
+
+        l_ProcLimited->entries = s_VmEntries;
+        l_ProcLimited->n_entries = s_NumEntries;
+
+        s_ProcessList[s_CurrentProcIndex] = l_ProcLimited;
+        s_CurrentProcIndex++;
+    }
+	sx_sunlock(allproclock);
+    // CAN RETURN AGAIN MKAY
+
+    DbgGetProcessListResponse* s_Response = new DbgGetProcessListResponse;
+    if (s_Response == nullptr)
+    {
+        // TODO: Free resources
+        WriteLog(LL_Error, "could not allocate response");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
+
+    s_Response->processes = s_ProcessList;
+    s_Response->n_processes = s_ProcCount;
+
+    auto s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
+    auto s_Message = new uint8_t[s_MessageSize];
+    if (s_Message == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate message (%llx)", s_MessageSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+cleanup:
+
 }
 
 void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
