@@ -19,6 +19,9 @@ extern "C"
     #include <sys/ptrace.h>
     #include <sys/mman.h>
     #include <sys/sx.h>
+    #include <sys/errno.h>
+    #include <machine/reg.h>
+    #include <machine/param.h>
 
 	#include <vm/vm.h>
 	#include <vm/pmap.h>
@@ -183,6 +186,7 @@ bool Debugger2::ProtectProcessMemory(uint64_t p_Address, uint32_t p_Size, int32_
 
 struct thread* Debugger2::GetProcessMainThread()
 {
+    // Verify that we have some kind of pid
     if (m_AttachedPid < 0)
 	{
         WriteLog(LL_Error, "invalid pid (%d)", m_AttachedPid);
@@ -274,15 +278,16 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     p_Info->n_threads = s_ThreadCount;
 
     // Credentials
+    struct ucred* s_UCred = nullptr;
     DbgCred* s_Cred = new DbgCred();
     if (s_Cred == nullptr)
     {
         // TODO: Free/destroy the array
         WriteLog(LL_Error, "could not allocate credential");
-        return false;
+        goto cleanup;
     }
 
-    struct ucred* s_UCred = s_Process->p_ucred;
+    s_UCred = s_Process->p_ucred;
     if (s_UCred != nullptr)
     {
         s_Cred->effectiveuserid = s_UCred->cr_uid;
@@ -323,12 +328,12 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     {
         // TODO: Free resources
         WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
-        return false;
+        goto cleanup;
     }
     memset(s_Name, 0, s_NameLength);
     memcpy(s_Name, s_Process->p_comm, s_NameLength);
     p_Info->name = s_Name;
-
+return false;
     // Elf path
     auto s_ElfPathLength = sizeof(s_Process->p_elfpath);
     auto s_ElfPath = new char[s_ElfPathLength];
@@ -336,7 +341,7 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     {
         // TODO: Free resources
         WriteLog(LL_Error, "could not allocate memory for elf path");
-        return false;
+        goto cleanup;
     }
     memset(s_ElfPath, 0, s_ElfPathLength);
     memcpy(s_ElfPath, s_Process->p_elfpath, s_ElfPathLength);
@@ -350,7 +355,7 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
         // TODO: Free resources
         delete [] s_Name;
         WriteLog(LL_Error, "could not allocate memory for randomized path len: (%x)", s_RandomizedPathLength);
-        return false;
+        goto cleanup;
     }
     memset(s_RandomizedPath, 0, s_RandomizedPathLength);
     memcpy(s_RandomizedPath, s_Process->p_randomized_path, s_RandomizedPathLength);
@@ -365,7 +370,7 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     {
         // TODO: Free resources
         WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
-        return false;
+        goto cleanup;
     }
 
     DbgVmEntry* s_VmEntries[s_NumEntries];
@@ -406,6 +411,9 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     }
 
     return true;
+
+cleanup:
+    return false;
 }
 
 bool Debugger2::GetProcessLimitedInfo(DbgProcessLimited* p_Info)
@@ -527,7 +535,7 @@ bool Debugger2::GetThreadLimitedInfo(struct thread* p_Thread, DbgThreadLimited* 
     }
 
     *p_Info = DBG_THREAD_LIMITED__INIT;
-    p_Info->errno = p_Thread->td_errno;
+    p_Info->err_no = p_Thread->td_errno;
     p_Info->kernelstack = p_Thread->td_kstack;
     p_Info->kernelstackpages = p_Thread->td_kstack_pages;
     p_Info->retval = p_Thread->td_retval[0];
@@ -583,7 +591,7 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
     p_Info->retval = p_Thread->td_retval[0];
     p_Info->kernelstack = p_Thread->td_kstack;
     p_Info->kernelstackpages = p_Thread->td_kstack_pages;
-    p_Info->errno = p_Thread->td_errno;
+    p_Info->err_no = p_Thread->td_errno;
 
     auto s_Ret = kkill_t(m_AttachedPid, SIGSTOP, s_MainThread);
     if (s_Ret < 0)
@@ -1133,6 +1141,11 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
+    DbgGetProcessListResponse* s_Response = nullptr;
+    uint64_t s_MessageSize = 0;
+    uint8_t* s_Message = nullptr;
+    uint64_t s_PackedSize = 0;
+
     struct proc* s_Proc = nullptr;
     uint64_t s_ProcCount = 0;
     uint64_t s_CurrentProcIndex = 0;
@@ -1156,7 +1169,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         {
             WriteLog(LL_Error, "procLimited null");
             s_Error = true;
-            break;
+            continue;
         }
 
         *l_ProcLimited = DBG_PROCESS_LIMITED__INIT;
@@ -1168,10 +1181,12 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         auto s_Name = new char[s_NameLength];
         if (s_Name == nullptr)
         {
+            // Free the looped process
             delete l_ProcLimited;
             s_Error = true;
             WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
-            break;
+            
+            continue;
         }
         memset(s_Name, 0, s_NameLength);
         memcpy(s_Name, s_Proc->p_comm, s_NameLength);
@@ -1190,7 +1205,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
             s_Error = true;
 
             WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
-            break;
+            continue;
         }
 
         DbgVmEntry* s_VmEntries[s_NumEntries];
@@ -1211,8 +1226,9 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
             auto l_Name = new char[l_NameLen];
             if (l_Name == nullptr)
             {
-                // TODO: Free resources
+                // Free resources
                 delete l_Entry;
+
                 WriteLog(LL_Error, "could not allocate name (%d)", l_NameLen);
                 continue;
             }
@@ -1241,30 +1257,93 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 	sx_sunlock(allproclock);
     // CAN RETURN AGAIN MKAY
 
-    DbgGetProcessListResponse* s_Response = new DbgGetProcessListResponse;
+    s_Response = new DbgGetProcessListResponse;
     if (s_Response == nullptr)
     {
         // TODO: Free resources
         WriteLog(LL_Error, "could not allocate response");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
+        goto cleanup;
     }
     *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
 
     s_Response->processes = s_ProcessList;
     s_Response->n_processes = s_ProcCount;
 
-    auto s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
-    auto s_Message = new uint8_t[s_MessageSize];
+    s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
+    s_Message = new uint8_t[s_MessageSize];
     if (s_Message == nullptr)
     {
         WriteLog(LL_Error, "could not allocate message (%llx)", s_MessageSize);
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         goto cleanup;
     }
+    memset(s_Message, 0, s_MessageSize);
+
+    s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_Message);
+    if (s_PackedSize != s_MessageSize)
+    {
+        WriteLog(LL_Error, "could not pack get process list message.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        goto cleanup;
+    }
 
 cleanup:
+    if (s_Response != nullptr)
+    {
+        delete s_Response;
+        s_Response = nullptr;
+    }
 
+    if (s_Message != nullptr)
+    {
+        delete s_Message;
+        s_Message = nullptr;
+    }
+
+    s_PackedSize = 0;
+
+    if (s_ProcCount != 0)
+    {
+        // Iterate through each of the process counts
+        for (auto l_ProcessIndex = 0; l_ProcessIndex < s_ProcCount; ++l_ProcessIndex)
+        {
+            auto l_Process = s_ProcessList[l_ProcessIndex];
+            if (l_Process == nullptr)
+                continue;
+            
+            // Iterate through all of the vm entries
+            for (auto l_VmEntryIndex = 0; l_VmEntryIndex < l_Process->n_entries; ++l_VmEntryIndex)
+            {
+                auto l_VmEntry = l_Process->entries[l_VmEntryIndex];
+                if (l_VmEntry == nullptr)
+                    continue;
+
+                // If the name was allocated, free it
+                if (l_VmEntry->name)
+                    delete [] l_VmEntry->name;
+                
+                l_VmEntry->name = nullptr;
+                
+                // Delete this entry
+                delete l_VmEntry;
+                l_Process->entries[l_VmEntryIndex] = nullptr;
+            }
+
+            // Set the entry count to zero once we free all of them
+            l_Process->n_entries = 0;
+
+            // If the process name was allocated, free it
+            if (l_Process->name)
+                delete [] l_Process->name;
+            
+            l_Process->name = nullptr;
+            
+            // Free the process entry
+            delete l_Process;
+            s_ProcessList[l_ProcessIndex] = nullptr;
+        }
+    }
 }
 
 void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
@@ -1366,4 +1445,63 @@ void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, co
 
     delete [] s_SerializedData;
     delete [] s_Buffer;
+}
+
+void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgWriteProcessMemoryRequest* s_Request = dbg_write_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack wpm request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    // validate our incoming data
+    if (s_Request->data.data == nullptr || s_Request->data.len == 0)
+    {
+        dbg_write_process_memory_request__free_unpacked(s_Request, nullptr);
+
+        WriteLog(LL_Error, "could not get data to write");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    // Write to the attached process
+    size_t s_DataLength = s_Request->data.len;
+    auto s_Ret = proc_rw_mem_pid(s_Debugger->m_AttachedPid, reinterpret_cast<void*>(s_Request->address), s_Request->data.len, s_Request->data.data, &s_DataLength, 1);
+    if (s_Ret < 0)
+    {
+        dbg_write_process_memory_request__free_unpacked(s_Request, nullptr);
+
+        WriteLog(LL_Error, "could not write to process ret (%d).", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        return;
+    }
+
+    dbg_write_process_memory_request__free_unpacked(s_Request, nullptr);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_WriteMem, 0, nullptr, 0);
 }

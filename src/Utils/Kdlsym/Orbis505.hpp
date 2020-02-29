@@ -153,6 +153,8 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_make_dev_p                             0x001B9810
 
 #define kdlsym_addr_kproc_exit                             0x00138060
+#define kdlsym_addr_spinlock_exit                          0x00234AB0
+#define kdlsym_addr__thread_lock_flags                     0x00402420
 
 // FakeSelf hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0063E25D

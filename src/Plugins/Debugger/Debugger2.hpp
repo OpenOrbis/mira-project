@@ -257,12 +257,44 @@ namespace Mira
             bool WriteKernelMemory(uint64_t p_Address, uint8_t* p_Data, uint32_t p_Size);
 
         private:
+            /**
+             * @brief RPC callback for attaching to a process
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing attach rpc message
+             */
             static void OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            
+            /**
+             * @brief RPC callback for detaching from a process
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing detach rpc message
+             */
             static void OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for getting a process list of all running processes on the console
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing process list request message
+             */
             static void OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for reading attached process memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing rpm request
+             */
             static void OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            
+            /**
+             * @brief RPC callback for writing attached process memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing wpm request
+             */
             static void OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
             static void OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 

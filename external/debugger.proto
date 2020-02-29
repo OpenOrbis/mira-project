@@ -44,7 +44,7 @@ message DbgThreadLimited {
     int64 retval = 4; // len 2
     uint64 kernelStack = 5;
     int32 kernelStackPages = 6;
-    int32 errno = 7;
+    int32 err_no = 7;
 }
 
 message DbgThreadFull {
@@ -54,7 +54,7 @@ message DbgThreadFull {
     int64 retval = 4; // len 2
     uint64 kernelStack = 5;
     int32 kernelStackPages = 6;
-    int32 errno = 7;
+    int32 err_no = 7;
     DbgGpRegisters gpRegisters = 8;
     DbgFpRegisters fpRegisters = 9;
     DbgDbRegisters dbRegisters = 10;
