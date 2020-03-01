@@ -1,7 +1,7 @@
 #include "PluginManager.hpp"
 
 // Built in plugins
-#include <Plugins/Debugger/Debugger.hpp>
+#include <Plugins/Debugger/Debugger2.hpp>
 #include <Plugins/LogServer/LogManager.hpp>
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
@@ -37,7 +37,7 @@ bool PluginManager::OnLoad()
     WriteLog(LL_Debug, "loading all plugins");
     
     // Initialize debugger
-    m_Debugger = new Mira::Plugins::Debugger();
+    m_Debugger = new Mira::Plugins::Debugger2();
     if (m_Debugger == nullptr)
     {
         WriteLog(LL_Error, "could not allocate debugger.");

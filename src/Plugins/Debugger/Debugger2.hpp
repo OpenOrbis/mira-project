@@ -1,12 +1,15 @@
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Messaging/Rpc/Connection.hpp>
+#include <Utils/Hook.hpp>
 
 extern "C"
 {
     #include <Messaging/Rpc/rpc.pb-c.h>
     #include "debugger.pb-c.h"
     #include <sys/socket.h>
+
+    #include <machine/frame.h>
 };
 
 namespace Mira
@@ -53,6 +56,8 @@ namespace Mira
                 DbgCmd_GetProcList = 0x7CF61ABE
             } Commands;
 
+            Utils::Hook* m_TrapFatalHook;
+
             // Remote GDB extension
             // https://www.embecosm.com/appnotes/ean4/embecosm-howto-rsp-server-ean4-issue-2.html
             struct sockaddr m_ServerAddress;
@@ -68,6 +73,9 @@ namespace Mira
             Debugger2(uint16_t p_Port = -1);
             virtual ~Debugger2();
 
+            virtual const char* GetName() override { return "Debugger"; }
+            virtual const char* GetDescription() override { return "GDB compatible debugger with ReClass abilties."; }
+
             // Module callbacks
             virtual bool OnLoad() override;
             virtual bool OnUnload() override;
@@ -75,6 +83,9 @@ namespace Mira
             virtual bool OnResume() override;
 
         protected:
+            static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
+            static bool IsStackSpace(void* p_Address);
+
             // The gdb protocol does not allow the '$' or '#' in data, they must be escaped
             // The escape character is 0x7d '}' then the next byte is $ or # or'd with 0x20, } character itself too must be escaped
             void EscapePacket(char* p_PacketData, uint32_t p_Size);

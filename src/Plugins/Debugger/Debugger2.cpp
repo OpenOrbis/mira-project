@@ -49,12 +49,37 @@ Debugger2::~Debugger2()
 
 bool Debugger2::OnLoad()
 {
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
+	// Create the trap fatal hook
+    WriteLog(LL_Info, "creating trap_fatal hook");
+    m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));
+    
+    if (m_TrapFatalHook != nullptr)
+    {
+        WriteLog(LL_Info, "enabling trap_fatal hook");
+        m_TrapFatalHook->Enable();
+    }
+#endif
+
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Attach, OnAttach);
+
     return true;
 }
 
 bool Debugger2::OnUnload()
 {
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
+    WriteLog(LL_Info, "deleting trap fatal hook");
+	if (m_TrapFatalHook != nullptr)
+    {
+        if (m_TrapFatalHook->IsEnabled())
+            m_TrapFatalHook->Disable();
+        
+        delete m_TrapFatalHook;
+        m_TrapFatalHook = nullptr;
+    }
+#endif
+
     return true;
 }
 
@@ -225,6 +250,21 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
     auto _thread_lock_flags = (void(*)(struct thread *td, int opts, const char *file, int line))kdlsym(_thread_lock_flags);
 
+    uint64_t s_ElfPathLength = 0;
+    char* s_ElfPath = nullptr;
+
+    uint64_t s_NameLength = 0;
+    char* s_Name = nullptr;
+
+    uint64_t s_RandomizedPathLength = 0;
+    char* s_RandomizedPath = nullptr;
+
+    size_t s_NumEntries = 0;
+    int32_t s_Ret = 0;
+
+    DbgVmEntry** s_VmEntries = nullptr;
+    ProcVmMapEntry* s_Entries = nullptr;
+
     struct proc* s_Process = pfind(m_AttachedPid);
 	if (s_Process == nullptr)
 	{
@@ -243,6 +283,12 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
         s_ThreadCount++;
     
     s_Thread = nullptr;
+
+    if (s_ThreadCount == 0)
+    {
+        WriteLog(LL_Error, "could not get any threads");
+        return false;
+    }
 
     DbgThreadLimited* s_Threads[s_ThreadCount];
     memset(s_Threads, 0, sizeof(s_Threads));
@@ -276,6 +322,7 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     }
     p_Info->threads = s_Threads;
     p_Info->n_threads = s_ThreadCount;
+    p_Info->numthreads = s_Process->p_numthreads;
 
     // Credentials
     struct ucred* s_UCred = nullptr;
@@ -322,8 +369,8 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
 
 
     // Name
-    auto s_NameLength = sizeof(s_Process->p_comm);
-    auto s_Name = new char[s_NameLength];
+    s_NameLength = sizeof(s_Process->p_comm);
+    s_Name = new char[s_NameLength];
     if (s_Name == nullptr)
     {
         // TODO: Free resources
@@ -333,10 +380,10 @@ bool Debugger2::GetProcessFullInfo (DbgProcessFull* p_Info)
     memset(s_Name, 0, s_NameLength);
     memcpy(s_Name, s_Process->p_comm, s_NameLength);
     p_Info->name = s_Name;
-return false;
+
     // Elf path
-    auto s_ElfPathLength = sizeof(s_Process->p_elfpath);
-    auto s_ElfPath = new char[s_ElfPathLength];
+    s_ElfPathLength = sizeof(s_Process->p_elfpath);
+    s_ElfPath = new char[s_ElfPathLength];
     if (s_ElfPath == nullptr)
     {
         // TODO: Free resources
@@ -348,8 +395,8 @@ return false;
     p_Info->elfpath = s_ElfPath;
     
     // Randomized path
-    auto s_RandomizedPathLength = s_Process->p_randomized_path_len;
-    auto s_RandomizedPath = new char[s_RandomizedPathLength];
+    s_RandomizedPathLength = s_Process->p_randomized_path_len;
+    s_RandomizedPath = new char[s_RandomizedPathLength];
     if (s_RandomizedPath == nullptr)
     {
         // TODO: Free resources
@@ -359,13 +406,10 @@ return false;
     }
     memset(s_RandomizedPath, 0, s_RandomizedPathLength);
     memcpy(s_RandomizedPath, s_Process->p_randomized_path, s_RandomizedPathLength);
-
-    p_Info->numthreads = s_Process->p_numthreads;
+    p_Info->randomizedpath = s_RandomizedPath;
 
     // Get the VM Entries
-    ProcVmMapEntry* s_Entries = nullptr;
-    size_t s_NumEntries = 0;
-    auto s_Ret = OrbisOS::Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
+    s_Ret = OrbisOS::Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
     if (s_Ret < 0)
     {
         // TODO: Free resources
@@ -373,8 +417,14 @@ return false;
         goto cleanup;
     }
 
-    DbgVmEntry* s_VmEntries[s_NumEntries];
-    memset(&s_VmEntries, 0, sizeof(s_VmEntries));
+    if (s_NumEntries == 0)
+    {
+        WriteLog(LL_Error, "could not get any entries");
+        goto cleanup;
+    }
+
+    s_VmEntries = new DbgVmEntry*[s_NumEntries];
+    memset(s_VmEntries, 0, sizeof(DbgVmEntry*) * s_NumEntries);
 
     for (auto i = 0; i < s_NumEntries; ++i)
     {
@@ -410,9 +460,70 @@ return false;
         s_VmEntries[i] = l_Entry;
     }
 
+    p_Info->mapentries = s_VmEntries;
+    p_Info->n_mapentries = s_NumEntries;
+
     return true;
 
 cleanup:
+    if (s_ElfPath != nullptr)
+        delete [] s_ElfPath;
+
+    if (s_Name != nullptr)
+        delete [] s_Name;
+
+    if (s_RandomizedPath != nullptr)
+        delete [] s_RandomizedPath;
+
+    if (s_VmEntries != nullptr && s_NumEntries != 0)
+    {
+        for (auto i = 0; i < s_NumEntries; ++i)
+        {
+            auto l_Entry = s_VmEntries[i];
+            if (l_Entry == nullptr)
+                continue;
+            
+            if (l_Entry->name != nullptr)
+                delete [] l_Entry->name;
+            
+            l_Entry->name = nullptr;
+
+            delete l_Entry;
+            s_VmEntries[i] = nullptr;
+        }
+
+        delete [] s_VmEntries;
+        s_VmEntries = nullptr;
+        s_NumEntries = 0;
+    }
+
+    if (s_ThreadCount != 0)
+    {
+        for (auto i = 0; i < s_ThreadCount; ++i)
+        {
+            auto l_ThreadEntry = s_Threads[i];
+            if (l_ThreadEntry == nullptr)
+                continue;
+            
+            if (l_ThreadEntry->name != nullptr)
+                delete [] l_ThreadEntry->name;
+            
+            l_ThreadEntry->name = nullptr;
+            
+            delete l_ThreadEntry;
+            s_Threads[i] = nullptr;
+        }
+    }
+
+    if (p_Info != nullptr)
+        *p_Info = DBG_PROCESS_FULL__INIT;
+
+    if (s_Cred != nullptr)
+    {
+        delete s_Cred;
+        s_Cred = nullptr;
+    }
+
     return false;
 }
 
@@ -1138,8 +1249,8 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
     struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
     auto __sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
 	auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
-	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     DbgGetProcessListResponse* s_Response = nullptr;
     uint64_t s_MessageSize = 0;
@@ -1149,15 +1260,23 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
     struct proc* s_Proc = nullptr;
     uint64_t s_ProcCount = 0;
     uint64_t s_CurrentProcIndex = 0;
-    bool s_Error = false;
+
+    DbgProcessLimited** s_ProcessList = nullptr;
 
     // DO NOT RETURN ANYWHERE IN HERE, WE MUST ALWAYS RELEASE THE LOCK
     sx_slock(allproclock);
 	FOREACH_PROC_IN_SYSTEM(s_Proc)
 		s_ProcCount++;
+
+    if (s_ProcCount == 0)
+    {
+        sx_sunlock(allproclock);
+        WriteLog(LL_Error, "could not get any process");
+        goto cleanup;
+    }
     
-    DbgProcessLimited* s_ProcessList[s_ProcCount];
-    memset(s_ProcessList, 0, sizeof(s_ProcessList));
+    s_ProcessList = new DbgProcessLimited*[s_ProcCount];
+    memset(s_ProcessList, 0, sizeof(DbgProcessLimited*) * s_ProcCount);
 
     FOREACH_PROC_IN_SYSTEM(s_Proc)
 	{
@@ -1168,7 +1287,6 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         if (l_ProcLimited == nullptr)
         {
             WriteLog(LL_Error, "procLimited null");
-            s_Error = true;
             continue;
         }
 
@@ -1183,7 +1301,6 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         {
             // Free the looped process
             delete l_ProcLimited;
-            s_Error = true;
             WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
             
             continue;
@@ -1202,7 +1319,6 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
             l_ProcLimited->name = nullptr;
 
             delete l_ProcLimited;
-            s_Error = true;
 
             WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
             continue;
@@ -1297,13 +1413,11 @@ cleanup:
 
     if (s_Message != nullptr)
     {
-        delete s_Message;
+        delete [] s_Message;
         s_Message = nullptr;
     }
 
-    s_PackedSize = 0;
-
-    if (s_ProcCount != 0)
+    if (s_ProcessList != nullptr && s_ProcCount != 0)
     {
         // Iterate through each of the process counts
         for (auto l_ProcessIndex = 0; l_ProcessIndex < s_ProcCount; ++l_ProcessIndex)
@@ -1343,6 +1457,9 @@ cleanup:
             delete l_Process;
             s_ProcessList[l_ProcessIndex] = nullptr;
         }
+
+        delete [] s_ProcessList;
+
     }
 }
 

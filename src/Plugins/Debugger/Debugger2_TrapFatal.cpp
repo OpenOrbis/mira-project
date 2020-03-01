@@ -1,13 +1,6 @@
-#include "Debugger.hpp"
+#include "Debugger2.hpp"
 #include <Utils/Kdlsym.hpp>
-#include <Utils/Logger.hpp>
-#include <Utils/SysWrappers.hpp>
-#include <Utils/Kernel.hpp>
-#include <Utils/Logger.hpp>
-
 #include <Mira.hpp>
-#include <Plugins/PluginManager.hpp>
-#include <Plugins/Debugger/Debugger.hpp>
 
 extern "C"
 {
@@ -17,13 +10,12 @@ extern "C"
 
 	#include <vm/vm.h>
 	#include <vm/pmap.h>
-	#include <machine/frame.h>
+	
 	#include <machine/psl.h>
 	#include <machine/pmap.h>
 	#include <machine/segments.h>
+    #include <machine/trap.h>
 };
-
-using namespace Mira::Plugins;
 
 struct amd64_frame 
 {
@@ -32,66 +24,7 @@ struct amd64_frame
 	long                    f_arg0;
 };
 
-Debugger::Debugger() :
-    m_TrapFatalHook(nullptr)
-{
-}
-
-Debugger::~Debugger()
-{
-
-}
-
-bool Debugger::OnLoad()
-{
-#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
-	// Create the trap fatal hook
-    WriteLog(LL_Info, "creating trap_fatal hook");
-    m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));
-    
-    if (m_TrapFatalHook != nullptr)
-    {
-        WriteLog(LL_Info, "enabling trap_fatal hook");
-        m_TrapFatalHook->Enable();
-    }
-#endif
-
-	// Enable fuzzing
-	return true; // EnableFuzzing();
-}
-
-bool Debugger::OnUnload()
-{
-	WriteLog(LL_Info, "deleting trap fatal hook");
-	if (m_TrapFatalHook != nullptr)
-    {
-        if (m_TrapFatalHook->IsEnabled())
-            m_TrapFatalHook->Disable();
-        
-        delete m_TrapFatalHook;
-        m_TrapFatalHook = nullptr;
-    }
-
-	return true;
-}
-
-bool Debugger::OnSuspend()
-{
-	WriteLog(LL_Info, "disabling trap_fatal hook");
-	if (m_TrapFatalHook)
-		m_TrapFatalHook->Disable();
-	
-	return true;
-}
-
-bool Debugger::OnResume()
-{
-	WriteLog(LL_Info, "enabling trap_fatal hook");
-	if (m_TrapFatalHook)
-		m_TrapFatalHook->Enable();
-
-	return true;
-}
+using namespace Mira::Plugins;
 
 void sdtossd(struct user_segment_descriptor *sd, struct soft_segment_descriptor *ssd)
 {
@@ -105,18 +38,19 @@ void sdtossd(struct user_segment_descriptor *sd, struct soft_segment_descriptor 
 	ssd->ssd_gran  = sd->sd_gran;
 }
 
-bool Debugger::IsStackSpace(void* p_Address)
+bool Debugger2::IsStackSpace(void* p_Address)
 {
     return ((reinterpret_cast<uint64_t>(p_Address) & 0xFFFFFFFF00000000) == 0xFFFFFF8000000000);
 }
 
-void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
+void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 {
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto gdt = (struct user_segment_descriptor*)kdlsym(gdt);/* global descriptor tables */
 	auto vm_fault_disable_pagefaults = (int(*)(void))kdlsym(vm_fault_disable_pagefaults);
 	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+#define MAX_TRAP_MSG		33
 
 	static const char *trap_msg[] = {
 		"",					/*  0 unused */
@@ -252,7 +186,7 @@ void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	printf("call stack:\n");
     auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
 	auto amdFrameCount = 0;
-	while (Debugger::IsStackSpace(amdFrame))
+	while (Debugger2::IsStackSpace(amdFrame))
 	{
 		printf("[%d] [r: %p] [f:%p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
 		amdFrame = amdFrame->f_frame;
@@ -287,222 +221,4 @@ void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 
 	// Allow the debugger to be placed here manually and continue exceution
 	__asm__("pop %rbp;leave;ret;");
-}
-
-bool Debugger::Attach(int32_t p_ProcessId, bool p_StopOnAttach)
-{
-	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-	if (s_MainThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get mira main thread");
-		return false;
-	}
-
-	if (m_ProcessId != -1)
-	{
-		WriteLog(LL_Error, "please disconnect from current process (%d).", m_ProcessId);
-		return false;
-	}
-	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-	struct proc* s_Process = pfind(p_ProcessId);
-	if (s_Process == nullptr)
-	{
-		WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
-		return false;
-	}
-
-	if (p_StopOnAttach)
-	{
-		auto s_KillResult = kkill_t(p_ProcessId, SIGSTOP, s_MainThread);
-		if (s_KillResult < 0)
-			WriteLog(LL_Error, "could not stop process for pid (%d).", p_ProcessId);
-	}
-	
-	m_ProcessId = p_ProcessId;
-	PROC_UNLOCK(s_Process);
-
-	return true;
-}
-
-bool Debugger::Detach(bool p_ResumeOnDetach)
-{
-	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-	if (s_MainThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get mira main thread");
-		return false;
-	}
-
-	if (m_ProcessId == -1)
-	{
-		WriteLog(LL_Error, "not attached, no pid");
-		return true;
-	}
-
-	// Zero the registers
-	memset(&m_Registers, 0, sizeof(m_Registers));
-	memset(&m_FloatingRegisters, 0, sizeof(m_FloatingRegisters));
-	memset(&m_DebugRegisters, 0, sizeof(m_DebugRegisters));
-
-	if (p_ResumeOnDetach)
-	{
-		auto s_Result = kkill_t(m_ProcessId, SIGCONT, s_MainThread);
-		if (s_Result < 0)
-			WriteLog(LL_Error, "could not resume process (%d).", m_ProcessId);
-	}
-
-	m_ProcessId = -1;
-	return true;
-}
-
-uint32_t Debugger::ReadData(uint64_t p_Address, uint8_t* p_OutData, uint32_t p_Size)
-{
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-	if (m_ProcessId == -1)
-	{
-		WriteLog(LL_Error, "not attached to process.");
-		return 0;
-	}
-
-	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-	if (s_MainThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get mira main thread");
-		return 0;
-	}
-
-	auto proc_rwmem = (int(*)(struct proc* p, struct uio* uio))kdlsym(proc_rwmem);
-
-	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-	struct proc* s_Process = pfind(m_ProcessId);
-	if (s_Process == nullptr)
-	{
-		WriteLog(LL_Error, "could not find process for pid (%d).", m_ProcessId);
-		return 0;
-	}
-
-	struct iovec iov =
-	{
-		.iov_base = (caddr_t)p_OutData,
-		.iov_len = p_Size
-	};
-
-	struct uio uio =
-	{
-		.uio_iov = &iov,
-		.uio_iovcnt = 1,
-		.uio_offset = (off_t)p_Address,
-		.uio_resid = (ssize_t)p_Size,
-		.uio_segflg = UIO_SYSSPACE,
-		.uio_rw = UIO_READ,
-		.uio_td = s_MainThread
-	};
-
-	auto s_Ret = proc_rwmem(s_Process, &uio);
-	auto s_BytesRead = 0;
-	if (s_Ret < 0)
-	{
-		WriteLog(LL_Error, "could not read process (%d) addr: (%p) sz: (%d).", m_ProcessId, p_Address, p_Size);
-	}
-	else
-		s_BytesRead = p_Size;
-
-	PROC_UNLOCK(s_Process);
-
-	return s_BytesRead;
-}
-
-uint32_t Debugger::WriteData(uint64_t p_Address, uint8_t* p_Data, uint32_t p_Size)
-{
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	if (m_ProcessId == -1)
-	{
-		WriteLog(LL_Error, "not attached to process.");
-		return 0;
-	}
-
-	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-	if (s_MainThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get mira main thread");
-		return 0;
-	}
-
-	auto proc_rwmem = (int(*)(struct proc* p, struct uio* uio))kdlsym(proc_rwmem);
-
-	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-	struct proc* s_Process = pfind(m_ProcessId);
-	if (s_Process == nullptr)
-	{
-		WriteLog(LL_Error, "could not find process for pid (%d).", m_ProcessId);
-		return 0;
-	}
-
-	struct iovec iov =
-	{
-		.iov_base = (caddr_t)p_Data,
-		.iov_len = p_Size
-	};
-
-	struct uio uio =
-	{
-		.uio_iov = &iov,
-		.uio_iovcnt = 1,
-		.uio_offset = (off_t)p_Address,
-		.uio_resid = (ssize_t)p_Size,
-		.uio_segflg = UIO_SYSSPACE,
-		.uio_rw = UIO_WRITE,
-		.uio_td = s_MainThread
-	};
-
-	auto s_Ret = proc_rwmem(s_Process, &uio);
-	auto s_BytesRead = 0;
-	if (s_Ret < 0)
-	{
-		WriteLog(LL_Error, "could not read process (%d) addr: (%p) sz: (%d).", m_ProcessId, p_Address, p_Size);
-	}
-	else
-		s_BytesRead = p_Size;
-
-	PROC_UNLOCK(s_Process);
-
-	return s_BytesRead;
-}
-
-bool Debugger::SingleStep()
-{
-	return true;
-}
-
-bool Debugger::UpdateRegisters()
-{
-	return true;
-}
-
-bool Debugger::UpdateWatches()
-{
-	return true;
-}
-
-bool Debugger::UpdateBreakpoints()
-{
-	return true;
-}
-
-bool Debugger::IsProcessAlive(int32_t p_ProcessId)
-{
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-	struct proc* s_Process = pfind(p_ProcessId);
-	if (s_Process == nullptr)
-	{
-		WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
-		return false;
-	}
-	PROC_UNLOCK(s_Process);
-	return true;
 }

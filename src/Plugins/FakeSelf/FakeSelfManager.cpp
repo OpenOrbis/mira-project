@@ -269,9 +269,7 @@ bool FakeSelfManager::IsFakeSelf(SelfContext* p_Context)
     SelfExInfo* s_Info = nullptr;
     if (p_Context != nullptr && p_Context->format == SelfFormat::Self)
     {
-        auto s_Ret = _sceSblAuthMgrGetSelfInfo(p_Context, &s_Info);  
-        if (s_Ret)
-            s_Ret = 0;
+        (void)_sceSblAuthMgrGetSelfInfo(p_Context, &s_Info);
         
         //WriteLog(LL_Debug, "ptype: (%d)", s_Info->ptype);
         return (int32_t)s_Info->ptype == SelfPtypeFake;

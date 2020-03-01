@@ -162,7 +162,7 @@ struct  _DbgThreadLimited
   int64_t retval;
   uint64_t kernelstack;
   int32_t kernelstackpages;
-  int32_t errno;
+  int32_t err_no;
 };
 #define DBG_THREAD_LIMITED__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_thread_limited__descriptor) \
@@ -181,7 +181,7 @@ struct  _DbgThreadFull
   int64_t retval;
   uint64_t kernelstack;
   int32_t kernelstackpages;
-  int32_t errno;
+  int32_t err_no;
   DbgGpRegisters *gpregisters;
   DbgFpRegisters *fpregisters;
   DbgDbRegisters *dbregisters;
@@ -286,6 +286,9 @@ struct  _DbgProcessLimited
     , 0, (char *)protobuf_c_empty_string, 0,NULL }
 
 
+/*
+ * Has no request payload
+ */
 struct  _DbgGetProcessListResponse
 {
   ProtobufCMessage base;
@@ -300,30 +303,27 @@ struct  _DbgGetProcessListResponse
 struct  _DbgReadProcessMemoryRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   uint64_t address;
   uint32_t size;
 };
 #define DBG_READ_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_read_process_memory_request__descriptor) \
-    , 0, 0, 0 }
+    , 0, 0 }
 
 
 struct  _DbgReadProcessMemoryResponse
 {
   ProtobufCMessage base;
-  uint32_t bytesread;
   ProtobufCBinaryData data;
 };
 #define DBG_READ_PROCESS_MEMORY_RESPONSE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_read_process_memory_response__descriptor) \
-    , 0, {0,NULL} }
+    , {0,NULL} }
 
 
 struct  _DbgWriteProcessMemoryRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   uint64_t address;
   /*
    * Size is inside here
@@ -332,20 +332,19 @@ struct  _DbgWriteProcessMemoryRequest
 };
 #define DBG_WRITE_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_write_process_memory_request__descriptor) \
-    , 0, 0, {0,NULL} }
+    , 0, {0,NULL} }
 
 
 struct  _DbgProtectProcessMemoryRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   uint64_t address;
   uint64_t length;
   int32_t protection;
 };
 #define DBG_PROTECT_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_protect_process_memory_request__descriptor) \
-    , 0, 0, 0, 0 }
+    , 0, 0, 0 }
 
 
 struct  _DbgScanProcessMemoryRequest
@@ -370,13 +369,12 @@ struct  _DbgGetProcessInfoRequest
 struct  _DbgAllocateProcessMemoryRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   uint32_t size;
   protobuf_c_boolean zero;
 };
 #define DBG_ALLOCATE_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_allocate_process_memory_request__descriptor) \
-    , 0, 0, 0 }
+    , 0, 0 }
 
 
 struct  _DbgAllocateProcessMemoryResponse
@@ -392,12 +390,11 @@ struct  _DbgAllocateProcessMemoryResponse
 struct  _DbgFreeProcessMemoryRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   uint64_t address;
 };
 #define DBG_FREE_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_free_process_memory_request__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _DbgGetProcessMapsRequest
