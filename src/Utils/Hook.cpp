@@ -3,7 +3,11 @@
 #include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
 
-#include <external/hde64/hde64.h>
+extern "C"
+{
+    #include <sys/mman.h>
+    #include <external/hde64/hde64.h>
+};
 
 using namespace Mira::Utils;
 
@@ -12,6 +16,8 @@ using namespace Mira::Utils;
 Hook::Hook() :
     m_TargetAddress(nullptr),
     m_HookAddress(nullptr),
+    m_TrampolineAddress(nullptr),
+    m_TrampolineSize(0),
     m_BackupData(nullptr),
     m_BackupLength(0),
     m_Enabled(false)
@@ -49,6 +55,8 @@ Hook::Hook(void* p_TargetAddress, void* p_HookAddress) :
     // Assign our variables for tracking later
     m_BackupData = s_BackupData;
     m_BackupLength = s_BackupDataLength;
+
+    m_TrampolineAddress = CreateTrampoline(&m_TrampolineSize);
 }
 
 Hook::~Hook()
@@ -67,6 +75,12 @@ Hook::~Hook()
 
     m_BackupData = nullptr;
     m_BackupLength = 0;
+
+    if (m_TrampolineAddress != nullptr)
+        k_free(m_TrampolineAddress);
+    
+    m_TrampolineAddress = nullptr;
+    m_TrampolineSize = 0;
 
     m_Enabled = false;
 }
@@ -148,6 +162,19 @@ void* Hook::GetHookedFunctionAddress()
     return m_HookAddress;
 }
 
+void* Hook::GetTrampolineFunctionAddress(uint32_t* p_OutSize)
+{
+    if (p_OutSize != nullptr)
+        *p_OutSize = m_TrampolineSize;
+
+    return m_TrampolineAddress;
+}
+
+/*
+    This function will calculate the minimum safe size to overwrite
+    This will not chop opcodes in half (ex, len 15 opcode overwriting only 2/15 bytes)
+    This is the amount that will be backed up
+*/
 int32_t Hook::GetMinimumHookSize(void* p_Target)
 {
     hde64s hs;
@@ -166,4 +193,92 @@ int32_t Hook::GetMinimumHookSize(void* p_Target)
 	}
 
 	return totalLength;
+}
+
+uint8_t* Hook::CreateTrampoline(uint32_t* p_OutTrampolineSize)
+{
+    if (m_TargetAddress == nullptr || m_HookAddress == nullptr)
+        return nullptr;
+    
+    if (m_BackupLength <= 0 || m_BackupData == nullptr)
+        return nullptr;
+
+    auto s_TrampolineSize = m_BackupLength + HOOK_LENGTH + sizeof(uint8_t); // NOP;
+    auto s_Trampoline = static_cast<uint8_t*>(k_malloc(s_TrampolineSize));//new uint8_t[s_TrampolineSize];
+    if (s_Trampoline == nullptr)
+        return nullptr;
+
+    WriteLog(LL_Debug, "trampoline: %p (%x)", s_Trampoline, s_TrampolineSize);
+    WriteLog(LL_Debug, "backup (%p) backupLen (%x)", m_BackupData, m_BackupLength);
+    
+    // TODO: Set correct prot on this, unless we always expect rwx (bad assumption)
+    memcpy(s_Trampoline, m_BackupData, m_BackupLength);
+
+    // Set up the jmp hook (bless, no registers clobbered bitches)
+    uint8_t jumpBuffer[] = {
+		0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,				// # jmp    QWORD PTR [rip+0x0]
+		0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,	// # DQ: AbsoluteAddress
+	}; // Shit takes 14 bytes
+
+	uint64_t* jumpBufferAddress = (uint64_t*)(jumpBuffer + 6);
+
+    // Calculate and set the midfunction address
+    uint64_t s_Midfunctionoffset = m_BackupLength - 1;
+    WriteLog(LL_Debug, "midfunctionOffset: %x, backupLength %x", s_Midfunctionoffset, m_BackupLength);
+    uint64_t s_TargetMidFunctionAddress = ((uint64_t)m_TargetAddress) + s_Midfunctionoffset;
+
+    WriteLog(LL_Debug, "jumpBuffer (%p) jumpBufferAddress (%p) midFunctionAddress (%p)", jumpBuffer, jumpBufferAddress, s_TargetMidFunctionAddress);
+
+    *jumpBufferAddress = s_TargetMidFunctionAddress;
+
+    // Copy the jump buffer to the end of the backup bytes in the trampoline
+    auto s_TrampolineJumpBufferAddress = (s_Trampoline + s_Midfunctionoffset);
+    WriteLog(LL_Debug, "trampolineJump (%p) byteAtLoc %x", s_TrampolineJumpBufferAddress, *s_TrampolineJumpBufferAddress);
+
+    memcpy(s_TrampolineJumpBufferAddress, jumpBuffer, sizeof(jumpBuffer));
+
+    // Set the very last byte of the trampoline to NOP
+    auto s_EndOfTrampoline = &s_Trampoline[s_TrampolineSize - 1];
+    *s_EndOfTrampoline = 0x90;
+
+    // Update the output size if there was one passed in
+    if (p_OutTrampolineSize != nullptr)
+        *p_OutTrampolineSize = s_TrampolineSize;
+    
+    return s_Trampoline;
+}
+
+void* Hook::k_malloc(size_t size)
+{
+	if (!size)
+		size = sizeof(uint64_t);
+	
+	auto kmem_alloc = (vm_offset_t(*)(vm_map_t map, vm_size_t size))kdlsym(kmem_alloc);
+	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
+
+	uint8_t* data = (uint8_t*)kmem_alloc(map, size);
+	if (!data)
+		return NULL;
+
+	// Set our pointer header
+	(*(uint64_t*)data) = size;
+
+	// Return the start of the requested data
+	return data + sizeof(uint64_t);
+}
+
+void Hook::k_free(void* address)
+{
+	if (!address)
+		return;
+
+	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
+	auto kmem_free = (void(*)(void* map, void* addr, size_t size))kdlsym(kmem_free);
+
+	
+	uint8_t* data = ((uint8_t*)address) - sizeof(uint64_t);
+
+	uint64_t size = *(uint64_t*)data;
+
+	kmem_free(map, data, size);
 }

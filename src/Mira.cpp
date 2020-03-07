@@ -148,8 +148,7 @@ extern "C" void mira_entry(void* args)
 
 		WriteLog(LL_Debug, "credentials rooted for new proc");
 	}
-
-	WriteLog(LL_Debug, "fuck the ps4 it gives you aids and cancer at the same fucking time");
+	
 	WriteLog(LL_Debug, "payloadBase: %p", initParams->payloadBase);
 	WriteLog(LL_Debug, "allocatedData: %p", initParams->allocatedBase);
 	WriteLog(LL_Debug, "entryPoint: %p", initParams->entrypoint);
@@ -158,7 +157,6 @@ extern "C" void mira_entry(void* args)
 	WriteLog(LL_Debug, "vmspace_alloc: %p", vmspace_alloc);
 	WriteLog(LL_Debug, "pmap_activate: %p", pmap_activate);
 	WriteLog(LL_Debug, "printf: %p", printf);
-	//WriteLog(LL_Debug, "avcontrol_sleep: %p", avcontrol_sleep);
 
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
@@ -170,25 +168,6 @@ extern "C" void mira_entry(void* args)
 		kthread_exit();
 		return;
 	}
-
-	// Wait for the process to be filled out
-	/*const auto s_MaxTimeout = 3;
-	auto s_CurrentTimeout = 0;
-	while (initParams->process == nullptr)
-	{
-		WriteLog(LL_Error, "waiting for process waiting 1s");
-		avcontrol_sleep(1000);
-		s_CurrentTimeout++;
-
-		if (s_CurrentTimeout < s_MaxTimeout)
-			continue;
-		
-		WriteLog(LL_Error, "error waiting for process");
-		kthread_exit();
-		return;
-	}
-
-	WriteLog(LL_Debug, "Got current process");*/
 
 	// Assign our new vmspace to our process
 	initParams->process->p_vmspace = vmspace;
@@ -286,6 +265,7 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
+	
 	// Initialize the rpc server
 	WriteLog(LL_Debug, "Initializing rpc server");
 	m_RpcServer = new Mira::Messaging::Rpc::Server();
@@ -307,13 +287,14 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
 	// Install device driver
+	/*
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
 	m_CtrlDriver = new Mira::Driver::CtrlDriver();
 	if (m_CtrlDriver == nullptr)
 	{
 		WriteLog(LL_Error, "could not allocate control driver.");
 		return false;
-	}
+	}*/
 
 	// Set the running flag
 	m_InitParams.isRunning = true;
@@ -344,6 +325,8 @@ bool Mira::Framework::Initialize()
 	// Hook SceSblSysVeri (Fire fw only)
 	//m_SceSblSysVeriHook = new Mira::Utils::Hook::Hook(kdlsym(SceSblSysVeriThread), OnSceSblSysVeri);
 
+	// Intentionally fault
+	//*((uint64_t*)0x1337) = 0xBADBABE;
 	return true;
 }
 
@@ -398,9 +381,9 @@ bool Mira::Framework::InstallEventHandlers()
 
 	// Register our event handlers
 	//const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase0, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
-	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase2, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
-	m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
+	//m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -419,9 +402,9 @@ bool Mira::Framework::RemoveEventHandlers()
 	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
 	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
-	EVENTHANDLER_DEREGISTER(power_suspend, m_SuspendTag);
-	EVENTHANDLER_DEREGISTER(power_resume, m_ResumeTag);
-	EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
+	EVENTHANDLER_DEREGISTER(system_suspend_phase1, m_SuspendTag);
+	EVENTHANDLER_DEREGISTER(system_resume_phase1, m_ResumeTag);
+	//EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
 
 	m_SuspendTag = nullptr;
 	m_ResumeTag = nullptr;
@@ -469,6 +452,7 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
 	auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
+	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
@@ -482,4 +466,5 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 	}
 
 	kproc_exit(0);
+	kthread_exit();
 }

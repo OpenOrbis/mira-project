@@ -13,6 +13,15 @@ void * operator new(unsigned long int p_Size)
 	auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
 	auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
+	if (p_Size >= 0x10000000)
+	{
+		auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+		printf("op_new error: requested (%llx) data\n\n\n", p_Size);
+
+		for (;;)
+			__asm__("nop");
+	}
+
 	return malloc(p_Size, M_TEMP, M_ZERO | M_WAITOK);;
 }
 

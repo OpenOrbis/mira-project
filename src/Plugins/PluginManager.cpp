@@ -1,9 +1,12 @@
 #include "PluginManager.hpp"
 
 // Built in plugins
-#include <Plugins/Debugger/Debugger.hpp>
+#include <Plugins/Debugger/Debugger2.hpp>
+#include <Plugins/LogServer/LogManager.hpp>
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
+#include <Plugins/FakePkg/FakePkgManager.hpp>
+#include <Plugins/EmuRegistry/EmuRegistryPlugin.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -12,11 +15,15 @@
 using namespace Mira::Plugins;
 
 PluginManager::PluginManager() :
+	m_Logger(nullptr),
     m_Debugger(nullptr),
     m_FileManager(nullptr),
-    m_FakeSelfManager(nullptr)
+    m_FakeSelfManager(nullptr),
+    m_FakePkgManager(nullptr),
+    m_EmuRegistry(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
+	m_Logger = nullptr;
     m_FileManager = nullptr;
 }
 
@@ -28,9 +35,9 @@ PluginManager::~PluginManager()
 bool PluginManager::OnLoad()
 {
     WriteLog(LL_Debug, "loading all plugins");
-
+    
     // Initialize debugger
-    m_Debugger = new Mira::Plugins::Debugger();
+    m_Debugger = new Mira::Plugins::Debugger2();
     if (m_Debugger == nullptr)
     {
         WriteLog(LL_Error, "could not allocate debugger.");
@@ -39,6 +46,16 @@ bool PluginManager::OnLoad()
     if (!m_Debugger->OnLoad())
         WriteLog(LL_Error, "could not load debugger.");
 
+    // Initialize Logger
+    m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
+    if (m_Logger == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate log manager.");
+        return false;
+    }
+    if (!m_Logger->OnLoad())
+        WriteLog(LL_Error, "could not load logmanager");
+    
     // Initialize file manager
     m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
     if (m_FileManager == nullptr)
@@ -60,8 +77,24 @@ bool PluginManager::OnLoad()
         WriteLog(LL_Error, "could not load fake self manager.");
     
     // Initialize the fpkg manager
+    m_FakePkgManager = new Mira::Plugins::FakePkgManager();
+    if (m_FakePkgManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate fake pkg manager.");
+        return false;
+    }
+    if (!m_FakePkgManager->OnLoad())
+        WriteLog(LL_Error, "could not load fake pkg manager.");
     
-    
+    // Initialize emu-registry
+    m_EmuRegistry = new Mira::Plugins::EmuRegistryPlugin();
+    if (m_EmuRegistry == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate emulated registry.");
+        return false;
+    }
+    if (!m_EmuRegistry->OnLoad())
+        WriteLog(LL_Error, "could not load emulated registry.");
     return true;
 }
 
@@ -112,7 +145,7 @@ bool PluginManager::OnUnload()
         // Free the file manager
         delete m_FileManager;
         m_FileManager = nullptr;
-    }
+    }	
 
     // Delete the fake self manager
     if (m_FakeSelfManager)
@@ -123,6 +156,41 @@ bool PluginManager::OnUnload()
         
         delete m_FakeSelfManager;
         m_FakeSelfManager = nullptr;
+    }
+
+    // Delete the fake pkg manager
+    if (m_FakePkgManager)
+    {
+        WriteLog(LL_Debug, "unloading fake pkg manager");
+        if (!m_FakePkgManager->OnUnload())
+            WriteLog(LL_Error, "fake pkg manager could not unload");
+        
+        delete m_FakePkgManager;
+        m_FakePkgManager = nullptr;
+    }
+
+    // Delete the emulated registry
+    if (m_EmuRegistry)
+    {
+        WriteLog(LL_Debug, "unloading emulated registry");
+        if (!m_EmuRegistry->OnUnload())
+            WriteLog(LL_Error, "emuRegistry could not unload");
+        
+        delete m_EmuRegistry;
+        m_EmuRegistry = nullptr;
+    }
+
+    // Delete the log server
+    if (m_Logger)
+    {
+        WriteLog(LL_Debug, "unloading log manager");
+
+        if (!m_Logger->OnUnload())
+            WriteLog(LL_Error, "logmanager could not unload");
+
+        // Free the file manager
+        delete m_Logger;
+        m_Logger = nullptr;
     }
 
     // Delete the debugger
@@ -165,13 +233,19 @@ bool PluginManager::OnSuspend()
             s_SuspendResult ? "success" : "failure");
     }
 
+    // Suspend the built in plugins
     if (!m_FileManager->OnSuspend())
         WriteLog(LL_Error, "file manager suspend failed");
-    
+	
     if (!m_FakeSelfManager->OnSuspend())
         WriteLog(LL_Error, "fake self manager suspend failed");
+    
+    if (!m_EmuRegistry->OnSuspend())
+        WriteLog(LL_Error, "emuRegistry suspend failed");
 
-    // Suspend the built in plugins
+    if (!m_Logger->OnSuspend())
+        WriteLog(LL_Error, "log manager suspend failed");
+    
     if (!m_Debugger->OnSuspend())
         WriteLog(LL_Error, "debugger suspend failed");
     
@@ -189,6 +263,14 @@ bool PluginManager::OnResume()
     if (!m_Debugger->OnResume())
         WriteLog(LL_Error, "debugger resume failed");
 
+    WriteLog(LL_Debug, "resuming log manager");
+    if (!m_Logger->OnResume())
+        WriteLog(LL_Error, "log manager resume failed"); 
+    
+    WriteLog(LL_Debug, "resuming emuRegistry");
+    if (!m_EmuRegistry->OnResume())
+        WriteLog(LL_Error, "emuRegistry resume failed");
+    
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {
@@ -212,8 +294,8 @@ bool PluginManager::OnResume()
 
     WriteLog(LL_Debug, "resuming file manager");
     if (!m_FileManager->OnResume())
-        WriteLog(LL_Error, "file manager resume failed");
-    
+        WriteLog(LL_Error, "file manager resume failed");   
+ 
     WriteLog(LL_Debug, "resuming fake self manager");
     if (!m_FakeSelfManager->OnResume())
         WriteLog(LL_Error, "fake self manager resume failed");

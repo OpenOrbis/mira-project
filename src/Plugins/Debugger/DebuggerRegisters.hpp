@@ -80,14 +80,3 @@ enum regnames
   FS,
   GS
 };
-
-namespace Mira
-{
-    namespace Plugins
-    {
-        struct DebuggerRegisters
-        {
-
-        };
-    }
-}

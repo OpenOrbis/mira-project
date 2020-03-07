@@ -2,9 +2,12 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
 
-#include <Messaging/Message.hpp>
-
 #include <sys/elf64.h>
+
+extern "C"
+{
+    #include <Messaging/Rpc/rpc.pb-c.h>
+};
 
 namespace Mira
 {
@@ -33,17 +36,17 @@ namespace Mira
                 virtual const char* GetDescription() override { return "replaces ftp"; }
 
             private:
-                static void OnEcho(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnOpen(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnClose(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnRead(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnWrite(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnGetDents(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnStat(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnMkDir(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnRmDir(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnUnlink(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
-                static void OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const Messaging::Message& p_Message);
+                static void OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnWrite(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnMkDir(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnRmDir(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
                 static uint8_t* DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize);
                 static uint8_t* DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_SelfFd, size_t* p_OutElfSize);
@@ -57,6 +60,8 @@ namespace Mira
                             p_Header->e_ident[EI_MAG2] == ELFMAG2 &&
                             p_Header->e_ident[EI_MAG3] == ELFMAG3);
                 }
+
+                static uint64_t GetDentCount(const char* p_Path);
             };
         }
     }

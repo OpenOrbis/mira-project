@@ -194,6 +194,9 @@ void Server::ServerThread(void* p_UserArgs)
     memset(&s_ClientAddress, 0, s_ClientAddressLen);
     s_ClientAddress.sin_len = s_ClientAddressLen;
 
+    fd_set s_ReadFds;
+    FD_ZERO(&s_ReadFds);
+    FD_SET(s_Server->m_Socket, &s_ReadFds);
     while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
         // Set the send recv and linger timeouts
@@ -226,11 +229,11 @@ void Server::ServerThread(void* p_UserArgs)
 
         uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
 
-		WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
-			(l_Addr & 0xFF),
-			(l_Addr >> 8) & 0xFF,
-			(l_Addr >> 16) & 0xFF,
-			(l_Addr >> 24) & 0xFF);
+        WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
+            (l_Addr & 0xFF),
+            (l_Addr >> 8) & 0xFF,
+            (l_Addr >> 16) & 0xFF,
+            (l_Addr >> 24) & 0xFF);
         
         auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, s_ClientSocket, s_ClientAddress);
         if (!l_Connection)
@@ -262,6 +265,11 @@ void Server::ServerThread(void* p_UserArgs)
         // Zero out the address information for the next call
         memset(&s_ClientAddress, 0, s_ClientAddressLen);
         s_ClientAddress.sin_len = s_ClientAddressLen;
+
+        if (!s_Server->m_Running)
+            break;
+        
+        // TODO: Handle timeout
     }
 
     // Disconnects all clients, set running to false

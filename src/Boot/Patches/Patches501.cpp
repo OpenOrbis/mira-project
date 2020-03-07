@@ -138,4 +138,25 @@ void Patches::install_prerunPatches_501()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
+
+	// flatz disable pfs signature check
+	kmem = (uint8_t *)&gKernelBase[0x006A2320];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
+	// flatz enable debug RIFs
+	kmem = (uint8_t *)&gKernelBase[0x0064AED0];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0064AEF0];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
 }

@@ -1,0 +1,285 @@
+syntax = "proto3";
+
+message DbgGpRegisters {
+    uint64	r_r15 = 1;
+	uint64	r_r14 = 2;
+	uint64	r_r13 = 3;
+	uint64	r_r12 = 4;
+	uint64	r_r11 = 5;
+	uint64	r_r10 = 6;
+	uint64	r_r9 = 7;
+	uint64	r_r8 = 8;
+	uint64	r_rdi = 9;
+	uint64	r_rsi = 10;
+	uint64	r_rbp = 11;
+	uint64	r_rbx = 12;
+	uint64	r_rdx = 13;
+	uint64	r_rcx = 14;
+	uint64	r_rax = 15;
+	uint32	r_trapno = 16;
+	uint32	r_fs = 17; // uint16
+	uint32	r_gs = 18; // uint16
+	uint32	r_err = 19;
+	uint32	r_es = 20; // uint16
+	uint32	r_ds = 21; // uint16
+	uint64	r_rip = 22;
+	uint64	r_cs = 23;
+	uint64	r_rflags = 24;
+	uint64	r_rsp = 25;
+	uint64	r_ss = 26;
+}
+
+message DbgFpRegisters {
+    bytes data = 1; // I really don't feel like dealing with this
+}
+
+message DbgDbRegisters {
+    repeated uint32 debugRegs = 1; // len 16
+}
+
+message DbgThreadLimited {
+    uint64 proc = 1;
+    int32 threadId = 2;
+    string name = 3;
+    int64 retval = 4; // len 2
+    uint64 kernelStack = 5;
+    int32 kernelStackPages = 6;
+    int32 err_no = 7;
+}
+
+message DbgThreadFull {
+    uint64 proc = 1;
+    int32 threadId = 2;
+    string name = 3;
+    int64 retval = 4; // len 2
+    uint64 kernelStack = 5;
+    int32 kernelStackPages = 6;
+    int32 err_no = 7;
+    DbgGpRegisters gpRegisters = 8;
+    DbgFpRegisters fpRegisters = 9;
+    DbgDbRegisters dbRegisters = 10;
+}
+
+message DbgCred {
+    uint32 effectiveUserId = 1;
+    uint32 realUserId = 2;
+    uint32 savedUserId = 3;
+    int32 numGroups = 4;
+    uint32 realGroupId = 5;
+    uint32 savedGroupId = 6;
+    uint64 prison = 7;
+    uint64 sceAuthId = 8;
+    repeated uint64 sceCaps = 9; // len 4
+    repeated uint64 sceAttr = 10; // len 4
+}
+
+message DbgFileDesc {
+
+}
+
+message DbgProcessFull {
+    repeated DbgThreadLimited threads = 1;
+    DbgCred cred = 2;
+    int32 pid = 3;
+    uint64 parentProc = 4;
+    int32 oppid = 5;
+    int32 dbgChild = 6;
+    uint64 vmspace = 7;
+    int32 exitThreads = 8;
+    int32 sigParent = 9;
+    int32 sig = 10;
+    uint32 code = 11;
+    uint32 stops = 12;
+    uint32 stype = 13;
+    uint64 singleThread = 14;
+    int32 suspendCount = 15;
+    uint64 dynlib = 16;
+    string name = 17;
+    string elfPath = 18;
+    string randomizedPath = 19;
+    int32 numThreads = 20;
+    repeated DbgVmEntry mapEntries = 21;
+}
+
+message DbgVmEntry {
+    string name = 1;
+    uint64 start = 2;
+    uint64 end = 3;
+    uint64 offset = 4;
+    int32 protection = 5;
+}
+message DbgProcessLimited {
+    int32 pid = 1;
+    string name = 2;
+    repeated DbgVmEntry entries = 3;
+}
+
+// Has no request payload
+message DbgGetProcessListResponse {
+    repeated DbgProcessLimited processes = 1;
+}
+
+message DbgReadProcessMemoryRequest {
+    uint64 address = 1;
+    uint32 size = 2;
+}
+
+message DbgReadProcessMemoryResponse {
+    bytes data = 1;
+}
+
+message DbgWriteProcessMemoryRequest {
+    uint64 address = 1;
+    bytes data = 2; // Size is inside here
+} // Bytes are returned in error, no response payload
+
+message DbgProtectProcessMemoryRequest {
+    uint64 address = 1;
+    uint64 length = 2;
+    int32 protection = 3;
+} // No response payload
+
+message DbgScanProcessMemoryRequest {
+    // TODO: Come back to this
+}
+
+message DbgGetProcessInfoRequest {
+    int32 pid = 1;
+}// Response payload = DbgProcessFull
+
+message DbgAllocateProcessMemoryRequest {
+    uint32 size = 1;
+    bool zero = 2;
+}
+
+message DbgAllocateProcessMemoryResponse {
+    uint64 address = 1;
+}
+
+message DbgFreeProcessMemoryRequest {
+    uint64 address = 1;
+}
+
+message DbgGetProcessMapsRequest {
+    int32 pid = 1;
+} // Response Message = DbgProcessLimited
+
+message DbgAttachRequest {
+    int32 pid = 1;
+} // No response payload, pid in error
+
+message DbgDetachRequest {
+    bool force = 1;
+} // No response payload
+
+enum DbgBreakpointType {
+    BP_NONE = 0;
+    BP_SOFTWARE = 1;
+    BP_HARDWARE = 2;
+}
+
+message DbgBreakpointRequest {
+    bool enabled = 1;
+    uint64 address = 2;
+    uint32 original = 3;
+    DbgBreakpointType breakpointType = 4;
+}
+
+message DbgBreakpointResponse {
+    uint64 breakpointHandle = 1;
+}
+
+message DbgWatchpointRequest {
+    bool enabled = 1;
+    uint64 address = 2;
+    uint32 breakpointType = 3;
+    uint32 length = 4;
+}
+
+message DbgWatchpointResponse {
+    uint64 watchpointHandle = 1;
+}
+
+message DbgGetProcessThreadsRequest {
+    int32 pid = 1;
+}
+
+message DbgGetProcessThreadsResponse {
+    repeated DbgThreadLimited threads = 1;
+}
+
+message DbgSignalProcessRequest {
+    int32 pid = 1;
+    int32 signal = 2;
+} // No response message
+
+message DbgGetRegistersRequest {
+    int32 pid = 1;
+    int32 threadId = 2;
+}
+
+message DbgGetRegistersResponse {
+    DbgGpRegisters gpRegisters = 1;
+    DbgFpRegisters fpRegisters = 2;
+    DbgDbRegisters dbRegisters = 3;
+}
+
+message DbgSetRegistersRequest {
+    int32 pid = 1;
+    int32 threadId = 2;
+    DbgGpRegisters gpRegisters = 3;
+    DbgFpRegisters fpRegisters = 4;
+    DbgDbRegisters dbRegisters = 5;
+} // No Response message
+
+message DbgGetThreadInfoRequest {
+    int32 pid = 1;
+    int32 threadId = 2;
+}
+
+message DbgThreadSinglestepRequest {
+    int32 pid = 1;
+    int32 threadId = 2;
+}
+
+//message DbgGetKernelInfoRequest {
+//}
+/*
+
+
+struct global_settings_base_t
+{
+  char _unknown00[56];
+  unk_struct_t unk;
+  char _unk48[0x10];
+struct other_global_t other_global;
+uint8_t unk68[0xD8];
+};
+
+*/
+
+message DbgGetKernelInfoResponse {
+    uint64 version = 1;
+    bytes gloablConfigData = 2; // len 140?
+}
+
+message DbgReadKernelMemoryRequest {
+    uint64 address = 1;
+    uint64 size = 2;
+}
+
+message DbgWriteKernelMemoryRequest {
+    bytes data = 1;
+}
+
+message DbgCommandRequest {
+    enum DbgCommands {
+        DBG_NONE = 0;
+        DBG_REBOOT = 1;
+        DBG_SHUTDOWN = 2;
+        DBG_PRINT = 3;
+        DBG_NOTIFY = 4;
+        DBG_INFO = 5;
+    }
+    DbgCommands command = 1;
+}

@@ -1,17 +1,22 @@
+/*
+    Implemented from: https://github.com/xvortex/ps4-hen-vtx
+    Ported by: kiwidog (@kd_tech_)
+
+    Bugfixes: SiSTRo (https://github.com/SiSTR0), SocraticBliss (https://github.com/SocraticBliss)
+*/
+
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
 #include <Utils/Hook.hpp>
 
-#include "FakeSelfStructs.hpp"
+#include <OrbisOS/FakeStructs.hpp>
 
 extern "C"
 {
     #include <sys/elf.h>
     #include <vm/vm.h>
 };
-
-
 
 namespace Mira
 {
@@ -59,17 +64,16 @@ namespace Mira
         private:
             //
             // Helper Functions
-            static int AuthSelfHeader(SelfContext* p_Context);
-            static int SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response);
-            static int SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response);
-            static SblMapListEntry* SceSblDriverFindMappedPageListByGpuVa(vm_offset_t p_GpuVa);
+            static int AuthSelfHeader(OrbisOS::SelfContext* p_Context);
+            static int SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, uint8_t* p_Request, void* p_Response);
+            static int SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint64_t service_id, void* p_Request, void* p_Response);
+            static OrbisOS::SblMapListEntry* SceSblDriverFindMappedPageListByGpuVa(vm_offset_t p_GpuVa);
             static vm_offset_t SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t* p_NumPageGroups);
-            static bool IsFakeSelf(SelfContext* p_Context);
-            static int BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo* p_ParentAuthInfo, SelfAuthInfo* p_AuthInfo);
-            static int SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, SelfAuthInfo* p_Info);
-            static int SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehdr** p_OutElfHeader);
-
-        
+            static bool IsFakeSelf(OrbisOS::SelfContext* p_Context);
+            static int BuildFakeSelfAuthInfo(OrbisOS::SelfContext* p_Context, OrbisOS::SelfAuthInfo* p_ParentAuthInfo, OrbisOS::SelfAuthInfo* p_AuthInfo);
+            static int SceSblAuthMgrGetSelfAuthInfoFake(OrbisOS::SelfContext* p_Context, OrbisOS::SelfAuthInfo* p_Info);
+            static int SceSblAuthMgrGetElfHeader(OrbisOS::SelfContext* p_Context, Elf64_Ehdr** p_OutElfHeader);
+            static int SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* path);
 
             //
             // Hook Helper Functions
@@ -85,15 +89,15 @@ namespace Mira
             //static int _SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1, void* unk2, void* unk3);
             //static int _SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1);
 
-            void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
+            //void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
 
         protected:
             //
             // Hooked function callbacks
             //static int OnSceSblACMgrGetPathId(const char* p_Path);
             //static int OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response);
-            static int OnSceSblAuthMgrVerifyHeader(SelfContext* p_Context);
-            static int OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo);
+            static int OnSceSblAuthMgrVerifyHeader(OrbisOS::SelfContext* p_Context);
+            static int OnSceSblAuthMgrIsLoadable2(OrbisOS::SelfContext* p_Context, OrbisOS::SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, OrbisOS::SelfAuthInfo* p_NewAuthInfo);
 
             //static int On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1, void* unk2, void* unk3);
             //static int On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1);

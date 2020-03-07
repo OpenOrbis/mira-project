@@ -20,13 +20,17 @@ namespace Mira
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
         private:
+            Mira::Utils::IModule* m_Logger;
             Mira::Utils::IModule* m_Debugger;
             Mira::Utils::IModule* m_FileManager;
             Mira::Utils::IModule* m_FakeSelfManager;
+            Mira::Utils::IModule* m_FakePkgManager;
+            Mira::Utils::IModule* m_EmuRegistry;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }
             Mira::Utils::IModule* GetFakeSelfManager() { return m_FakeSelfManager; }
+            Mira::Utils::IModule* GetEmulatedRegistry() { return m_EmuRegistry; }
         };
     }
 }

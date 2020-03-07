@@ -1,5 +1,6 @@
 #pragma once
 
+
 // new
 void * operator new(unsigned long int cbSize);
 
