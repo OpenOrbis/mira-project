@@ -1,15 +1,46 @@
 #pragma once
 #include <Utils/IModule.hpp>
-#include <Messaging/Rpc/Connection.hpp>
 #include <Utils/Hook.hpp>
+#include <Utils/Kernel.hpp>
+#include <Utils/Logger.hpp>
+#include <Utils/Kdlsym.hpp>
+#include <Utils/SysWrappers.hpp>
+
+#include <Messaging/Rpc/Connection.hpp>
+#include <Messaging/Rpc/Connection.hpp>
+#include <Messaging/MessageManager.hpp>
+#include <Plugins/PluginManager.hpp>
+
+#include <OrbisOS/Utilities.hpp>
+
+#include <Mira.hpp>
 
 extern "C"
 {
     #include <Messaging/Rpc/rpc.pb-c.h>
     #include "debugger.pb-c.h"
+
+    #include <sys/uio.h>
+	#include <sys/proc.h>
+	#include <sys/ioccom.h>
+    #include <sys/ptrace.h>
+    #include <sys/mman.h>
+    #include <sys/sx.h>
+    #include <sys/errno.h>
+    #include <sys/wait.h>
     #include <sys/socket.h>
 
+    #include <vm/vm.h>
+	#include <vm/pmap.h>
+
+    #include <machine/reg.h>
+    #include <machine/param.h>
     #include <machine/frame.h>
+	#include <machine/psl.h>
+	#include <machine/pmap.h>
+	#include <machine/segments.h>
+
+	
 };
 
 namespace Mira
@@ -97,7 +128,7 @@ namespace Mira
              * @return true If process exists
              * @return false If process does not exist
              */
-            bool IsProcessAlive(int32_t p_ProcessId);
+            static bool IsProcessAlive(int32_t p_ProcessId);
 
             bool PacketRequiresAcknowledgement(char p_Request);
         public:
@@ -112,6 +143,7 @@ namespace Mira
              * @return false On failure
              */
             bool ReadProcessMemory(uint64_t p_Address, uint32_t p_Size, uint8_t*& p_OutData);
+            
             /**
              * @brief Writes memory to a running process
              * 
@@ -142,42 +174,106 @@ namespace Mira
             struct thread* GetProcessMainThread();
 
             /**
-             * @brief Get the Process Full Info object
+             * @brief Get thread of arbitrary process by pid/tid
              * 
-             * @param p_Info Output information
-             * @return true On success
-             * @return false On failure
+             * @param p_ProcessId Process id
+             * @param p_ThreadId Thread id
+             * @return struct thread* or nullptr if error
              */
-            bool GetProcessFullInfo(DbgProcessFull* p_Info);
+            static struct thread* GetThreadById(int32_t p_ProcessId, int32_t p_ThreadId);
 
+            /**
+             * @brief Get process thread by id
+             * 
+             * @param p_ThreadId Thread id
+             * @return struct thread* or nullptr if error
+             */
+            struct thread* GetThreadById(int32_t p_ThreadId);
+
+            /**
+             * @brief Get the Vm Map Entries object
+             * 
+             * @param p_Process LOCKED PROCESS
+             * @param p_Entries Output entries
+             * @param p_EntriesCount Output entry count
+             * @return true on success
+             * @return false otherwise
+             */
+            static bool GetVmMapEntries(struct proc* p_Process, DbgVmEntry* p_Entries[], size_t& p_EntriesCount);
+            
             /**
              * @brief Get limited process information
              * 
+             * @param p_Pid Process Id
              * @param p_Info Output information
              * @return true On success
              * @return false On failure
              */
-            bool GetProcessLimitedInfo(DbgProcessLimited* p_Info);
+            static bool GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info);
+
+            /**
+             * @brief Get the Process Full Info object
+             * 
+             * @param p_Pid Process Id
+             * @param p_Info Output information
+             * @return true On success
+             * @return false On failure
+             */
+             static bool GetProcessFullInfo(int32_t p_Pid, DbgProcessFull* p_Info);
 
             /**
              * @brief Get limited thread information
              * 
-             * @param p_Thread Input thread
+             * @param p_ThreadId Input thread id
              * @param p_Info Output thread information
              * @return true On success
              * @return false On failure
              */
-            bool GetThreadLimitedInfo(struct thread* p_Thread, DbgThreadLimited* p_Info);
+            bool GetThreadLimitedInfo(int32_t p_ThreadId, DbgThreadLimited* p_Info);
+
+            /**
+             * @brief Get limited thread information
+             * 
+             * @param p_ThreadId Input thread id
+             * @param p_Info Output thread information
+             * @return true On success
+             * @return false On failure
+             */
+            static bool GetThreadLimitedInfo(struct thread* p_Thread, DbgThreadLimited* p_Info);
 
             /**
              * @brief Get full thread information
              * 
-             * @param p_Thread Thread to get information from
+             * @param p_ThreadId Thread id to get information from
              * @param p_Info Output information object
              * @return true Success
              * @return false Failure
              */
-            bool GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info);
+            bool GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info);
+
+            /**
+             * @brief Get full thread information
+             * 
+             * @param p_ThreadId Thread id to get information from
+             * @param p_Info Output information object
+             * @return true Success
+             * @return false Failure
+             */
+            static bool GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info);
+
+            /**
+             * @brief This frees all of the nested resource, does not free the object itself
+             * 
+             * @param p_Info Full thread information
+             */
+            static void FreeDbgThreadFull(DbgThreadFull* p_Info);
+
+            /**
+             * @brief This frees all of the nested resources, does not free object itself
+             * 
+             * @param p_Info DbgProcessFull
+             */
+            static void FreeDbgProcessFull(DbgProcessFull* p_Info);
             
             /**
              * @brief Allocates memory in the attached process
@@ -218,6 +314,30 @@ namespace Mira
              */
             bool Detach(bool p_Force = false, int32_t* p_Status = nullptr);
 
+            /**
+             * @brief Single steps the process
+             * 
+             * @return true Success
+             * @return false Error
+             */
+            bool Step();
+
+            /**
+             * @brief Suspends (stops) the process
+             * 
+             * @return true Success
+             * @return false Error
+             */
+            bool Suspend();
+
+            /**
+             * @brief Resumes the process
+             * 
+             * @return true Success
+             * @return false Error
+             */
+            bool Resume();
+            
             // This function returns a handle that will be used to query this breakpoint
             //uint64_t AddBreakpoint(uint64_t p_Address, DbgBreakpointType p_Type, bool p_Enabled);
             //uint64_t AddWatchpoint(uint64_t p_Address, uint32_t p_Length, bool p_Enabled);
@@ -241,9 +361,6 @@ namespace Mira
              * @return false on failure
              */
             bool SignalProcess(int32_t p_Signal);
-
-            //bool GetThreadRegisters(int32_t p_ThreadId, DbgGpRegisters& p_GpRegisters, DbgFpRegisters& p_FpRegisters, DbgDbRegisters& p_DbRegisters);
-            //bool SetThreadRegisters(int32_t p_ThreadId, DbgGpRegisters& p_GpRegisters, DbgFpRegisters& p_FpRegisters, DbgDbRegisters& p_DbRegisters);
 
             /**
              * @brief Reads kernel memory and returns it in requested buffer
@@ -307,17 +424,69 @@ namespace Mira
              * @param p_Message RpcMessage containing wpm request
              */
             static void OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for changing memory protection
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing protect process memory request
+             */
             static void OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for getting process information
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the pid request
+             */
             static void OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for allocating memory in a process
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the size and permission
+             */
             static void OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for freeing memory in a process
+             * 
+             * @param p_Connection Requesing connection
+             * @param p_Message RpcMessage containing the memory to free
+             */
             static void OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for adding a breakpoint
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the breakpoint to add
+             */
             static void OnAddBreakpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for adding a watchpoint
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the watchpoint to add
+             */
             static void OnAddWatchpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for signaling the process
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the signal information
+             */
             static void OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for getting thread registers
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the thread id to get registers for
+             */
             static void OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
             static void OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 

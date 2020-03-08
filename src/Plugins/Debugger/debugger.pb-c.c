@@ -1672,6 +1672,51 @@ void   dbg_read_kernel_memory_request__free_unpacked
   assert(message->base.descriptor == &dbg_read_kernel_memory_request__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
+void   dbg_read_kernel_memory_response__init
+                     (DbgReadKernelMemoryResponse         *message)
+{
+  static const DbgReadKernelMemoryResponse init_value = DBG_READ_KERNEL_MEMORY_RESPONSE__INIT;
+  *message = init_value;
+}
+size_t dbg_read_kernel_memory_response__get_packed_size
+                     (const DbgReadKernelMemoryResponse *message)
+{
+  assert(message->base.descriptor == &dbg_read_kernel_memory_response__descriptor);
+  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
+}
+size_t dbg_read_kernel_memory_response__pack
+                     (const DbgReadKernelMemoryResponse *message,
+                      uint8_t       *out)
+{
+  assert(message->base.descriptor == &dbg_read_kernel_memory_response__descriptor);
+  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
+}
+size_t dbg_read_kernel_memory_response__pack_to_buffer
+                     (const DbgReadKernelMemoryResponse *message,
+                      ProtobufCBuffer *buffer)
+{
+  assert(message->base.descriptor == &dbg_read_kernel_memory_response__descriptor);
+  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
+}
+DbgReadKernelMemoryResponse *
+       dbg_read_kernel_memory_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data)
+{
+  return (DbgReadKernelMemoryResponse *)
+     protobuf_c_message_unpack (&dbg_read_kernel_memory_response__descriptor,
+                                allocator, len, data);
+}
+void   dbg_read_kernel_memory_response__free_unpacked
+                     (DbgReadKernelMemoryResponse *message,
+                      ProtobufCAllocator *allocator)
+{
+  if(!message)
+    return;
+  assert(message->base.descriptor == &dbg_read_kernel_memory_response__descriptor);
+  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
+}
 void   dbg_write_kernel_memory_request__init
                      (DbgWriteKernelMemoryRequest         *message)
 {
@@ -3395,7 +3440,7 @@ const ProtobufCMessageDescriptor dbg_get_process_info_request__descriptor =
   (ProtobufCMessageInit) dbg_get_process_info_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_allocate_process_memory_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor dbg_allocate_process_memory_request__field_descriptors[1] =
 {
   {
     "size",
@@ -3409,27 +3454,14 @@ static const ProtobufCFieldDescriptor dbg_allocate_process_memory_request__field
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
-  {
-    "zero",
-    2,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_BOOL,
-    0,   /* quantifier_offset */
-    offsetof(DbgAllocateProcessMemoryRequest, zero),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
 };
 static const unsigned dbg_allocate_process_memory_request__field_indices_by_name[] = {
   0,   /* field[0] = size */
-  1,   /* field[1] = zero */
 };
 static const ProtobufCIntRange dbg_allocate_process_memory_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor dbg_allocate_process_memory_request__descriptor =
 {
@@ -3439,14 +3471,14 @@ const ProtobufCMessageDescriptor dbg_allocate_process_memory_request__descriptor
   "DbgAllocateProcessMemoryRequest",
   "",
   sizeof(DbgAllocateProcessMemoryRequest),
-  2,
+  1,
   dbg_allocate_process_memory_request__field_descriptors,
   dbg_allocate_process_memory_request__field_indices_by_name,
   1,  dbg_allocate_process_memory_request__number_ranges,
   (ProtobufCMessageInit) dbg_allocate_process_memory_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_allocate_process_memory_response__field_descriptors[1] =
+static const ProtobufCFieldDescriptor dbg_allocate_process_memory_response__field_descriptors[2] =
 {
   {
     "address",
@@ -3460,14 +3492,27 @@ static const ProtobufCFieldDescriptor dbg_allocate_process_memory_response__fiel
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "size",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgAllocateProcessMemoryResponse, size),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned dbg_allocate_process_memory_response__field_indices_by_name[] = {
   0,   /* field[0] = address */
+  1,   /* field[1] = size */
 };
 static const ProtobufCIntRange dbg_allocate_process_memory_response__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 1 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor dbg_allocate_process_memory_response__descriptor =
 {
@@ -3477,14 +3522,14 @@ const ProtobufCMessageDescriptor dbg_allocate_process_memory_response__descripto
   "DbgAllocateProcessMemoryResponse",
   "",
   sizeof(DbgAllocateProcessMemoryResponse),
-  1,
+  2,
   dbg_allocate_process_memory_response__field_descriptors,
   dbg_allocate_process_memory_response__field_indices_by_name,
   1,  dbg_allocate_process_memory_response__number_ranges,
   (ProtobufCMessageInit) dbg_allocate_process_memory_response__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_free_process_memory_request__field_descriptors[1] =
+static const ProtobufCFieldDescriptor dbg_free_process_memory_request__field_descriptors[2] =
 {
   {
     "address",
@@ -3498,14 +3543,27 @@ static const ProtobufCFieldDescriptor dbg_free_process_memory_request__field_des
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "size",
+    2,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT32,
+    0,   /* quantifier_offset */
+    offsetof(DbgFreeProcessMemoryRequest, size),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned dbg_free_process_memory_request__field_indices_by_name[] = {
   0,   /* field[0] = address */
+  1,   /* field[1] = size */
 };
 static const ProtobufCIntRange dbg_free_process_memory_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 1 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor dbg_free_process_memory_request__descriptor =
 {
@@ -3515,7 +3573,7 @@ const ProtobufCMessageDescriptor dbg_free_process_memory_request__descriptor =
   "DbgFreeProcessMemoryRequest",
   "",
   sizeof(DbgFreeProcessMemoryRequest),
-  1,
+  2,
   dbg_free_process_memory_request__field_descriptors,
   dbg_free_process_memory_request__field_indices_by_name,
   1,  dbg_free_process_memory_request__number_ranges,
@@ -3942,23 +4000,11 @@ const ProtobufCMessageDescriptor dbg_get_process_threads_response__descriptor =
   (ProtobufCMessageInit) dbg_get_process_threads_response__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_signal_process_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor dbg_signal_process_request__field_descriptors[1] =
 {
   {
-    "pid",
-    1,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
-    0,   /* quantifier_offset */
-    offsetof(DbgSignalProcessRequest, pid),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
     "signal",
-    2,
+    1,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
@@ -3970,13 +4016,12 @@ static const ProtobufCFieldDescriptor dbg_signal_process_request__field_descript
   },
 };
 static const unsigned dbg_signal_process_request__field_indices_by_name[] = {
-  0,   /* field[0] = pid */
-  1,   /* field[1] = signal */
+  0,   /* field[0] = signal */
 };
 static const ProtobufCIntRange dbg_signal_process_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor dbg_signal_process_request__descriptor =
 {
@@ -3986,30 +4031,18 @@ const ProtobufCMessageDescriptor dbg_signal_process_request__descriptor =
   "DbgSignalProcessRequest",
   "",
   sizeof(DbgSignalProcessRequest),
-  2,
+  1,
   dbg_signal_process_request__field_descriptors,
   dbg_signal_process_request__field_indices_by_name,
   1,  dbg_signal_process_request__number_ranges,
   (ProtobufCMessageInit) dbg_signal_process_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_get_registers_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor dbg_get_registers_request__field_descriptors[1] =
 {
   {
-    "pid",
-    1,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
-    0,   /* quantifier_offset */
-    offsetof(DbgGetRegistersRequest, pid),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
     "threadId",
-    2,
+    1,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
@@ -4021,13 +4054,12 @@ static const ProtobufCFieldDescriptor dbg_get_registers_request__field_descripto
   },
 };
 static const unsigned dbg_get_registers_request__field_indices_by_name[] = {
-  0,   /* field[0] = pid */
-  1,   /* field[1] = threadId */
+  0,   /* field[0] = threadId */
 };
 static const ProtobufCIntRange dbg_get_registers_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor dbg_get_registers_request__descriptor =
 {
@@ -4037,7 +4069,7 @@ const ProtobufCMessageDescriptor dbg_get_registers_request__descriptor =
   "DbgGetRegistersRequest",
   "",
   sizeof(DbgGetRegistersRequest),
-  2,
+  1,
   dbg_get_registers_request__field_descriptors,
   dbg_get_registers_request__field_indices_by_name,
   1,  dbg_get_registers_request__number_ranges,
@@ -4198,23 +4230,11 @@ const ProtobufCMessageDescriptor dbg_set_registers_request__descriptor =
   (ProtobufCMessageInit) dbg_set_registers_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_get_thread_info_request__field_descriptors[2] =
+static const ProtobufCFieldDescriptor dbg_get_thread_info_request__field_descriptors[1] =
 {
   {
-    "pid",
-    1,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
-    0,   /* quantifier_offset */
-    offsetof(DbgGetThreadInfoRequest, pid),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
     "threadId",
-    2,
+    1,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_INT32,
     0,   /* quantifier_offset */
@@ -4226,13 +4246,12 @@ static const ProtobufCFieldDescriptor dbg_get_thread_info_request__field_descrip
   },
 };
 static const unsigned dbg_get_thread_info_request__field_indices_by_name[] = {
-  0,   /* field[0] = pid */
-  1,   /* field[1] = threadId */
+  0,   /* field[0] = threadId */
 };
 static const ProtobufCIntRange dbg_get_thread_info_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 2 }
+  { 0, 1 }
 };
 const ProtobufCMessageDescriptor dbg_get_thread_info_request__descriptor =
 {
@@ -4242,7 +4261,7 @@ const ProtobufCMessageDescriptor dbg_get_thread_info_request__descriptor =
   "DbgGetThreadInfoRequest",
   "",
   sizeof(DbgGetThreadInfoRequest),
-  2,
+  1,
   dbg_get_thread_info_request__field_descriptors,
   dbg_get_thread_info_request__field_indices_by_name,
   1,  dbg_get_thread_info_request__number_ranges,
@@ -4402,11 +4421,61 @@ const ProtobufCMessageDescriptor dbg_read_kernel_memory_request__descriptor =
   (ProtobufCMessageInit) dbg_read_kernel_memory_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor dbg_write_kernel_memory_request__field_descriptors[1] =
+static const ProtobufCFieldDescriptor dbg_read_kernel_memory_response__field_descriptors[1] =
 {
   {
     "data",
     1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(DbgReadKernelMemoryResponse, data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+};
+static const unsigned dbg_read_kernel_memory_response__field_indices_by_name[] = {
+  0,   /* field[0] = data */
+};
+static const ProtobufCIntRange dbg_read_kernel_memory_response__number_ranges[1 + 1] =
+{
+  { 1, 0 },
+  { 0, 1 }
+};
+const ProtobufCMessageDescriptor dbg_read_kernel_memory_response__descriptor =
+{
+  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
+  "DbgReadKernelMemoryResponse",
+  "DbgReadKernelMemoryResponse",
+  "DbgReadKernelMemoryResponse",
+  "",
+  sizeof(DbgReadKernelMemoryResponse),
+  1,
+  dbg_read_kernel_memory_response__field_descriptors,
+  dbg_read_kernel_memory_response__field_indices_by_name,
+  1,  dbg_read_kernel_memory_response__number_ranges,
+  (ProtobufCMessageInit) dbg_read_kernel_memory_response__init,
+  NULL,NULL,NULL    /* reserved[123] */
+};
+static const ProtobufCFieldDescriptor dbg_write_kernel_memory_request__field_descriptors[2] =
+{
+  {
+    "address",
+    1,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_UINT64,
+    0,   /* quantifier_offset */
+    offsetof(DbgWriteKernelMemoryRequest, address),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "data",
+    2,
     PROTOBUF_C_LABEL_NONE,
     PROTOBUF_C_TYPE_BYTES,
     0,   /* quantifier_offset */
@@ -4418,12 +4487,13 @@ static const ProtobufCFieldDescriptor dbg_write_kernel_memory_request__field_des
   },
 };
 static const unsigned dbg_write_kernel_memory_request__field_indices_by_name[] = {
-  0,   /* field[0] = data */
+  0,   /* field[0] = address */
+  1,   /* field[1] = data */
 };
 static const ProtobufCIntRange dbg_write_kernel_memory_request__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 1 }
+  { 0, 2 }
 };
 const ProtobufCMessageDescriptor dbg_write_kernel_memory_request__descriptor =
 {
@@ -4433,7 +4503,7 @@ const ProtobufCMessageDescriptor dbg_write_kernel_memory_request__descriptor =
   "DbgWriteKernelMemoryRequest",
   "",
   sizeof(DbgWriteKernelMemoryRequest),
-  1,
+  2,
   dbg_write_kernel_memory_request__field_descriptors,
   dbg_write_kernel_memory_request__field_indices_by_name,
   1,  dbg_write_kernel_memory_request__number_ranges,
