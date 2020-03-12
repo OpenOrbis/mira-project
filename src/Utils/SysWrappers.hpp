@@ -13,6 +13,10 @@ struct rusage;
 
 extern "C"
 {
+    enum
+    {
+        MaxInterruptRetries = 3,
+    };
     // 7
     //extern int kwait4(int pid, int *status, int options, struct rusage *rusage);
     extern int kwait4_t(int pid, int *status, int options, struct rusage *rusage, struct thread* td);
