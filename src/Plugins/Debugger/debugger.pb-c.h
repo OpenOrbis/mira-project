@@ -52,6 +52,7 @@ typedef struct _DbgGetThreadInfoRequest DbgGetThreadInfoRequest;
 typedef struct _DbgThreadSinglestepRequest DbgThreadSinglestepRequest;
 typedef struct _DbgGetKernelInfoResponse DbgGetKernelInfoResponse;
 typedef struct _DbgReadKernelMemoryRequest DbgReadKernelMemoryRequest;
+typedef struct _DbgReadKernelMemoryResponse DbgReadKernelMemoryResponse;
 typedef struct _DbgWriteKernelMemoryRequest DbgWriteKernelMemoryRequest;
 typedef struct _DbgCommandRequest DbgCommandRequest;
 
@@ -370,31 +371,32 @@ struct  _DbgAllocateProcessMemoryRequest
 {
   ProtobufCMessage base;
   uint32_t size;
-  protobuf_c_boolean zero;
 };
 #define DBG_ALLOCATE_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_allocate_process_memory_request__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _DbgAllocateProcessMemoryResponse
 {
   ProtobufCMessage base;
   uint64_t address;
+  uint32_t size;
 };
 #define DBG_ALLOCATE_PROCESS_MEMORY_RESPONSE__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_allocate_process_memory_response__descriptor) \
-    , 0 }
+    , 0, 0 }
 
 
 struct  _DbgFreeProcessMemoryRequest
 {
   ProtobufCMessage base;
   uint64_t address;
+  uint32_t size;
 };
 #define DBG_FREE_PROCESS_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_free_process_memory_request__descriptor) \
-    , 0 }
+    , 0, 0 }
 
 
 struct  _DbgGetProcessMapsRequest
@@ -497,23 +499,21 @@ struct  _DbgGetProcessThreadsResponse
 struct  _DbgSignalProcessRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   int32_t signal;
 };
 #define DBG_SIGNAL_PROCESS_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_signal_process_request__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _DbgGetRegistersRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   int32_t threadid;
 };
 #define DBG_GET_REGISTERS_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_get_registers_request__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _DbgGetRegistersResponse
@@ -545,12 +545,11 @@ struct  _DbgSetRegistersRequest
 struct  _DbgGetThreadInfoRequest
 {
   ProtobufCMessage base;
-  int32_t pid;
   int32_t threadid;
 };
 #define DBG_GET_THREAD_INFO_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_get_thread_info_request__descriptor) \
-    , 0, 0 }
+    , 0 }
 
 
 struct  _DbgThreadSinglestepRequest
@@ -589,14 +588,25 @@ struct  _DbgReadKernelMemoryRequest
     , 0, 0 }
 
 
-struct  _DbgWriteKernelMemoryRequest
+struct  _DbgReadKernelMemoryResponse
 {
   ProtobufCMessage base;
   ProtobufCBinaryData data;
 };
+#define DBG_READ_KERNEL_MEMORY_RESPONSE__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&dbg_read_kernel_memory_response__descriptor) \
+    , {0,NULL} }
+
+
+struct  _DbgWriteKernelMemoryRequest
+{
+  ProtobufCMessage base;
+  uint64_t address;
+  ProtobufCBinaryData data;
+};
 #define DBG_WRITE_KERNEL_MEMORY_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_write_kernel_memory_request__descriptor) \
-    , {0,NULL} }
+    , 0, {0,NULL} }
 
 
 struct  _DbgCommandRequest
@@ -1312,6 +1322,25 @@ DbgReadKernelMemoryRequest *
 void   dbg_read_kernel_memory_request__free_unpacked
                      (DbgReadKernelMemoryRequest *message,
                       ProtobufCAllocator *allocator);
+/* DbgReadKernelMemoryResponse methods */
+void   dbg_read_kernel_memory_response__init
+                     (DbgReadKernelMemoryResponse         *message);
+size_t dbg_read_kernel_memory_response__get_packed_size
+                     (const DbgReadKernelMemoryResponse   *message);
+size_t dbg_read_kernel_memory_response__pack
+                     (const DbgReadKernelMemoryResponse   *message,
+                      uint8_t             *out);
+size_t dbg_read_kernel_memory_response__pack_to_buffer
+                     (const DbgReadKernelMemoryResponse   *message,
+                      ProtobufCBuffer     *buffer);
+DbgReadKernelMemoryResponse *
+       dbg_read_kernel_memory_response__unpack
+                     (ProtobufCAllocator  *allocator,
+                      size_t               len,
+                      const uint8_t       *data);
+void   dbg_read_kernel_memory_response__free_unpacked
+                     (DbgReadKernelMemoryResponse *message,
+                      ProtobufCAllocator *allocator);
 /* DbgWriteKernelMemoryRequest methods */
 void   dbg_write_kernel_memory_request__init
                      (DbgWriteKernelMemoryRequest         *message);
@@ -1463,6 +1492,9 @@ typedef void (*DbgGetKernelInfoResponse_Closure)
 typedef void (*DbgReadKernelMemoryRequest_Closure)
                  (const DbgReadKernelMemoryRequest *message,
                   void *closure_data);
+typedef void (*DbgReadKernelMemoryResponse_Closure)
+                 (const DbgReadKernelMemoryResponse *message,
+                  void *closure_data);
 typedef void (*DbgWriteKernelMemoryRequest_Closure)
                  (const DbgWriteKernelMemoryRequest *message,
                   void *closure_data);
@@ -1513,6 +1545,7 @@ extern const ProtobufCMessageDescriptor dbg_get_thread_info_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_thread_singlestep_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_get_kernel_info_response__descriptor;
 extern const ProtobufCMessageDescriptor dbg_read_kernel_memory_request__descriptor;
+extern const ProtobufCMessageDescriptor dbg_read_kernel_memory_response__descriptor;
 extern const ProtobufCMessageDescriptor dbg_write_kernel_memory_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_command_request__descriptor;
 extern const ProtobufCEnumDescriptor    dbg_command_request__dbg_commands__descriptor;

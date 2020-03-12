@@ -60,6 +60,7 @@ int kwait4_internal(int pid, int *status, int options, struct rusage *rusage, st
 int kwait4_t(int pid, int* status, int options, struct rusage* rusage, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -67,8 +68,14 @@ int kwait4_t(int pid, int* status, int options, struct rusage* rusage, struct th
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
-			
+			}
+
 			return ret;
 		}
 
@@ -114,6 +121,7 @@ int kmlock_internal(void* address, uint64_t size, struct thread* td)
 int kmlock_t(void* address, uint64_t size, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -121,7 +129,13 @@ int kmlock_t(void* address, uint64_t size, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -169,6 +183,7 @@ int kmlockall_internal(int how, struct thread* td)
 int kmlockall_t(int how, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -176,7 +191,13 @@ int kmlockall_t(int how, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -222,14 +243,21 @@ caddr_t __attribute__((noinline)) kmmap_internal(caddr_t addr, size_t len, int p
 caddr_t kmmap_t(caddr_t addr, size_t len, int prot, int flags, int fd, off_t pos, struct thread* td)
 {
 	int64_t ret = (-EIO);
+	int retry = 0;
 
 	for (;;)
 	{
 		ret = (int64_t)kmmap_internal(addr, len, prot, flags, fd, pos, td);
 		if (ret < 0)
 		{
-			if (ret == (-EINTR))
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return (caddr_t)ret;
 		}
@@ -279,6 +307,7 @@ off_t klseek_internal(int fd, off_t offset, int whence, struct thread* td)
 off_t klseek_t(int fd, off_t offset, int whence, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -286,7 +315,13 @@ off_t klseek_t(int fd, off_t offset, int whence, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -333,6 +368,7 @@ int kmunmap_internal(void *addr, size_t len, struct thread* td)
 int kmunmap_t(void *addr, size_t len, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -340,7 +376,13 @@ int kmunmap_t(void *addr, size_t len, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -389,6 +431,7 @@ ssize_t kread_internal(int fd, void* buf, size_t count, struct thread* td)
 ssize_t kread_t(int fd, void* buf, size_t count, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -396,7 +439,13 @@ ssize_t kread_t(int fd, void* buf, size_t count, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -444,6 +493,7 @@ int kfstat_internal(int fd, struct stat* sb, struct thread* td)
 int kfstat_t(int fd, struct stat* sb, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -451,7 +501,13 @@ int kfstat_t(int fd, struct stat* sb, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -500,6 +556,7 @@ int kstat_internal(char* path, struct stat* buf, struct thread* td)
 int kstat_t(char* path, struct stat* buf, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -507,7 +564,13 @@ int kstat_t(char* path, struct stat* buf, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -552,6 +615,7 @@ int kclose_internal(int fd, struct thread* td)
 void kclose_t(int fd, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -559,7 +623,13 @@ void kclose_t(int fd, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return;
 		}
@@ -606,6 +676,7 @@ int ksocket_internal(int a, int b, int c, struct thread* td)
 int ksocket_t(int a, int b, int c, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -613,7 +684,13 @@ int ksocket_t(int a, int b, int c, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -661,6 +738,7 @@ ssize_t kwrite_internal(int d, const void* buf, size_t nbytes, struct thread* td
 ssize_t kwrite_t(int d, const void* buf, size_t nbytes, struct thread* td)
 {
 	ssize_t ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -668,7 +746,13 @@ ssize_t kwrite_t(int d, const void* buf, size_t nbytes, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -714,6 +798,7 @@ int kgetdents_internal(int fd, char* buf, int nbytes, struct thread* td)
 int kgetdents_t(int fd, char* buf, int nbytes, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -721,7 +806,13 @@ int kgetdents_t(int fd, char* buf, int nbytes, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -769,6 +860,7 @@ int kbind_internal(int socket, const struct sockaddr * b, size_t c, struct threa
 int kbind_t(int socket, const struct sockaddr * b, size_t c, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -776,7 +868,13 @@ int kbind_t(int socket, const struct sockaddr * b, size_t c, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -820,6 +918,7 @@ int klisten_internal(int sockfd, int backlog, struct thread* td)
 int klisten_t(int sockfd, int backlog, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -827,7 +926,13 @@ int klisten_t(int sockfd, int backlog, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -895,10 +1000,9 @@ int kaccept_t(int sock, struct sockaddr * b, size_t* c, struct thread* td)
 		{
 			if (ret == -EINTR)
 			{
-				if (retry > 3)
+				if (retry > MaxInterruptRetries)
 					break;
 					
-				//auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 				retry++;
 				continue;
 			}
@@ -970,6 +1074,7 @@ int krecv_internal(int s, void * buf, int len, int flags, struct thread* td)
 int krecv_t(int s, void * buf, int len, int flags, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -977,7 +1082,13 @@ int krecv_t(int s, void * buf, int len, int flags, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1047,6 +1158,7 @@ int ksend_internal(int socket, caddr_t buf, size_t len, int flags, struct thread
 int ksend_t(int socket, caddr_t buf, size_t len, int flags, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1054,7 +1166,13 @@ int ksend_t(int socket, caddr_t buf, size_t len, int flags, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1101,6 +1219,7 @@ int kopen_internal(const char* path, int flags, int mode, struct thread* td)
 int kopen_t(const char* path, int flags, int mode, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1108,7 +1227,13 @@ int kopen_t(const char* path, int flags, int mode, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1154,6 +1279,7 @@ int kdup2_internal(int oldd, int newd, struct thread* td)
 int kdup2_t(int oldd, int newd, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1161,7 +1287,13 @@ int kdup2_t(int oldd, int newd, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1207,6 +1339,7 @@ int kmkdir_internal(char * path, int mode, struct thread* td)
 int kmkdir_t(char * path, int mode, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1214,7 +1347,13 @@ int kmkdir_t(char * path, int mode, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1259,6 +1398,7 @@ int krmdir_internal(char * path, struct thread* td)
 int krmdir_t(char * path, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1266,7 +1406,13 @@ int krmdir_t(char * path, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1312,6 +1458,7 @@ int kshutdown_internal(int s, int how, struct thread* td)
 int kshutdown_t(int s, int how, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1319,7 +1466,13 @@ int kshutdown_t(int s, int how, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1364,6 +1517,7 @@ int kunlink_internal(char* path, struct thread* td)
 int kunlink_t(char* path, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1371,7 +1525,13 @@ int kunlink_t(char* path, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1416,6 +1576,7 @@ int ksetuid_internal(uid_t uid, struct thread* td)
 int ksetuid_t(uid_t uid, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1423,7 +1584,13 @@ int ksetuid_t(uid_t uid, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1471,6 +1638,7 @@ int kptrace_internal(int req, pid_t pid, caddr_t addr, int data, struct thread* 
 int kptrace_t(int req, pid_t pid, caddr_t addr, int data, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1478,7 +1646,13 @@ int kptrace_t(int req, pid_t pid, caddr_t addr, int data, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1524,6 +1698,7 @@ int kkill_internal(int pid, int signum, struct thread* td)
 int kkill_t(int pid, int signum, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1531,7 +1706,13 @@ int kkill_t(int pid, int signum, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1580,6 +1761,7 @@ int ksetsockopt_internal(int socket, int level, int name, caddr_t val, int valsi
 int ksetsockopt_t(int socket, int level, int name, caddr_t val, int valsize, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1587,7 +1769,13 @@ int ksetsockopt_t(int socket, int level, int name, caddr_t val, int valsize, str
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1633,6 +1821,7 @@ int kftruncate_internal(int fd, off_t length, struct thread* td)
 int kftruncate_t(int fd, off_t length, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1640,7 +1829,13 @@ int kftruncate_t(int fd, off_t length, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1684,6 +1879,7 @@ pid_t krfork_internal(int flags, struct thread* td)
 pid_t krfork_t(int flags, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1691,7 +1887,13 @@ pid_t krfork_t(int flags, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1737,6 +1939,7 @@ int kreboot_internal(int opt, struct thread* td)
 int kreboot_t(int opt, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1744,7 +1947,13 @@ int kreboot_t(int opt, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1791,6 +2000,7 @@ int mprotect_internal(const void* addr, size_t len, int prot, struct thread* td)
 int kmprotect_t(void* addr, size_t len, int prot, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1798,7 +2008,13 @@ int kmprotect_t(void* addr, size_t len, int prot, struct thread* td)
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}
@@ -1840,6 +2056,7 @@ int kselect_internal(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*except
 int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, struct	timeval	*timeout, struct thread* td)
 {
 	int ret = -EIO;
+	int retry = 0;
 
 	for (;;)
 	{
@@ -1847,7 +2064,13 @@ int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, st
 		if (ret < 0)
 		{
 			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
 				continue;
+			}
 			
 			return ret;
 		}

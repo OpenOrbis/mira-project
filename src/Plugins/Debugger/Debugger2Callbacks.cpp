@@ -1,0 +1,1009 @@
+#include "Debugger2.hpp"
+
+using namespace Mira;
+using namespace Mira::Plugins;
+
+void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgAttachRequest* s_Request = dbg_attach_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack attach request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    WriteLog(LL_Info, "request to attach to (%d).", s_Request->pid);
+
+    int32_t s_Ret = -1;
+    if (!s_Debugger->Attach(s_Request->pid, &s_Ret))
+    {
+        dbg_attach_request__free_unpacked(s_Request, nullptr);
+        WriteLog(LL_Error, "could not attach ret (%d)", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        return;
+    }
+
+    WriteLog(LL_Debug, "attached to: (%d).", s_Debugger->m_AttachedPid);
+
+    dbg_attach_request__free_unpacked(s_Request, nullptr);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, s_Debugger->m_AttachedPid, nullptr, 0);
+}
+
+void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgDetachRequest* s_Request = dbg_detach_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack detach request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    int32_t s_Ret = -1;
+    if (!s_Debugger->Detach(s_Request->force, &s_Ret))
+    {
+        dbg_detach_request__free_unpacked(s_Request, nullptr);
+        WriteLog(LL_Error, "could not detach ret (%d)", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        return;
+    }
+
+    WriteLog(LL_Debug, "successfully detached");
+    dbg_detach_request__free_unpacked(s_Request, nullptr);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, 0, nullptr, 0);
+}
+
+void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+    auto __sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+	auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    DbgGetProcessListResponse* s_Response = nullptr;
+    uint64_t s_MessageSize = 0;
+    uint8_t* s_Message = nullptr;
+    uint64_t s_PackedSize = 0;
+
+    struct proc* s_Proc = nullptr;
+    uint64_t s_ProcCount = 0;
+    uint64_t s_CurrentProcIndex = 0;
+
+    DbgProcessLimited** s_ProcessList = nullptr;
+
+    // DO NOT RETURN ANYWHERE IN HERE, WE MUST ALWAYS RELEASE THE LOCK
+    sx_slock(allproclock);
+	FOREACH_PROC_IN_SYSTEM(s_Proc)
+		s_ProcCount++;
+
+    if (s_ProcCount == 0)
+    {
+        sx_sunlock(allproclock);
+        WriteLog(LL_Error, "could not get any process");
+        goto cleanup;
+    }
+    
+    s_ProcessList = new DbgProcessLimited*[s_ProcCount];
+    memset(s_ProcessList, 0, sizeof(DbgProcessLimited*) * s_ProcCount);
+
+    FOREACH_PROC_IN_SYSTEM(s_Proc)
+	{
+        if (s_CurrentProcIndex >= s_ProcCount)
+            break;
+        
+        DbgProcessLimited* l_ProcLimited = new DbgProcessLimited;
+        if (l_ProcLimited == nullptr)
+        {
+            WriteLog(LL_Error, "procLimited null");
+            continue;
+        }
+
+        *l_ProcLimited = DBG_PROCESS_LIMITED__INIT;
+
+        l_ProcLimited->pid = s_Proc->p_pid;
+
+        // Name
+        auto s_NameLength = sizeof(s_Proc->p_comm);
+        auto s_Name = new char[s_NameLength];
+        if (s_Name == nullptr)
+        {
+            // Free the looped process
+            delete l_ProcLimited;
+            WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
+            
+            continue;
+        }
+        memset(s_Name, 0, s_NameLength);
+        memcpy(s_Name, s_Proc->p_comm, s_NameLength);
+        l_ProcLimited->name = s_Name;
+
+        // Get the VM Entries
+        ProcVmMapEntry* s_Entries = nullptr;
+        size_t s_NumEntries = 0;
+        auto s_Ret = OrbisOS::Utilities::GetProcessVmMap(s_Proc, &s_Entries, &s_NumEntries);
+        if (s_Ret < 0)
+        {
+            delete [] s_Name;
+            l_ProcLimited->name = nullptr;
+
+            delete l_ProcLimited;
+
+            WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
+            continue;
+        }
+
+        DbgVmEntry* s_VmEntries[s_NumEntries];
+        memset(&s_VmEntries, 0, sizeof(s_VmEntries));
+
+        for (auto i = 0; i < s_NumEntries; ++i)
+        {
+            auto l_Entry = new DbgVmEntry();
+            if (l_Entry == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate dbg vm entry");
+                continue;
+            }
+            memset(l_Entry, 0, sizeof(*l_Entry));
+
+            *l_Entry = DBG_VM_ENTRY__INIT;
+            auto l_NameLen = sizeof(s_Entries[i].name);
+            auto l_Name = new char[l_NameLen];
+            if (l_Name == nullptr)
+            {
+                // Free resources
+                delete l_Entry;
+
+                WriteLog(LL_Error, "could not allocate name (%d)", l_NameLen);
+                continue;
+            }
+            memset(l_Name, 0, l_NameLen);
+            memcpy(l_Name, s_Entries[i].name, l_NameLen);
+
+            l_Entry->name = l_Name;
+
+            l_Entry->start = s_Entries[i].start;
+            l_Entry->end = s_Entries[i].end;
+            l_Entry->offset = s_Entries[i].offset;
+            l_Entry->protection = s_Entries[i].prot;
+
+            s_VmEntries[i] = l_Entry;
+        }
+
+        delete [] s_Entries;
+        s_Entries = nullptr;
+
+        l_ProcLimited->entries = s_VmEntries;
+        l_ProcLimited->n_entries = s_NumEntries;
+
+        s_ProcessList[s_CurrentProcIndex] = l_ProcLimited;
+        s_CurrentProcIndex++;
+    }
+	sx_sunlock(allproclock);
+    // CAN RETURN AGAIN MKAY
+
+    s_Response = new DbgGetProcessListResponse;
+    if (s_Response == nullptr)
+    {
+        // TODO: Free resources
+        WriteLog(LL_Error, "could not allocate response");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+    *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
+
+    s_Response->processes = s_ProcessList;
+    s_Response->n_processes = s_ProcCount;
+
+    s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
+    s_Message = new uint8_t[s_MessageSize];
+    if (s_Message == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate message (%llx)", s_MessageSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+    memset(s_Message, 0, s_MessageSize);
+
+    s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_Message);
+    if (s_PackedSize != s_MessageSize)
+    {
+        WriteLog(LL_Error, "could not pack get process list message.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        goto cleanup;
+    }
+
+cleanup:
+    if (s_Response != nullptr)
+    {
+        delete s_Response;
+        s_Response = nullptr;
+    }
+
+    if (s_Message != nullptr)
+    {
+        delete [] s_Message;
+        s_Message = nullptr;
+    }
+
+    if (s_ProcessList != nullptr && s_ProcCount != 0)
+    {
+        // Iterate through each of the process counts
+        for (auto l_ProcessIndex = 0; l_ProcessIndex < s_ProcCount; ++l_ProcessIndex)
+        {
+            auto l_Process = s_ProcessList[l_ProcessIndex];
+            if (l_Process == nullptr)
+                continue;
+            
+            // Iterate through all of the vm entries
+            for (auto l_VmEntryIndex = 0; l_VmEntryIndex < l_Process->n_entries; ++l_VmEntryIndex)
+            {
+                auto l_VmEntry = l_Process->entries[l_VmEntryIndex];
+                if (l_VmEntry == nullptr)
+                    continue;
+
+                // If the name was allocated, free it
+                if (l_VmEntry->name)
+                    delete [] l_VmEntry->name;
+                
+                l_VmEntry->name = nullptr;
+                
+                // Delete this entry
+                delete l_VmEntry;
+                l_Process->entries[l_VmEntryIndex] = nullptr;
+            }
+
+            // Set the entry count to zero once we free all of them
+            l_Process->n_entries = 0;
+
+            // If the process name was allocated, free it
+            if (l_Process->name)
+                delete [] l_Process->name;
+            
+            l_Process->name = nullptr;
+            
+            // Free the process entry
+            delete l_Process;
+            s_ProcessList[l_ProcessIndex] = nullptr;
+        }
+
+        delete [] s_ProcessList;
+
+    }
+}
+
+void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgReadProcessMemoryRequest* s_Request = dbg_read_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack rpm request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    // Get the address
+    auto s_Address = s_Request->address;
+    if (s_Address == 0)
+    {
+        WriteLog(LL_Error, "invalid address");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EINVAL);
+        return;
+    }
+
+    // Allocate buffer for the response
+    size_t s_BufferSize = s_Request->size;
+    auto s_Buffer = new uint8_t[s_BufferSize];
+    if (s_Buffer == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate buffer of size (%x).", s_BufferSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_Buffer, 0, s_BufferSize);
+
+    auto s_Ret = proc_rw_mem_pid(s_Debugger->m_AttachedPid, reinterpret_cast<void*>(s_Request->address), s_Request->size, s_Buffer, &s_BufferSize, 0);
+    if (s_Ret < 0)
+    {
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "could not read (%p) size (%x).", s_BufferSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgReadProcessMemoryResponse s_Response = DBG_READ_PROCESS_MEMORY_RESPONSE__INIT;
+    s_Response.data.data = s_Buffer;
+    s_Response.data.len = s_BufferSize;
+
+    auto s_SerializedSize = dbg_read_process_memory_response__get_packed_size(&s_Response);
+    if (s_SerializedSize == 0)
+    {
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "invalid packed size");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_SerializedData = new uint8_t[s_SerializedSize];
+    if (s_SerializedData == nullptr)
+    {
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "could not allocate serialized data of size (%x).", s_SerializedSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_SerializedData, 0, s_SerializedSize);
+
+    auto s_PackedRet = dbg_read_process_memory_response__pack(&s_Response, s_SerializedData);
+    if (s_PackedRet != s_SerializedSize)
+    {
+        delete [] s_SerializedData;
+        delete [] s_Buffer;
+        WriteLog(LL_Error, "could not allocate serialized data of size (%x).", s_SerializedSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ReadMem, 0, s_SerializedData, s_SerializedSize);
+
+    delete [] s_SerializedData;
+    delete [] s_Buffer;
+}
+
+void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgWriteProcessMemoryRequest* s_Request = dbg_write_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack wpm request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    // validate our incoming data
+    if (s_Request->data.data == nullptr || s_Request->data.len == 0)
+    {
+        dbg_write_process_memory_request__free_unpacked(s_Request, nullptr);
+
+        WriteLog(LL_Error, "could not get data to write");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    // Write to the attached process
+    size_t s_DataLength = s_Request->data.len;
+    auto s_Ret = proc_rw_mem_pid(s_Debugger->m_AttachedPid, reinterpret_cast<void*>(s_Request->address), s_Request->data.len, s_Request->data.data, &s_DataLength, 1);
+    if (s_Ret < 0)
+    {
+        dbg_write_process_memory_request__free_unpacked(s_Request, nullptr);
+
+        WriteLog(LL_Error, "could not write to process ret (%d).", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        return;
+    }
+
+    dbg_write_process_memory_request__free_unpacked(s_Request, nullptr);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_WriteMem, 0, nullptr, 0);
+}
+
+void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgProtectProcessMemoryRequest* s_Request = dbg_protect_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack protect proc memory request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (s_Request->address == 0)
+    {
+        dbg_protect_process_memory_request__free_unpacked(s_Request, nullptr);
+        WriteLog(LL_Error, "attempted to write to null page");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EFAULT);
+        return;
+    }
+
+    auto s_Ret = kmprotect_t(reinterpret_cast<void*>(s_Request->address), s_Request->length, s_Request->protection, s_MainThread);
+
+    dbg_protect_process_memory_request__free_unpacked(s_Request, nullptr);
+
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "mprotect failed (%d).", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ProtectMem, s_Ret, nullptr, 0);
+}
+
+void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgGetProcessInfoRequest* s_Request = dbg_get_process_info_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack get process info request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgProcessFull s_ProcessInfo = DBG_PROCESS_FULL__INIT;
+    if (!s_Debugger->GetProcessFullInfo(s_Request->pid, &s_ProcessInfo))
+    {
+        dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
+        WriteLog(LL_Error, "could not get process info");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EEXIST);
+        return;
+    }
+
+    dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
+
+    auto s_MessageSize = dbg_process_full__get_packed_size(&s_ProcessInfo);
+    if (s_MessageSize == 0)
+    {
+        WriteLog(LL_Error, "invalid message size");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    uint8_t* s_MessageData = new uint8_t[s_MessageSize];
+    if (s_MessageData == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate message data (%llx)", s_MessageSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_MessageData, 0, s_MessageSize);
+    
+    auto s_PackedSize = dbg_process_full__pack(&s_ProcessInfo, s_MessageData);
+    if (s_PackedSize != s_MessageSize)
+    {
+        WriteLog(LL_Error, "packed (%llx) != msg (%llx)", s_PackedSize, s_MessageSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcInfo, 0, s_MessageData, s_MessageSize);
+
+    delete [] s_MessageData;
+    dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
+}
+
+void Debugger2::OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_ProcessMainThread = s_Debugger->GetProcessMainThread();
+    if (s_ProcessMainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get process main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgAllocateProcessMemoryRequest* s_Request = dbg_allocate_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack allocate request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    size_t s_ResponseSize = 0;
+    size_t s_PackedSize = 0;
+    uint8_t* s_ResponseData = nullptr;
+    DbgAllocateProcessMemoryResponse s_Response = DBG_ALLOCATE_PROCESS_MEMORY_RESPONSE__INIT;
+    auto s_AllocatedData = kmmap_t(0, s_Request->size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_PREFAULT_READ, -1, 0, s_ProcessMainThread);
+    if (s_AllocatedData == MAP_FAILED || s_AllocatedData == 0)
+    {
+        WriteLog(LL_Error, "could not allocate memory");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        goto cleanup;
+    }
+    s_Response.address = reinterpret_cast<uint64_t>(s_AllocatedData);
+    
+    s_ResponseSize = dbg_allocate_process_memory_response__get_packed_size(&s_Response);
+    if (s_ResponseSize == 0)
+    {
+        WriteLog(LL_Error, "could not get packed size");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        goto cleanup;
+    }
+
+    s_ResponseData = new uint8_t[s_ResponseSize];
+    if (s_ResponseData)
+    {
+        WriteLog(LL_Error, "could not allocate response data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        goto cleanup;
+    }
+    memset(s_ResponseData, 0, s_ResponseSize);
+
+    s_PackedSize = dbg_allocate_process_memory_response__pack(nullptr, s_ResponseData);
+    if (s_PackedSize != s_ResponseSize)
+    {
+        WriteLog(LL_Error, "packed (%llx) != msg (%llx)", s_PackedSize, s_ResponseSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_AllocateProcMem, 0, s_ResponseData, s_ResponseSize);
+
+cleanup:
+    if (s_Request != nullptr)
+    {
+        dbg_allocate_process_memory_request__free_unpacked(s_Request, nullptr);
+        s_Request = nullptr;
+    }
+
+    if (s_ResponseData != nullptr)
+    {
+        delete [] s_ResponseData;
+    }
+}
+
+void Debugger2::OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_ProcessMainThread = s_Debugger->GetProcessMainThread();
+    if (s_ProcessMainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get process main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgFreeProcessMemoryRequest* s_Request = dbg_free_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack free request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    auto s_Ret = kmunmap_t(reinterpret_cast<void*>(s_Request->address), s_Request->size, s_ProcessMainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "munmap returned (%d).", s_Ret);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        goto cleanup;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_FreeProcMem, 0, nullptr, 0);
+
+
+cleanup:
+    if (s_Request != nullptr)
+        dbg_free_process_memory_request__free_unpacked(s_Request, nullptr);
+
+}
+
+void Debugger2::OnAddBreakpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    WriteLog(LL_Error, "breakpoints not implemented");
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EEXIST);
+}
+
+void Debugger2::OnAddWatchpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    WriteLog(LL_Error, "watchpoints not implemented");
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EEXIST);
+}
+
+void Debugger2::OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgSignalProcessRequest* s_Request = dbg_signal_process_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack signal request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    auto s_Ret = kkill_t(s_Debugger->m_AttachedPid, s_Request->signal, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not signal pid");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        goto cleanup;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, 0, nullptr, 0);
+
+cleanup:
+    if (s_Request != nullptr)
+        dbg_signal_process_request__free_unpacked(s_Request, nullptr);
+}
+
+
+void Debugger2::OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgReadKernelMemoryRequest* s_Request = dbg_read_kernel_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack read kernel memory request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    const void* s_Address = reinterpret_cast<void*>(s_Request->address);
+    size_t s_DataLen = s_Request->size;
+
+    dbg_read_kernel_memory_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
+
+    uint8_t* s_Data = new uint8_t[s_DataLen];
+    if (s_Data == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate memory");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_Data, 0, s_DataLen);
+
+    auto vm_fault_disable_pagefaults = (int(*)(void))kdlsym(vm_fault_disable_pagefaults);
+	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
+
+    auto s_Ret = vm_fault_disable_pagefaults();
+    memcpy(s_Data, s_Address, s_DataLen);
+    vm_fault_enable_pagefaults(s_Ret);
+
+    DbgReadKernelMemoryResponse s_Response = DBG_READ_KERNEL_MEMORY_RESPONSE__INIT;
+    s_Response.data.data = s_Data;
+    s_Response.data.len = s_DataLen;
+
+    auto s_MessageSize = dbg_read_kernel_memory_response__get_packed_size(&s_Response);
+    auto s_MessageData = new uint8_t[s_MessageSize];
+    if (s_MessageData == nullptr)
+    {
+        delete [] s_Data;
+
+        WriteLog(LL_Error, "could not allocate message data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    memset(s_MessageData, 0, s_MessageSize);
+
+    auto s_PackedSize = dbg_read_kernel_memory_response__pack(&s_Response, s_MessageData);
+    if (s_PackedSize != s_MessageSize)
+    {
+        delete [] s_Data;
+        delete [] s_MessageData;
+
+        WriteLog(LL_Error, "packed (%llx) != msg size (%llx)", s_PackedSize, s_MessageSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    delete [] s_Data;
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ReadKernelMem, 0, s_MessageData, s_MessageSize);
+
+    delete [] s_MessageData;
+}
+
+void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgWriteKernelMemoryRequest* s_Request = dbg_write_kernel_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack write kernel memory request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
+        return;
+    }
+
+    void* s_Address = reinterpret_cast<void*>(s_Request->address);
+
+    auto vm_fault_disable_pagefaults = (int(*)(void))kdlsym(vm_fault_disable_pagefaults);
+	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
+
+    auto s_Ret = vm_fault_disable_pagefaults();
+    memcpy(s_Address, (const void*)s_Request->data.data, s_Request->data.len);
+    vm_fault_enable_pagefaults(s_Ret);
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, 0, nullptr, 0);
+}

@@ -60,14 +60,9 @@ SFLAGS	:= -pie -m64 -nodefaultlibs -nostdlib
 LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie
 
 # Calculate the listing of all file paths
-CFILES	:=	$(wildcard $(SRC_DIR)/*.c)
-CPPFILES :=	$(wildcard $(SRC_DIR)/*.cpp)
-SFILES	:=	$(wildcard $(SRC_DIR)/*.s)
-OBJS	:=	$(patsubst $(SRC_DIR)/%.s, $(OUT_DIR)/$(SRC_DIR)/%.o, $(SFILES)) $(patsubst $(SRC_DIR)/%.c, $(OUT_DIR)/$(SRC_DIR)/%.o, $(CFILES)) $(patsubst $(SRC_DIR)/%.cpp, $(OUT_DIR)/$(SRC_DIR)/%.o, $(CPPFILES))
-
-ALL_CPP := $(shell find $(SRC_DIR)/ -type f -name '*.cpp')
-ALL_C	:= $(shell find $(SRC_DIR)/ -type f -name '*.c')
-ALL_S	:= $(shell find $(SRC_DIR)/ -type f -name '*.s')
+ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
+ALL_C	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
+ALL_S	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
 
 ALL_SOURCES :=  $(ALL_S) $(ALL_C) $(ALL_CPP)
 TO_BUILD := $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)

@@ -149,15 +149,16 @@ message DbgGetProcessInfoRequest {
 
 message DbgAllocateProcessMemoryRequest {
     uint32 size = 1;
-    bool zero = 2;
 }
 
 message DbgAllocateProcessMemoryResponse {
     uint64 address = 1;
+    uint32 size = 2;
 }
 
 message DbgFreeProcessMemoryRequest {
     uint64 address = 1;
+    uint32 size = 2;
 }
 
 message DbgGetProcessMapsRequest {
@@ -209,13 +210,11 @@ message DbgGetProcessThreadsResponse {
 }
 
 message DbgSignalProcessRequest {
-    int32 pid = 1;
-    int32 signal = 2;
+    int32 signal = 1;
 } // No response message
 
 message DbgGetRegistersRequest {
-    int32 pid = 1;
-    int32 threadId = 2;
+    int32 threadId = 1;
 }
 
 message DbgGetRegistersResponse {
@@ -233,8 +232,7 @@ message DbgSetRegistersRequest {
 } // No Response message
 
 message DbgGetThreadInfoRequest {
-    int32 pid = 1;
-    int32 threadId = 2;
+    int32 threadId = 1;
 }
 
 message DbgThreadSinglestepRequest {
@@ -268,8 +266,13 @@ message DbgReadKernelMemoryRequest {
     uint64 size = 2;
 }
 
-message DbgWriteKernelMemoryRequest {
+message DbgReadKernelMemoryResponse {
     bytes data = 1;
+}
+
+message DbgWriteKernelMemoryRequest {
+    uint64 address = 1;
+    bytes data = 2;
 }
 
 message DbgCommandRequest {
