@@ -159,4 +159,9 @@ void Patches::install_prerunPatches_501()
 	kmem[2] = 0xC3;
 	kmem[3] = 0x90;
 
+	// Enable *all* debugging logs (in vprintf)
+	// Patch by: SiSTRo (ported by kiwidog)
+	kmem = (uint8_t*)&gKernelBase[0x00435D5A];
+	kmem[0] = 0xEB; // jmp +0x3A
+	kmem[1] = 0x38;
 }

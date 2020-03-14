@@ -149,4 +149,9 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[2] = 0xC3;
 	kmem[3] = 0x90;
 
+	// Enable *all* debugging logs (in vprintf)
+	// Patch by: SiSTRo
+	kmem = (uint8_t*)&gKernelBase[0x043612A];
+	kmem[0] = 0xEB; // jmp +0x3A
+	kmem[1] = 0x38;
 }
