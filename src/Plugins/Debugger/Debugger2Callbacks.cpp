@@ -1,5 +1,11 @@
 #include "Debugger2.hpp"
 
+extern "C"
+{
+    #include <sys/ptrace.h>
+    #include <machine/reg.h>
+};
+
 using namespace Mira;
 using namespace Mira::Plugins;
 
@@ -36,10 +42,10 @@ void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    WriteLog(LL_Info, "request to attach to (%d).", s_Request->pid);
+    WriteLog(LL_Info, "request to attach to (%d).", s_Request->processid);
 
     int32_t s_Ret = -1;
-    if (!s_Debugger->Attach(s_Request->pid, &s_Ret))
+    if (!s_Debugger->Attach(s_Request->processid, &s_Ret))
     {
         dbg_attach_request__free_unpacked(s_Request, nullptr);
         WriteLog(LL_Error, "could not attach ret (%d)", s_Ret);
@@ -98,6 +104,34 @@ void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTran
     WriteLog(LL_Debug, "successfully detached");
     dbg_detach_request__free_unpacked(s_Request, nullptr);
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, 0, nullptr, 0);
+}
+
+void Debugger2::OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    if (!s_Debugger->Step())
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, 0, nullptr, 0);
 }
 
 void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
@@ -165,7 +199,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 
         *l_ProcLimited = DBG_PROCESS_LIMITED__INIT;
 
-        l_ProcLimited->pid = s_Proc->p_pid;
+        l_ProcLimited->processid = s_Proc->p_pid;
 
         // Name
         auto s_NameLength = sizeof(s_Proc->p_comm);
@@ -593,7 +627,7 @@ void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const
     }
 
     DbgProcessFull s_ProcessInfo = DBG_PROCESS_FULL__INIT;
-    if (!s_Debugger->GetProcessFullInfo(s_Request->pid, &s_ProcessInfo))
+    if (!s_Debugger->GetProcessFullInfo(s_Request->processid, &s_ProcessInfo))
     {
         dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
         WriteLog(LL_Error, "could not get process info");
@@ -1007,3 +1041,258 @@ void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, co
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, 0, nullptr, 0);
 }
+
+void Debugger2::OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgGetRegistersRequest* s_Request = dbg_get_registers_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not unpack get registers request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+    
+    // Allocate a new DbgThreadFull
+    DbgGetRegistersResponse s_Response;
+    size_t s_RequestedSize = 0;
+    size_t s_ActualSize = 0;
+    uint8_t* s_PackedData = nullptr;
+    DbgThreadFull* s_Thread = new DbgThreadFull();
+    if (s_Thread == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate dbg thread full");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    // Get the thread information
+    if (!s_Debugger->GetThreadFullInfo(s_Request->threadid, s_Thread))
+    {
+        WriteLog(LL_Error, "could not get thread full info");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    s_Response = DBG_GET_REGISTERS_RESPONSE__INIT;
+    s_Response.dbregisters = s_Thread->dbregisters;
+    s_Response.fpregisters = s_Thread->fpregisters;
+    s_Response.gpregisters = s_Thread->gpregisters;
+
+    // Get the packed size
+    s_RequestedSize = dbg_get_registers_response__get_packed_size(&s_Response);
+    if (s_RequestedSize == 0)
+    {
+        WriteLog(LL_Error, "could not get thread full info");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    s_PackedData = new uint8_t[s_RequestedSize];
+    if (s_PackedData == nullptr)
+    {
+        WriteLog(LL_Error, "could not get thread full info");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    s_ActualSize = dbg_get_registers_response__pack(&s_Response, s_PackedData);
+    if (s_ActualSize != s_RequestedSize)
+    {
+        WriteLog(LL_Error, "actual size (%llx) != requested size (%llx)", s_ActualSize, s_RequestedSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, 0, s_PackedData, s_RequestedSize);
+
+cleanup:
+    if (s_Request)
+        dbg_get_registers_request__free_unpacked(s_Request, nullptr);
+    
+    if (s_Thread)
+    {
+        // Free any resources that may have been allocated for DbgThreadFull
+        FreeDbgThreadFull(s_Thread);
+
+        // Free the actual object itself
+        delete s_Thread;
+    }
+
+    if (s_PackedData)
+        delete [] s_PackedData;
+}
+
+void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+{
+    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    {
+        WriteLog(LL_Error, "could not get data");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    DbgSetRegistersRequest* s_Request = dbg_set_registers_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    if (s_Request == nullptr)
+    {
+        WriteLog(LL_Error, "could not read set registers request");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        return;
+    }
+
+    int32_t s_Ret = 0;
+    size_t s_DbgRegIndex = 0;
+    struct reg s_Reg;
+    struct fpreg s_FpReg;
+    struct dbreg s_DbReg;
+
+    auto s_Thread = s_Debugger->GetThreadById(s_Request->threadid);
+    if (s_Thread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get thread tid: (%d).", s_Request->threadid);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    if (!s_Debugger->Suspend())
+    {
+        WriteLog(LL_Error, "could not get thread tid: (%d).", s_Request->threadid);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    s_Reg =
+    {
+        .r_r15 = (register_t)s_Request->gpregisters->r_r15,
+        .r_r14 = (register_t)s_Request->gpregisters->r_r14,
+        .r_r13 = (register_t)s_Request->gpregisters->r_r13,
+        .r_r12 = (register_t)s_Request->gpregisters->r_r12,
+        .r_r11 = (register_t)s_Request->gpregisters->r_r11,
+        .r_r10 = (register_t)s_Request->gpregisters->r_r10,
+        .r_r9 = (register_t)s_Request->gpregisters->r_r9,
+        .r_r8 = (register_t)s_Request->gpregisters->r_r8,
+        .r_rdi = (register_t)s_Request->gpregisters->r_rdi,
+        .r_rsi = (register_t)s_Request->gpregisters->r_rsi,
+        .r_rbp = (register_t)s_Request->gpregisters->r_rbp,
+        .r_rbx = (register_t)s_Request->gpregisters->r_rbx,
+        .r_rdx = (register_t)s_Request->gpregisters->r_rdx,
+        .r_rcx = (register_t)s_Request->gpregisters->r_rcx,
+        .r_rax = (register_t)s_Request->gpregisters->r_rax,
+
+        .r_trapno = s_Request->gpregisters->r_trapno,
+        .r_fs = (uint16_t)s_Request->gpregisters->r_fs,
+        .r_gs = (uint16_t)s_Request->gpregisters->r_gs,
+        .r_err = s_Request->gpregisters->r_err,
+        .r_es = (uint16_t)s_Request->gpregisters->r_es,
+        .r_ds = (uint16_t)s_Request->gpregisters->r_ds,
+
+        .r_rip = (register_t)s_Request->gpregisters->r_rip,
+        .r_cs = (register_t)s_Request->gpregisters->r_cs,
+        .r_rflags = (register_t)s_Request->gpregisters->r_rflags,
+        .r_rsp = (register_t)s_Request->gpregisters->r_rsp,
+        .r_ss = (register_t)s_Request->gpregisters->r_ss,
+    };
+
+    memcpy(&s_FpReg, s_Request->fpregisters->data.data, s_Request->fpregisters->data.len);
+
+    for (s_DbgRegIndex = 0; s_DbgRegIndex < s_Request->dbregisters->n_debugregs; ++s_DbgRegIndex)
+    {
+        // Bounds check
+        if (s_DbgRegIndex >= ARRAYSIZE(s_DbReg.dr))
+            break;
+        
+        s_DbReg.dr[s_DbgRegIndex] = s_Request->dbregisters->debugregs[s_DbgRegIndex];
+    }
+
+    s_Ret = kptrace_t(PT_SETREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_Reg, 0, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not set regs, thread tid: (%d).", s_Request->threadid);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        goto cleanup;
+    }
+
+    s_Ret = kptrace_t(PT_SETFPREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_FpReg, 0, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not set fpregs, thread tid: (%d).", s_Request->threadid);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        goto cleanup;
+    }
+
+    s_Ret = kptrace_t(PT_SETDBREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_DbReg, 0, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not set dbregs, thread tid: (%d).", s_Request->threadid);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, s_Ret);
+        goto cleanup;
+    }
+
+    if (!s_Debugger->Resume())
+    {
+        WriteLog(LL_Error, "could not get thread tid: (%d).", s_Request->threadid);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+        goto cleanup;
+    }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, 0, nullptr, 0);
+
+cleanup:
+    if (s_Request)
+        dbg_set_registers_request__free_unpacked(s_Request, nullptr);
+}
+

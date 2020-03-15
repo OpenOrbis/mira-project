@@ -1,0 +1,4 @@
+# Intentionally ignore the protobuf generated output in this directory only
+*.h
+*.c
+*.cs

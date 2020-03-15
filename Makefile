@@ -38,7 +38,7 @@ BSD_INC := external/freebsd-headers/include
 endif
 
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -Iexternal/hde64 -Iexternal
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -Iexternal/hde64 -Iexternal/protobuf-c
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib

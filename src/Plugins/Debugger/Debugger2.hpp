@@ -402,6 +402,14 @@ namespace Mira
             static void OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
             /**
+             * @brief RPC callback for writing kernel memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage with single step message
+             */
+            static void OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
              * @brief RPC callback for getting a process list of all running processes on the console
              * 
              * @param p_Connection Requesting connection
@@ -488,9 +496,29 @@ namespace Mira
              * @param p_Message RpcMessage containing the thread id to get registers for
              */
             static void OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for setting the thread registers
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the set thread registers message
+             */
             static void OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for reading kernel memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage with the read kernel memory request
+             */
             static void OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for writing kernel memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage with write kernel memory
+             */
             static void OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
         };
     }

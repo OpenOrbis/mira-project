@@ -149,7 +149,7 @@ bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
     //============================================
     *p_Info = DBG_PROCESS_LIMITED__INIT;
 
-    p_Info->pid = s_Process->p_pid;
+    p_Info->processid = s_Process->p_pid;
 
     // Get the vm map
     DbgVmEntry** s_VmEntries = nullptr;
@@ -369,7 +369,7 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
     p_Info->elfpath = s_ElfPath;
     p_Info->randomizedpath = s_RandomizedPath;
 
-    p_Info->pid = s_Process->p_pid;
+    p_Info->processid = s_Process->p_pid;
     p_Info->parentproc = reinterpret_cast<uint64_t>(s_Process->p_pptr);
     p_Info->oppid = s_Process->p_oppid;
     p_Info->dbgchild = s_Process->p_dbg_child;
