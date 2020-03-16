@@ -18,7 +18,7 @@ namespace Mira
         enum
         {
             MessageManager_MaxCategories = 14,
-            MessageManager_MaxListeners = 10
+            MessageManager_MaxListeners = 64
         };
 
         class MessageManager

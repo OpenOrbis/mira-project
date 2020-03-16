@@ -325,7 +325,7 @@ bool Mira::Framework::Initialize()
 	// Hook SceSblSysVeri (Fire fw only)
 	//m_SceSblSysVeriHook = new Mira::Utils::Hook::Hook(kdlsym(SceSblSysVeriThread), OnSceSblSysVeri);
 
-	// Intentionally fault
+	// DBG: Intentionally fault
 	//*((uint64_t*)0x1337) = 0xBADBABE;
 	return true;
 }

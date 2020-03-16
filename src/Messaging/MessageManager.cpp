@@ -279,7 +279,7 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
 
     if (s_FoundEntry == nullptr || s_FoundIndex == -1)
     {
-        WriteLog(LL_Error, "could not find the right shit");
+        WriteLog(LL_Error, "could not find endpoint c: (%x) t:(%x)", p_Message.header->category, p_Message.header->type);
         return;
     }
 
