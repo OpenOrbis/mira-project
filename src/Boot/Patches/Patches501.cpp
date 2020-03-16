@@ -8,6 +8,7 @@ using namespace Mira::Boot;
 */
 void Patches::install_prerunPatches_501()
 {
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
 		return;
@@ -164,4 +165,5 @@ void Patches::install_prerunPatches_501()
 	kmem = (uint8_t*)&gKernelBase[0x00435D5A];
 	kmem[0] = 0xEB; // jmp +0x3A
 	kmem[1] = 0x38;
+#endif
 }
