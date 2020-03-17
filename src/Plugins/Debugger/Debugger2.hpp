@@ -199,7 +199,7 @@ namespace Mira
              * @return true on success
              * @return false otherwise
              */
-            static bool GetVmMapEntries(struct proc* p_Process, DbgVmEntry* p_Entries[], size_t& p_EntriesCount);
+            static bool GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries, size_t& p_EntriesCount);
             
             /**
              * @brief Get limited process information

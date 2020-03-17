@@ -18,7 +18,7 @@ extern "C"
 
 using namespace Mira::Plugins;
 
-bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry* p_Entries[], size_t& p_EntriesCount)
+bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries, size_t& p_EntriesCount)
 {
     // Set some default values
     p_Entries = nullptr;
@@ -206,8 +206,8 @@ cleanup:
         // Delete the entries list
         delete [] s_VmEntries;
 
-        s_VmEntries = nullptr;
-        s_VmEntriesCount = 0;
+        //s_VmEntries = nullptr;
+        //s_VmEntriesCount = 0;
     }
 
     if (s_Name)
@@ -401,6 +401,10 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         s_DbgCred->n_sceattr = ARRAYSIZE(s_Process->p_ucred->cr_sceAttr);
     }
 
+    p_Info->cred = s_DbgCred;
+    p_Info->mapentries = s_VmEntries;
+    p_Info->n_mapentries = s_VmEntriesCount;
+
     p_Info->threads = s_DbgThreads;
     p_Info->n_threads = s_ThreadCount;
     p_Info->numthreads = s_Process->p_numthreads;
@@ -483,8 +487,8 @@ cleanup:
         // Delete the entries list
         delete [] s_VmEntries;
 
-        s_VmEntries = nullptr;
-        s_VmEntriesCount = 0;
+        //s_VmEntries = nullptr;
+        //s_VmEntriesCount = 0;
     }
 
     // Finally reset the output structure so uaf won't happen

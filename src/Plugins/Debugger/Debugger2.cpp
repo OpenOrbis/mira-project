@@ -303,6 +303,12 @@ bool Debugger2::Attach(int32_t p_ProcessId, int32_t* p_Status)
 
     int32_t s_Status = 0;
     s_Ret = kwait4_t(p_ProcessId, &s_Status, WUNTRACED, nullptr, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not wait for untraced pid (%d) ret (%d)", p_ProcessId, s_Ret);
+        Detach();
+        return false;
+    }
     // TODO: Do we need to wait?
     // if (p_Status)
     //     *p_Status = s_Ret;
