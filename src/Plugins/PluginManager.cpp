@@ -7,6 +7,7 @@
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
 #include <Plugins/EmuRegistry/EmuRegistryPlugin.hpp>
+#include <Plugins/Substitute/Substitute.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -20,7 +21,8 @@ PluginManager::PluginManager() :
     m_FileManager(nullptr),
     m_FakeSelfManager(nullptr),
     m_FakePkgManager(nullptr),
-    m_EmuRegistry(nullptr)
+    m_EmuRegistry(nullptr),
+    m_Substitute(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
@@ -95,6 +97,16 @@ bool PluginManager::OnLoad()
     }
     if (!m_EmuRegistry->OnLoad())
         WriteLog(LL_Error, "could not load emulated registry.");
+
+    // Initialize Substitute
+    m_Substitute = new Mira::Plugins::Substitute();
+    if (m_Substitute == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate substitute.");
+        return false;
+    }
+    if (!m_Substitute->OnLoad())
+        WriteLog(LL_Error, "could not load substitute.");
     return true;
 }
 
@@ -204,6 +216,18 @@ bool PluginManager::OnUnload()
         delete m_Debugger;
         m_Debugger = nullptr;
     }
+
+    // Delete Substitute
+    if (m_Substitute)
+    {
+        WriteLog(LL_Debug, "unloading substitute");
+        if (!m_Substitute->OnUnload())
+            WriteLog(LL_Error, "substitute could not unload");
+
+        // Free Substitute
+        delete m_Substitute;
+        m_Substitute = nullptr;
+    }
     
     WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");
     return s_AllUnloadSuccess;
@@ -249,6 +273,9 @@ bool PluginManager::OnSuspend()
     if (!m_Debugger->OnSuspend())
         WriteLog(LL_Error, "debugger suspend failed");
     
+    if (!m_Substitute->OnSuspend())
+        WriteLog(LL_Error, "substitute suspend failed");
+
     // Return final status
     return s_AllSuccess;
 }
@@ -270,7 +297,11 @@ bool PluginManager::OnResume()
     WriteLog(LL_Debug, "resuming emuRegistry");
     if (!m_EmuRegistry->OnResume())
         WriteLog(LL_Error, "emuRegistry resume failed");
-    
+
+    WriteLog(LL_Debug, "resuming substitute");
+    if (!m_Substitute->OnResume())
+        WriteLog(LL_Error, "substitute resume failed");
+
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {

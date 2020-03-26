@@ -149,4 +149,10 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[2] = 0xC3;
 	kmem[3] = 0x90;
 
+	// Debug dipsw (for logger)
+	kmem = (uint8_t *)&gKernelBase[0x01CD0650];
+	kmem[0x36] = 0x37;
+	kmem[0x59] = 0x03;
+	kmem[0x5A] = 0x01;
+	kmem[0x78] = 0x01;
 }

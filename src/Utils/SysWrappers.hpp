@@ -11,8 +11,23 @@ struct thread;
 struct stat;
 struct rusage;
 
+///////////////////////////
+// Sony specific definition
+///////////////////////////
+
+// Syscall 594 : sys_dynlib_load_prx
+struct dynlib_load_prx_args {
+    char*    path;  // const char *
+    uint64_t args;   // size_t
+    uint64_t argp;   // const void *
+    uint32_t flags;  // uint32_t
+    uint64_t pOpt;   // const SceKernelLoadModuleOpt *
+    uint64_t pRes;   // int *
+};
+
 extern "C"
 {
+
     enum
     {
         MaxInterruptRetries = 3,
@@ -118,4 +133,10 @@ extern "C"
     extern int kmprotect_t(void* addr, size_t len, int prot, struct thread* td);
 
     extern int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, struct	timeval	*timeout, struct thread* td);
+
+    extern int kdynlib_load_prx_t(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, int* pRes, struct thread* td);
+
+    extern int kunmount_t(char* path, int flags, struct thread* td);
+
+    extern int knmount_t(struct iovec* iov, int iovlen, unsigned int flags, struct thread* td);
 };

@@ -2080,3 +2080,170 @@ int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, st
 
 	return ret;
 }
+
+int kdynlib_load_prx(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, uint64_t pRes, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args*))sysents[SYS_DYNLIB_LOAD_PRX].sy_call;
+	if (!sys_dynlib_load_prx)
+		return -1;
+
+	int error;
+	struct dynlib_load_prx_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = path;
+	uap.args = args;
+	uap.argp = argp;
+	uap.flags = flags;
+	uap.pOpt = pOpt;
+	uap.pRes = pRes;
+
+	error = sys_dynlib_load_prx(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kdynlib_load_prx_t(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, int* pRes, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kdynlib_load_prx(path, args, argp, flags, pOpt, (uint64_t)pRes, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kunmount(char* path, int flags, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_unmount = (int(*)(struct thread*, struct unmount_args*))sysents[SYS_UNMOUNT].sy_call;
+	if (!sys_unmount)
+		return -1;
+
+	int error;
+	struct unmount_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = path;
+	uap.flags = flags;
+
+	error = sys_unmount(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kunmount_t(char* path, int flags, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kunmount(path, flags, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int knmount(struct iovec* iov, int iovlen, unsigned int flags, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_nmount = (int(*)(struct thread*, struct nmount_args*))sysents[378].sy_call;
+	if (!sys_nmount)
+		return -1;
+
+	int error;
+	struct nmount_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.iovp = iov;
+	uap.iovcnt = iovlen;
+	uap.flags = flags;
+
+	error = sys_nmount(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int knmount_t(struct iovec* iov, int iovlen, unsigned int flags, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = knmount(iov, iovlen, flags, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
