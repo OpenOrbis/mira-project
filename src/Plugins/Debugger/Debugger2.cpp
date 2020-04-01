@@ -25,13 +25,13 @@ bool Debugger2::ReplaceExceptionHandler(uint32_t p_ExceptionNumber, void* p_Func
     if (p_Function == nullptr)
         return false;
     
-    void* s_Idt = nullptr;
+    // void* s_Idt = nullptr;
 
-    auto setidt = (void(*)(int idx, void* func, int typ, int dpl, int ist))kdlsym(setidt);
+    // auto setidt = (void(*)(int idx, void* func, int typ, int dpl, int ist))kdlsym(setidt);
 
-    setidt(IDT_DF, nullptr, SDT_SYSIGT, SEL_KPL, 0);
+    // setidt(IDT_DF, nullptr, SDT_SYSIGT, SEL_KPL, 0);
 
-    sizeof(struct ip6_hdr);
+    // sizeof(struct ip6_hdr);
 
     return true;
 }
