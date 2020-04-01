@@ -1,5 +1,5 @@
 #include "Debugger2.hpp"
-
+#include <Utils/Kdlsym.hpp>
 
 using namespace Mira::Plugins;
 
@@ -16,6 +16,24 @@ Debugger2::Debugger2(uint16_t p_Port) :
 Debugger2::~Debugger2()
 {
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
+}
+
+#include <netinet/ip6.h>
+
+bool Debugger2::ReplaceExceptionHandler(uint32_t p_ExceptionNumber, void* p_Function, void** p_PreviousFunction)
+{
+    if (p_Function == nullptr)
+        return false;
+    
+    // void* s_Idt = nullptr;
+
+    // auto setidt = (void(*)(int idx, void* func, int typ, int dpl, int ist))kdlsym(setidt);
+
+    // setidt(IDT_DF, nullptr, SDT_SYSIGT, SEL_KPL, 0);
+
+    // sizeof(struct ip6_hdr);
+
+    return true;
 }
 
 bool Debugger2::OnLoad()

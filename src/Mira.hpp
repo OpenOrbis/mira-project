@@ -17,6 +17,11 @@ extern "C"
 
 namespace Mira
 {
+    namespace OrbisOS
+    {
+        class ThreadManager;
+    }
+
     namespace Driver
     {
         class CtrlDriver;
@@ -53,6 +58,7 @@ namespace Mira
         struct eventhandler_entry* m_ResumeTag;
         struct eventhandler_entry* m_ShutdownTag;
 
+        Mira::OrbisOS::ThreadManager* m_ThreadManager;
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
         Mira::Messaging::Rpc::Server* m_RpcServer;
