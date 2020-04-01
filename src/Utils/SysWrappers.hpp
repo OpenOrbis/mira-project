@@ -118,4 +118,6 @@ extern "C"
     extern int kmprotect_t(void* addr, size_t len, int prot, struct thread* td);
 
     extern int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, struct	timeval	*timeout, struct thread* td);
+
+    extern int kioctl_t(int fd, u_long com, caddr_t data, struct thread* td);
 };
