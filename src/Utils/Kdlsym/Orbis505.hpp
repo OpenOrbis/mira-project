@@ -27,6 +27,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_allproc_lock                           0x02382F98
 #define kdlsym_addr_copyin                                 0x001EA710
 #define kdlsym_addr_copyinstr                              0x001EAB40
+#define kdlsym_addr_copyout                                0x001EA630
 #define kdlsym_addr_critical_enter                         0x0028E7A0
 #define kdlsym_addr_critical_exit                          0x0028E7B0
 #define kdlsym_addr_dmem_start_app_process                 0x002469F0

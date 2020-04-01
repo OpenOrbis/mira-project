@@ -155,4 +155,30 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[0x59] = 0x03;
 	kmem[0x5A] = 0x01;
 	kmem[0x78] = 0x01;
+
+	// Debug for substitute
+	// Allow Debug message from relocation
+	kmem = (uint8_t *)&gKernelBase[0x002AC4E8];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+	
+	// Show only first value
+	kmem = (uint8_t *)&gKernelBase[0x002B6BFF];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// Rewrite the string for show pointer instead of string
+	kmem = (uint8_t *)&gKernelBase[0x007BB6B3];
+	kmem[0] = 'p';
+	kmem[1] = ' ';
+	kmem[2] = ' ';
+	kmem[3] = ' ';
 }

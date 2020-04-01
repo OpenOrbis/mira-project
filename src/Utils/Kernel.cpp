@@ -68,7 +68,6 @@ int proc_rw_mem_pid(int pid, void* ptr, size_t size, void* data, size_t* n, int 
 
 struct proc *proc_find_by_name(const char *name)
 {
-
     if (!name) {
         return NULL;
     }
@@ -133,30 +132,4 @@ void build_iovec(struct iovec **iov, int *iovlen, const char *name, const char *
     }
 
     *iovlen = ++i;
-}
-
-// Removed from newer kernel, reimplementation
-int kernel_vmount(int flags, ...)
-{
-    auto kernel_mount = (int(*)(struct mntarg *ma, uint64_t flags))kdlsym(kernel_mount);
-    auto mount_arg = (struct mntarg*(*)(struct mntarg *ma, const char *name, const void *val, int len))kdlsym(mount_arg);
-
-    struct mntarg *ma = NULL;
-    va_list ap;
-    const char *cp;
-    const void *vp;
-    int error;
-
-    va_start(ap, flags);
-    for (;;) {
-        cp = va_arg(ap, const char *);
-        if (cp == NULL)
-            break;
-        vp = va_arg(ap, const void *);
-        ma = mount_arg(ma, cp, vp, (vp != NULL ? -1 : 0));
-    }
-    va_end(ap);
-
-    error = kernel_mount(ma, flags);
-    return (error);
 }

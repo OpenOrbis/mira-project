@@ -2,6 +2,7 @@
 #include <Utils/Kernel.hpp>
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Kdlsym.hpp>
+
 #include <Mira.hpp>
 
 extern "C"
@@ -151,8 +152,9 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 	FOREACH_PROC_IN_SYSTEM(s_Proc) {
 		PROC_LOCK(s_Proc);
 
-
-		if (strcmp(s_Proc->p_comm, p_Name) == 0) {
+		// Do it because struct* proc is broken
+		char* s_Proc_Name = (char*)((uint64_t)s_Proc + 0x44C); 
+		if (strcmp(s_Proc_Name, p_Name) == 0) {
 			PROC_UNLOCK(s_Proc);
 			goto done;
 		}
@@ -281,4 +283,16 @@ error:
 		//kfree(info, allocSize);
 
 	return ret;
+}
+
+int Utilities::MountNullFS(char* where, char* what, int flags, struct thread* td)
+{
+    struct iovec* iov = NULL;
+    int iovlen = 0;
+
+    build_iovec(&iov, &iovlen, "fstype", "nullfs", (size_t)-1);
+    build_iovec(&iov, &iovlen, "fspath", where, (size_t)-1); // Where i want to add
+    build_iovec(&iov, &iovlen, "target", what, (size_t)-1); // What i want to add
+
+    return knmount_t(iov, iovlen, flags, td);
 }
