@@ -53,7 +53,9 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 #define MAX_TRAP_MSG		33
 
-	auto s_Saved = vm_fault_disable_pagefaults();
+	
+	WriteKernelFileLog("kernel base: %p\n", gKernelBase);
+
 	// Print extra information in case that Oni/Mira itself crashes
 	auto s_Framework = Mira::Framework::GetFramework();
 	if (s_Framework)
@@ -67,10 +69,12 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		if (s_Framework)
 			WriteKernelFileLog("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
 	
-		WriteKernelFileLog("OffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
+		WriteKernelFileLog("LastBranchFromOffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
+		WriteKernelFileLog("RipOffsetFromKernelBase: %p", frame->tf_rip - (uint64_t)gKernelBase);
 		WriteKernelFileLog("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
     }
 
+	auto s_Saved = vm_fault_disable_pagefaults();
 	WriteKernelFileLog("call stack:\n");
     auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
 	auto amdFrameCount = 0;

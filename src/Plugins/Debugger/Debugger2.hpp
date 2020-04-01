@@ -117,6 +117,18 @@ namespace Mira
             static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
             static bool IsStackSpace(void* p_Address);
 
+            /**
+             * @brief Replaces an exception handler function in the IDT (interrupt descriptor table) for the specified exception number
+             * 
+             * @param p_ExceptionNumber Exception number to catch
+             * @param p_Function Function to replace with
+             * @param p_PreviousFunction Output previous function in the IDT (optional)
+             * @return true On success
+             * @return false On error
+             */
+            bool ReplaceExceptionHandler(uint32_t p_ExceptionNumber, void* p_Function, void** p_PreviousFunction = nullptr);
+
+
             // The gdb protocol does not allow the '$' or '#' in data, they must be escaped
             // The escape character is 0x7d '}' then the next byte is $ or # or'd with 0x20, } character itself too must be escaped
             void EscapePacket(char* p_PacketData, uint32_t p_Size);
