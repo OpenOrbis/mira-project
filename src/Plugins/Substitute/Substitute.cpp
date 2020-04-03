@@ -34,18 +34,26 @@ extern "C"
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
 
+//////////////////////////
+// MIRA BASE PLUGIN
+//////////////////////////
+
+// Substitute : Constructor
 Substitute::Substitute() :
     m_processStartHandler(nullptr),
     m_processEndHandler(nullptr)
 {
 }
 
+// Substitute : Destructor
 Substitute::~Substitute()
 {
 }
 
+// Substitute : Plugin loaded
 bool Substitute::OnLoad()
 {
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
     WriteLog(LL_Info, "Loading Substitute ...");
@@ -53,26 +61,308 @@ bool Substitute::OnLoad()
     m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
+    mtx_init(&hook_mtx, "Substitute", NULL, 0);
+
     return true;
 }
 
+// Substitute : Plugin unloaded
 bool Substitute::OnUnload()
 {
     WriteLog(LL_Error, "Unloading Substitute ...");
     return true;
 }
 
+// Substitute : Plugin suspended
 bool Substitute::OnSuspend()
 {
     WriteLog(LL_Error, "Suspending Substitute ...");
     return true;
 }
 
+// Substitute : Plugin resumed
 bool Substitute::OnResume()
 {
     WriteLog(LL_Error, "Resuming Substitute ...");
     return true;
 }
+
+// Substitute : Get substitute pointer from static function
+Substitute* Substitute::GetPlugin()
+{
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+        return nullptr;
+    
+    auto s_PluginManager = s_Framework->GetPluginManager();
+    if (s_PluginManager == nullptr)
+        return nullptr;
+    
+    auto s_SubstitutePlugin = static_cast<Substitute*>(s_PluginManager->GetSubstitute());
+    if (s_SubstitutePlugin == nullptr)
+        return nullptr;
+    
+    return s_SubstitutePlugin;
+}
+
+//////////////////////////
+// HOOK MANAGEMENT SYSTEM
+//////////////////////////
+
+// Substitute : Find available hook id for allocation
+int Substitute::FindAvailableHookID() {
+    int near_up_value = 0;
+
+    if (!hook_list)
+        return 0;
+
+    for (int i = 0; i < hook_nbr; i++) {
+        if (hook_list[i].id > near_up_value) {
+            near_up_value = hook_list[i].id;
+        }
+    }
+
+    return near_up_value++;
+}
+
+// Substitute : Return hook struct by this id
+SubstituteHook* Substitute::GetHookByID(int hook_id) {
+    if (!hook_list)
+        return nullptr;
+
+    for (int i = 0; i < hook_nbr; i++) {
+        if (hook_list[i].id == hook_id) {
+            return &hook_list[i];
+        }
+    }
+
+    return nullptr;
+}
+
+// Substitute : Allocate a new hook to the list
+SubstituteHook* Substitute::AllocateNewHook() {
+    auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
+    auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
+
+    // Find available id
+    int hookID = FindAvailableHookID();
+    if (hookID <= 0) {
+        return nullptr;
+    }
+
+    // Create new space
+    size_t new_size = sizeof(SubstituteHook) * (hook_nbr + 1);
+    SubstituteHook* temp_table = (SubstituteHook*)malloc(new_size, M_TEMP, M_ZERO | M_WAITOK);
+    if (!temp_table) {
+        return nullptr;
+    }
+
+    // Set to 0
+    memset(temp_table, 0, new_size);
+
+    if (hook_list) {
+        // Copy old data
+        memcpy(temp_table, hook_list, sizeof(SubstituteHook) * hook_nbr);
+        
+        // free the old space
+        delete(hook_list);
+    }
+
+    // Define new address
+    hook_list = temp_table;
+
+    // Add new number of hook available
+    hook_nbr++;
+
+    // Define the new hook id for this object
+    hook_list[hook_nbr--].id = hookID;
+
+    // Return the new object address
+    return &hook_list[hook_nbr--];
+}
+
+// Substitute : Free a hook from the list
+void Substitute::FreeOldHook(int hook_id) {
+    auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
+    auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
+
+    if (!hook_list) {
+        return;
+    }
+
+    SubstituteHook* current_hook = GetHookByID(hook_id);
+
+    size_t new_size = sizeof(SubstituteHook) * (hook_nbr - 1);
+    if (new_size <= 0) {
+        hook_nbr = 0;
+        delete (hook_list);
+        hook_list = nullptr;
+        return;
+    }
+
+    // Create new space
+    SubstituteHook* temp_table = (SubstituteHook*)malloc(new_size, M_TEMP, M_ZERO | M_WAITOK);
+    if (!temp_table) {
+        return;
+    }
+
+    // Set to 0
+    memset(temp_table, 0, new_size);
+
+    // Size calculation
+    size_t total_current_size = sizeof(SubstituteHook) * hook_nbr;
+    size_t before_size = (size_t)current_hook - (size_t)hook_list;
+    size_t after_size = total_current_size - before_size - sizeof(SubstituteHook);
+
+    // Copy all
+    memcpy(temp_table, (void*)hook_list, before_size);
+    memcpy(temp_table + before_size, (void*)((uint64_t)hook_list + before_size + sizeof(SubstituteHook)), after_size);
+
+    // Delete the old table
+    delete (hook_list);
+
+    // Set the actual number
+    hook_nbr--;
+    hook_list = temp_table;
+
+    return;
+}
+
+// Substitute : Disable the hook
+int Substitute::DisableHook(int hook_id) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+  
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* hook = GetHookByID(hook_id);
+    if (!hook) {
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return 1;
+    }
+
+    if (hook->hook_enable && hook->process && hook->original_function) {
+        size_t write_size = 0;
+        int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, 8, &hook->original_function, &write_size, 1);
+        if (r_error) {
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return 1;
+        }
+
+        hook->hook_enable = false;
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return 0;
+}
+
+// Substitute : Enable the hook
+int Substitute::EnableHook(int hook_id) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+  
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* hook = GetHookByID(hook_id);
+    if (!hook) {
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return 1;
+    }
+
+    if (!hook->hook_enable && hook->process && hook->hook_function) {
+        size_t write_size = 0;
+        int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, 8, &hook->hook_function, &write_size, 1);
+        if (r_error) {
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return 1;
+        }
+
+        hook->hook_enable = true;
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return 0;
+}
+
+// Substitute : Hook the function in the process
+int Substitute::Hook(struct proc* p, const char* nids, void* hook_function) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    if (!p || !nids || !hook_function)
+        return -1;
+
+    // Get the jmpslot offset for this nids
+    void* jmpslot_address = (void*)FindOffsetFromNids(p, nids);
+    if (!jmpslot_address)
+        return -2;
+
+    // Get the original value for this jmpslot
+    void* original_function = nullptr;
+    size_t read_size = 0;
+    int r_error = proc_rw_mem(p, jmpslot_address, 8, &original_function, &read_size, 0);
+    if (r_error || !original_function) {
+        return -3;
+    }
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* new_hook = AllocateNewHook();
+    if (!new_hook) {
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -4;
+    }
+
+    // Set default value
+    new_hook->process = p;
+    new_hook->hook_function = hook_function;
+    new_hook->jmpslot_address = jmpslot_address;
+    new_hook->original_function = original_function;
+    new_hook->hook_enable = false;
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return new_hook->id;
+}
+
+// Substitute : Unhook the function
+int Substitute::Unhook(int hook_id) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    DisableHook(hook_id);
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    FreeOldHook(hook_id);
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return 0;
+}
+
+// Substitute : Cleanup hook for a process
+void Substitute::CleanupProcessHook(struct proc* p) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    if (!hook_list)
+        return;
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    for (int i = 0; i < hook_nbr; i++) {
+        if (hook_list[i].process == p) {
+            FreeOldHook(hook_list[i].id);
+        }
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+}
+
+//////////////////////////
+// IMPORT HOOK SYSTEM
+//////////////////////////
 
 // Substitute : Print debug information from import table
 void Substitute::DebugImportTable(struct proc* p)
@@ -283,6 +573,10 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
     return nids_offset_found;
 }
 
+//////////////////////////
+// PROCESS MANAGEMENT
+//////////////////////////
+
 // Substitute : PRX Loader
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
@@ -342,7 +636,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     // Create folder
     int ret = kmkdir_t(s_substituteFullMountPath, 0511, s_MainThread);
     if (ret < 0) {
-        WriteLog(LL_Error, "could not create the directory for mount (%s) (%d).", s_substituteFullMountPath, ret);
+        WriteLog(LL_Error, "[%s] could not create the directory for mount (%s) (%d).", s_TitleId, s_substituteFullMountPath, ret);
         return;
     }
 
@@ -398,9 +692,14 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
 // Substitute : Unmount substitute folder
 void Substitute::OnProcessExit(void *arg, struct proc *p) {
+    Substitute* substitute = GetPlugin();
+
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     //auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
+
+    // Start by cleanup hook list
+    substitute->CleanupProcessHook(p);
 
     // Get process information
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
@@ -454,22 +753,4 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     }
 
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
-}
-
-// Substitute : Get substitute pointer from static function
-Substitute* Substitute::GetPlugin()
-{
-    auto s_Framework = Mira::Framework::GetFramework();
-    if (s_Framework == nullptr)
-        return nullptr;
-    
-    auto s_PluginManager = s_Framework->GetPluginManager();
-    if (s_PluginManager == nullptr)
-        return nullptr;
-    
-    auto s_SubstitutePlugin = static_cast<Substitute*>(s_PluginManager->GetSubstitute());
-    if (s_SubstitutePlugin == nullptr)
-        return nullptr;
-    
-    return s_SubstitutePlugin;
 }
