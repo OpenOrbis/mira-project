@@ -42,7 +42,9 @@ using namespace Mira::OrbisOS;
 // Substitute : Constructor
 Substitute::Substitute() :
     m_processStartHandler(nullptr),
-    m_processEndHandler(nullptr)
+    m_processEndHandler(nullptr),
+    hook_list(nullptr),
+    hook_nbr(0)
 {
 }
 
@@ -114,8 +116,10 @@ Substitute* Substitute::GetPlugin()
 int Substitute::FindAvailableHookID() {
     int near_up_value = 0;
 
-    if (!hook_list)
-        return 0;
+    if (!hook_list) {
+        WriteLog(LL_Error, "The hook list is not initialized, give the first id.");
+        return 1;
+    }
 
     for (int i = 0; i < hook_nbr; i++) {
         if (hook_list[i].id > near_up_value) {
@@ -123,20 +127,24 @@ int Substitute::FindAvailableHookID() {
         }
     }
 
-    return near_up_value++;
+    return near_up_value + 1;
 }
 
 // Substitute : Return hook struct by this id
 SubstituteHook* Substitute::GetHookByID(int hook_id) {
-    if (!hook_list)
+    if (!hook_list) {
+        WriteLog(LL_Error, "The hook list is not initialized !");
         return nullptr;
+    }
 
     for (int i = 0; i < hook_nbr; i++) {
         if (hook_list[i].id == hook_id) {
+            WriteLog(LL_Info, "Hook was found (id: %i ptr: %p)", hook_id, (void*)&hook_list[i]);
             return &hook_list[i];
         }
     }
 
+    WriteLog(LL_Error, "The hook is not found !");
     return nullptr;
 }
 
@@ -145,41 +153,56 @@ SubstituteHook* Substitute::AllocateNewHook() {
     auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
     auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
-    // Find available id
-    int hookID = FindAvailableHookID();
-    if (hookID <= 0) {
-        return nullptr;
-    }
+    WriteLog(LL_Info, "Allocating new hook ...");
 
     // Create new space
     size_t new_size = sizeof(SubstituteHook) * (hook_nbr + 1);
     SubstituteHook* temp_table = (SubstituteHook*)malloc(new_size, M_TEMP, M_ZERO | M_WAITOK);
     if (!temp_table) {
+        WriteLog(LL_Error, "Unable to allocate space ! (new_size = %lu)", new_size);
         return nullptr;
     }
+
+    WriteLog(LL_Info, "New hook list allocated to %p", temp_table);
 
     // Set to 0
     memset(temp_table, 0, new_size);
 
     if (hook_list) {
+        WriteLog(LL_Info, "Old data existing in %p, copy old data ...", hook_list);
+
         // Copy old data
         memcpy(temp_table, hook_list, sizeof(SubstituteHook) * hook_nbr);
         
         // free the old space
         delete(hook_list);
+    } else {
+        WriteLog(LL_Info, "No old hook table was detected, skipping ...");
     }
 
-    // Define new address
+    // Define new value
     hook_list = temp_table;
-
-    // Add new number of hook available
     hook_nbr++;
 
+    WriteLog(LL_Info, "New data was set. hook_list: %p, hook_nbr: %i", hook_list, hook_nbr);
+
+    // Find available id
+    int hookID = FindAvailableHookID();
+    if (hookID <= 0) {
+        WriteLog(LL_Error, "Unable to find available hook id !");
+        return nullptr;
+    }
+    WriteLog(LL_Info, "Hook id available ! (%i)", hookID);
+
+    SubstituteHook* new_hook = &hook_list[hook_nbr - 1];
+
     // Define the new hook id for this object
-    hook_list[hook_nbr--].id = hookID;
+    new_hook->id = hookID;
+
+    WriteLog(LL_Info, "The new hook is allocated at %p", new_hook);
 
     // Return the new object address
-    return &hook_list[hook_nbr--];
+    return new_hook;
 }
 
 // Substitute : Free a hook from the list
@@ -188,6 +211,7 @@ void Substitute::FreeOldHook(int hook_id) {
     auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
     if (!hook_list) {
+        WriteLog(LL_Error, "The hook list is not initialized !");
         return;
     }
 
@@ -195,6 +219,7 @@ void Substitute::FreeOldHook(int hook_id) {
 
     size_t new_size = sizeof(SubstituteHook) * (hook_nbr - 1);
     if (new_size <= 0) {
+        WriteLog(LL_Info, "The hook list will have no data ! Cleaning up ...");
         hook_nbr = 0;
         delete (hook_list);
         hook_list = nullptr;
@@ -204,6 +229,7 @@ void Substitute::FreeOldHook(int hook_id) {
     // Create new space
     SubstituteHook* temp_table = (SubstituteHook*)malloc(new_size, M_TEMP, M_ZERO | M_WAITOK);
     if (!temp_table) {
+        WriteLog(LL_Error, "Unable to allocate space ! (new_size = %lu)", new_size);
         return;
     }
 
@@ -226,6 +252,8 @@ void Substitute::FreeOldHook(int hook_id) {
     hook_nbr--;
     hook_list = temp_table;
 
+    WriteLog(LL_Info, "The hook %i have been deleted.", hook_id);
+
     return;
 }
 
@@ -238,40 +266,52 @@ int Substitute::DisableHook(int hook_id) {
 
     SubstituteHook* hook = GetHookByID(hook_id);
     if (!hook) {
+        WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         return 1;
     }
 
     switch (hook->hook_type) {
         case HOOKTYPE_IAT: {
+            WriteLog(LL_Info, "Hook Type: IAT.");
+
             if (hook->hook_enable && hook->process && hook->original_function) {
                 size_t write_size = 0;
                 int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->original_function, &write_size, 1);
                 if (r_error) {
+                    WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
                     return 1;
                 }
 
                 hook->hook_enable = false;
+            } else {
+                WriteLog(LL_Error, "Invalid value was detected.");
             }
         }
 
         case HOOKTYPE_JMP : {
+            WriteLog(LL_Info, "Hook Type: JMP.");
+
             if (hook->hook_enable && hook->process && hook->original_function && hook->backupSize > 0 && hook->backupData) {
                 size_t write_size = 0;
                 int r_error = proc_rw_mem(hook->process, (void*)hook->original_function, hook->backupSize, (void*)hook->backupData, &write_size, 1);
                 if (r_error) {
+                    WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
                     return 1;
                 }
 
                 hook->hook_enable = false;
+            } else {
+                WriteLog(LL_Error, "Invalid value was detected.");
             }
 
             break;
         }
 
         default: {
+            WriteLog(LL_Error, "Invalid type of hook was detected.");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             return 2;
         }
@@ -296,21 +336,28 @@ int Substitute::EnableHook(int hook_id) {
 
     switch (hook->hook_type) {
         case HOOKTYPE_IAT: {
+            WriteLog(LL_Info, "Hook Type: IAT.");
+
             if (!hook->hook_enable && hook->process && hook->hook_function) {
                 size_t write_size = 0;
                 int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->hook_function, &write_size, 1);
                 if (r_error) {
+                    WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
                     return 1;
                 }
 
                 hook->hook_enable = true;
+            } else {
+                WriteLog(LL_Error, "Invalid value was detected.");
             }
 
             break;
         }
 
         case HOOKTYPE_JMP : {
+            WriteLog(LL_Info, "Hook Type: JMP.");
+
             if (!hook->hook_enable && hook->process && hook->original_function && hook->hook_function) {
 
                 // Use the jmpBuffer from Hook.cpp
@@ -324,21 +371,24 @@ int Substitute::EnableHook(int hook_id) {
                 // Assign the address
                 *jumpBufferAddress = (uint64_t)hook->hook_function;
 
-
                 size_t write_size = 0;
                 int r_error = proc_rw_mem(hook->process, (void*)hook->original_function, sizeof(jumpBuffer), (void*)jumpBuffer, &write_size, 1);
                 if (r_error) {
+                    WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
                     return 1;
                 }
 
                 hook->hook_enable = true;
+            } else {
+                WriteLog(LL_Error, "Invalid value was detected.");
             }
 
             break;
         }
 
         default: {
+            WriteLog(LL_Error, "Invalid type of hook was detected.");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             return 0;
         }
@@ -354,6 +404,8 @@ int Substitute::Unhook(int hook_id) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
+    WriteLog(LL_Info, "Unhooking ... (%i)", hook_id);
+
     DisableHook(hook_id);
 
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
@@ -368,8 +420,13 @@ void Substitute::CleanupProcessHook(struct proc* p) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+
     if (!hook_list)
         return;
+
+    WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
+
 
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
@@ -387,29 +444,43 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-    if (!p || !nids || !hook_function)
+    WriteLog(LL_Info, "Finding jumpslot address ...");
+
+    if (!p || !nids || !hook_function) {
+        WriteLog(LL_Error, "One of the parameter is inccorect !");
         return -1;
+    }
 
     // Get the jmpslot offset for this nids
     void* jmpslot_address = (void*)FindOffsetFromNids(p, nids);
-    if (!jmpslot_address)
+    if (!jmpslot_address) {
+        WriteLog(LL_Error, "Unable to find the nids address !");
         return -2;
+    }
+
+    WriteLog(LL_Info, "The jmpslot address is %p, getting original value ...", jmpslot_address);
 
     // Get the original value for this jmpslot
     void* original_function = nullptr;
     size_t read_size = 0;
     int r_error = proc_rw_mem(p, (void*)jmpslot_address, 8, (void*)&original_function, &read_size, 0);
     if (r_error || !original_function) {
+        WriteLog(LL_Error, "Unable to get the original value from the jmpslot ! (%i)", r_error);
         return -3;
     }
+
+    WriteLog(LL_Info, "Allocating new hook ...");
 
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     SubstituteHook* new_hook = AllocateNewHook();
     if (!new_hook) {
+        WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         return -4;
     }
+
+    WriteLog(LL_Info, "New hook allocated at %p", new_hook);
 
     // Set default value
     new_hook->process = p;
@@ -420,6 +491,8 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
     new_hook->hook_enable = false;
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    WriteLog(LL_Info, "All data is set. The hook id is %i", new_hook->id);
 
     return new_hook->id;
 }
@@ -435,30 +508,45 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     if (!p || !original_address || !hook_function)
         return -1;
 
+    WriteLog(LL_Info, "Getting minimum hook size ...");
+
+
     // Set the original address
     int backupSize = GetMinimumHookSize(p, original_address);
     if (backupSize <= 0) {
+        WriteLog(LL_Error, "Unable to get the minimum hook size.");
         return -2;
     }
+
+    WriteLog(LL_Info, "Allocating backup buffer ... (size: %i)", backupSize);
 
     // Malloc data for the backup data
     char* backupData = (char*) malloc(backupSize, M_TEMP, M_ZERO | M_WAITOK);
     if (!backupData) {
+        WriteLog(LL_Error, "Unable to allocate memory for backup");
         return -3;
     }
+
+    WriteLog(LL_Info, "backupData: %p", backupData);
+
+    WriteLog(LL_Info, "Getting backup data ... (size: %i)", backupSize);
 
     // Get the backup data
     size_t read_size = 0;
     int r_error = proc_rw_mem(p, (void*)original_address, backupSize, (void*)backupData, &read_size, 0);
     if (r_error) {
+        WriteLog(LL_Info, "Unable to get backupData (%d)", r_error);
         delete (backupData);
         return -4;
     }
+
+    WriteLog(LL_Info, "Allocating new hook ...");
 
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     SubstituteHook* new_hook = AllocateNewHook();
     if (!new_hook) {
+        WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
         delete (backupData);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         return -5;
@@ -474,6 +562,8 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     new_hook->hook_enable = false;
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    WriteLog(LL_Info, "All data is set. The hook id is %i", new_hook->id);
 
     return new_hook->id;
 }
@@ -614,6 +704,8 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
     {
         WriteLog(LL_Error, "[%s] Could not find text start for this process !", s_TitleId);
         return 0;
+    } else {
+        WriteLog(LL_Info, "[%s] text pointer: %p !", s_TitleId, s_TextStart);
     }
 
     // Free the s_Entries
@@ -729,8 +821,6 @@ int Substitute::GetMinimumHookSize(struct proc* p, void* p_Target)
 // Substitute : PRX Loader
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
-    Substitute* substitute = GetPlugin();
-
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
@@ -751,9 +841,6 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
         return;
     }
-
-    uint64_t printf_offset = substitute->FindOffsetFromNids(p, "hcuQgD53UxM"); // The function is heavy, don't static it
-    WriteLog(LL_Info, "[%s] The printf function jmpslot is located at: %p", s_TitleId, printf_offset);
 
     // Getting jailed path for the process
     struct filedesc* fd = p->p_fd;
