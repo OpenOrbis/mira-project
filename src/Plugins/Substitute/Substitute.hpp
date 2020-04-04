@@ -21,12 +21,20 @@ extern "C"
 struct proc;
 struct mtx;
 
+enum HookType {
+    HOOKTYPE_IAT,
+    HOOKTYPE_JMP
+};
+
 typedef struct {
     int id;
+    int hook_type;
     struct proc* process;
-    void* jmpslot_address;
+    void* jmpslot_address; // For IAT
     void* original_function;
     void* hook_function;
+    char* backupData; // For JMP
+    size_t backupSize; // For JMP
     bool hook_enable;
 } SubstituteHook;
 
@@ -60,12 +68,15 @@ namespace Mira
             void FreeOldHook(int hook_id);
             int DisableHook(int hook_id);
             int EnableHook(int hook_id);
-            int Hook(struct proc* p, const char* nids, void* hook_function);
             int Unhook(int hook_id);
+            int HookJmp(struct proc* p, void* original_address, void* hook_function);
+            int HookIAT(struct proc* p, const char* nids, void* hook_function);
             void CleanupProcessHook(struct proc* p);
 
             uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
             void DebugImportTable(struct proc* p);
+
+            int GetMinimumHookSize(struct proc* p, void* p_Target);
 
         protected:
             static void OnProcessStart(void *arg, struct proc *p);

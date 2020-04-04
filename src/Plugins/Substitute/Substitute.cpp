@@ -29,6 +29,7 @@ extern "C"
     #include <sys/sysent.h>
     #include <sys/syscall.h>
     #include <sys/syslimits.h>
+    #include <external/hde64/hde64.h>
 };
 
 using namespace Mira::Plugins;
@@ -241,17 +242,40 @@ int Substitute::DisableHook(int hook_id) {
         return 1;
     }
 
-    if (hook->hook_enable && hook->process && hook->original_function) {
-        size_t write_size = 0;
-        int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, 8, &hook->original_function, &write_size, 1);
-        if (r_error) {
-            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            return 1;
+    switch (hook->hook_type) {
+        case HOOKTYPE_IAT: {
+            if (hook->hook_enable && hook->process && hook->original_function) {
+                size_t write_size = 0;
+                int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->original_function, &write_size, 1);
+                if (r_error) {
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return 1;
+                }
+
+                hook->hook_enable = false;
+            }
         }
 
-        hook->hook_enable = false;
-    }
+        case HOOKTYPE_JMP : {
+            if (hook->hook_enable && hook->process && hook->original_function && hook->backupSize > 0 && hook->backupData) {
+                size_t write_size = 0;
+                int r_error = proc_rw_mem(hook->process, (void*)hook->original_function, hook->backupSize, (void*)hook->backupData, &write_size, 1);
+                if (r_error) {
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return 1;
+                }
 
+                hook->hook_enable = false;
+            }
+
+            break;
+        }
+
+        default: {
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return 2;
+        }
+    }
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     return 0;
@@ -270,61 +294,59 @@ int Substitute::EnableHook(int hook_id) {
         return 1;
     }
 
-    if (!hook->hook_enable && hook->process && hook->hook_function) {
-        size_t write_size = 0;
-        int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, 8, &hook->hook_function, &write_size, 1);
-        if (r_error) {
-            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            return 1;
+    switch (hook->hook_type) {
+        case HOOKTYPE_IAT: {
+            if (!hook->hook_enable && hook->process && hook->hook_function) {
+                size_t write_size = 0;
+                int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->hook_function, &write_size, 1);
+                if (r_error) {
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return 1;
+                }
+
+                hook->hook_enable = true;
+            }
+
+            break;
         }
 
-        hook->hook_enable = true;
+        case HOOKTYPE_JMP : {
+            if (!hook->hook_enable && hook->process && hook->original_function && hook->hook_function) {
+
+                // Use the jmpBuffer from Hook.cpp
+                uint8_t jumpBuffer[] = {
+                    0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,             // # jmp    QWORD PTR [rip+0x0]
+                    0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, // # DQ: AbsoluteAddress
+                }; // Shit takes 14 bytes
+
+                uint64_t* jumpBufferAddress = (uint64_t*)(jumpBuffer + 6);
+
+                // Assign the address
+                *jumpBufferAddress = (uint64_t)hook->hook_function;
+
+
+                size_t write_size = 0;
+                int r_error = proc_rw_mem(hook->process, (void*)hook->original_function, sizeof(jumpBuffer), (void*)jumpBuffer, &write_size, 1);
+                if (r_error) {
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return 1;
+                }
+
+                hook->hook_enable = true;
+            }
+
+            break;
+        }
+
+        default: {
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return 0;
+        }
     }
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     return 0;
-}
-
-// Substitute : Hook the function in the process
-int Substitute::Hook(struct proc* p, const char* nids, void* hook_function) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-    if (!p || !nids || !hook_function)
-        return -1;
-
-    // Get the jmpslot offset for this nids
-    void* jmpslot_address = (void*)FindOffsetFromNids(p, nids);
-    if (!jmpslot_address)
-        return -2;
-
-    // Get the original value for this jmpslot
-    void* original_function = nullptr;
-    size_t read_size = 0;
-    int r_error = proc_rw_mem(p, jmpslot_address, 8, &original_function, &read_size, 0);
-    if (r_error || !original_function) {
-        return -3;
-    }
-
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    SubstituteHook* new_hook = AllocateNewHook();
-    if (!new_hook) {
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -4;
-    }
-
-    // Set default value
-    new_hook->process = p;
-    new_hook->hook_function = hook_function;
-    new_hook->jmpslot_address = jmpslot_address;
-    new_hook->original_function = original_function;
-    new_hook->hook_enable = false;
-
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    return new_hook->id;
 }
 
 // Substitute : Unhook the function
@@ -360,8 +382,104 @@ void Substitute::CleanupProcessHook(struct proc* p) {
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 }
 
+// Substitute : Hook the function in the process (With Import Address Table)
+int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    if (!p || !nids || !hook_function)
+        return -1;
+
+    // Get the jmpslot offset for this nids
+    void* jmpslot_address = (void*)FindOffsetFromNids(p, nids);
+    if (!jmpslot_address)
+        return -2;
+
+    // Get the original value for this jmpslot
+    void* original_function = nullptr;
+    size_t read_size = 0;
+    int r_error = proc_rw_mem(p, (void*)jmpslot_address, 8, (void*)&original_function, &read_size, 0);
+    if (r_error || !original_function) {
+        return -3;
+    }
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* new_hook = AllocateNewHook();
+    if (!new_hook) {
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -4;
+    }
+
+    // Set default value
+    new_hook->process = p;
+    new_hook->hook_type = HOOKTYPE_IAT;
+    new_hook->hook_function = hook_function;
+    new_hook->jmpslot_address = jmpslot_address;
+    new_hook->original_function = original_function;
+    new_hook->hook_enable = false;
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return new_hook->id;
+}
+
+// Substitute : Hook the function in the process (With longjmp)
+int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_function) {
+    auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
+    auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
+
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    if (!p || !original_address || !hook_function)
+        return -1;
+
+    // Set the original address
+    int backupSize = GetMinimumHookSize(p, original_address);
+    if (backupSize <= 0) {
+        return -2;
+    }
+
+    // Malloc data for the backup data
+    char* backupData = (char*) malloc(backupSize, M_TEMP, M_ZERO | M_WAITOK);
+    if (!backupData) {
+        return -3;
+    }
+
+    // Get the backup data
+    size_t read_size = 0;
+    int r_error = proc_rw_mem(p, (void*)original_address, backupSize, (void*)backupData, &read_size, 0);
+    if (r_error) {
+        delete (backupData);
+        return -4;
+    }
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* new_hook = AllocateNewHook();
+    if (!new_hook) {
+        delete (backupData);
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -5;
+    }
+
+    // Set default value
+    new_hook->process = p;
+    new_hook->hook_type = HOOKTYPE_JMP;
+    new_hook->hook_function = hook_function;
+    new_hook->original_function = original_address;
+    new_hook->backupData = backupData;
+    new_hook->backupSize = backupSize;
+    new_hook->hook_enable = false;
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return new_hook->id;
+}
+
 //////////////////////////
-// IMPORT HOOK SYSTEM
+// IAT HOOK UTILITY
 //////////////////////////
 
 // Substitute : Print debug information from import table
@@ -571,6 +689,37 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
     }
 
     return nids_offset_found;
+}
+
+//////////////////////////
+// LONGJMP HOOK UTILITY
+//////////////////////////
+
+// Substitute : Get minimum hook size for fit to the trampoline for a process
+int Substitute::GetMinimumHookSize(struct proc* p, void* p_Target)
+{
+    hde64s hs;
+
+    uint32_t hookSize = 14;
+    uint32_t totalLength = 0;
+
+    char buffer[500];
+    size_t read_size = 0;
+    int r_error = proc_rw_mem(p, (void*)p_Target, sizeof(buffer), (void*)buffer, &read_size, 0);
+    if (r_error) {
+        return -1;
+    }
+    
+    while (totalLength < hookSize)
+    {
+        uint32_t length = hde64_disasm(p_Target, &hs);
+        if (hs.flags & F_ERROR)
+            return -1;
+
+        totalLength += length;
+    }
+
+    return totalLength;
 }
 
 //////////////////////////
