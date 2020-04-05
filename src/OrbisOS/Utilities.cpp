@@ -153,8 +153,7 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 		PROC_LOCK(s_Proc);
 
 		// Do it because struct* proc is broken
-		char* s_Proc_Name = (char*)((uint64_t)s_Proc + 0x44C); 
-		if (strcmp(s_Proc_Name, p_Name) == 0) {
+		if (strcmp(s_Proc->p_comm, p_Name) == 0) {
 			PROC_UNLOCK(s_Proc);
 			goto done;
 		}

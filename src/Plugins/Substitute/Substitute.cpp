@@ -172,7 +172,7 @@ SubstituteHook* Substitute::AllocateNewHook() {
         memcpy(temp_table, hook_list, sizeof(SubstituteHook) * hook_nbr);
         
         // free the old space
-        delete(hook_list);
+        delete[] (hook_list);
     } else {
         WriteLog(LL_Info, "No old hook table was detected, skipping ...");
     }
@@ -215,7 +215,7 @@ void Substitute::FreeOldHook(int hook_id) {
     if (new_size <= 0) {
         WriteLog(LL_Info, "The hook list will have no data ! Cleaning up ...");
         hook_nbr = 0;
-        delete (hook_list);
+        delete[] (hook_list);
         hook_list = nullptr;
         return;
     }
@@ -501,12 +501,20 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 
     WriteLog(LL_Info, "Getting minimum hook size ...");
 
+    // Get buffer from original function for calculate size
+    char buffer[500];
+    size_t read_size = 0;
+    int r_error = proc_rw_mem(p, (void*)original_address, sizeof(buffer), (void*)buffer, &read_size, 0);
+    if (r_error) {
+        WriteLog(LL_Error, "Unable to get the buffer !");
+        return -2;
+    }
 
     // Set the original address
-    int backupSize = GetMinimumHookSize(p, original_address);
+    int backupSize = Utils::Hook::GetMinimumHookSize(buffer);
     if (backupSize <= 0) {
         WriteLog(LL_Error, "Unable to get the minimum hook size.");
-        return -2;
+        return -3;
     }
 
     WriteLog(LL_Info, "Allocating backup buffer ... (size: %i)", backupSize);
@@ -515,7 +523,7 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     char* backupData = new char[backupSize];
     if (!backupData) {
         WriteLog(LL_Error, "Unable to allocate memory for backup");
-        return -3;
+        return -4;
     }
 
     WriteLog(LL_Info, "backupData: %p", backupData);
@@ -523,12 +531,12 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     WriteLog(LL_Info, "Getting backup data ... (size: %i)", backupSize);
 
     // Get the backup data
-    size_t read_size = 0;
-    int r_error = proc_rw_mem(p, (void*)original_address, backupSize, (void*)backupData, &read_size, 0);
+    read_size = 0;
+    r_error = proc_rw_mem(p, (void*)original_address, backupSize, (void*)backupData, &read_size, 0);
     if (r_error) {
         WriteLog(LL_Info, "Unable to get backupData (%d)", r_error);
-        delete (backupData);
-        return -4;
+        delete[] (backupData);
+        return -5;
     }
 
     WriteLog(LL_Info, "Allocating new hook ...");
@@ -538,9 +546,9 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     SubstituteHook* new_hook = AllocateNewHook();
     if (!new_hook) {
         WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
-        delete (backupData);
+        delete[] (backupData);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -5;
+        return -6;
     }
 
     // Set default value
@@ -772,37 +780,6 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
     }
 
     return nids_offset_found;
-}
-
-//////////////////////////
-// LONGJMP HOOK UTILITY
-//////////////////////////
-
-// Substitute : Get minimum hook size for fit to the trampoline for a process
-int Substitute::GetMinimumHookSize(struct proc* p, void* p_Target)
-{
-    hde64s hs;
-
-    uint32_t hookSize = 14;
-    uint32_t totalLength = 0;
-
-    char buffer[500];
-    size_t read_size = 0;
-    int r_error = proc_rw_mem(p, (void*)p_Target, sizeof(buffer), (void*)buffer, &read_size, 0);
-    if (r_error) {
-        return -1;
-    }
-    
-    while (totalLength < hookSize)
-    {
-        uint32_t length = hde64_disasm(p_Target, &hs);
-        if (hs.flags & F_ERROR)
-            return -1;
-
-        totalLength += length;
-    }
-
-    return totalLength;
 }
 
 //////////////////////////

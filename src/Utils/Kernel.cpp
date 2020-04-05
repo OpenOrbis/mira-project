@@ -78,9 +78,7 @@ struct proc *proc_find_by_name(const char *name)
     struct proc* p = NULL;
     FOREACH_PROC_IN_SYSTEM(p)
     {
-        char* proc_name = (char*)((uint64_t)p + 0x44C);
-        WriteLog(LL_Info, "Proc Name: %s", proc_name);
-        if (!memcmp(proc_name, name, strlen(name))) {
+        if (!memcmp(p->p_comm, name, strlen(name))) {
             return p;
         }
     }

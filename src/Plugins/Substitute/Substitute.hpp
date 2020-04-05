@@ -76,8 +76,6 @@ namespace Mira
             uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
             void DebugImportTable(struct proc* p);
 
-            int GetMinimumHookSize(struct proc* p, void* p_Target);
-
         protected:
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
