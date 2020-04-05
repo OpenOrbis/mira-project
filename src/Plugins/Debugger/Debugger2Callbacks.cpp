@@ -175,6 +175,8 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 	FOREACH_PROC_IN_SYSTEM(s_Proc)
 		s_ProcCount++;
 
+    WriteLog(LL_Error, "procCount: (%lld).", s_ProcCount);
+
     if (s_ProcCount == 0)
     {
         sx_sunlock(allproclock);
@@ -187,92 +189,25 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 
     FOREACH_PROC_IN_SYSTEM(s_Proc)
 	{
-        if (s_CurrentProcIndex >= s_ProcCount)
+        if (s_CurrentProcIndex >= s_ProcCount || s_Proc == nullptr)
             break;
+
+        WriteLog(LL_Error, "currentProcIndex: (%lld).", s_CurrentProcIndex);
         
         DbgProcessLimited* l_ProcLimited = new DbgProcessLimited;
         if (l_ProcLimited == nullptr)
         {
-            WriteLog(LL_Error, "procLimited null");
+            WriteLog(LL_Error, "could not allocate process info");
+            s_CurrentProcIndex++;
             continue;
         }
 
-        *l_ProcLimited = DBG_PROCESS_LIMITED__INIT;
-
-        l_ProcLimited->processid = s_Proc->p_pid;
-
-        // Name
-        auto s_NameLength = sizeof(s_Proc->p_comm);
-        auto s_Name = new char[s_NameLength];
-        if (s_Name == nullptr)
+        if (!s_Debugger->GetProcessLimitedInfo(s_Proc->p_pid, l_ProcLimited))
         {
-            // Free the looped process
-            delete l_ProcLimited;
-            WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
-            
+            WriteLog(LL_Error, "could not get limited process info");
+            s_CurrentProcIndex++;
             continue;
         }
-        memset(s_Name, 0, s_NameLength);
-        memcpy(s_Name, s_Proc->p_comm, s_NameLength);
-        l_ProcLimited->name = s_Name;
-
-        // Get the VM Entries
-        ProcVmMapEntry* s_Entries = nullptr;
-        size_t s_NumEntries = 0;
-        auto s_Ret = OrbisOS::Utilities::GetProcessVmMap(s_Proc, &s_Entries, &s_NumEntries);
-        if (s_Ret < 0)
-        {
-            delete [] s_Name;
-            l_ProcLimited->name = nullptr;
-
-            delete l_ProcLimited;
-
-            WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
-            continue;
-        }
-
-        DbgVmEntry* s_VmEntries[s_NumEntries];
-        memset(&s_VmEntries, 0, sizeof(s_VmEntries));
-
-        for (auto i = 0; i < s_NumEntries; ++i)
-        {
-            auto l_Entry = new DbgVmEntry();
-            if (l_Entry == nullptr)
-            {
-                WriteLog(LL_Error, "could not allocate dbg vm entry");
-                continue;
-            }
-            memset(l_Entry, 0, sizeof(*l_Entry));
-
-            *l_Entry = DBG_VM_ENTRY__INIT;
-            auto l_NameLen = sizeof(s_Entries[i].name);
-            auto l_Name = new char[l_NameLen];
-            if (l_Name == nullptr)
-            {
-                // Free resources
-                delete l_Entry;
-
-                WriteLog(LL_Error, "could not allocate name (%d)", l_NameLen);
-                continue;
-            }
-            memset(l_Name, 0, l_NameLen);
-            memcpy(l_Name, s_Entries[i].name, l_NameLen);
-
-            l_Entry->name = l_Name;
-
-            l_Entry->start = s_Entries[i].start;
-            l_Entry->end = s_Entries[i].end;
-            l_Entry->offset = s_Entries[i].offset;
-            l_Entry->protection = s_Entries[i].prot;
-
-            s_VmEntries[i] = l_Entry;
-        }
-
-        delete [] s_Entries;
-        s_Entries = nullptr;
-
-        l_ProcLimited->entries = s_VmEntries;
-        l_ProcLimited->n_entries = s_NumEntries;
 
         s_ProcessList[s_CurrentProcIndex] = l_ProcLimited;
         s_CurrentProcIndex++;
@@ -280,6 +215,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 	sx_sunlock(allproclock);
     // CAN RETURN AGAIN MKAY
 
+    WriteLog(LL_Error, "here");
     s_Response = new DbgGetProcessListResponse;
     if (s_Response == nullptr)
     {
@@ -288,6 +224,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         goto cleanup;
     }
+
     *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
 
     s_Response->processes = s_ProcessList;
@@ -303,6 +240,8 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
     }
     memset(s_Message, 0, s_MessageSize);
 
+    WriteLog(LL_Error, "packedSize: (%lld).", s_MessageSize);
+
     s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_Message);
     if (s_PackedSize != s_MessageSize)
     {
@@ -310,6 +249,9 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
         goto cleanup;
     }
+
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, 0, s_Message, s_MessageSize);
+    WriteLog(LL_Error, "response sent");
 
 cleanup:
     if (s_Response != nullptr)

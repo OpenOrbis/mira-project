@@ -1087,51 +1087,6 @@ void   dbg_get_thread_info_request__free_unpacked
   assert(message->base.descriptor == &dbg_get_thread_info_request__descriptor);
   protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
 }
-void   dbg_thread_singlestep_request__init
-                     (DbgThreadSinglestepRequest         *message)
-{
-  static const DbgThreadSinglestepRequest init_value = DBG_THREAD_SINGLESTEP_REQUEST__INIT;
-  *message = init_value;
-}
-size_t dbg_thread_singlestep_request__get_packed_size
-                     (const DbgThreadSinglestepRequest *message)
-{
-  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
-  return protobuf_c_message_get_packed_size ((const ProtobufCMessage*)(message));
-}
-size_t dbg_thread_singlestep_request__pack
-                     (const DbgThreadSinglestepRequest *message,
-                      uint8_t       *out)
-{
-  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
-  return protobuf_c_message_pack ((const ProtobufCMessage*)message, out);
-}
-size_t dbg_thread_singlestep_request__pack_to_buffer
-                     (const DbgThreadSinglestepRequest *message,
-                      ProtobufCBuffer *buffer)
-{
-  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
-  return protobuf_c_message_pack_to_buffer ((const ProtobufCMessage*)message, buffer);
-}
-DbgThreadSinglestepRequest *
-       dbg_thread_singlestep_request__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data)
-{
-  return (DbgThreadSinglestepRequest *)
-     protobuf_c_message_unpack (&dbg_thread_singlestep_request__descriptor,
-                                allocator, len, data);
-}
-void   dbg_thread_singlestep_request__free_unpacked
-                     (DbgThreadSinglestepRequest *message,
-                      ProtobufCAllocator *allocator)
-{
-  if(!message)
-    return;
-  assert(message->base.descriptor == &dbg_thread_singlestep_request__descriptor);
-  protobuf_c_message_free_unpacked ((ProtobufCMessage*)message, allocator);
-}
 void   dbg_get_kernel_info_response__init
                      (DbgGetKernelInfoResponse         *message)
 {
@@ -2468,57 +2423,6 @@ const ProtobufCMessageDescriptor dbg_get_thread_info_request__descriptor =
   dbg_get_thread_info_request__field_indices_by_name,
   1,  dbg_get_thread_info_request__number_ranges,
   (ProtobufCMessageInit) dbg_get_thread_info_request__init,
-  NULL,NULL,NULL    /* reserved[123] */
-};
-static const ProtobufCFieldDescriptor dbg_thread_singlestep_request__field_descriptors[2] =
-{
-  {
-    "processId",
-    1,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
-    0,   /* quantifier_offset */
-    offsetof(DbgThreadSinglestepRequest, processid),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-  {
-    "threadId",
-    2,
-    PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_INT32,
-    0,   /* quantifier_offset */
-    offsetof(DbgThreadSinglestepRequest, threadid),
-    NULL,
-    NULL,
-    0,             /* flags */
-    0,NULL,NULL    /* reserved1,reserved2, etc */
-  },
-};
-static const unsigned dbg_thread_singlestep_request__field_indices_by_name[] = {
-  0,   /* field[0] = processId */
-  1,   /* field[1] = threadId */
-};
-static const ProtobufCIntRange dbg_thread_singlestep_request__number_ranges[1 + 1] =
-{
-  { 1, 0 },
-  { 0, 2 }
-};
-const ProtobufCMessageDescriptor dbg_thread_singlestep_request__descriptor =
-{
-  PROTOBUF_C__MESSAGE_DESCRIPTOR_MAGIC,
-  "DbgThreadSinglestepRequest",
-  "DbgThreadSinglestepRequest",
-  "DbgThreadSinglestepRequest",
-  "",
-  sizeof(DbgThreadSinglestepRequest),
-  2,
-  dbg_thread_singlestep_request__field_descriptors,
-  dbg_thread_singlestep_request__field_indices_by_name,
-  1,  dbg_thread_singlestep_request__number_ranges,
-  (ProtobufCMessageInit) dbg_thread_singlestep_request__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
 static const ProtobufCFieldDescriptor dbg_get_kernel_info_response__field_descriptors[2] =

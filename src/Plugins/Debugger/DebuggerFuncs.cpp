@@ -48,7 +48,11 @@ bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries,
 
     if (s_VmMapEntries == nullptr || s_VmMapEntriesCount == 0)
     {
-        WriteLog(LL_Error, "invalid entries");
+        WriteLog(LL_Warn, "there are no vm entries in this process?");
+        p_Entries = nullptr;
+        p_EntriesCount = 0;
+
+        s_Success = true;
         goto cleanup;
     }
 
@@ -175,6 +179,8 @@ bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
 
     p_Info->entries = s_VmEntries;
     p_Info->n_entries = s_VmEntriesCount;
+
+    s_Success = true;
 
 cleanup:
     if (s_Success)

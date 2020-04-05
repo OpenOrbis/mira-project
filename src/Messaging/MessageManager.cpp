@@ -177,9 +177,9 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
-    if (s_SerializedSize > 0x10000)
+    if (s_SerializedSize > MessageManager_MaxMessageSize)
     {
-        WriteLog(LL_Error, "serialized size too large (%x) > (0x10000)", s_SerializedSize);
+        WriteLog(LL_Error, "serialized size too large (%x) > (%llx)", s_SerializedSize, MessageManager_MaxMessageSize);
         return;
     }
 

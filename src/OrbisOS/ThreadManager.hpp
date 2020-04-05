@@ -47,7 +47,7 @@ namespace Mira
             bool CreateKernelThread();
             bool CreateUserThread(int32_t p_ProcessId);
             
-        private:
+        public:
             /**
              * @brief Helper function to check if SceSysCore is alive
              * 
@@ -93,7 +93,7 @@ namespace Mira
              * @return struct thread* nullptr on error
              */
             struct thread* GetDebuggerThread();
-
+            
             /**
              * @brief Get the File Io Thread object
              * This is to be used by all hooks or Mira that needs file access. It will be unjailed/unsandboxed with root privs by default.
@@ -103,6 +103,7 @@ namespace Mira
              */
             struct thread* GetFileIoThread();
 
+        private:
             static void FileIoThread(void* p_Argument);
             static void DebuggerThread(void* p_Argument);
         };

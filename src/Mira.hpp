@@ -1,5 +1,6 @@
 #pragma once
 #include <Boot/InitParams.hpp>
+#include <OrbisOS/ThreadManager.hpp>
 
 struct eventhandler_entry;
 struct eventhandler_list;
@@ -82,6 +83,7 @@ namespace Mira
         bool Initialize();
         bool Terminate();
 
+        Mira::OrbisOS::ThreadManager* GetThreadManager() { return m_ThreadManager; }
         Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
         Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }

@@ -281,20 +281,20 @@ bool Mira::Framework::Initialize()
 		WriteLog(LL_Error, "could not register event handlers");
 
 	// Initialize the rpc server
-	// WriteLog(LL_Debug, "Initializing rpc server");
-	// m_RpcServer = new Mira::Messaging::Rpc::Server();
-	// if (m_RpcServer == nullptr)
-	// {
-	// 	WriteLog(LL_Error, "could not allocate rpc server.");
-	// 	return false;
-	// }
+	WriteLog(LL_Debug, "Initializing rpc server");
+	m_RpcServer = new Mira::Messaging::Rpc::Server();
+	if (m_RpcServer == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate rpc server.");
+		return false;
+	}
 
-	// WriteLog(LL_Debug, "Loading rpc server");
-	// if (!m_RpcServer->OnLoad())
-	// {
-	// 	WriteLog(LL_Error, "could not load rpc server.");
-	// 	return false;
-	// }
+	WriteLog(LL_Debug, "Loading rpc server");
+	if (!m_RpcServer->OnLoad())
+	{
+		WriteLog(LL_Error, "could not load rpc server.");
+		return false;
+	}
 
 	// TODO: Install needed hooks for Mira
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
