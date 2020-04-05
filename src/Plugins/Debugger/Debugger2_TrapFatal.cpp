@@ -72,6 +72,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		WriteKernelFileLog("LastBranchFromOffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
 		WriteKernelFileLog("RipOffsetFromKernelBase: %p", frame->tf_rip - (uint64_t)gKernelBase);
 		WriteKernelFileLog("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
+		WriteKernelFileLog("OffsetFromMiraEntryRIP: (%p)", (uint64_t)frame->tf_rip - (uint64_t)mira_entry);
     }
 
 	auto s_Saved = vm_fault_disable_pagefaults();

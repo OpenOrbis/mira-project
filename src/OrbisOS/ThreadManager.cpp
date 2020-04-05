@@ -111,6 +111,16 @@ bool ThreadManager::OnResume()
     return true;
 }
 
+struct thread* ThreadManager::GetDebuggerThread()
+{
+    return m_DebugThread;
+}
+
+struct thread* ThreadManager::GetFileIoThread()
+{
+    return m_IoThread;
+}
+
 void ThreadManager::FileIoThread(void* p_Argument)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);

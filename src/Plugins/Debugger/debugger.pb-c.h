@@ -40,7 +40,6 @@ typedef struct _DbgGetRegistersRequest DbgGetRegistersRequest;
 typedef struct _DbgGetRegistersResponse DbgGetRegistersResponse;
 typedef struct _DbgSetRegistersRequest DbgSetRegistersRequest;
 typedef struct _DbgGetThreadInfoRequest DbgGetThreadInfoRequest;
-typedef struct _DbgThreadSinglestepRequest DbgThreadSinglestepRequest;
 typedef struct _DbgGetKernelInfoResponse DbgGetKernelInfoResponse;
 typedef struct _DbgReadKernelMemoryRequest DbgReadKernelMemoryRequest;
 typedef struct _DbgReadKernelMemoryResponse DbgReadKernelMemoryResponse;
@@ -330,17 +329,6 @@ struct  _DbgGetThreadInfoRequest
 #define DBG_GET_THREAD_INFO_REQUEST__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_get_thread_info_request__descriptor) \
     , 0 }
-
-
-struct  _DbgThreadSinglestepRequest
-{
-  ProtobufCMessage base;
-  int32_t processid;
-  int32_t threadid;
-};
-#define DBG_THREAD_SINGLESTEP_REQUEST__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&dbg_thread_singlestep_request__descriptor) \
-    , 0, 0 }
 
 
 struct  _DbgGetKernelInfoResponse
@@ -855,25 +843,6 @@ DbgGetThreadInfoRequest *
 void   dbg_get_thread_info_request__free_unpacked
                      (DbgGetThreadInfoRequest *message,
                       ProtobufCAllocator *allocator);
-/* DbgThreadSinglestepRequest methods */
-void   dbg_thread_singlestep_request__init
-                     (DbgThreadSinglestepRequest         *message);
-size_t dbg_thread_singlestep_request__get_packed_size
-                     (const DbgThreadSinglestepRequest   *message);
-size_t dbg_thread_singlestep_request__pack
-                     (const DbgThreadSinglestepRequest   *message,
-                      uint8_t             *out);
-size_t dbg_thread_singlestep_request__pack_to_buffer
-                     (const DbgThreadSinglestepRequest   *message,
-                      ProtobufCBuffer     *buffer);
-DbgThreadSinglestepRequest *
-       dbg_thread_singlestep_request__unpack
-                     (ProtobufCAllocator  *allocator,
-                      size_t               len,
-                      const uint8_t       *data);
-void   dbg_thread_singlestep_request__free_unpacked
-                     (DbgThreadSinglestepRequest *message,
-                      ProtobufCAllocator *allocator);
 /* DbgGetKernelInfoResponse methods */
 void   dbg_get_kernel_info_response__init
                      (DbgGetKernelInfoResponse         *message);
@@ -1043,9 +1012,6 @@ typedef void (*DbgSetRegistersRequest_Closure)
 typedef void (*DbgGetThreadInfoRequest_Closure)
                  (const DbgGetThreadInfoRequest *message,
                   void *closure_data);
-typedef void (*DbgThreadSinglestepRequest_Closure)
-                 (const DbgThreadSinglestepRequest *message,
-                  void *closure_data);
 typedef void (*DbgGetKernelInfoResponse_Closure)
                  (const DbgGetKernelInfoResponse *message,
                   void *closure_data);
@@ -1092,7 +1058,6 @@ extern const ProtobufCMessageDescriptor dbg_get_registers_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_get_registers_response__descriptor;
 extern const ProtobufCMessageDescriptor dbg_set_registers_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_get_thread_info_request__descriptor;
-extern const ProtobufCMessageDescriptor dbg_thread_singlestep_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_get_kernel_info_response__descriptor;
 extern const ProtobufCMessageDescriptor dbg_read_kernel_memory_request__descriptor;
 extern const ProtobufCMessageDescriptor dbg_read_kernel_memory_response__descriptor;
