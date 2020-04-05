@@ -150,14 +150,11 @@ SubstituteHook* Substitute::GetHookByID(int hook_id) {
 
 // Substitute : Allocate a new hook to the list
 SubstituteHook* Substitute::AllocateNewHook() {
-    auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
-    auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
-
     WriteLog(LL_Info, "Allocating new hook ...");
 
     // Create new space
     size_t new_size = sizeof(SubstituteHook) * (hook_nbr + 1);
-    SubstituteHook* temp_table = (SubstituteHook*)malloc(new_size, M_TEMP, M_ZERO | M_WAITOK);
+    SubstituteHook* temp_table = new SubstituteHook[hook_nbr + 1];
     if (!temp_table) {
         WriteLog(LL_Error, "Unable to allocate space ! (new_size = %lu)", new_size);
         return nullptr;
@@ -207,9 +204,6 @@ SubstituteHook* Substitute::AllocateNewHook() {
 
 // Substitute : Free a hook from the list
 void Substitute::FreeOldHook(int hook_id) {
-    auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
-    auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
-
     if (!hook_list) {
         WriteLog(LL_Error, "The hook list is not initialized !");
         return;
@@ -227,7 +221,7 @@ void Substitute::FreeOldHook(int hook_id) {
     }
 
     // Create new space
-    SubstituteHook* temp_table = (SubstituteHook*)malloc(new_size, M_TEMP, M_ZERO | M_WAITOK);
+    SubstituteHook* temp_table = new SubstituteHook[hook_nbr - 1];
     if (!temp_table) {
         WriteLog(LL_Error, "Unable to allocate space ! (new_size = %lu)", new_size);
         return;
@@ -499,9 +493,6 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
 
 // Substitute : Hook the function in the process (With longjmp)
 int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_function) {
-    auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
-    auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
-
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
@@ -521,7 +512,7 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     WriteLog(LL_Info, "Allocating backup buffer ... (size: %i)", backupSize);
 
     // Malloc data for the backup data
-    char* backupData = (char*) malloc(backupSize, M_TEMP, M_ZERO | M_WAITOK);
+    char* backupData = new char[backupSize];
     if (!backupData) {
         WriteLog(LL_Error, "Unable to allocate memory for backup");
         return -3;

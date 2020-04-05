@@ -18,6 +18,8 @@
 #include <Plugins/PluginManager.hpp>
 #include <Messaging/Rpc/Server.hpp>
 
+#include <OrbisOS/ThreadManager.hpp>
+
 ///
 /// Utilities
 ///
@@ -65,6 +67,7 @@ Mira::Framework::Framework() :
 	m_EventHandlersInstalled(false),
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
+	m_ThreadManager(nullptr),
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
 	m_RpcServer(nullptr)
@@ -234,6 +237,18 @@ bool Mira::Framework::Initialize()
 	// TODO: Load settings
 	WriteLog(LL_Warn, "FIXME: loading settings not implemented!!!!");
 
+	// Initialize the thread manager
+	// NOTE: WE DO NOT WANT TO KILL THREAD MANAGER ON RELOAD
+	WriteLog(LL_Debug, "Initializing the thread manager.");
+
+	if (m_ThreadManager == nullptr)
+		m_ThreadManager = new Mira::OrbisOS::ThreadManager();
+	if (m_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate thread manager.");
+		return false;
+	}
+
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
 	m_MessageManager = new Mira::Messaging::MessageManager();
@@ -265,7 +280,6 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
-	
 	// Initialize the rpc server
 	WriteLog(LL_Debug, "Initializing rpc server");
 	m_RpcServer = new Mira::Messaging::Rpc::Server();
@@ -325,7 +339,7 @@ bool Mira::Framework::Initialize()
 	// Hook SceSblSysVeri (Fire fw only)
 	//m_SceSblSysVeriHook = new Mira::Utils::Hook::Hook(kdlsym(SceSblSysVeriThread), OnSceSblSysVeri);
 
-	// Intentionally fault
+	// DBG: Intentionally fault
 	//*((uint64_t*)0x1337) = 0xBADBABE;
 	return true;
 }

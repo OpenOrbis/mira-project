@@ -6,6 +6,7 @@
 */
 void Mira::Boot::Patches::install_prerunPatches_503()
 {
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_503
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
 		return;
@@ -149,4 +150,9 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[2] = 0xC3;
 	kmem[3] = 0x90;
 
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_503
+	#error needs debug log patch, see other files
+#endif
+
+#endif
 }

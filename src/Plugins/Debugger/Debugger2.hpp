@@ -117,6 +117,18 @@ namespace Mira
             static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
             static bool IsStackSpace(void* p_Address);
 
+            /**
+             * @brief Replaces an exception handler function in the IDT (interrupt descriptor table) for the specified exception number
+             * 
+             * @param p_ExceptionNumber Exception number to catch
+             * @param p_Function Function to replace with
+             * @param p_PreviousFunction Output previous function in the IDT (optional)
+             * @return true On success
+             * @return false On error
+             */
+            bool ReplaceExceptionHandler(uint32_t p_ExceptionNumber, void* p_Function, void** p_PreviousFunction = nullptr);
+
+
             // The gdb protocol does not allow the '$' or '#' in data, they must be escaped
             // The escape character is 0x7d '}' then the next byte is $ or # or'd with 0x20, } character itself too must be escaped
             void EscapePacket(char* p_PacketData, uint32_t p_Size);
@@ -199,7 +211,7 @@ namespace Mira
              * @return true on success
              * @return false otherwise
              */
-            static bool GetVmMapEntries(struct proc* p_Process, DbgVmEntry* p_Entries[], size_t& p_EntriesCount);
+            static bool GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries, size_t& p_EntriesCount);
             
             /**
              * @brief Get limited process information
@@ -402,6 +414,14 @@ namespace Mira
             static void OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
             /**
+             * @brief RPC callback for writing kernel memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage with single step message
+             */
+            static void OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
              * @brief RPC callback for getting a process list of all running processes on the console
              * 
              * @param p_Connection Requesting connection
@@ -488,9 +508,29 @@ namespace Mira
              * @param p_Message RpcMessage containing the thread id to get registers for
              */
             static void OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for setting the thread registers
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the set thread registers message
+             */
             static void OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
+            /**
+             * @brief RPC callback for reading kernel memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage with the read kernel memory request
+             */
             static void OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for writing kernel memory
+             * 
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage with write kernel memory
+             */
             static void OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
         };
     }

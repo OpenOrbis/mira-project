@@ -2081,6 +2081,65 @@ int kselect_t(int	nfds, fd_set *readfds, fd_set *writefds, fd_set	*exceptfds, st
 	return ret;
 }
 
+int kioctl_internal(int fd, u_long com, caddr_t data, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_ioctl = (int(*)(struct thread*, struct ioctl_args*))sysents[SYS_IOCTL].sy_call;
+	if (!sys_ioctl)
+		return -1;
+
+	int error;
+	struct ioctl_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.fd = fd;
+	uap.com = com;
+	uap.data = data;
+
+	error = sys_ioctl(td, &uap);
+	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	printf("err: (%d), retval: (%lld)", error, td->td_retval[0]);
+
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kioctl_t(int fd, u_long com, caddr_t data, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kioctl_internal(fd, com, data, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+
 int kdynlib_load_prx(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, uint64_t pRes, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
@@ -2091,11 +2150,6 @@ int kdynlib_load_prx(char* path, uint64_t args, uint64_t argp, uint32_t flags, u
 
 	int error;
 	struct dynlib_load_prx_args uap;
-
-	// clear errors
-	td->td_retval[0] = 0;
-
-	// call syscall
 	uap.path = path;
 	uap.args = args;
 	uap.argp = argp;

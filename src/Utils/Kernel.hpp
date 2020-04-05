@@ -79,6 +79,10 @@ extern int strcmp(const char *str1, const char *str2);
 extern void cpu_enable_wp();
 extern void cpu_disable_wp();
 
+extern int cpu_sidt(void *buff);
+extern int cpu_sldt(void *buff);
+extern int cpu_sgdt(void *buff);
+
 //bool orbisThreadEscape(int32_t p_RealGroupId, int32_t p_SavedGroupId, int32_t p_EffectiveUserId, int32_t p_RealUserId, void* p_Prison, struct vnode* p_RootDir, struct vnode* p_JailRootDir, enum SceAuthenticationId_t p_AuthId, enum SceCapabilities_t p_SceCaps);
 
 #ifdef __cplusplus

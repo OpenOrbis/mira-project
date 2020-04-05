@@ -69,18 +69,13 @@ bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, vo
         return false;
     }
 
-    if (s_FreeIndex < 0 || s_FreeIndex > ARRAYSIZE(m_Listeners))
+    if (s_FreeIndex < 0 || s_FreeIndex >= ARRAYSIZE(m_Listeners))
     {
         WriteLog(LL_Error, "no free index");
         return false;
     }
-    
-    //WriteLog(LL_Warn, "freeIndex: %d", s_FreeIndex);
-
     m_Listeners[s_FreeIndex] = MessageListener(p_Category, p_Type, p_Callback);
 
-    s_FoundEntry = &m_Listeners[s_FreeIndex];
-    //WriteLog(LL_Warn, "reset entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
     return true;
 }
 
@@ -182,9 +177,9 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
-    if (s_SerializedSize > 0x10000)
+    if (s_SerializedSize > MessageManager_MaxMessageSize)
     {
-        WriteLog(LL_Error, "serialized size too large (%x) > (0x10000)", s_SerializedSize);
+        WriteLog(LL_Error, "serialized size too large (%x) > (%llx)", s_SerializedSize, MessageManager_MaxMessageSize);
         return;
     }
 
@@ -279,7 +274,7 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
 
     if (s_FoundEntry == nullptr || s_FoundIndex == -1)
     {
-        WriteLog(LL_Error, "could not find the right shit");
+        WriteLog(LL_Error, "could not find endpoint c: (%x) t:(%x)", p_Message.header->category, p_Message.header->type);
         return;
     }
 

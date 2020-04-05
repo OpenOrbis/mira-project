@@ -8,5 +8,7 @@
 */
 void Mira::Boot::Patches::install_prerunPatches_650()
 {
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_650
 	// TODO: Implement
+#endif
 }

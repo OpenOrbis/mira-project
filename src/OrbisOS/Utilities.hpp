@@ -16,6 +16,9 @@ namespace Mira
 
             Utilities();
 
+        protected:
+            
+
         public:
             static Utilities* GetInstance();
 

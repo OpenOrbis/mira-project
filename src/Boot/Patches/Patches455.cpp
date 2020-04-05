@@ -15,6 +15,7 @@ using namespace Mira::Boot;
 */
 void Patches::install_prerunPatches_455()
 {
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455
 	// You must assign the kernel base pointer before anything is done
 	if(!gKernelBase)
 		return;
@@ -100,4 +101,11 @@ void Patches::install_prerunPatches_455()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
+	// Enable *all* debugging logs (in vprintf)
+	// Patch by: SiSTRo (ported by kiwidog)
+	kmem = (uint8_t*)&gKernelBase[0x0001801A];
+	kmem[0] = 0xEB; // jmp +0x3b
+	kmem[1] = 0x39;
+
+#endif
 }
