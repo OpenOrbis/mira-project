@@ -28,6 +28,9 @@ namespace Mira
 
                 SELF_MAX_CONTEXTS = 0x4,
                 
+                AUTHMGR_CMD_VERIFY_HEADER = 0x01,
+                AUTHMGR_CMD_LOAD_SELF_SEGMENT = 0x02,
+                AUTHMGR_CMD_LOAD_SELF_BLOCK  = 0x06,
             };
 
         public:
@@ -64,6 +67,23 @@ namespace Mira
                 uint8_t buf[0x88];
             };
 
+            typedef struct self_context_t 
+            {
+                uint32_t format;
+                uint32_t elf_auth_type;
+                uint32_t total_header_size;
+                uint32_t unk_0C;
+                void *segment;
+                uint32_t unk_18;
+                uint32_t ctx_id;
+                uint64_t svc_id;
+                uint64_t unk_28;
+                uint32_t buf_id;
+                uint32_t unk_34;
+                struct self_header_t *header;
+                uint8_t mtx_struct[0x20];
+            } self_context_t;
+
             typedef struct self_t {
                 int fd;
                 char *file_path;
@@ -99,6 +119,21 @@ namespace Mira
                 uint8_t digest[SELF_DIGEST_SIZE];
             } self_block_info_t;
 
+            typedef struct sbl_authmgr_verify_header_t 
+            {
+                uint32_t function;
+                uint32_t status;
+                uint64_t header_addr;
+                uint32_t header_size;
+                uint32_t zero_0C;
+                uint32_t zero_10;
+                uint32_t context_id;
+                uint64_t auth_info_addr;
+                uint32_t unk_20;
+                uint32_t key_id;
+                uint8_t key[0x10];
+            } sbl_authmgr_verify_header_t;
+
         protected:
             self_t m_Self;
 
@@ -109,6 +144,7 @@ namespace Mira
             bool VerifyHeader();
             bool LoadSegments();
             void Close();
+            bool ReleaseContext();
         };
     }
 }

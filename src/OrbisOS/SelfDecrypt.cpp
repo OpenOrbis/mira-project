@@ -1,15 +1,29 @@
 #include "SelfDecrypt.hpp"
-#include "Utils/SysWrappers.hpp"    // TODO: Brackets
-#include "Utils/Logger.hpp"
-#include "Utils/Kernel.hpp"
 
-#include "Mira.hpp"
+#include <Utils/SysWrappers.hpp>
+#include <Utils/Logger.hpp>
+#include <Utils/Kernel.hpp>
+#include <Utils/Kdlsym.hpp>
+
+#include <Mira.hpp>
 
 extern "C"
 {
-    #include "sys/fcntl.h"
-    #include "sys/unistd.h"
-}
+    #include <sys/fcntl.h>
+    #include <sys/unistd.h>
+};
+
+#define ALIGN(size, alignment) \
+    (((size) + ((alignment) - 1)) & ~((alignment) - 1))
+
+#define ALIGN_PAGE(size) \
+    ALIGN(size, PAGE_SIZE)
+
+#define sceSblServiceMailbox_locked(ret, id, iptr, optr) do { \
+    _sx_xlock(s_sm_sxlock, 0); \
+    ret = sceSblServiceMailbox((id), (iptr), (optr)); \
+    _sx_xunlock(s_sm_sxlock); \
+} while (0)
 
 using namespace Mira::OrbisOS;
 
@@ -18,6 +32,7 @@ SelfDecrypt::SelfDecrypt(const char* p_FilePath) :
 {
     // Before we do anything assign a invalid fd
     m_Self.fd = -1;
+    m_Self.svc_id = -1;
 
     auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
     if (s_ThreadManager == nullptr)
@@ -202,6 +217,179 @@ bool SelfDecrypt::VerifyHeader()
 {
     if (m_Self.fd <= 0)
         return false;
+
+    auto ctxStatus = static_cast<uint32_t*>(kdlsym(ctxStatus));
+    auto _sceSblAuthMgrSmFinalize = (int(*)(void* ctx))kdlsym(_sceSblAuthMgrSmFinalize);
+    auto ctxTable = (struct self_context_t*)kdlsym(ctxTable);
+    auto sceSblDriverMapPages = (int(*)(uint64_t *gpu_paddr, void *cpu_vaddr, uint32_t npages, uint64_t flags, uint64_t unk, uint64_t *gpu_desc))kdlsym(sceSblDriverMapPages);
+    auto sceSblDriverUnmapPages = (int(*)(uint64_t gpu_desc))kdlsym(sceSblDriverUnmapPages);
+    auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+    auto s_sm_sxlock = (struct sx*)kdlsym(s_sm_sxlock);
+    auto _sx_xlock = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto _sx_xunlock = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+
+    int s_ContextId = -1;
+
+    if (m_Self.ctx_id == -1)
+    {
+        m_Self.ctx_id = 0;
+        while (ctxStatus[s_ContextId] != 3)
+            s_ContextId = (s_ContextId + 1) % SELF_MAX_CONTEXTS;
+        
+        WriteLog(LL_Debug, "found available context id: (%d).", s_ContextId);
+        ctxStatus[s_ContextId] = 1;
+        m_Self.ctx_id = s_ContextId;
+    }
+
+    if (m_Self.svc_id == -1)
+        m_Self.svc_id = *static_cast<int*>(kdlsym(s_taskId));
+    
+    if (m_Self.ctx_id < 0 || m_Self.ctx_id > 3)
+    {
+        ReleaseContext();
+
+        WriteLog(LL_Error, "invalid self context id (%d).", m_Self.ctx_id);
+        return false;
+    }
+
+    m_Self.ctx = &ctxTable[m_Self.ctx_id];
+    _sceSblAuthMgrSmFinalize(m_Self.ctx);
+
+    size_t s_HeaderDataSize = ALIGN_PAGE(m_Self.header.header_size + m_Self.header.meta_size);
+    uint8_t* s_HeaderData = new uint8_t[s_HeaderDataSize];
+    if (s_HeaderData == nullptr)
+    {
+        ReleaseContext();
+
+        WriteLog(LL_Error, "could not allocate header data (%lld).", s_HeaderDataSize);
+        return false;
+    }
+
+    memset(s_HeaderData, 0, s_HeaderDataSize);
+    memcpy(s_HeaderData, m_Self.data, MIN(m_Self.file_size, s_HeaderDataSize));
+
+    uint64_t s_HeaderDataMapped = 0;
+    uint64_t s_HeaderDataMapDesc = 0;
+    auto s_Ret = sceSblDriverMapPages(&s_HeaderDataMapped, s_HeaderData, 1, 0x61, 0, &s_HeaderDataMapDesc);
+    if (s_Ret != 0)
+    {
+        delete [] s_HeaderData;
+
+        ReleaseContext();
+
+        WriteLog(LL_Error, "could not map driver pages (%d).", s_Ret);
+        return false;
+    }
+
+    size_t s_AuthInfoSize = ALIGN_PAGE(SELF_AUTH_INFO_SIZE);
+    auto s_AuthInfo = new uint8_t[s_AuthInfoSize];
+    if (s_AuthInfo == nullptr)
+    {
+        s_Ret = sceSblDriverUnmapPages(s_HeaderDataMapDesc);
+        if (s_Ret != 0)
+            WriteLog(LL_Error, "could not unmap header driver pages (%d).", s_Ret);
+        
+        delete [] s_HeaderData;
+
+        ReleaseContext();
+
+        WriteLog(LL_Error, "could not allocate auth info");
+        return false;
+    }
+    memset(s_AuthInfo, 0, s_AuthInfoSize);
+
+    uint64_t s_AuthInfoMapped = 0;
+    uint64_t s_AuthInfoMapDesc = 0;
+    s_Ret = sceSblDriverMapPages(&s_AuthInfoMapped, s_AuthInfo, 1, 0x61, 0, &s_AuthInfoMapDesc);
+    if (s_Ret != 0)
+    {
+        s_Ret = sceSblDriverUnmapPages(s_AuthInfoMapDesc);
+        if (s_Ret != 0)
+            WriteLog(LL_Error, "could not unmap auth driver pages (%d).", s_Ret);
+        s_Ret = sceSblDriverUnmapPages(s_HeaderDataMapDesc);
+        if (s_Ret != 0)
+            WriteLog(LL_Error, "could not unmap header driver pages (%d).", s_Ret);
+        
+        delete [] s_AuthInfo;
+        delete [] s_HeaderData;
+
+        ReleaseContext();
+        
+        WriteLog(LL_Error, "could not map auth info driver pages (%d).", s_Ret);
+        return false;
+    }
+
+    // Send command
+    uint8_t s_Payload[0x80] = { 0 };
+    auto s_Args = reinterpret_cast<sbl_authmgr_verify_header_t*>(&s_Payload[0]);
+    memset(s_Payload, 0, sizeof(s_Payload));
+
+    s_Args->function = AUTHMGR_CMD_VERIFY_HEADER;
+    s_Args->status = 0;
+    s_Args->header_addr = s_HeaderDataMapped;
+    s_Args->header_size = m_Self.header.header_size + m_Self.header.meta_size;
+    s_Args->context_id = m_Self.ctx_id;
+    s_Args->auth_info_addr = s_AuthInfoMapped;
+    s_Args->key_id = 0;
+    memset(&s_Args->key, 0, SELF_KEY_SIZE);
+
+    WriteLog(LL_Info, "Sending AUTHMGR_CMD_VERIFY_HEADER...");
+    sceSblServiceMailbox_locked(s_Ret, m_Self.svc_id, &s_Payload, &s_Payload);
+    if (s_Ret != 0 || s_Args->status != 0)
+    {
+        s_Ret = sceSblDriverUnmapPages(s_AuthInfoMapDesc);
+        if (s_Ret != 0)
+            WriteLog(LL_Error, "could not unmap auth driver pages (%d).", s_Ret);
+        s_Ret = sceSblDriverUnmapPages(s_HeaderDataMapDesc);
+        if (s_Ret != 0)
+            WriteLog(LL_Error, "could not unmap header driver pages (%d).", s_Ret);
+
+        delete [] s_AuthInfo;
+        delete [] s_HeaderData;
+
+        ReleaseContext();
+
+        WriteLog(LL_Error, "sceSblServiceMailbox returned (%d) status: (%d) func: (%d)", s_Ret, s_Args->status, s_Args->function);
+        return false;
+    }
+
+    WriteLog(LL_Debug, "confirmed context id: (%d).", m_Self.ctx_id);
+    m_Self.auth_ctx_id = s_Args->context_id;
+    memcpy(&m_Self.auth_info, s_AuthInfo, sizeof(m_Self.auth_info));
+    m_Self.verified = true;
+
+    if (s_AuthInfoMapped != 0)
+    {
+        s_Ret = sceSblDriverUnmapPages(s_AuthInfoMapDesc);
+        if (s_Ret != 0)
+        {
+            WriteLog(LL_Error, "could not unmap driver pages (%d).", s_Ret);
+            return false;
+        }
+    }
+
+    if (s_HeaderDataMapped != 0)
+    {
+        s_Ret = sceSblDriverUnmapPages(s_HeaderDataMapDesc);
+        if (s_Ret != 0)
+        {
+            WriteLog(LL_Error, "could not unmap header data driver pages (%d).", s_Ret);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool SelfDecrypt::ReleaseContext()
+{
+    auto ctxStatus = static_cast<uint32_t*>(kdlsym(ctxStatus));
+    int32_t s_ContextId = m_Self.ctx_id;
+    if (0 <= s_ContextId && s_ContextId <= 3)
+    {
+        ctxStatus[s_ContextId] = 3;
+        m_Self.ctx_id = -1;
+    }
 
     return true;
 }
