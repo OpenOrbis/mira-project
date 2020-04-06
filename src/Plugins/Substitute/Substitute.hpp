@@ -7,6 +7,7 @@ extern "C"
 {
     #include <sys/eventhandler.h>
     #include <sys/module.h>
+    #include <sys/sx.h>
 
     static __inline __pure2 void*
     __getds0(void)
@@ -19,7 +20,7 @@ extern "C"
 };
 
 struct proc;
-struct mtx;
+struct sx;
 
 enum HookType {
     HOOKTYPE_IAT,
@@ -50,7 +51,7 @@ namespace Mira
             eventhandler_entry* m_processEndHandler;
 
             // Hook management
-            struct mtx hook_mtx;
+            struct sx hook_sx;
             SubstituteHook* hook_list;
             int hook_nbr;
 

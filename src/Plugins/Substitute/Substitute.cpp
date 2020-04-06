@@ -3,6 +3,7 @@
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
 #include <Utils/SysWrappers.hpp>
+#include <Utils/Hook.hpp>
 #include <OrbisOS/Utilities.hpp>
 
 #include <Mira.hpp>
@@ -12,7 +13,7 @@ extern "C"
 {
     #include <sys/dirent.h>
     #include <sys/stat.h>
-    #include <sys/socket.h>
+    #include <sys/sx.h>
     #include <sys/unistd.h>
     #include <sys/uio.h>
     #include <sys/proc.h>
@@ -29,7 +30,6 @@ extern "C"
     #include <sys/sysent.h>
     #include <sys/syscall.h>
     #include <sys/syslimits.h>
-    #include <external/hde64/hde64.h>
 };
 
 using namespace Mira::Plugins;
@@ -56,7 +56,7 @@ Substitute::~Substitute()
 // Substitute : Plugin loaded
 bool Substitute::OnLoad()
 {
-    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    auto sx_init_flags = (void(*)(struct sx *sx, const char *description, int opts))kdlsym(_sx_init_flags);
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
     WriteLog(LL_Info, "Loading Substitute ...");
@@ -64,7 +64,7 @@ bool Substitute::OnLoad()
     m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
-    mtx_init(&hook_mtx, "Substitute", NULL, 0);
+    sx_init_flags(&hook_sx, "Substitute SX Lock", 0);
 
     return true;
 }
@@ -253,15 +253,15 @@ void Substitute::FreeOldHook(int hook_id) {
 
 // Substitute : Disable the hook
 int Substitute::DisableHook(int hook_id) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-  
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+    auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+
+    _sx_slock(&hook_sx, 0, __FILE__, __LINE__);
 
     SubstituteHook* hook = GetHookByID(hook_id);
     if (!hook) {
         WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        _sx_sunlock(&hook_sx, __FILE__, __LINE__);
         return 1;
     }
 
@@ -274,7 +274,7 @@ int Substitute::DisableHook(int hook_id) {
                 int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->original_function, &write_size, 1);
                 if (r_error) {
                     WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
                     return 1;
                 }
 
@@ -292,7 +292,7 @@ int Substitute::DisableHook(int hook_id) {
                 int r_error = proc_rw_mem(hook->process, (void*)hook->original_function, hook->backupSize, (void*)hook->backupData, &write_size, 1);
                 if (r_error) {
                     WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
                     return 1;
                 }
 
@@ -306,25 +306,25 @@ int Substitute::DisableHook(int hook_id) {
 
         default: {
             WriteLog(LL_Error, "Invalid type of hook was detected.");
-            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            _sx_sunlock(&hook_sx, __FILE__, __LINE__);
             return 2;
         }
     }
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
 
     return 0;
 }
 
 // Substitute : Enable the hook
 int Substitute::EnableHook(int hook_id) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+    auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
   
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_slock(&hook_sx, 0, __FILE__, __LINE__);
 
     SubstituteHook* hook = GetHookByID(hook_id);
     if (!hook) {
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        _sx_sunlock(&hook_sx, __FILE__, __LINE__);
         return 1;
     }
 
@@ -337,7 +337,7 @@ int Substitute::EnableHook(int hook_id) {
                 int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->hook_function, &write_size, 1);
                 if (r_error) {
                     WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
                     return 1;
                 }
 
@@ -369,7 +369,7 @@ int Substitute::EnableHook(int hook_id) {
                 int r_error = proc_rw_mem(hook->process, (void*)hook->original_function, sizeof(jumpBuffer), (void*)jumpBuffer, &write_size, 1);
                 if (r_error) {
                     WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
                     return 1;
                 }
 
@@ -383,36 +383,36 @@ int Substitute::EnableHook(int hook_id) {
 
         default: {
             WriteLog(LL_Error, "Invalid type of hook was detected.");
-            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            _sx_sunlock(&hook_sx, __FILE__, __LINE__);
             return 0;
         }
     }
 
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
 
     return 0;
 }
 
 // Substitute : Unhook the function
 int Substitute::Unhook(int hook_id) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+    auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 
     WriteLog(LL_Info, "Unhooking ... (%i)", hook_id);
 
     DisableHook(hook_id);
 
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_slock(&hook_sx, 0, __FILE__, __LINE__);
     FreeOldHook(hook_id);
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
 
     return 0;
 }
 
 // Substitute : Cleanup hook for a process
 void Substitute::CleanupProcessHook(struct proc* p) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+    auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
@@ -422,7 +422,7 @@ void Substitute::CleanupProcessHook(struct proc* p) {
     WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
 
 
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_slock(&hook_sx, 0, __FILE__, __LINE__);
 
     for (int i = 0; i < hook_nbr; i++) {
         if (hook_list[i].process == p) {
@@ -430,13 +430,13 @@ void Substitute::CleanupProcessHook(struct proc* p) {
         }
     }
 
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
 }
 
 // Substitute : Hook the function in the process (With Import Address Table)
 int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+    auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 
     WriteLog(LL_Info, "Finding jumpslot address ...");
 
@@ -465,12 +465,12 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
 
     WriteLog(LL_Info, "Allocating new hook ...");
 
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_slock(&hook_sx, 0, __FILE__, __LINE__);
 
     SubstituteHook* new_hook = AllocateNewHook();
     if (!new_hook) {
         WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        _sx_sunlock(&hook_sx, __FILE__, __LINE__);
         return -4;
     }
 
@@ -484,7 +484,7 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
     new_hook->original_function = original_function;
     new_hook->hook_enable = false;
 
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
 
     WriteLog(LL_Info, "All data is set. The hook id is %i", new_hook->id);
 
@@ -493,8 +493,8 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
 
 // Substitute : Hook the function in the process (With longjmp)
 int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_function) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+    auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 
     if (!p || !original_address || !hook_function)
         return -1;
@@ -541,13 +541,13 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 
     WriteLog(LL_Info, "Allocating new hook ...");
 
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_slock(&hook_sx, 0, __FILE__, __LINE__);
 
     SubstituteHook* new_hook = AllocateNewHook();
     if (!new_hook) {
         WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
         delete[] (backupData);
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        _sx_sunlock(&hook_sx, __FILE__, __LINE__);
         return -6;
     }
 
@@ -560,7 +560,7 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     new_hook->backupSize = backupSize;
     new_hook->hook_enable = false;
 
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    _sx_sunlock(&hook_sx, __FILE__, __LINE__);
 
     WriteLog(LL_Info, "All data is set. The hook id is %i", new_hook->id);
 

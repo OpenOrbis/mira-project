@@ -15,6 +15,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr__mtx_unlock_flags                      0x00401FA0
 #define kdlsym_addr__mtx_unlock_sleep                      0x004020A0
 #define kdlsym_addr__sceSblAuthMgrGetSelfInfo              0x0063CD40
+#define kdlsym_addr__sx_init_flags                         0x000F5BB0
 #define kdlsym_addr__sx_slock                              0x000F5C30
 #define kdlsym_addr__sx_sunlock                            0x000F5F10
 #define kdlsym_addr__sx_xlock                              0x000F5E10
