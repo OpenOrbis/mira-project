@@ -57,7 +57,7 @@ bool PluginManager::OnLoad()
     }
     if (!m_Logger->OnLoad())
         WriteLog(LL_Error, "could not load logmanager");
-    
+
     // Initialize file manager
     m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
     if (m_FileManager == nullptr)
@@ -107,6 +107,7 @@ bool PluginManager::OnLoad()
     }
     if (!m_Substitute->OnLoad())
         WriteLog(LL_Error, "could not load substitute.");
+
     return true;
 }
 
