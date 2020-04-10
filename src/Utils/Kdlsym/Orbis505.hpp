@@ -66,6 +66,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_memset                                 0x003205C0
 #define kdlsym_addr_mini_syscore_self_binary               0x014C9D48
 #define kdlsym_addr_mount_arg                              0x001E16A0
+#define kdlsym_addr_mount_argb                             0x001DFC50
+#define kdlsym_addr_mount_argu                             0x001DFB70
+#define kdlsym_addr_mount_argf                             0x001E1780
 #define kdlsym_addr_mtx_init                               0x00402780
 #define kdlsym_addr_mtx_lock_sleep                         0x00401D70
 #define kdlsym_addr_mtx_unlock_sleep                       0x004020A0

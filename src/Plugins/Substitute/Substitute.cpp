@@ -809,6 +809,7 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
 // Substitute : PRX Loader
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
+    /*
     Substitute* substitute = GetPlugin();
 
     // Debug Hook IAT
@@ -817,7 +818,6 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         WriteLog(LL_Error, "Unable to find jmpslot address !");
     }
 
-    // 
     void* original_function = nullptr;
     size_t read_size = 0;
     int r_error = proc_rw_mem(p, (void*)jmpslot_address, 8, (void*)&original_function, &read_size, 0);
@@ -833,6 +833,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
             WriteLog(LL_Error, "Unable to hook ! (%i)", hook_id);
         }
     }
+    */
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
@@ -889,15 +890,36 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         return;
     }
 
+    // Get ucred and filedesc of current thread
+    struct ucred* curthread_cred = curthread->td_proc->p_ucred;
+    struct filedesc* curthread_fd = curthread->td_proc->p_fd;
+
+    // Save current cred and fd
+    struct ucred orig_curthread_cred = *curthread_cred;
+    struct filedesc orig_curthread_fd = *curthread_fd;
+
+    // Set max to current thread cred and fd
+    curthread_cred->cr_uid = 0;
+    curthread_cred->cr_ruid = 0;
+    curthread_cred->cr_rgid = 0;
+    curthread_cred->cr_groups[0] = 0;
+
+    curthread_cred->cr_prison = *(struct prison**)kdlsym(prison0);
+    curthread_fd->fd_rdir = curthread_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+
     // Mounting
-    ret = Utilities::MountNullFS(s_substituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY, s_MainThread);
+    ret = Utilities::MountNullFS(s_substituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY);
     if (ret >= 0) {
-        WriteLog(LL_Info, "mount folder success (%s => %s) (%d).", s_RealSprxFolderPath, s_substituteFullMountPath, ret);
+        WriteLog(LL_Info, "[%s] mount folder success (%s => %s) (%d).", s_TitleId, s_RealSprxFolderPath, s_substituteFullMountPath, ret);
     } else {
         krmdir_t(s_substituteFullMountPath, s_MainThread);
-        WriteLog(LL_Error, "could not mount folder (%s => %s) (%d).", s_RealSprxFolderPath, s_substituteFullMountPath, ret);
+        WriteLog(LL_Error, "[%s] could not mount folder (%s => %s) (%d).", s_TitleId, s_RealSprxFolderPath, s_substituteFullMountPath, ret);
         return;
     }
+
+    // Restore fd and cred
+    *curthread_fd = orig_curthread_fd;
+    *curthread_cred = orig_curthread_cred;
 
     // Reading folder and search for sprx ...
     uint64_t s_DentCount = 0;
@@ -919,7 +941,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
             // Check if the sprx is legit
             if (strstr(l_Dent->d_name, ".sprx")) {
                 char s_RelativeSprxPath[255];
-                snprintf(s_RelativeSprxPath, 255, "/substitute/%s", l_Dent->d_name);
+                snprintf(s_RelativeSprxPath, 255, "%s/%s", s_substituteFullMountPath, l_Dent->d_name);
 
                 // Create relative path for the load
                 WriteLog(LL_Info, "[%s] Trying to load  %s ...", s_TitleId, s_RelativeSprxPath);

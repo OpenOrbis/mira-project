@@ -2,6 +2,7 @@
 #include <Utils/Kernel.hpp>
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Kdlsym.hpp>
+#include <Utils/Logger.hpp>
 
 #include <Mira.hpp>
 
@@ -20,6 +21,7 @@ extern "C"
     #include <vm/vm_map.h>
 
 	#include <sys/uio.h>
+	#include <sys/mount.h>
 };
 
 using namespace Mira::OrbisOS;
@@ -284,14 +286,21 @@ error:
 	return ret;
 }
 
-int Utilities::MountNullFS(char* where, char* what, int flags, struct thread* td)
+int Utilities::MountNullFS(char* where, char* what, int flags)
 {
-    struct iovec* iov = NULL;
-    int iovlen = 0;
+    auto mount_argf = (struct mntarg*(*)(struct mntarg *ma, const char *name, const char *fmt, ...))kdlsym(mount_argf);
+    auto kernel_mount = (int(*)(struct mntarg	*ma, int flags))kdlsym(kernel_mount);
 
-    build_iovec(&iov, &iovlen, "fstype", "nullfs", (size_t)-1);
-    build_iovec(&iov, &iovlen, "fspath", where, (size_t)-1); // Where i want to add
-    build_iovec(&iov, &iovlen, "target", what, (size_t)-1); // What i want to add
+    struct mntarg* ma = NULL;
 
-    return knmount_t(iov, iovlen, flags, td);
+    ma = mount_argf(ma, "fstype", "%s", "nullfs");
+    ma = mount_argf(ma, "fspath", "%s", where);
+    ma = mount_argf(ma, "target", "%s", what);
+
+    if (ma == NULL) {
+    	WriteLog(LL_Error, "Something is wrong, ma value is null after argument");
+    	return 50;
+    }
+
+    return kernel_mount(ma, flags);
 }
