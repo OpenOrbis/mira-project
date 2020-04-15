@@ -64,7 +64,7 @@ bool Substitute::OnLoad()
     m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
-    mtx_init(&hook_mtx, "Substitute SX Lock", NULL, MTX_SPIN);
+    mtx_init(&hook_mtx, "Substitute SPIN Lock", NULL, MTX_SPIN);
 
     return true;
 }
@@ -73,6 +73,8 @@ bool Substitute::OnLoad()
 bool Substitute::OnUnload()
 {
     WriteLog(LL_Error, "Unloading Substitute ...");
+    CleanupAllHook();
+
     return true;
 }
 
@@ -427,6 +429,26 @@ int Substitute::Unhook(int hook_id) {
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     return 0;
+}
+
+// Substitute : Cleanup all hook
+void Substitute::CleanupAllHook() {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    if (!hook_list)
+        return;
+
+    WriteLog(LL_Info, "Cleaning up all hook ...");
+
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    for (int i = 0; i < hook_nbr; i++) {
+        FreeOldHook(hook_list[i].id);
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 }
 
 // Substitute : Cleanup hook for a process

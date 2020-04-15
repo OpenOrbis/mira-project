@@ -301,14 +301,13 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
 	// Install device driver
-	/*
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
 	m_CtrlDriver = new Mira::Driver::CtrlDriver();
 	if (m_CtrlDriver == nullptr)
 	{
 		WriteLog(LL_Error, "could not allocate control driver.");
 		return false;
-	}*/
+	}
 
 	// Set the running flag
 	m_InitParams.isRunning = true;

@@ -154,7 +154,6 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 	FOREACH_PROC_IN_SYSTEM(s_Proc) {
 		PROC_LOCK(s_Proc);
 
-		// Do it because struct* proc is broken
 		if (strcmp(s_Proc->p_comm, p_Name) == 0) {
 			PROC_UNLOCK(s_Proc);
 			goto done;

@@ -164,5 +164,14 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
+
+	// Enable devfs_ruls for unprivileged user
+	kmem = (uint8_t *)&gKernelBase[0x00356547];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 #endif
 }

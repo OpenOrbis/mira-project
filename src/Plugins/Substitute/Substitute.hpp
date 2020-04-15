@@ -7,15 +7,6 @@ extern "C"
 {
     #include <sys/eventhandler.h>
     #include <sys/module.h>
-
-    static __inline __pure2 void*
-    __getds0(void)
-    {
-        void* ret;
-
-        __asm("movq %%gs:0,%0" : "=r" (ret));
-        return (ret);
-    }
 };
 
 struct proc;
@@ -72,6 +63,7 @@ namespace Mira
             int HookJmp(struct proc* p, void* original_address, void* hook_function);
             int HookIAT(struct proc* p, const char* nids, void* hook_function);
             void CleanupProcessHook(struct proc* p);
+            void CleanupAllHook();
 
             uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
             void DebugImportTable(struct proc* p);
