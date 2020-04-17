@@ -29,6 +29,26 @@ typedef struct {
     bool hook_enable;
 } SubstituteHook;
 
+// IOCTL
+
+struct substitute_state_hook {
+    int hook_id;
+    int result;
+    int state;
+};
+
+struct substitute_hook_iat {
+    int hook_id;
+    char nids[12];
+    void* hook_function;
+};
+
+struct substitute_hook_jmp {
+    int hook_id;
+    void* original_function;
+    void* hook_function;
+};
+
 namespace Mira
 {
     namespace Plugins
@@ -57,9 +77,9 @@ namespace Mira
             SubstituteHook* GetHookByID(int hook_id);
             SubstituteHook* AllocateNewHook();
             void FreeOldHook(int hook_id);
-            int DisableHook(int hook_id);
-            int EnableHook(int hook_id);
-            int Unhook(int hook_id);
+            int DisableHook(struct proc* p, int hook_id);
+            int EnableHook(struct proc* p, int hook_id);
+            int Unhook(struct proc* p, int hook_id);
             int HookJmp(struct proc* p, void* original_address, void* hook_function);
             int HookIAT(struct proc* p, const char* nids, void* hook_function);
             void CleanupProcessHook(struct proc* p);
@@ -67,6 +87,10 @@ namespace Mira
 
             uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
             void DebugImportTable(struct proc* p);
+
+            int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
+            int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
+            int OnIoctl_StateHook(struct thread* td, struct substitute_state_hook* uap);
 
         protected:
             static void OnProcessStart(void *arg, struct proc *p);
