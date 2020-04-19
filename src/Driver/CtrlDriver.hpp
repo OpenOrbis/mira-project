@@ -5,6 +5,8 @@
 #include <sys/sysent.h>
 #include <Utils/_Syscall.hpp>
 
+#include <Plugins/Substitute/Substitute.hpp>
+
 extern "C"
 {
     #include <sys/eventhandler.h>

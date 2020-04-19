@@ -5,6 +5,8 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/_Syscall.hpp>
 
+#include <Plugins/Substitute/Substitute.hpp>
+
 extern "C"
 {
     #include <sys/eventhandler.h>
@@ -17,6 +19,7 @@ extern "C"
 
     #include <sys/sysproto.h>
     #include <sys/sysent.h>
+    #include <sys/ioccom.h>
 
     struct intstr {
         const char *s;
@@ -149,6 +152,26 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 {
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
+
+    switch (IOCGROUP(p_Command)) {
+
+        // Substitute IOCTL Base Group
+        case SUBSTITUTE_IOCTL_BASE: {
+            switch (p_Command) {
+                case SUBSTITUTE_HOOK_IAT: {
+                    return Mira::Plugins::Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
+                }
+
+                case SUBSTITUTE_HOOK_JMP: {
+                    return Mira::Plugins::Substitute::OnIoctl_HookJMP(p_Thread, (struct substitute_hook_jmp*)p_Data);
+                }
+
+                case SUBSTITUTE_HOOK_STATE: {
+                    return Mira::Plugins::Substitute::OnIoctl_StateHook(p_Thread, (struct substitute_state_hook*)p_Data);
+                }
+            }
+        }
+    }
 
     return 0;
 }

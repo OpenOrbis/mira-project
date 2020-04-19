@@ -72,9 +72,22 @@ bool Substitute::OnLoad()
 // Substitute : Plugin unloaded
 bool Substitute::OnUnload()
 {
-    WriteLog(LL_Error, "Unloading Substitute ...");
-    CleanupAllHook();
+    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
+    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
+    WriteLog(LL_Error, "Unloading Substitute ...");
+
+    if (m_processStartHandler) {
+        EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartHandler);
+        m_processStartHandler = nullptr;
+    }
+
+    if (m_processEndHandler) {
+        EVENTHANDLER_DEREGISTER(process_exit, m_processEndHandler);
+        m_processStartHandler = nullptr;
+    }
+
+    CleanupAllHook();
     return true;
 }
 
@@ -1072,9 +1085,6 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
 
 // Substitute (IOCTL) : Do a IAT Hook for the specified thread
 int Substitute::OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap) {
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-    auto copyout = (int(*)(const void* kaddr, void *uaddr, size_t len))kdlsym(copyout);
-
     int hook_id = -1;
     if (!td || !uap) {
         WriteLog(LL_Error, "Invalid argument !");        
@@ -1084,31 +1094,23 @@ int Substitute::OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* u
     Substitute* substitute = GetPlugin();
     if (!substitute) {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        copyout(&hook_id, &uap->hook_id, sizeof(int));
+        uap->hook_id = hook_id;
         return 0;
     }
 
-    // Get original function
-    struct substitute_hook_iat args;
-    memset(&args, 0, sizeof(args));
-    copyin(uap, &args, sizeof(args));
-
-    hook_id = substitute->HookIAT(td->td_proc, args.nids, args.hook_function);
+    hook_id = substitute->HookIAT(td->td_proc, uap->nids, uap->hook_function);
     if (hook_id > 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
-        WriteLog(LL_Error, "Unable to hook %s ! (%i)", hook_id);
+        WriteLog(LL_Error, "Unable to hook %s ! (%i)", uap->nids, hook_id);
     }
 
-    copyout(&hook_id, &uap->hook_id, sizeof(int));
+    uap->hook_id = hook_id;
     return 0;
 }
 
 // Substitute (IOCTL) : Do a JMP Hook for the specified thread
 int Substitute::OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap) {
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-    auto copyout = (int(*)(const void* kaddr, void *uaddr, size_t len))kdlsym(copyout);
-
     int hook_id = -1;
     if (!td || !uap) {
         WriteLog(LL_Error, "Invalid argument !");        
@@ -1118,31 +1120,23 @@ int Substitute::OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* u
     Substitute* substitute = GetPlugin();
     if (!substitute) {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        copyout(&hook_id, &uap->hook_id, sizeof(int));
+        uap->hook_id = hook_id;
         return 0;
     }
 
-    // Get original function
-    struct substitute_hook_jmp args;
-    memset(&args, 0, sizeof(args));
-    copyin(uap, &args, sizeof(args));
-
-    hook_id = substitute->HookJmp(td->td_proc, args.original_function, args.hook_function);
+    hook_id = substitute->HookJmp(td->td_proc, uap->original_function, uap->hook_function);
     if (hook_id > 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
-        WriteLog(LL_Error, "Unable to hook %s ! (%i)", hook_id);
+        WriteLog(LL_Error, "Unable to hook %p ! (%i)", uap->original_function, hook_id);
     }
 
-    copyout(&hook_id, &uap->hook_id, sizeof(int));
+    uap->hook_id = hook_id;
     return 0;
 }
 
 // Substitute (IOCTL) : Enable / Disable hook
 int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hook* uap) {
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-    auto copyout = (int(*)(const void* kaddr, void *uaddr, size_t len))kdlsym(copyout);
-
     if (!td || !uap) {
         WriteLog(LL_Error, "Invalid argument !");        
         return EINVAL;
@@ -1153,39 +1147,34 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
     Substitute* substitute = GetPlugin();
     if (!substitute) {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        copyout(&ret, &uap->result, sizeof(int)); // error return negative number
+        uap->result = ret;
         return 0;
     }
 
-    // Get original function
-    struct substitute_state_hook args;
-    memset(&args, 0, sizeof(args));
-    copyin(uap, &args, sizeof(args));
-
-    switch (args.state) {
+    switch (uap->state) {
         case 0: {
-            ret = substitute->EnableHook(td->td_proc, args.hook_id);
+            ret = substitute->EnableHook(td->td_proc, uap->hook_id);
             if (ret < 0) {
-                WriteLog(LL_Error, "Unable to enable hook %i !", args.hook_id);
-                copyout(&ret, &uap->result, sizeof(int)); // error return negative number
+                WriteLog(LL_Error, "Unable to enable hook %i !", uap->hook_id);
+                uap->result = ret;
             } else {
                 ret = 1;
-                WriteLog(LL_Info, "Hook %i enabled !", args.hook_id);
-                copyout(&ret, &uap->result, sizeof(int)); // success return 1 (not 0 because memset on userland side)
+                WriteLog(LL_Info, "Hook %i enabled !", uap->hook_id);
+                uap->result = ret;
             }
 
             break;
         }
 
         case 1: {
-            ret = substitute->DisableHook(td->td_proc, args.hook_id);
+            ret = substitute->DisableHook(td->td_proc, uap->hook_id);
             if (ret < 0) {
-                WriteLog(LL_Error, "Unable to disable hook %i !", args.hook_id);
-                copyout(&ret, &uap->result, sizeof(int)); // error return negative number
+                WriteLog(LL_Error, "Unable to disable hook %i !", uap->hook_id);
+                uap->result = ret;
             } else {
                 ret = 1;
-                WriteLog(LL_Info, "Hook %i disable !", args.hook_id);
-                copyout(&ret, &uap->result, sizeof(int)); // success return 1 (not 0 because memset on userland side)
+                WriteLog(LL_Info, "Hook %i disable !", uap->hook_id);
+                uap->result = ret;
             }
             
             break;
@@ -1193,7 +1182,7 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
 
         default: {
             WriteLog(LL_Error, "Invalid state detected.");
-            copyout(&ret, &uap->result, sizeof(int)); // error return negative number
+            uap->result = ret;
             break;
         }
     }

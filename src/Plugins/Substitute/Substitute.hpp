@@ -2,11 +2,13 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
 #include <Utils/Hook.hpp>
+#include <Driver/CtrlDriver.hpp>
 
 extern "C"
 {
     #include <sys/eventhandler.h>
     #include <sys/module.h>
+    #include <sys/ioccom.h>
 };
 
 struct proc;
@@ -29,7 +31,9 @@ typedef struct {
     bool hook_enable;
 } SubstituteHook;
 
-// IOCTL
+// IOCTL Wrapper
+
+#define SUBSTITUTE_IOCTL_BASE   'S'
 
 struct substitute_state_hook {
     int hook_id;
@@ -48,6 +52,11 @@ struct substitute_hook_jmp {
     void* original_function;
     void* hook_function;
 };
+
+#define SUBSTITUTE_HOOK_IAT _IOC(IOC_INOUT, SUBSTITUTE_IOCTL_BASE, 1, sizeof(struct substitute_hook_iat))
+#define SUBSTITUTE_HOOK_JMP _IOC(IOC_INOUT, SUBSTITUTE_IOCTL_BASE, 2, sizeof(struct substitute_hook_jmp))
+#define SUBSTITUTE_HOOK_STATE _IOC(IOC_INOUT, SUBSTITUTE_IOCTL_BASE, 3, sizeof(struct substitute_state_hook))
+
 
 namespace Mira
 {
@@ -88,10 +97,9 @@ namespace Mira
             uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
             void DebugImportTable(struct proc* p);
 
-            int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
-            int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
-            int OnIoctl_StateHook(struct thread* td, struct substitute_state_hook* uap);
-
+            static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
+            static int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
+            static int OnIoctl_StateHook(struct thread* td, struct substitute_state_hook* uap);
         protected:
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
