@@ -1189,3 +1189,27 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
 
     return 0;
 }
+
+// Substitute (IOCTL) : Main drive (See CtrlDriver in /src/Driver/)
+int32_t Substitute::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    switch (p_Command) {
+        case SUBSTITUTE_HOOK_IAT: {
+            return Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
+        }
+
+        case SUBSTITUTE_HOOK_JMP: {
+            return Substitute::OnIoctl_HookJMP(p_Thread, (struct substitute_hook_jmp*)p_Data);
+        }
+
+        case SUBSTITUTE_HOOK_STATE: {
+            return Substitute::OnIoctl_StateHook(p_Thread, (struct substitute_state_hook*)p_Data);
+        }
+
+        default: {
+            WriteLog(LL_Debug, "unknown command: (0x%llx).", p_Command);
+        }
+    }
+
+    return 0;
+}

@@ -122,10 +122,16 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
 
 CtrlDriver::~CtrlDriver()
 {
+    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
+    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
+
     WriteLog(LL_Debug, "destroying driver");
 
-    // TODO: Re-enable the driver
-    return;
+    // Disable the eventhandler
+    if (m_processStartHandler) {
+        EVENTHANDLER_DEREGISTER(process_exec, m_processStartHandler);
+        m_processStartHandler = nullptr;
+    }
 
     // Destroy the device driver
     auto destroy_dev = (void(*)(struct cdev *_dev))kdlsym(destroy_dev);
@@ -154,22 +160,13 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
 
     switch (IOCGROUP(p_Command)) {
-
-        // Substitute IOCTL Base Group
         case SUBSTITUTE_IOCTL_BASE: {
-            switch (p_Command) {
-                case SUBSTITUTE_HOOK_IAT: {
-                    return Mira::Plugins::Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
-                }
+            return Mira::Plugins::Substitute::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+        }
 
-                case SUBSTITUTE_HOOK_JMP: {
-                    return Mira::Plugins::Substitute::OnIoctl_HookJMP(p_Thread, (struct substitute_hook_jmp*)p_Data);
-                }
-
-                case SUBSTITUTE_HOOK_STATE: {
-                    return Mira::Plugins::Substitute::OnIoctl_StateHook(p_Thread, (struct substitute_state_hook*)p_Data);
-                }
-            }
+        default: {
+            WriteLog(LL_Debug, "unknown base (0x%02x) command: (0x%llx).", IOCGROUP(p_Command), p_Command);
+            break;
         }
     }
 

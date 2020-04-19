@@ -100,6 +100,8 @@ namespace Mira
             static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
             static int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
             static int OnIoctl_StateHook(struct thread* td, struct substitute_state_hook* uap);
+            static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+
         protected:
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
