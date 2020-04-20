@@ -1208,6 +1208,7 @@ int32_t Substitute::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 
         default: {
             WriteLog(LL_Debug, "unknown command: (0x%llx).", p_Command);
+            break;
         }
     }
 
