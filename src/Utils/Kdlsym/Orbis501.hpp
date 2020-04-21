@@ -32,6 +32,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_critical_enter                         0x0028E4D0
 #define kdlsym_addr_critical_exit                          0x0028E4E0
 #define kdlsym_addr_dmem_start_app_process                 0x002468E0
+#define kdlsym_addr_dynlib_do_dlsym                        0x002AF7B0
 #define kdlsym_addr_eventhandler_register                  0x001EC2F0
 #define kdlsym_addr_exec_new_vmspace                       0x0038A940
 #define kdlsym_addr_faultin                                0x00006DD0
@@ -51,6 +52,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_kern_sysents                           0x0107C610
 #define kdlsym_addr_kern_thr_create                        0x001BE0E0
 #define kdlsym_addr_kernel_map                             0x01AC60E0
+#define kdlsym_addr_kernel_mount                           0x001E1810
 #define kdlsym_addr_kmem_alloc                             0x000FCB70
 #define kdlsym_addr_kmem_free                              0x000FCD40
 #define kdlsym_addr_kproc_create                           0x00137CE0
@@ -65,6 +67,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_memmove                                0x00073BA0
 #define kdlsym_addr_memset                                 0x003201F0
 #define kdlsym_addr_mini_syscore_self_binary               0x014C9D48
+#define kdlsym_addr_mount_arg                              0x001E1590
+#define kdlsym_addr_mount_argb                             0x001DFB40
+#define kdlsym_addr_mount_argf                             0x001E1670
 #define kdlsym_addr_mtx_destroy                            0x00402420
 #define kdlsym_addr_mtx_init                               0x004023B0
 #define kdlsym_addr_mtx_lock_sleep                         0x004019a0

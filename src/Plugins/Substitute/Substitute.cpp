@@ -30,6 +30,7 @@ extern "C"
     #include <sys/sysent.h>
     #include <sys/syscall.h>
     #include <sys/syslimits.h>
+    #include <sys/param.h>
 };
 
 using namespace Mira::Plugins;
@@ -513,7 +514,7 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
     WriteLog(LL_Info, "Finding jumpslot address ...");
 
     if (!p || !nids || !hook_function) {
-        WriteLog(LL_Error, "One of the parameter is inccorect !");
+        WriteLog(LL_Error, "One of the parameter is incorrect !");
         return -1;
     }
 
@@ -528,11 +529,20 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
 
     // Get the original value for this jmpslot
     void* original_function = nullptr;
+    /*
     size_t read_size = 0;
     int r_error = proc_rw_mem(p, (void*)jmpslot_address, 8, (void*)&original_function, &read_size, 0);
     if (r_error || !original_function) {
         WriteLog(LL_Error, "Unable to get the original value from the jmpslot ! (%i)", r_error);
         return -3;
+    }*/
+
+    original_function = FindOriginalByNids(p, nids);
+    if (!original_function) {
+        WriteLog(LL_Error, "Unable to get the original value from the jmpslot !");
+        return -3;
+    } else {
+        WriteLog(LL_Info, "original function: %p", original_function);
     }
 
     WriteLog(LL_Info, "Allocating new hook ...");
@@ -643,13 +653,79 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 // IAT HOOK UTILITY
 //////////////////////////
 
+// Substitute : Find original function address by this nids
+void* Substitute::FindOriginalByNids(struct proc* p, const char* nids)
+{
+    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+
+    auto dynlib_do_dlsym = (void*(*)(void* dl, void* obj, const char* name, const char* libname, unsigned int flags))kdlsym(dynlib_do_dlsym);
+
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    void* addr = nullptr;
+
+    if (p->p_dynlib) {
+        WriteLog(LL_Info, "[%s] Address of p_dynlib: %p", s_TitleId, p->p_dynlib);
+
+        // Lock dynlib object
+        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        A_sx_xlock_hard(dynlib_bind_lock, 0);
+
+        uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
+
+        if (main_dylib_obj) {
+            WriteLog(LL_Info, "[%s] Start searching ... (Main at %p)", s_TitleId, (void*)main_dylib_obj);
+
+            int total = 0;
+            uint64_t dynlib_obj = main_dylib_obj;
+            for (;;) {
+                total++;
+
+                char* name = (char*)(*(uint64_t*)(dynlib_obj + 8));
+                void* relocbase = (void*)(*(uint64_t*)(dynlib_obj + 0x70));
+                uint64_t handle = *(uint64_t*)(dynlib_obj + 0x28);
+
+                WriteLog(LL_Info, "[%s] search(%i): %p name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, name, handle, relocbase);
+
+                addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, nids, "libkernel", 0x1);
+                if (addr) {
+                    WriteLog(LL_Info, "Found at %s (%s => %p)", name, nids, addr);
+                } else {
+                    WriteLog(LL_Info, "Not found.");
+                }
+
+                dynlib_obj = *(uint64_t*)(dynlib_obj);
+                if (!dynlib_obj)
+                    break;
+            }
+        } else {
+            WriteLog(LL_Error, "[%s] Unable to find main object !", s_TitleId);
+        }
+
+        // Unlock dynlib object
+        A_sx_xunlock_hard(dynlib_bind_lock);
+    } else {
+        WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
+    }
+
+    return addr;
+}
+
 // Substitute : Print debug information from import table
 void Substitute::DebugImportTable(struct proc* p)
 {
+    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
     if (p->p_dynlib) {
         WriteLog(LL_Info, "[%s] Address of p_dynlib: %p", s_TitleId, p->p_dynlib);
+
+        // Lock dynlib object
+        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        A_sx_xlock_hard(dynlib_bind_lock, 0);
+
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
         if (main_dylib_obj) {
@@ -734,6 +810,9 @@ void Substitute::DebugImportTable(struct proc* p)
         } else {
             WriteLog(LL_Error, "[%s] Unable to find main object !", s_TitleId);
         }
+
+        // Unlock dynlib object
+        A_sx_xunlock_hard(dynlib_bind_lock);
     } else {
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }
@@ -741,6 +820,8 @@ void Substitute::DebugImportTable(struct proc* p)
 
 // Substitute : Find pre-offset from the nids
 uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find) {
+    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
@@ -786,6 +867,10 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
     uint64_t nids_offset_found = 0;
 
     if (p->p_dynlib) {
+        // Lock dynlib object
+        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        A_sx_xlock_hard(dynlib_bind_lock, 0);
+
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
         if (main_dylib_obj) {
@@ -843,6 +928,9 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
         } else {
             WriteLog(LL_Error, "[%s] Unable to find main object !", s_TitleId);
         }
+
+        // Unlock dynlib object
+        A_sx_xunlock_hard(dynlib_bind_lock);
     } else {
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }
@@ -861,31 +949,33 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
 // Substitute : PRX Loader
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
-    /*
+    /**/
     Substitute* substitute = GetPlugin();
 
     // Debug Hook IAT
-    void* jmpslot_address = (void*)substitute->FindOffsetFromNids(p, "gQX+4GDQjpM");
+    void* jmpslot_address = (void*)substitute->FindOffsetFromNids(p, "hcuQgD53UxM\0");
     if (!jmpslot_address) {
         WriteLog(LL_Error, "Unable to find jmpslot address !");
     }
 
-    void* original_function = nullptr;
-    size_t read_size = 0;
-    int r_error = proc_rw_mem(p, (void*)jmpslot_address, 8, (void*)&original_function, &read_size, 0);
-    if (r_error) {
-        WriteLog(LL_Error, "Unable to get the original value from the jmpslot ! (%i)", r_error);
+    void* original_function = (void*)substitute->FindOriginalByNids(p, "hcuQgD53UxM\0");
+    if (!original_function) {
+        WriteLog(LL_Error, "Unable to get the original value !");
     } else {
+        WriteLog(LL_Info, "original function: %p", original_function);
+    }
+
+    /*
         WriteLog(LL_Info, "Trying Hooking ...");
-        int hook_id = substitute->HookIAT(p, "gQX+4GDQjpM", original_function);
+        int hook_id = substitute->HookIAT(p, "hcuQgD53UxM", original_function);
         if (hook_id > 0) {
             WriteLog(LL_Info, "New hook at %i", hook_id);
-            substitute->EnableHook(hook_id);
+            substitute->EnableHook(p, hook_id);
         } else {
             WriteLog(LL_Error, "Unable to hook ! (%i)", hook_id);
         }
-    }
     */
+    /**/
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
@@ -894,8 +984,8 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
-    char s_SprxDirPath[255];
-    snprintf(s_SprxDirPath, 255, "/data/mira/substitute/%s/", s_TitleId);
+    char s_SprxDirPath[PATH_MAX];
+    snprintf(s_SprxDirPath, PATH_MAX, "/data/mira/substitute/%s/", s_TitleId);
 
     // Getting needed thread
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
@@ -912,10 +1002,12 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     struct filedesc* fd = p->p_fd;
 
     char* s_SandboxPath = nullptr;
-    char* freepath = nullptr;
-    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &freepath);
+    char* s_Freepath = nullptr;
+    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
 
     if (s_SandboxPath == nullptr) {
+        if (s_Freepath)
+            delete (s_Freepath);
         return;
     }
 
@@ -973,6 +1065,12 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     *curthread_fd = orig_curthread_fd;
     *curthread_cred = orig_curthread_cred;
 
+    // Cleanup
+    if (s_Freepath)
+        delete (s_Freepath);
+
+    s_SandboxPath = nullptr;
+
     // Reading folder and search for sprx ...
     uint64_t s_DentCount = 0;
     char s_Buffer[0x1000] = { 0 };
@@ -992,15 +1090,15 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
             // Check if the sprx is legit
             if (strstr(l_Dent->d_name, ".sprx")) {
-                char s_RelativeSprxPath[255];
-                snprintf(s_RelativeSprxPath, 255, "/substitute/%s", l_Dent->d_name);
+                char s_RelativeSprxPath[PATH_MAX];
+                snprintf(s_RelativeSprxPath, PATH_MAX, "/substitute/%s", l_Dent->d_name);
 
                 // Create relative path for the load
                 WriteLog(LL_Info, "[%s] Trying to load  %s ...", s_TitleId, s_RelativeSprxPath);
 
                 // Load the SPRX
                 int moduleID = 0;
-                int ret = kdynlib_load_prx_t(s_RelativeSprxPath, 0, NULL, 0, NULL, &moduleID, s_ProcessThread);
+                int ret = 0; //kdynlib_load_prx_t(s_RelativeSprxPath, 0, NULL, 0, NULL, &moduleID, s_ProcessThread);
 
                 WriteLog(LL_Info, "kdynlib_load_prx_t: ret: %i (0x%08x) moduleID: %i (0x%08x)", ret, ret, moduleID, moduleID);
             }
@@ -1042,16 +1140,19 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     struct filedesc* fd = p->p_fd;
 
     char* s_SandboxPath = nullptr;
-    char* freepath = nullptr;
-    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &freepath);
+    char* s_Freepath = nullptr;
+    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
 
     if (s_SandboxPath == nullptr) {
+        if (s_Freepath)
+            delete (s_Freepath);
+
         return;
     }
 
     // Finding substitute folder
-    char s_substituteFullMountPath[255];
-    snprintf(s_substituteFullMountPath, 255, "%s/substitute", s_SandboxPath);
+    char s_substituteFullMountPath[PATH_MAX];
+    snprintf(s_substituteFullMountPath, PATH_MAX, "%s/substitute", s_SandboxPath);
 
     auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, 0x0000 | 0x00020000, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
@@ -1074,6 +1175,9 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
         WriteLog(LL_Error, "could not remove substitute folder (%s) (%d).", s_substituteFullMountPath, ret);
         return;
     }
+
+    if (s_Freepath)
+        delete (s_Freepath);
 
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
 }

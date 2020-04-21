@@ -43,7 +43,7 @@ struct substitute_state_hook {
 
 struct substitute_hook_iat {
     int hook_id;
-    char nids[12];
+    char nids[0xA00];
     void* hook_function;
 };
 
@@ -96,6 +96,7 @@ namespace Mira
 
             uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
             void DebugImportTable(struct proc* p);
+            void* FindOriginalByNids(struct proc* p, const char* nids);
 
             static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
             static int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);

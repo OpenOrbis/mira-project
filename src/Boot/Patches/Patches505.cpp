@@ -156,6 +156,15 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[0] = 0xEB; // jmp +0x3A
 	kmem[1] = 0x38;
 
+	// flatz allow mangled symbol in dynlib_do_dlsym
+	kmem = (uint8_t *)&gKernelBase[0x002AFB47];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;	
+
 	// Enable mount for unprivileged user
 	kmem = (uint8_t *)&gKernelBase[0x001DEBFE];
 	kmem[0] = 0x90;

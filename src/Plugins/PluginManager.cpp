@@ -206,18 +206,6 @@ bool PluginManager::OnUnload()
         m_Logger = nullptr;
     }
 
-    // Delete the debugger
-    if (m_Debugger)
-    {
-        WriteLog(LL_Debug, "unloading debugger");
-        if (!m_Debugger->OnUnload())
-            WriteLog(LL_Error, "debugger could not unload");
-
-        // Free the debugger
-        delete m_Debugger;
-        m_Debugger = nullptr;
-    }
-
     // Delete Substitute
     if (m_Substitute)
     {
@@ -228,6 +216,19 @@ bool PluginManager::OnUnload()
         // Free Substitute
         delete m_Substitute;
         m_Substitute = nullptr;
+    }
+
+    // Delete the debugger
+    // NOTA: Don't unload before the debugger for catch error if something wrong
+    if (m_Debugger)
+    {
+        WriteLog(LL_Debug, "unloading debugger");
+        if (!m_Debugger->OnUnload())
+            WriteLog(LL_Error, "debugger could not unload");
+
+        // Free the debugger
+        delete m_Debugger;
+        m_Debugger = nullptr;
     }
     
     WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");
@@ -271,11 +272,12 @@ bool PluginManager::OnSuspend()
     if (!m_Logger->OnSuspend())
         WriteLog(LL_Error, "log manager suspend failed");
     
-    if (!m_Debugger->OnSuspend())
-        WriteLog(LL_Error, "debugger suspend failed");
-    
     if (!m_Substitute->OnSuspend())
         WriteLog(LL_Error, "substitute suspend failed");
+
+    // Nota: Don't suspend before the debugger for catch error if something when wrong
+    if (!m_Debugger->OnSuspend())
+        WriteLog(LL_Error, "debugger suspend failed");
 
     // Return final status
     return s_AllSuccess;

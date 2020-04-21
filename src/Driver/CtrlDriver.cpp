@@ -37,7 +37,7 @@ CtrlDriver::CtrlDriver() :
     m_Device(nullptr)
 {
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
-    auto kmake_dev_p = (int(*)(int _flags, struct cdev **_cdev, struct cdevsw *_devsw, struct ucred *_cr, uid_t _uid, gid_t _gid, int _mode, const char *_fmt, ...))kdlsym(make_dev_p);
+    auto make_dev_p = (int(*)(int _flags, struct cdev **_cdev, struct cdevsw *_devsw, struct ucred *_cr, uid_t _uid, gid_t _gid, int _mode, const char *_fmt, ...))kdlsym(make_dev_p);
 
     // Set up our device driver information
     m_DeviceSw.d_version = D_VERSION;
@@ -48,7 +48,7 @@ CtrlDriver::CtrlDriver() :
 
     // Add the device driver
 
-    int32_t s_ErrorDev = kmake_dev_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
+    int32_t s_ErrorDev = make_dev_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
         &m_Device,
         &m_DeviceSw,
         nullptr,
@@ -79,18 +79,18 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
 
     // Add rules for mira to allow process to open & see it
-    struct devfs_rule dr;
+    struct devfs_rule s_Dr;
 
-    memset(&dr, 0, sizeof(struct devfs_rule));
-    dr.dr_id = 0;
-    dr.dr_magic = DEVFS_MAGIC;
+    memset(&s_Dr, 0, sizeof(struct devfs_rule));
+    s_Dr.dr_id = 0;
+    s_Dr.dr_magic = DEVFS_MAGIC;
     
-    snprintf(dr.dr_pathptrn, DEVFS_MAXPTRNLEN, "mira");
-    dr.dr_icond |= DRC_PATHPTRN;
-    dr.dr_iacts |= DRA_BACTS;
-    dr.dr_bacts |= DRB_UNHIDE;
+    snprintf(s_Dr.dr_pathptrn, DEVFS_MAXPTRNLEN, "mira");
+    s_Dr.dr_icond |= DRC_PATHPTRN;
+    s_Dr.dr_iacts |= DRA_BACTS;
+    s_Dr.dr_bacts |= DRB_UNHIDE;
 
-    // Open devfs device (with is /dev/ ????)
+    // Open devfs device
     int32_t s_DevFS = kopen_t(_PATH_DEV, O_RDONLY, 0, s_ProcessThread);
     if (s_DevFS < 0) {
         WriteLog(LL_Error, "unable to open %s file (%d).", _PATH_DEV, s_DevFS);
@@ -110,7 +110,7 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
         0xC0EC4404 (DEVFSIO_RGETNEXT)
     */
 
-    int32_t s_ErrorIoctl = kioctl_t(s_DevFS, 0x80EC4402, (char*)&dr, s_ProcessThread);
+    int32_t s_ErrorIoctl = kioctl_t(s_DevFS, 0x80EC4402, (char*)&s_Dr, s_ProcessThread);
     if (s_ErrorIoctl < 0) {
         WriteLog(LL_Error, "unable to apply devfs rule add request (%d).", s_ErrorIoctl);
         return;
