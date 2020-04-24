@@ -9,6 +9,8 @@ extern "C"
     #include <sys/eventhandler.h>
     #include <sys/module.h>
     #include <sys/ioccom.h>
+    #include <sys/sysproto.h>
+    #include <sys/sysent.h>
 };
 
 struct proc;
@@ -18,6 +20,9 @@ enum HookType {
     HOOKTYPE_IAT,
     HOOKTYPE_JMP
 };
+
+#define SUBSTITUTE_MAX_NAME 255 // Max lenght for name
+#define SUBSTITUTE_IAT_NIDS 0x1 // Flags for use nids instead of name
 
 typedef struct {
     int id;
@@ -43,8 +48,10 @@ struct substitute_state_hook {
 
 struct substitute_hook_iat {
     int hook_id;
-    char nids[0xA00];
+    char name[SUBSTITUTE_MAX_NAME];
+    int flags;
     void* hook_function;
+    void* original_function;
 };
 
 struct substitute_hook_jmp {
@@ -75,6 +82,9 @@ namespace Mira
             int hook_nbr;
 
         public:
+            // Syscall hook (Original pointer)
+            void* sys_execve_p;
+
             Substitute();
             virtual ~Substitute();
             virtual bool OnLoad() override;
@@ -90,13 +100,13 @@ namespace Mira
             int EnableHook(struct proc* p, int hook_id);
             int Unhook(struct proc* p, int hook_id);
             int HookJmp(struct proc* p, void* original_address, void* hook_function);
-            int HookIAT(struct proc* p, const char* nids, void* hook_function);
+            int HookIAT(struct proc* p, const char* name, int32_t flags, void* hook_function, uint64_t* original_function_out);
             void CleanupProcessHook(struct proc* p);
             void CleanupAllHook();
 
-            uint64_t FindOffsetFromNids(struct proc* p, const char* nids_to_find);
+            uint64_t FindJmpslotAddress(struct proc* p, const char* name, int32_t flags);
+            void* FindOriginalAddress(struct proc* p, const char* name, int32_t flags);
             void DebugImportTable(struct proc* p);
-            void* FindOriginalByNids(struct proc* p, const char* nids);
 
             static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
             static int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
@@ -104,6 +114,7 @@ namespace Mira
             static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
         protected:
+            static int SysExecveHook(struct thread* td, struct execve_args* uap);
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
             static Substitute* GetPlugin();

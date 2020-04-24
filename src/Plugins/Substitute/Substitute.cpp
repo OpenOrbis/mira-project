@@ -14,6 +14,8 @@ extern "C"
     #include <sys/dirent.h>
     #include <sys/stat.h>
     #include <sys/sx.h>
+    #include <sys/sysproto.h>
+    #include <sys/sysent.h>
     #include <sys/unistd.h>
     #include <sys/uio.h>
     #include <sys/proc.h>
@@ -57,13 +59,20 @@ Substitute::~Substitute()
 // Substitute : Plugin loaded
 bool Substitute::OnLoad()
 {
+    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+    struct sysent* sysents = sv->sv_table;
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
     WriteLog(LL_Info, "Loading Substitute ...");
 
+    // Substitute mount / unmount
     m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
+
+    // Substitute syscall hook (PRX Loader)
+    sys_execve_p = (void*)sysents[SYS_EXECVE].sy_call;
+    sysents[SYS_EXECVE].sy_call = (sy_call_t*)SysExecveHook;
 
     mtx_init(&hook_mtx, "Substitute SPIN Lock", NULL, MTX_SPIN);
 
@@ -73,11 +82,14 @@ bool Substitute::OnLoad()
 // Substitute : Plugin unloaded
 bool Substitute::OnUnload()
 {
+    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+    struct sysent* sysents = sv->sv_table;
     auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
     auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
     WriteLog(LL_Error, "Unloading Substitute ...");
 
+    // Cleanup substitute mount / unmount
     if (m_processStartHandler) {
         EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartHandler);
         m_processStartHandler = nullptr;
@@ -86,6 +98,12 @@ bool Substitute::OnUnload()
     if (m_processEndHandler) {
         EVENTHANDLER_DEREGISTER(process_exit, m_processEndHandler);
         m_processStartHandler = nullptr;
+    }
+
+    // Cleanup substitute hook (PRX Loader)
+    if (sys_execve_p) {
+        sysents[SYS_EXECVE].sy_call = (sy_call_t*)sys_execve_p;
+        sys_execve_p = nullptr;
     }
 
     CleanupAllHook();
@@ -507,37 +525,28 @@ void Substitute::CleanupProcessHook(struct proc* p) {
 }
 
 // Substitute : Hook the function in the process (With Import Address Table)
-int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
+int Substitute::HookIAT(struct proc* p, const char* name, int32_t flags, void* hook_function, uint64_t* original_function_out) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     WriteLog(LL_Info, "Finding jumpslot address ...");
 
-    if (!p || !nids || !hook_function) {
+    if (!p || !name || !hook_function) {
         WriteLog(LL_Error, "One of the parameter is incorrect !");
         return -1;
     }
 
     // Get the jmpslot offset for this nids
-    void* jmpslot_address = (void*)FindOffsetFromNids(p, nids);
+    void* jmpslot_address = (void*)FindJmpslotAddress(p, name, flags);
     if (!jmpslot_address) {
-        WriteLog(LL_Error, "Unable to find the nids address !");
+        WriteLog(LL_Error, "Unable to find the jmpslot address !");
         return -2;
     }
 
     WriteLog(LL_Info, "The jmpslot address is %p, getting original value ...", jmpslot_address);
 
     // Get the original value for this jmpslot
-    void* original_function = nullptr;
-    /*
-    size_t read_size = 0;
-    int r_error = proc_rw_mem(p, (void*)jmpslot_address, 8, (void*)&original_function, &read_size, 0);
-    if (r_error || !original_function) {
-        WriteLog(LL_Error, "Unable to get the original value from the jmpslot ! (%i)", r_error);
-        return -3;
-    }*/
-
-    original_function = FindOriginalByNids(p, nids);
+    void* original_function = FindOriginalAddress(p, name, flags);
     if (!original_function) {
         WriteLog(LL_Error, "Unable to get the original value from the jmpslot !");
         return -3;
@@ -565,6 +574,10 @@ int Substitute::HookIAT(struct proc* p, const char* nids, void* hook_function) {
     new_hook->jmpslot_address = jmpslot_address;
     new_hook->original_function = original_function;
     new_hook->hook_enable = false;
+
+    if (original_function_out) {
+        *original_function_out = (uint64_t)original_function;
+    }
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
@@ -653,8 +666,8 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 // IAT HOOK UTILITY
 //////////////////////////
 
-// Substitute : Find original function address by this nids
-void* Substitute::FindOriginalByNids(struct proc* p, const char* nids)
+// Substitute : Find original function address by this name (or nids)
+void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t flags)
 {
     auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
     auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
@@ -681,15 +694,20 @@ void* Substitute::FindOriginalByNids(struct proc* p, const char* nids)
             for (;;) {
                 total++;
 
-                char* name = (char*)(*(uint64_t*)(dynlib_obj + 8));
+                char* lib_name = (char*)(*(uint64_t*)(dynlib_obj + 8));
                 void* relocbase = (void*)(*(uint64_t*)(dynlib_obj + 0x70));
                 uint64_t handle = *(uint64_t*)(dynlib_obj + 0x28);
 
-                WriteLog(LL_Info, "[%s] search(%i): %p name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, name, handle, relocbase);
+                WriteLog(LL_Info, "[%s] search(%i): %p lib_name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, lib_name, handle, relocbase);
 
-                addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, nids, "libkernel", 0x1);
+                if ( (flags & 1) ) {
+                    addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x1); // name = nids
+                } else {
+                    addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x0); // use name (dynlib_do_dlsym will calculate later)
+                }
+
                 if (addr) {
-                    WriteLog(LL_Info, "Found at %s (%s => %p)", name, nids, addr);
+                    WriteLog(LL_Info, "Found at %s (%s => %p)", lib_name, name, addr);
                 } else {
                     WriteLog(LL_Info, "Not found.");
                 }
@@ -818,13 +836,30 @@ void Substitute::DebugImportTable(struct proc* p)
     }
 }
 
-// Substitute : Find pre-offset from the nids
-uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find) {
+// Substitute : Find pre-offset from the name or nids
+uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_t flags) {
     auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
     auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto name_to_nids = (void(*)(const char *name, const char *nids_out))kdlsym(name_to_nids);
+
+    if (!name || !p) {
+        WriteLog(LL_Error, "Invalid argument.");
+        return 0;   
+    }
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
+
+
+    // Get the nids of the function
+    char nids[0xD];
+    if ( (flags & 1) ) {
+        snprintf(nids, sizeof(nids), "%s", name); // nids = name
+    } else {
+        name_to_nids(name, nids); // nids calculated by name
+    }
+
 
     // Get the start text address of my process
     uint64_t s_TextStart = 0;
@@ -906,9 +941,9 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
 
                             uint64_t r_offset = *(uint64_t*)(current);
 
-                            char* nids = (char*)nids_offset;
-                            if (nids) {
-                                if (strncmp(nids, nids_to_find, 11) == 0) {
+                            char* nids_f = (char*)nids_offset;
+                            if (nids_f) {
+                                if (strncmp(nids_f, nids, 11) == 0) {
                                     nids_offset_found = r_offset;
                                     break;
                                 }
@@ -946,40 +981,33 @@ uint64_t Substitute::FindOffsetFromNids(struct proc* p, const char* nids_to_find
 // PROCESS MANAGEMENT
 //////////////////////////
 
-// Substitute : PRX Loader
+// Substitute : Mount Substitute folder
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
-    /**/
+
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
+
+    /*
     Substitute* substitute = GetPlugin();
 
-    // Debug Hook IAT
-    void* jmpslot_address = (void*)substitute->FindOffsetFromNids(p, "hcuQgD53UxM\0");
-    if (!jmpslot_address) {
-        WriteLog(LL_Error, "Unable to find jmpslot address !");
-    }
 
-    void* original_function = (void*)substitute->FindOriginalByNids(p, "hcuQgD53UxM\0");
+    void* original_function = (void*)substitute->FindOriginalAddress(p, "printf", 0);
     if (!original_function) {
         WriteLog(LL_Error, "Unable to get the original value !");
     } else {
         WriteLog(LL_Info, "original function: %p", original_function);
     }
 
-    /*
-        WriteLog(LL_Info, "Trying Hooking ...");
-        int hook_id = substitute->HookIAT(p, "hcuQgD53UxM", original_function);
-        if (hook_id > 0) {
-            WriteLog(LL_Info, "New hook at %i", hook_id);
-            substitute->EnableHook(p, hook_id);
-        } else {
-            WriteLog(LL_Error, "Unable to hook ! (%i)", hook_id);
-        }
+    WriteLog(LL_Info, "Trying Hooking ...");
+    int hook_id = substitute->HookIAT(p, "printf", 0, original_function, NULL);
+    if (hook_id > 0) {
+        WriteLog(LL_Info, "New hook at %i", hook_id);
+        substitute->EnableHook(p, hook_id);
+    } else {
+        WriteLog(LL_Error, "Unable to hook ! (%i)", hook_id);
+    }
     */
-    /**/
-
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
-    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
@@ -1071,47 +1099,11 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
     s_SandboxPath = nullptr;
 
-    // Reading folder and search for sprx ...
-    uint64_t s_DentCount = 0;
-    char s_Buffer[0x1000] = { 0 };
-    memset(s_Buffer, 0, sizeof(s_Buffer));
-    int32_t s_ReadCount = 0;
-    for (;;)
-    {
-        memset(s_Buffer, 0, sizeof(s_Buffer));
-        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_MainThread);
-        if (s_ReadCount <= 0)
-            break;
-        
-        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
-        {
-            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
-            s_DentCount++;
-
-            // Check if the sprx is legit
-            if (strstr(l_Dent->d_name, ".sprx")) {
-                char s_RelativeSprxPath[PATH_MAX];
-                snprintf(s_RelativeSprxPath, PATH_MAX, "/substitute/%s", l_Dent->d_name);
-
-                // Create relative path for the load
-                WriteLog(LL_Info, "[%s] Trying to load  %s ...", s_TitleId, s_RelativeSprxPath);
-
-                // Load the SPRX
-                int moduleID = 0;
-                int ret = 0; //kdynlib_load_prx_t(s_RelativeSprxPath, 0, NULL, 0, NULL, &moduleID, s_ProcessThread);
-
-                WriteLog(LL_Info, "kdynlib_load_prx_t: ret: %i (0x%08x) moduleID: %i (0x%08x)", ret, ret, moduleID, moduleID);
-            }
-
-            l_Pos += l_Dent->d_reclen;
-        }
-    }
-
-    // Closing substrate folder
+    // Closing substitute folder
     kclose_t(s_DirectoryHandle, s_MainThread);
 }
 
-// Substitute : Unmount substitute folder
+// Substitute : Unmount Substitute folder
 void Substitute::OnProcessExit(void *arg, struct proc *p) {
     Substitute* substitute = GetPlugin();
 
@@ -1182,6 +1174,68 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
 }
 
+// Substitute : Load PRX from Substitute folder
+int Substitute::SysExecveHook(struct thread* td, struct execve_args* uap) {
+    Substitute* substitute = GetPlugin();
+
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    auto sys_execve = (int(*)(struct thread*, struct execve_args*))substitute->sys_execve_p;
+
+    int ret = sys_execve(td, uap);
+
+    char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
+
+    // Opening substitute folder
+    auto s_DirectoryHandle = kopen_t("/substitute/", 0x0000 | 0x00020000, 0777, td);
+    if (s_DirectoryHandle > 0)
+    {
+        // Reading folder and search for sprx ...
+        uint64_t s_DentCount = 0;
+        char s_Buffer[0x1000] = { 0 };
+        memset(s_Buffer, 0, sizeof(s_Buffer));
+        int32_t s_ReadCount = 0;
+        for (;;)
+        {
+            memset(s_Buffer, 0, sizeof(s_Buffer));
+            s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), td);
+            if (s_ReadCount <= 0)
+                break;
+            
+            for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+            {
+                auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+                s_DentCount++;
+
+                // Check if the sprx is legit
+                if (strstr(l_Dent->d_name, ".sprx")) {
+                    char s_RelativeSprxPath[PATH_MAX];
+                    snprintf(s_RelativeSprxPath, PATH_MAX, "/substitute/%s", l_Dent->d_name);
+
+                    // Create relative path for the load
+                    WriteLog(LL_Info, "[%s] Trying to load  %s ...", s_TitleId, s_RelativeSprxPath);
+
+                    // Load the SPRX
+                    int moduleID = 0;
+                    int ret = kdynlib_load_prx_t(s_RelativeSprxPath, 0, NULL, 0, NULL, &moduleID, td);
+
+                    WriteLog(LL_Info, "kdynlib_load_prx_t: ret: %i (0x%08x) moduleID: %i (0x%08x)", ret, ret, moduleID, moduleID);
+                }
+
+                l_Pos += l_Dent->d_reclen;
+            }
+        }
+
+        // Closing substitute folder
+        kclose_t(s_DirectoryHandle, td);
+    }
+
+    return ret;
+}
 
 //////////////////////////
 // USERLAND IOCTL WRAPPER
@@ -1198,18 +1252,26 @@ int Substitute::OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* u
     Substitute* substitute = GetPlugin();
     if (!substitute) {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        uap->hook_id = hook_id;
+        uap->hook_id = -1;
         return 0;
     }
 
-    hook_id = substitute->HookIAT(td->td_proc, uap->nids, uap->hook_function);
+    uint64_t original_function = 0;
+    hook_id = substitute->HookIAT(td->td_proc, uap->name, uap->flags, uap->hook_function, &original_function);
     if (hook_id > 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
-        WriteLog(LL_Error, "Unable to hook %s ! (%i)", uap->nids, hook_id);
+        WriteLog(LL_Error, "Unable to hook %s ! (%i)", uap->name, hook_id);
+    }
+
+    if (original_function <= 0) {
+        WriteLog(LL_Error, "Something weird have appened.");
+        uap->hook_id = -1;
+        return 0;
     }
 
     uap->hook_id = hook_id;
+    uap->original_function = (void*)original_function;
     return 0;
 }
 

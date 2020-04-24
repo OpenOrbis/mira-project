@@ -33,6 +33,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_critical_exit                          0x0028E4E0
 #define kdlsym_addr_dmem_start_app_process                 0x002468E0
 #define kdlsym_addr_dynlib_do_dlsym                        0x002AF7B0
+#define kdlsym_addr_dynlib_find_obj_by_handle              0x002B0B40
 #define kdlsym_addr_eventhandler_register                  0x001EC2F0
 #define kdlsym_addr_exec_new_vmspace                       0x0038A940
 #define kdlsym_addr_faultin                                0x00006DD0
@@ -74,6 +75,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_mtx_init                               0x004023B0
 #define kdlsym_addr_mtx_lock_sleep                         0x004019a0
 #define kdlsym_addr_mtx_unlock_sleep                       0x00401bd0
+#define kdlsym_addr_name_to_nids                           0x002AFA90
 #define kdlsym_addr_pfind                                  0x00403110
 #define kdlsym_addr_pmap_activate                          0x002EAC40
 #define kdlsym_addr_printf                                 0x00435C70
@@ -97,7 +99,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblKeymgrSmCallfunc                 0x0062DEC0
 #define kdlsym_addr_sceSblPfsSetKeys                       0x0061EBC0
 #define kdlsym_addr_sceSblServiceMailbox                   0x00632160
-#define kdlsym_addr_sceSblACMgrGetPathId                   0x0
+#define kdlsym_addr_sceSblACMgrGetPathId                   0x000117E0
 #define kdlsym_addr_self_orbis_sysvec                      0x019BBCD0
 #define kdlsym_addr_Sha256Hmac                             0x002D52E0
 #define kdlsym_addr_snprintf                               0x00435F80
