@@ -16,6 +16,13 @@ extern "C"
 struct proc;
 struct mtx;
 
+struct dynlib_load_prx_args_ex {
+    char*    path;  // const char *
+    uint64_t unk1;   // int *
+    uint64_t pRes;   // int *
+    uint64_t unk2;   // int *
+};
+
 enum HookType {
     HOOKTYPE_IAT,
     HOOKTYPE_JMP
@@ -83,7 +90,7 @@ namespace Mira
 
         public:
             // Syscall hook (Original pointer)
-            void* sys_execve_p;
+            void* sys_dynlib_load_prx_p;
 
             Substitute();
             virtual ~Substitute();
@@ -114,7 +121,7 @@ namespace Mira
             static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
         protected:
-            static int SysExecveHook(struct thread* td, struct execve_args* uap);
+            static int Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_prx_args_ex* uap);
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
             static Substitute* GetPlugin();

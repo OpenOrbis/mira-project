@@ -71,8 +71,8 @@ bool Substitute::OnLoad()
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
     // Substitute syscall hook (PRX Loader)
-    sys_execve_p = (void*)sysents[SYS_EXECVE].sy_call;
-    sysents[SYS_EXECVE].sy_call = (sy_call_t*)SysExecveHook;
+    sys_dynlib_load_prx_p = (void*)sysents[SYS_DYNLIB_LOAD_PRX].sy_call;
+    sysents[SYS_DYNLIB_LOAD_PRX].sy_call = (sy_call_t*)Sys_dynlib_load_prx_hook;
 
     mtx_init(&hook_mtx, "Substitute SPIN Lock", NULL, MTX_SPIN);
 
@@ -101,9 +101,9 @@ bool Substitute::OnUnload()
     }
 
     // Cleanup substitute hook (PRX Loader)
-    if (sys_execve_p) {
-        sysents[SYS_EXECVE].sy_call = (sy_call_t*)sys_execve_p;
-        sys_execve_p = nullptr;
+    if (sys_dynlib_load_prx_p) {
+        sysents[SYS_DYNLIB_LOAD_PRX].sy_call = (sy_call_t*)sys_dynlib_load_prx_p;
+        sys_dynlib_load_prx_p = nullptr;
     }
 
     CleanupAllHook();
@@ -984,7 +984,6 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_
 // Substitute : Mount Substitute folder
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
-
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
@@ -1175,25 +1174,38 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
 }
 
 // Substitute : Load PRX from Substitute folder
-int Substitute::SysExecveHook(struct thread* td, struct execve_args* uap) {
+int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_prx_args_ex* uap) {
     Substitute* substitute = GetPlugin();
-
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
-
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-    auto sys_execve = (int(*)(struct thread*, struct execve_args*))substitute->sys_execve_p;
-
-    int ret = sys_execve(td, uap);
 
     char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
 
-    // Opening substitute folder
-    auto s_DirectoryHandle = kopen_t("/substitute/", 0x0000 | 0x00020000, 0777, td);
-    if (s_DirectoryHandle > 0)
-    {
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+    //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
+
+    auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args_ex*))substitute->sys_dynlib_load_prx_p;
+
+    int ret = sys_dynlib_load_prx(td, uap);
+
+    char path[PATH_MAX];
+    memset(path, 0, sizeof(path));
+    size_t done = 0;
+
+    if (!uap->path) {
+        return ret;
+    }
+
+    copyinstr((void*)uap->path, (void*)path, PATH_MAX, &done);
+
+    if (strstr(path, "/common/lib/libSceSysmodule.sprx")) {
+        // Opening substitute folder
+        auto s_DirectoryHandle = kopen_t("/substitute/", 0x0000 | 0x00020000, 0777, td);
+        if (s_DirectoryHandle < 0)
+        {
+            return ret;
+        }
+
         // Reading folder and search for sprx ...
         uint64_t s_DentCount = 0;
         char s_Buffer[0x1000] = { 0 };
@@ -1219,11 +1231,14 @@ int Substitute::SysExecveHook(struct thread* td, struct execve_args* uap) {
                     // Create relative path for the load
                     WriteLog(LL_Info, "[%s] Trying to load  %s ...", s_TitleId, s_RelativeSprxPath);
 
-                    // Load the SPRX
-                    int moduleID = 0;
-                    int ret = kdynlib_load_prx_t(s_RelativeSprxPath, 0, NULL, 0, NULL, &moduleID, td);
+                    int moduleID = -1;
 
-                    WriteLog(LL_Info, "kdynlib_load_prx_t: ret: %i (0x%08x) moduleID: %i (0x%08x)", ret, ret, moduleID, moduleID);
+                    // Load the SPRX (By usi,g existing uap)
+                    uap->path = s_RelativeSprxPath;
+                    uap->pRes = (uint64_t)&moduleID;
+
+                    int ret_substrate = sys_dynlib_load_prx(td, uap);
+                    WriteLog(LL_Info, "sys_dynlib_load_prx: ret: %i (0x%08x) moduleID: %i (0x%08x)", ret_substrate, ret_substrate, moduleID, moduleID);
                 }
 
                 l_Pos += l_Dent->d_reclen;
@@ -1233,6 +1248,7 @@ int Substitute::SysExecveHook(struct thread* td, struct execve_args* uap) {
         // Closing substitute folder
         kclose_t(s_DirectoryHandle, td);
     }
+
 
     return ret;
 }
