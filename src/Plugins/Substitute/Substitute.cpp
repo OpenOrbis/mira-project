@@ -76,6 +76,20 @@ bool Substitute::OnLoad()
 
     mtx_init(&hook_mtx, "Substitute SPIN Lock", NULL, MTX_SPIN);
 
+    // Print substitute ioctl command
+    WriteLog(LL_Debug, "IOCTL Command:");
+    WriteLog(LL_Debug, "SUBSTITUTE_HOOK_IAT: 0x%08x", SUBSTITUTE_HOOK_IAT);
+    WriteLog(LL_Debug, "SUBSTITUTE_HOOK_JMP: 0x%08x", SUBSTITUTE_HOOK_JMP);
+    WriteLog(LL_Debug, "SUBSTITUTE_HOOK_STATE: 0x%08x", SUBSTITUTE_HOOK_STATE);
+
+    // Substitute is ready ! Now Killing SceShellUI for relaunching UI Process :D
+    struct proc* ui_proc = Utilities::FindProcessByName("SceShellUI");
+    if (ui_proc) {
+        Utilities::KillProcess(ui_proc);
+    } else {
+        WriteLog(LL_Error, "Unable to find SceShellUI Process !");
+    }
+
     return true;
 }
 
@@ -1377,14 +1391,17 @@ int32_t Substitute::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 {
     switch (p_Command) {
         case SUBSTITUTE_HOOK_IAT: {
+            WriteLog(LL_Info, "SUBSTITUTE_HOOK_IAT IOCTL Trigerred !");
             return Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
         }
 
         case SUBSTITUTE_HOOK_JMP: {
+            WriteLog(LL_Info, "SUBSTITUTE_HOOK_JMP IOCTL Trigerred !");
             return Substitute::OnIoctl_HookJMP(p_Thread, (struct substitute_hook_jmp*)p_Data);
         }
 
         case SUBSTITUTE_HOOK_STATE: {
+            WriteLog(LL_Info, "SUBSTITUTE_HOOK_STATE IOCTL Trigerred !");
             return Substitute::OnIoctl_StateHook(p_Thread, (struct substitute_state_hook*)p_Data);
         }
 

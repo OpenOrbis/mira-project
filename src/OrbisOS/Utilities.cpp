@@ -303,3 +303,9 @@ int Utilities::MountNullFS(char* where, char* what, int flags)
 
     return kernel_mount(ma, flags);
 }
+
+int Utilities::KillProcess(struct proc* p)
+{
+	auto killproc = (int(*)(struct proc *p, const char *why))kdlsym(killproc);
+	return killproc(p, "Mira");
+}

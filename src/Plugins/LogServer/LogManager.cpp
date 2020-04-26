@@ -4,12 +4,17 @@
 
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
+#include <Utils/Hook.hpp>
 
 #include <Utils/SysWrappers.hpp>
 
 #include <sys/proc.h>
 #include <sys/socket.h>
 #include <sys/filedesc.h>
+#include <sys/syslimits.h>
+#include <sys/param.h>
+#include <sys/conf.h>
+#include <sys/uio.h>
 
 #include <Mira.hpp>
 
@@ -17,7 +22,7 @@ using namespace Mira::Plugins;
 using namespace Mira::Plugins::LogManagerExtent;
 
 
-LogManager::LogManager(uint16_t p_Port) :
+LogManager::LogManager(uint16_t p_Port, char* p_Device) :
     m_Socket(-1),
     m_Port(p_Port),
     m_Thread(nullptr),
@@ -25,6 +30,14 @@ LogManager::LogManager(uint16_t p_Port) :
 {
     // Zero out the address
     memset(&m_Address, 0, sizeof(m_Address));
+
+    // Define device
+    if (p_Device) {
+        memcpy(m_Device, p_Device, PATH_MAX);
+    } else {
+        char buffer[PATH_MAX] = DEFAULT_PATH;
+        memcpy(m_Device, buffer, PATH_MAX);
+    }
 }
 
 LogManager::~LogManager()
@@ -88,7 +101,7 @@ bool LogManager::Startup()
     {
         WriteLog(LL_Error, "could not bind socket (%d).", s_Ret);
         kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-		kclose_t(m_Socket, s_MainThread);
+        kclose_t(m_Socket, s_MainThread);
         m_Socket = -1;
         return false;
     }
@@ -100,9 +113,9 @@ bool LogManager::Startup()
     {
         WriteLog(LL_Error, "could not listen on socket (%d).", s_Ret);
         kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-		kclose_t(m_Socket, s_MainThread);
-		m_Socket = -1;
-		return false;
+        kclose_t(m_Socket, s_MainThread);
+        m_Socket = -1;
+        return false;
     }
 
     // Create the new server processing thread, 8MiB stack
@@ -129,7 +142,7 @@ bool LogManager::Teardown()
     if (m_Socket > 0)
     {
         kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-		kclose_t(m_Socket, s_MainThread);
+        kclose_t(m_Socket, s_MainThread);
         m_Socket = -1;
     }
 
@@ -151,7 +164,7 @@ void LogManager::ServerThread(void* p_UserArgs)
     }
 
     //auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     // Check for invalid usage
     LogManager* s_Server = static_cast<LogManager*>(p_UserArgs);
@@ -177,15 +190,15 @@ void LogManager::ServerThread(void* p_UserArgs)
     size_t s_ClientAddressLen = sizeof(s_ClientAddress);
     memset(&s_ClientAddress, 0, s_ClientAddressLen);
     s_ClientAddress.sin_len = s_ClientAddressLen;
-	char buffer[2];
+    char buffer[2];
 
-	WriteLog(LL_Info, "Opening klog");
-	auto klog = kopen_t("/dev/klog", 0x00, 0, s_MainThread);
-	if (klog < 0)
-	{
-		WriteLog(LL_Error, "could not open klog for reading (%d).", klog);
-		kclose_t(s_ClientSocket, s_MainThread);
-	}
+    WriteLog(LL_Info, "Opening %s", s_Server->m_Device);
+    auto klog = kopen_t(s_Server->m_Device, 0x00, 0, s_MainThread);
+    if (klog < 0)
+    {
+        WriteLog(LL_Error, "could not open %s for reading (%d).", s_Server->m_Device, klog);
+        kclose_t(s_ClientSocket, s_MainThread);
+    }
     while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
         // Set the send recv and linger timeouts
@@ -218,20 +231,20 @@ void LogManager::ServerThread(void* p_UserArgs)
 
         uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
 
-		WriteLog(LL_Debug, "got new log connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
-			(l_Addr & 0xFF),
-			(l_Addr >> 8) & 0xFF,
-			(l_Addr >> 16) & 0xFF,
-			(l_Addr >> 24) & 0xFF);
+        WriteLog(LL_Debug, "got new log connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
+            (l_Addr & 0xFF),
+            (l_Addr >> 8) & 0xFF,
+            (l_Addr >> 16) & 0xFF,
+            (l_Addr >> 24) & 0xFF);
 
         auto bytesRead = 0;
-		while ((bytesRead = kread_t(klog, buffer, 1, s_MainThread)) > 0)
-		{
-			if (kwrite_t(s_ClientSocket, buffer, 1, s_MainThread) <= 0)
-				break;
+        while ((bytesRead = kread_t(klog, buffer, 1, s_MainThread)) > 0)
+        {
+            if (kwrite_t(s_ClientSocket, buffer, 1, s_MainThread) <= 0)
+                break;
 
-			memset(buffer, 0, sizeof(buffer));
-		}
+            memset(buffer, 0, sizeof(buffer));
+        }
 
     }
 

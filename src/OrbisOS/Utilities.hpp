@@ -29,6 +29,7 @@ namespace Mira
             static int ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_ReadWriteSize, bool p_Write);
             static int GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries);
             static int MountNullFS(char* where, char* what, int flags);
+            static int KillProcess(struct proc* p);
         };
     }
 }
