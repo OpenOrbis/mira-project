@@ -29,7 +29,16 @@ enum HookType {
 };
 
 #define SUBSTITUTE_MAX_NAME 255 // Max lenght for name
-#define SUBSTITUTE_IAT_NIDS 0x1 // Flags for use nids instead of name
+
+enum {
+    SUBSTITUTE_IAT_NAME = 0,
+    SUBSTITUTE_IAT_NIDS = 1
+};
+
+enum {
+    SUBSTITUTE_STATE_DISABLE = 0,
+    SUBSTITUTE_STATE_ENABLE = 1
+};
 
 typedef struct {
     int id;
@@ -99,6 +108,8 @@ namespace Mira
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
 
+            static Substitute* GetPlugin();
+
             int FindAvailableHookID();
             SubstituteHook* GetHookByID(int hook_id);
             SubstituteHook* AllocateNewHook();
@@ -124,7 +135,6 @@ namespace Mira
             static int Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_prx_args_ex* uap);
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
-            static Substitute* GetPlugin();
         };
     }
 }

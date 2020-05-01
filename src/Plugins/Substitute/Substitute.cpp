@@ -83,12 +83,14 @@ bool Substitute::OnLoad()
     WriteLog(LL_Debug, "SUBSTITUTE_HOOK_STATE: 0x%08x", SUBSTITUTE_HOOK_STATE);
 
     // Substitute is ready ! Now Killing SceShellUI for relaunching UI Process :D
+    /*
     struct proc* ui_proc = Utilities::FindProcessByName("SceShellUI");
     if (ui_proc) {
         Utilities::KillProcess(ui_proc);
     } else {
         WriteLog(LL_Error, "Unable to find SceShellUI Process !");
     }
+    */
 
     return true;
 }
@@ -714,7 +716,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 
                 WriteLog(LL_Info, "[%s] search(%i): %p lib_name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, lib_name, handle, relocbase);
 
-                if ( (flags & 1) ) {
+                if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
                     addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x1); // name = nids
                 } else {
                     addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x0); // use name (dynlib_do_dlsym will calculate later)
@@ -722,6 +724,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 
                 if (addr) {
                     WriteLog(LL_Info, "Found at %s (%s => %p)", lib_name, name, addr);
+                    break;
                 } else {
                     WriteLog(LL_Info, "Not found.");
                 }
@@ -868,7 +871,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_
 
     // Get the nids of the function
     char nids[0xD];
-    if ( (flags & 1) ) {
+    if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
         snprintf(nids, sizeof(nids), "%s", name); // nids = name
     } else {
         name_to_nids(name, nids); // nids calculated by name
@@ -1000,27 +1003,6 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
-
-    /*
-    Substitute* substitute = GetPlugin();
-
-
-    void* original_function = (void*)substitute->FindOriginalAddress(p, "printf", 0);
-    if (!original_function) {
-        WriteLog(LL_Error, "Unable to get the original value !");
-    } else {
-        WriteLog(LL_Info, "original function: %p", original_function);
-    }
-
-    WriteLog(LL_Info, "Trying Hooking ...");
-    int hook_id = substitute->HookIAT(p, "printf", 0, original_function, NULL);
-    if (hook_id > 0) {
-        WriteLog(LL_Info, "New hook at %i", hook_id);
-        substitute->EnableHook(p, hook_id);
-    } else {
-        WriteLog(LL_Error, "Unable to hook ! (%i)", hook_id);
-    }
-    */
 
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
@@ -1195,13 +1177,17 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
-    //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
 
     auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args_ex*))substitute->sys_dynlib_load_prx_p;
 
+    // Call original syscall
     int ret = sys_dynlib_load_prx(td, uap);
 
+    // Save current td ret value
+    int original_td_value = td->td_retval[0];
+
+    // Get the current path of the loaded library
     char path[PATH_MAX];
     memset(path, 0, sizeof(path));
     size_t done = 0;
@@ -1212,11 +1198,15 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
 
     copyinstr((void*)uap->path, (void*)path, PATH_MAX, &done);
 
-    if (strstr(path, "/common/lib/libSceSysmodule.sprx")) {
+    // If libc is loaded
+    if (strstr(path, "libc.prx") || strstr(path, "libc.sprx")) {
+
         // Opening substitute folder
         auto s_DirectoryHandle = kopen_t("/substitute/", 0x0000 | 0x00020000, 0777, td);
         if (s_DirectoryHandle < 0)
         {
+            // Restore td ret value
+            td->td_retval[0] = original_td_value;
             return ret;
         }
 
@@ -1239,20 +1229,14 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
 
                 // Check if the sprx is legit
                 if (strstr(l_Dent->d_name, ".sprx")) {
+                    // Generating relative path
                     char s_RelativeSprxPath[PATH_MAX];
                     snprintf(s_RelativeSprxPath, PATH_MAX, "/substitute/%s", l_Dent->d_name);
 
                     // Create relative path for the load
-                    WriteLog(LL_Info, "[%s] Trying to load  %s ...", s_TitleId, s_RelativeSprxPath);
+                    WriteLog(LL_Info, "[%s] Loading  %s ...", s_TitleId, s_RelativeSprxPath);
 
-                    int moduleID = -1;
-
-                    // Load the SPRX (By usi,g existing uap)
-                    uap->path = s_RelativeSprxPath;
-                    uap->pRes = (uint64_t)&moduleID;
-
-                    int ret_substrate = sys_dynlib_load_prx(td, uap);
-                    WriteLog(LL_Info, "sys_dynlib_load_prx: ret: %i (0x%08x) moduleID: %i (0x%08x)", ret_substrate, ret_substrate, moduleID, moduleID);
+                    Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
                 }
 
                 l_Pos += l_Dent->d_reclen;
@@ -1263,7 +1247,8 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
         kclose_t(s_DirectoryHandle, td);
     }
 
-
+    // Restore td ret value
+    td->td_retval[0] = original_td_value;
     return ret;
 }
 
@@ -1348,7 +1333,7 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
     }
 
     switch (uap->state) {
-        case 0: {
+        case SUBSTITUTE_STATE_ENABLE: {
             ret = substitute->EnableHook(td->td_proc, uap->hook_id);
             if (ret < 0) {
                 WriteLog(LL_Error, "Unable to enable hook %i !", uap->hook_id);
@@ -1362,7 +1347,7 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
             break;
         }
 
-        case 1: {
+        case SUBSTITUTE_STATE_DISABLE: {
             ret = substitute->DisableHook(td->td_proc, uap->hook_id);
             if (ret < 0) {
                 WriteLog(LL_Error, "Unable to disable hook %i !", uap->hook_id);

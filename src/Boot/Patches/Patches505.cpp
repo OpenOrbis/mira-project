@@ -174,5 +174,17 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
 
+	// patch suword_lwpid
+	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
+	// Patch by: JOGolden
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9D2];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9E1];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
 #endif
 }

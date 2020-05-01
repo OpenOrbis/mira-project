@@ -2193,6 +2193,56 @@ int kdynlib_load_prx_t(char* path, uint64_t args, uint64_t argp, uint32_t flags,
 	return ret;
 }
 
+int kdynlib_get_obj_member_internal(uint32_t handle, uint32_t index, uint64_t value, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_dynlib_get_obj_member = (int(*)(struct thread*, struct dynlib_get_obj_member*))sysents[SYS_DYNLIB_GET_OBJ_MEMBER].sy_call;
+	if (!sys_dynlib_get_obj_member)
+		return -1;
+
+	int error;
+	struct dynlib_get_obj_member uap;
+	uap.handle = handle;
+	uap.index = index;
+	uap.value = value;
+
+	error = sys_dynlib_get_obj_member(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kdynlib_get_obj_member_t(uint32_t handle, uint32_t index, void** value, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kdynlib_get_obj_member_internal(handle, index, (uint64_t)value, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
 int kunmount(char* path, int flags, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
