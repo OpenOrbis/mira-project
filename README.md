@@ -20,12 +20,11 @@ It works differently to the custom firmware experience on Playstation 3, where C
   - Emulated NVS (EmuNVS)
   - Kernel Debugger
   - Remote GDB
-  - System-level FUSE implementation (Experimental)
+  - System-level FUSE implementation (Experimental, WIP)
+  - Load sprx modules + IAT + Function Hooking (Thanks theorywrong)
 
 You can also:
-  - Mount and decrypt local gamesaves (Thanks ChendoChap)
-  - Drag and drop markdown and HTML files into Dillinger
-  - Export documents as Markdown, HTML and PDF
+  - Mount and decrypt local gamesaves (Thanks ChendoChap) (WIP)
   - Transfer files to and from the harddrive
   - Implement your own kernel plugins (RPC using protobuf)
   - Implement your own userland trainers (hooks included!)
@@ -63,6 +62,7 @@ This project would not be possible without these people (no paticluar order):
 * [kozarovv] - RE (4.05 offsets)
 * [LM] - RE (Research on System-Library-Loading)
 * [TheFlow] - RE
+* [samsepi0l] - Offset Porting
 * [Anon #1] - Developer (Code, Non-stop help, <3 thx bruv)
 * [Anon #2] - Developer (Code, Non-stop help, gl with job!)
 * [Anon #3] - Security (Future proofing design)
@@ -72,7 +72,7 @@ This project would not be possible without these people (no paticluar order):
 
 ### Installation
 
-TODO: Instructions
+## Checking out
 
 ### Plugins
 
@@ -145,3 +145,4 @@ GPLv3
    [kozarovv]: <https://github.com/kozarovv>
    [LM]: <https://github.com/lightningmods>
    [TheFlow]: <https://github.com/TheOfficialFloW>
+   [samsepi0l]: <https://github.com/ethylamine>
