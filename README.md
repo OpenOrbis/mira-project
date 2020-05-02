@@ -68,6 +68,8 @@ This project would not be possible without these people (no paticluar order):
 ### Special Thanks
 * [bigboss] - liborbis, and being a hater every step of the way
 * [rogero] - Original 5.01 testing
+* [AbkarinoMHM] - Original 5.01 testing
+* [wildcard] - General questions, and hardware help
 * [Anon #1] - Developer (Code, Non-stop help, <3 thx bruv)
 * [Anon #2] - Developer (Code, Non-stop help, gl with job!)
 * [Anon #3] - Security (Future proofing design)
@@ -380,6 +382,44 @@ And here is an example VSCode `c_cpp_properties.json`
 }
 ```
 
+#### Firmware porting guide
+Lets say you are an eager developer, even a newbie that wants to try and contribute in some way or form to porting to a firmware that is not under active support. Here's the steps you would need to accomplish new builds *from scratch*. We will start by adding a non-existent firmware and work our way from that.
+
+**NOTE: This assumes you already have a kernel dump for your firmware, and things already labeled. If you need help with this step, you can ask in `#help` on the discord but you are pretty much on your own.***
+
+**WARNING: DO NOT SEND YOUR DUMPED KERNEL IN THE CHANNEL/DISCORD SERVER AS IT IS COPYRIGHTED MATERIALS AND YOU WILL BE WARNED/BANNED!!**
+
+Lets assume our firmware is `8.88` found in the PlayStation 4 System Software menu.
+
+1. Add your new firmware to `src/Boot/Config.hpp` you will see a bunch of defines already there, add your firmware in the correct version order
+    a. **#define MIRA_PLATFORM_ORBIS_BSD_888 888**
+2. Fix any structure changes for the kernel in freebsd-headers. You should compare against what's already there and add fields that have been added via 
+    a. **#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_888**
+    b. *HINT:* These are usually done in `struct proc`, `struct thread`, `struct ucred` if applicable, located in `exernal/freebsd-headers/include`.
+3. Add a new static function in `src/Boot/Patches.hpp` with your pre-boot patches, this will be called after MiraLoader finishes and before Mira runs
+    a. **static void install_prerunPatches_888();**
+4. Add your firmwares version to the case within `install_prePatches` in `src/Boot/Patches.cpp`
+    a. `case MIRA_PLATFORM_ORBIS_BSD_888: install_prerunPatches_888(); break;`
+5. Next create a new file named `Patches888.cpp` inside of `src/Boot/Patches` directory (or copy an existing one and rename it)
+6. You must follow the same format as all of the other patch files, this involves including the `Patches.hpp` and defining the `install_prerunPatches_888()` function with all needed patches
+    a. As new features are added, this will need to be updated for any kernel patches required, so far a baseline is Enable UART, Verbose Kernel Panics, Enable RWX mappings, Enable MAP_SELF, Patching copy(in/out)(str) checks, patching memcpy checks, patching ptrace checks, patching setlogin (for autolaunch check), patch mprotect to allow RWX, patching pfs signature checking, patching to enable debug rifs, patch to enable all logs to console, (newer fws: disable sceverifier, delayed panics)
+    b. All patches are required for full functionality, but to get up and running only the rwx patches, copy(in/out)(str), memcpy, mprotect patches are needed (I think, someone correct documentation + send PR if wrong).
+7. Add support to the MiraLoader by copying the newly finished `src/Boot/Patches.cpp` to `loader/src/Boot/Patches.cpp` and the new `src/Boot/Patches/Patches888.cpp` to `loader/src/Boot/Patches/Patches888.cpp`
+8. Next would be to create a new kernel symbol file in `src/Utils/Kdlsym/Orbis888.hpp` or copy one from a supported platform (more offsets than what's probably needed)
+9. Add support by modifying `src/Utils/Kdlsym.hpp` and adding either within `#if defined(MIRA_UNSUPPORTED_PLATFORMS)` before the `#endif` a line for your firmware file (make sure these are in numeric order) `#elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_888
+    #include "Kdlsym/Orbis888.hpp"`
+9. The next step would be finding all of the functions that Mira/MiraLoader use in the kernel... This is the most time consuming portion of this and will need to be verified before upstreamed. The easiest way to handle this is to try building (using the build instructions provided) you will get a **massive ton** of errors around `kdlsym` and it not being able to find errors. One of such errors are shown as such:
+
+```
+src/External/protobuf-c.c: In function ‘protobuf_c_message_unpack’:
+src/Utils/Kdlsym.hpp:49:52: error: ‘kdlsym_addr_printf’ undeclared (first use in this function)
+ #define kdlsym(x) ((void*)((uint8_t *)&gKernelBase[kdlsym_addr_ ## x]))
+```
+
+10. (continued) This means if you break it down, that **printf** was undeclared, look in your kernel dump with a dissassembler of choice (Ghidra/IDA Preferred, untested with others such as Binary Ninja, Relyze) and get the offset from the start of the loading address for the function `printf` (Calculated by Function Address - Base Address of Kernel where it was dumped from) and add it to your `src/Utils/Kdlsym/Orbis888.hpp` with the line `#define kdlsym_addr_printf                                 0x<offset address>` and repeat for all other build errors.
+11. Once complete you should have a full port to a new firmware completed (unless I missed a step/something unclear, create issue or fix + PR please)
+
+
 ### TODOs
 
  - Clean kernel rebooting support
@@ -433,3 +473,5 @@ GPLv3
    [bigboss]: <https://github.com/psxdev>
    [xvortex]: <https://github.com/xvortex>
    [rogero]: <https://github.com/Rogero->
+   [AbkarinoMHM]: https://github.com/AbkarinoMHM
+   [wildcard]: <https://github.com/VV1LD>
