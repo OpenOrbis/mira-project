@@ -76,15 +76,20 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_rootvnode                              0x022C1A70
 #define kdlsym_addr_RsaesPkcs1v15Dec2048CRT                0x001FD7D0
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x02790C90
+#define kdlsym_addr_sbl_keymgr_key_rbtree                  0x02744558
+#define kdlsym_addr_sbl_keymgr_key_slots                   0x02744548
+#define kdlsym_addr_sbl_keymgr_buf_va                      0x02748000
+#define kdlsym_addr_sbl_keymgr_buf_gva                     0x02748800
 #define kdlsym_addr_sbl_pfs_sx                             0x0271E5D8
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x0063C4F0
-#define kdlsym_addr__sceSblAuthMgrSmStart                  0x006418E0
+#define kdlsym_addr_sceSblAuthMgrSmStart                   0x006418E0
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader            0x00642B40
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader              0x0063C550
 #define kdlsym_addr_sceSblDriverSendMsg                    0x0061D7F0
 #define kdlsym_addr_sceSblGetEAPInternalPartitionKey       0x006256E0
 #define kdlsym_addr_sceSblKeymgrClearKey                   0x0062DB10
 #define kdlsym_addr_sceSblKeymgrSetKeyForPfs               0x0062D780
+#define kdlsym_addr_sceSblKeymgrSetKeyStorage              0x00623FC0
 #define kdlsym_addr_sceSblKeymgrSmCallfunc                 0x0062E2A0
 #define kdlsym_addr_sceSblPfsSetKeys                       0x0061EFA0
 #define kdlsym_addr_sceSblServiceMailbox                   0x00632540
@@ -171,6 +176,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook        0x0064D4FF
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0x006AAAD5
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x006AAD04
+
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
 #define ssc_sceKernelIsGenuineCEX_patchA                   0x0016D05B
