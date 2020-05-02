@@ -150,9 +150,9 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[2] = 0xC3;
 	kmem[3] = 0x90;
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_503
-	#error needs debug log patch, see other files
-#endif
-
-#endif
+	// Enable *all* debugging logs (in vprintf)
+	// Patch by: SiSTRo
+	kmem = (uint8_t*)&gKernelBase[0x004360EA];
+	kmem[0] = 0xEB; // jmp +0x3A
+	kmem[1] = 0x38;
 }

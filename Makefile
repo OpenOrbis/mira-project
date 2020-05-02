@@ -9,7 +9,7 @@ endif
 PROJ_NAME := Mira
 
 # C++ compiler
-CPPC	:=	clang
+CPPC	:=	clang++
 
 # Linker
 LNK		:= ld # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker

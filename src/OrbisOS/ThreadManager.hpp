@@ -101,7 +101,7 @@ namespace Mira
              * This way, from multiple hooks can use this
              * @return struct thread* 
              */
-            struct thread* GetFileIoThread();
+            struct thread* GetIoThread();
 
         private:
             static void FileIoThread(void* p_Argument);

@@ -149,30 +149,34 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 	struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
 	struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
 
-	struct proc* s_Proc = nullptr;
+	struct proc* s_FoundProc = nullptr;
 
 	if (!p_Name)
 		return NULL;
 
 	_sx_slock(allproclock, 0, __FILE__, __LINE__);
 
-	FOREACH_PROC_IN_SYSTEM(s_Proc) {
-		PROC_LOCK(s_Proc);
+	do
+	{
+		struct proc* s_Proc = nullptr;
 
-		if (strcmp(s_Proc->p_comm, p_Name) == 0) {
+		FOREACH_PROC_IN_SYSTEM(s_Proc) 
+		{
+			PROC_LOCK(s_Proc);
+
+			if (strcmp(s_Proc->p_comm, p_Name) == 0) {
+				s_FoundProc = s_Proc;
+				PROC_UNLOCK(s_Proc);
+				break;
+			}
+
 			PROC_UNLOCK(s_Proc);
-			goto done;
 		}
+	} while (false);
 
-		PROC_UNLOCK(s_Proc);
-	}
-
-	s_Proc = nullptr;
-
-done:
 	_sx_sunlock(allproclock, __FILE__, __LINE__);
 
-	return s_Proc;
+	return s_FoundProc;
 }
 
 

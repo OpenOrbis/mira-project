@@ -241,7 +241,6 @@ bool Mira::Framework::Initialize()
 	// Initialize the thread manager
 	// NOTE: WE DO NOT WANT TO KILL THREAD MANAGER ON RELOAD
 	WriteLog(LL_Debug, "Initializing the thread manager.");
-
 	if (m_ThreadManager == nullptr)
 		m_ThreadManager = new Mira::OrbisOS::ThreadManager();
 	if (m_ThreadManager == nullptr)
@@ -299,7 +298,6 @@ bool Mira::Framework::Initialize()
 
 	// TODO: Install needed hooks for Mira
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
-	WriteLog(LL_Warn, "FIXME: Mira threading manager not implemented!!!!");
 
 	// Install device driver
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
@@ -349,6 +347,7 @@ bool Mira::Framework::Initialize()
 
 	// DBG: Intentionally fault
 	//*((uint64_t*)0x1337) = 0xBADBABE;
+
 	return true;
 }
 
