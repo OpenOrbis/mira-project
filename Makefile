@@ -1,13 +1,15 @@
 # CHANGEME: Default Orbis Version
 ifeq ($(MIRA_PLATFORM),)
 MIRA_PLATFORM := MIRA_PLATFORM_STEAM_LINK2
+#MIRA_PLATFORM_STEAM_LINK2
+#MIRA_PLATFORM_ORBIS_BSD_505
 endif
 
 # Project name
 PROJ_NAME := Mira
 
 # C++ compiler
-CPPC	:=	clang
+CPPC	:=	clang++
 
 # Linker
 LNK		:= ld # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
@@ -38,7 +40,7 @@ BSD_INC := external/freebsd-headers/include
 endif
 
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -Iexternal/hde64 -Iexternal
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -Iexternal/hde64 -Iexternal/protobuf-c
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib

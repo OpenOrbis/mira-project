@@ -18,7 +18,7 @@ extern "C"
 
 using namespace Mira::Plugins;
 
-bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry* p_Entries[], size_t& p_EntriesCount)
+bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries, size_t& p_EntriesCount)
 {
     // Set some default values
     p_Entries = nullptr;
@@ -48,7 +48,11 @@ bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry* p_Entries[],
 
     if (s_VmMapEntries == nullptr || s_VmMapEntriesCount == 0)
     {
-        WriteLog(LL_Error, "invalid entries");
+        WriteLog(LL_Warn, "there are no vm entries in this process?");
+        p_Entries = nullptr;
+        p_EntriesCount = 0;
+
+        s_Success = true;
         goto cleanup;
     }
 
@@ -149,7 +153,7 @@ bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
     //============================================
     *p_Info = DBG_PROCESS_LIMITED__INIT;
 
-    p_Info->pid = s_Process->p_pid;
+    p_Info->processid = s_Process->p_pid;
 
     // Get the vm map
     DbgVmEntry** s_VmEntries = nullptr;
@@ -175,6 +179,8 @@ bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
 
     p_Info->entries = s_VmEntries;
     p_Info->n_entries = s_VmEntriesCount;
+
+    s_Success = true;
 
 cleanup:
     if (s_Success)
@@ -206,8 +212,8 @@ cleanup:
         // Delete the entries list
         delete [] s_VmEntries;
 
-        s_VmEntries = nullptr;
-        s_VmEntriesCount = 0;
+        //s_VmEntries = nullptr;
+        //s_VmEntriesCount = 0;
     }
 
     if (s_Name)
@@ -369,7 +375,7 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
     p_Info->elfpath = s_ElfPath;
     p_Info->randomizedpath = s_RandomizedPath;
 
-    p_Info->pid = s_Process->p_pid;
+    p_Info->processid = s_Process->p_pid;
     p_Info->parentproc = reinterpret_cast<uint64_t>(s_Process->p_pptr);
     p_Info->oppid = s_Process->p_oppid;
     p_Info->dbgchild = s_Process->p_dbg_child;
@@ -400,6 +406,10 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         s_DbgCred->sceattr = s_Process->p_ucred->cr_sceAttr;
         s_DbgCred->n_sceattr = ARRAYSIZE(s_Process->p_ucred->cr_sceAttr);
     }
+
+    p_Info->cred = s_DbgCred;
+    p_Info->mapentries = s_VmEntries;
+    p_Info->n_mapentries = s_VmEntriesCount;
 
     p_Info->threads = s_DbgThreads;
     p_Info->n_threads = s_ThreadCount;
@@ -483,8 +493,8 @@ cleanup:
         // Delete the entries list
         delete [] s_VmEntries;
 
-        s_VmEntries = nullptr;
-        s_VmEntriesCount = 0;
+        //s_VmEntries = nullptr;
+        //s_VmEntriesCount = 0;
     }
 
     // Finally reset the output structure so uaf won't happen

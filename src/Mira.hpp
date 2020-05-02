@@ -1,5 +1,6 @@
 #pragma once
 #include <Boot/InitParams.hpp>
+#include <OrbisOS/ThreadManager.hpp>
 
 struct eventhandler_entry;
 struct eventhandler_list;
@@ -17,6 +18,11 @@ extern "C"
 
 namespace Mira
 {
+    namespace OrbisOS
+    {
+        class ThreadManager;
+    }
+
     namespace Driver
     {
         class CtrlDriver;
@@ -53,6 +59,7 @@ namespace Mira
         struct eventhandler_entry* m_ResumeTag;
         struct eventhandler_entry* m_ShutdownTag;
 
+        Mira::OrbisOS::ThreadManager* m_ThreadManager;
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
         Mira::Messaging::Rpc::Server* m_RpcServer;
@@ -76,6 +83,7 @@ namespace Mira
         bool Initialize();
         bool Terminate();
 
+        Mira::OrbisOS::ThreadManager* GetThreadManager() { return m_ThreadManager; }
         Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
         Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }

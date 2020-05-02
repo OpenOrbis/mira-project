@@ -31,14 +31,21 @@ def fixCSharp(fileName):
 
 if __name__== "__main__":
     inputDirectory = "."
+    
     parser = argparse.ArgumentParser(prog="build_proto.py")
     parser.add_argument("--inputDir", help="input directory (default: .)")
+    parser.add_argument("--outputDir", help="output directory (default is input directory)")
 
     args = parser.parse_args()
 
     # if the user provided a input directory then use that instead of .
     if args.inputDir:
         inputDirectory = args.inputDir
+    
+    outputDirectory = inputDirectory
+
+    if args.outputDir:
+        outputDirectory = args.outputDir
     
     pbFileList = [ ]
     pbFileListString = ""
@@ -50,17 +57,17 @@ if __name__== "__main__":
             pbFileList.append(fullFilePath)
             pbFileListString += fullFilePath + " "
     
-
-    os.system("protoc-c --c_out=" + inputDirectory + " " + pbFileListString)
-    os.system("protoc --csharp_out=" + inputDirectory + " " + pbFileListString)
+    os.system("protoc-c --c_out=."  + " " + pbFileListString)
+    os.system("protoc --csharp_out=" + outputDirectory + " " + pbFileListString)
 
     csharpFileList = [ ] 
-    for file in os.listdir(inputDirectory):
+    for file in os.listdir(outputDirectory):
         if file.endswith(".cs"):
-            fullFilePath = os.path.join(inputDirectory, file)
+            fullFilePath = os.path.join(outputDirectory, file)
             csharpFileList.append(fullFilePath)
     
     for file in csharpFileList:
         fixCSharp(file)
     
+    # TODO: move the proto
     print("completed")

@@ -1,9 +1,10 @@
 #include "Debugger2.hpp"
-
+#include <Utils/Kdlsym.hpp>
 
 using namespace Mira::Plugins;
 
 Debugger2::Debugger2(uint16_t p_Port) :
+    m_TrapFatalHook(nullptr),
     m_ServerAddress { 0 },
     m_Socket(-1),
     m_Port(p_Port),
@@ -15,6 +16,24 @@ Debugger2::Debugger2(uint16_t p_Port) :
 Debugger2::~Debugger2()
 {
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
+}
+
+#include <netinet/ip6.h>
+
+bool Debugger2::ReplaceExceptionHandler(uint32_t p_ExceptionNumber, void* p_Function, void** p_PreviousFunction)
+{
+    if (p_Function == nullptr)
+        return false;
+    
+    // void* s_Idt = nullptr;
+
+    // auto setidt = (void(*)(int idx, void* func, int typ, int dpl, int ist))kdlsym(setidt);
+
+    // setidt(IDT_DF, nullptr, SDT_SYSIGT, SEL_KPL, 0);
+
+    // sizeof(struct ip6_hdr);
+
+    return true;
 }
 
 bool Debugger2::OnLoad()
@@ -45,8 +64,8 @@ bool Debugger2::OnLoad()
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Watchpoint, OnAddWatchpoint);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcThreads, OnGetProcThreads);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, OnSignalProcess);
-    //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
-    //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ReadKernelMem, OnReadKernelMemory);
@@ -72,10 +91,10 @@ bool Debugger2::OnUnload()
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Watchpoint, OnAddWatchpoint);
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcThreads, OnGetProcThreads);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, OnSignalProcess);
-    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
-    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
-    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ReadKernelMem, OnReadKernelMemory);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, OnWriteKernelMemory);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, OnGetProcList);
@@ -302,6 +321,12 @@ bool Debugger2::Attach(int32_t p_ProcessId, int32_t* p_Status)
 
     int32_t s_Status = 0;
     s_Ret = kwait4_t(p_ProcessId, &s_Status, WUNTRACED, nullptr, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not wait for untraced pid (%d) ret (%d)", p_ProcessId, s_Ret);
+        Detach();
+        return false;
+    }
     // TODO: Do we need to wait?
     // if (p_Status)
     //     *p_Status = s_Ret;

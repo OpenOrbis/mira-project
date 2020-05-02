@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 
+# Convenince
 .global	kernelRdmsr
 .global	cpu_enable_wp
 .global	cpu_disable_wp
@@ -12,6 +13,11 @@
 .global memcmp
 .global strlen
 .global strcmp
+
+# Debugger related
+.global cpu_sidt
+.global cpu_sldt
+.global cpu_sgdt
 
 kernelRdmsr:
 	mov	ecx, edi
@@ -177,3 +183,18 @@ myasm_end:
     mov al, r9b
     sub rax, r10
 	ret
+
+cpu_sidt:
+  sidt [rdi]
+  xor rax,rax
+  ret
+
+cpu_sldt:
+  sldt rdi
+  xor rax,rax
+  ret
+
+cpu_sgdt:
+  sgdt [rdi]
+  xor rax,rax
+  ret

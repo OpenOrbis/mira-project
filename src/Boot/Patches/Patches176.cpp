@@ -6,8 +6,9 @@ using namespace Mira::Boot;
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
 */
-void Patches::install_prerunPatches_176() {
-
+void Patches::install_prerunPatches_176() 
+{
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_176
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
 		return;
@@ -105,4 +106,5 @@ void Patches::install_prerunPatches_176() {
 	kmem[2] = 0xC0;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
+#endif
 }
