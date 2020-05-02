@@ -215,7 +215,7 @@ int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
 
 int FakeSelfManager::OnSceSblAuthMgrVerifyHeader(SelfContext* p_Context)
 {
-    auto _sceSblAuthMgrSmStart = (void(*)(void**))kdlsym(_sceSblAuthMgrSmStart);
+    auto _sceSblAuthMgrSmStart = (void(*)(void**))kdlsym(sceSblAuthMgrSmStart);
 
     void* s_Temp = nullptr;
     _sceSblAuthMgrSmStart(&s_Temp);

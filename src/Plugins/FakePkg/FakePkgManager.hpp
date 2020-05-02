@@ -54,6 +54,7 @@ namespace Mira
             static vm_offset_t SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t* p_NumPageGroups);
 
             static int SceSblPfsSetKeys(uint32_t* p_Ekh, uint32_t* p_Skh, uint8_t* p_EekPfs, OrbisOS::Ekc* p_Eekc, uint32_t p_PubKeyVersion, uint32_t p_KeyVersion, OrbisOS::PfsHeader* p_Header, size_t p_HeaderSize, uint32_t p_Type, uint32_t p_Finalized, uint32_t p_IsDisc);
+            static OrbisOS::SblKeyRbtreeEntry* sceSblKeymgrGetKey(unsigned int p_Handle);
 
         protected:
             // Hooked Functions
@@ -61,6 +62,8 @@ namespace Mira
             static int OnNpdrmDecryptIsolatedRif(OrbisOS::KeymgrPayload* p_Payload);
             static int OnNpdrmDecryptRifNew(OrbisOS::KeymgrPayload* p_Payload);
             static int OnSceSblDriverSendMsg(OrbisOS::SblMsg* p_Message, size_t p_Size);
-        };
+            static int OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line);
+
+            };
     }
 }
