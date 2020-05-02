@@ -82,16 +82,6 @@ bool Substitute::OnLoad()
     WriteLog(LL_Debug, "SUBSTITUTE_HOOK_JMP: 0x%08x", SUBSTITUTE_HOOK_JMP);
     WriteLog(LL_Debug, "SUBSTITUTE_HOOK_STATE: 0x%08x", SUBSTITUTE_HOOK_STATE);
 
-    // Substitute is ready ! Now Killing SceShellUI for relaunching UI Process :D
-    /*
-    struct proc* ui_proc = Utilities::FindProcessByName("SceShellUI");
-    if (ui_proc) {
-        Utilities::KillProcess(ui_proc);
-    } else {
-        WriteLog(LL_Error, "Unable to find SceShellUI Process !");
-    }
-    */
-
     return true;
 }
 
@@ -413,13 +403,23 @@ int Substitute::EnableHook(struct proc* p, int hook_id) {
             WriteLog(LL_Info, "Hook Type: IAT.");
 
             if (!hook->hook_enable && hook->process && hook->hook_function) {
-                size_t write_size = 0;
-                int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, 8, (void*)&hook->hook_function, &write_size, 1);
+                size_t write_size = 8;
+                WriteLog(LL_Info, "jmpslot writing:");
+                WriteLog(LL_Info, "process: %p", (void*)hook->process);
+                WriteLog(LL_Info, "jmpslot_address: %p", (void*)hook->jmpslot_address);
+                WriteLog(LL_Info, "hook_function: %p", (void*)hook->hook_function);
+                WriteLog(LL_Info, "&hook_function: %p", (void*)&hook->hook_function);
+
+                Utilities::ExecutableWriteProtection(hook->process, true);
+
+                int r_error = proc_rw_mem(hook->process, (void*)hook->jmpslot_address, write_size, (void*)&hook->hook_function, &write_size, 1);
                 if (r_error) {
-                    WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
+                    WriteLog(LL_Error, "Unable to write the iat system: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
                     return -1;
                 }
+
+                Utilities::ExecutableWriteProtection(hook->process, false);
 
                 hook->hook_enable = true;
             } else {
@@ -685,8 +685,8 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 // Substitute : Find original function address by this name (or nids)
 void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t flags)
 {
-    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
-    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+    //auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    //auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
 
     auto dynlib_do_dlsym = (void*(*)(void* dl, void* obj, const char* name, const char* libname, unsigned int flags))kdlsym(dynlib_do_dlsym);
 
@@ -696,9 +696,9 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
     if (p->p_dynlib) {
         WriteLog(LL_Info, "[%s] Address of p_dynlib: %p", s_TitleId, p->p_dynlib);
 
-        // Lock dynlib object
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
-        A_sx_xlock_hard(dynlib_bind_lock, 0);
+        // Lock dynlib object (Note: Locking will panic kernel sometime)
+        //struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        //A_sx_xlock_hard(dynlib_bind_lock, 0);
 
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
@@ -738,7 +738,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
         }
 
         // Unlock dynlib object
-        A_sx_xunlock_hard(dynlib_bind_lock);
+        //A_sx_xunlock_hard(dynlib_bind_lock);
     } else {
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }
@@ -749,17 +749,17 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 // Substitute : Print debug information from import table
 void Substitute::DebugImportTable(struct proc* p)
 {
-    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
-    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+    //auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    //auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
     if (p->p_dynlib) {
         WriteLog(LL_Info, "[%s] Address of p_dynlib: %p", s_TitleId, p->p_dynlib);
 
-        // Lock dynlib object
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
-        A_sx_xlock_hard(dynlib_bind_lock, 0);
+        // Lock dynlib object (Note: Locking will panic kernel sometime)
+        //struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        //A_sx_xlock_hard(dynlib_bind_lock, 0);
 
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
@@ -847,7 +847,7 @@ void Substitute::DebugImportTable(struct proc* p)
         }
 
         // Unlock dynlib object
-        A_sx_xunlock_hard(dynlib_bind_lock);
+        //A_sx_xunlock_hard(dynlib_bind_lock);
     } else {
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }
@@ -855,8 +855,8 @@ void Substitute::DebugImportTable(struct proc* p)
 
 // Substitute : Find pre-offset from the name or nids
 uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_t flags) {
-    auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
-    auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+    //auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    //auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto name_to_nids = (void(*)(const char *name, const char *nids_out))kdlsym(name_to_nids);
@@ -919,9 +919,9 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_
     uint64_t nids_offset_found = 0;
 
     if (p->p_dynlib) {
-        // Lock dynlib object
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
-        A_sx_xlock_hard(dynlib_bind_lock, 0);
+        // Lock dynlib object (Note: Locking will panic kernel sometime)
+        //struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        //A_sx_xlock_hard(dynlib_bind_lock, 0);
 
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
@@ -982,7 +982,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_
         }
 
         // Unlock dynlib object
-        A_sx_xunlock_hard(dynlib_bind_lock);
+        //A_sx_xunlock_hard(dynlib_bind_lock);
     } else {
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }

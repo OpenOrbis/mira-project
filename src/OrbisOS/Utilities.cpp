@@ -290,6 +290,74 @@ error:
 	return ret;
 }
 
+// Allow / Disallow to write on a executable
+int Utilities::ExecutableWriteProtection(struct proc* p, bool write_allowed) {
+    struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
+
+    if (!s_ProcessThread) {
+    	WriteLog(LL_Error, "[%d] Could not get the first thread.", p->p_pid);
+        return -1;
+    }
+
+    // Get the start text address of my process
+    uint64_t s_TextStart = 0;
+    uint64_t s_TextSize = 0;
+    ProcVmMapEntry* s_Entries = nullptr;
+    size_t s_NumEntries = 0;
+    auto s_Ret = Utilities::GetProcessVmMap(p, &s_Entries, &s_NumEntries);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "[%d] Could not get the VM Map.", p->p_pid);
+        return -2;
+    }
+
+    if (s_Entries == nullptr || s_NumEntries == 0)
+    {
+        WriteLog(LL_Error, "[%d] Invalid entries (%p) or numEntries (%d)", p->p_pid, s_Entries, s_NumEntries);
+        return -3;
+    }
+
+    for (auto i = 0; i < s_NumEntries; ++i)
+    {
+        if (s_Entries[i].prot == (PROT_READ | PROT_EXEC))
+        {
+            s_TextStart = (uint64_t)s_Entries[i].start;
+            s_TextSize = ((uint64_t)s_Entries[i].end - (uint64_t)s_Entries[i].start);
+            break;
+        }
+    }
+
+    if (s_TextStart == 0 || s_TextSize)
+    {
+        WriteLog(LL_Error, "[%d] Could not find text start or size for this process !", p->p_pid);
+        WriteLog(LL_Error, "[%d] Could not find text start or size for this process !", p->p_pid);
+
+	    // Free the s_Entries
+	    delete [] s_Entries;
+	    s_Entries = nullptr;
+        return -4;
+    } else {
+        WriteLog(LL_Info, "[%d] text pointer: %p !", p->p_pid, s_TextStart);
+    }
+
+    if (write_allowed) {
+    	s_Ret = kmprotect_t((void*)s_TextStart, s_TextSize, (PROT_READ | PROT_WRITE | PROT_EXEC), s_ProcessThread);
+    	if (s_Ret < 0) {
+    		WriteLog(LL_Error, "[%d] Unable to mprotect(1) ! (err: %d)", p->p_pid, s_Ret);
+    	}
+    } else {
+    	s_Ret = kmprotect_t((void*)s_TextStart, s_TextSize, (PROT_READ | PROT_EXEC), s_ProcessThread);
+    	if (s_Ret < 0) {
+    		WriteLog(LL_Error, "[%d] Unable to mprotect(2) ! (err: %d)", p->p_pid, s_Ret);
+    	}
+    }
+
+    // Free the s_Entries
+    delete [] s_Entries;
+    s_Entries = nullptr;
+    return 0;
+}
+
 // Mount NullFS folder
 int Utilities::MountNullFS(char* where, char* what, int flags)
 {
@@ -424,10 +492,10 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 		return -9;
 	}
 
+	/* TODO : Cleanup remote process memory
 	// Wait until it's done
 	void* s_ResultAddr = (void*)( (uint64_t)s_PayloadSpace + sizeof(uint32_t) + sizeof(uint64_t) );
 
-	/* TODO : Cleanup remote process memory
 	uint8_t s_Ldrdone = 0;
 	s_Size = sizeof(uint8_t);
 	while (s_Ldrdone == 0) {

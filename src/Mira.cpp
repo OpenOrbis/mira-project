@@ -19,6 +19,7 @@
 #include <Messaging/Rpc/Server.hpp>
 
 #include <OrbisOS/ThreadManager.hpp>
+#include <OrbisOS/Utilities.hpp>
 
 ///
 /// Utilities
@@ -311,6 +312,14 @@ bool Mira::Framework::Initialize()
 
 	// Set the running flag
 	m_InitParams.isRunning = true;
+
+    // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
+    struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+    if (ui_proc) {
+        Mira::OrbisOS::Utilities::KillProcess(ui_proc);
+    } else {
+        WriteLog(LL_Error, "Unable to find SceShellUI Process !");
+    }
 
 	/*auto kthread_suspend = (int (*)(struct thread *td, int timo))kdlsym(kthread_suspend);
 	struct proc* proc0 = static_cast<struct proc*>(kdlsym(proc0));
