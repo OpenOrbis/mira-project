@@ -192,7 +192,7 @@ _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
 
 And you can include this anywhere in your C# project and begin to use extension methods to add them to MiraConnection for usage in your own application.
 
-#### Building source code
+#### Source code layout
 The current miracpp repository is self-contained, meaning everything the project depends on should be within the repo itself. Here is a layout of the source repository (all from root of miracpp directory)
 
 | Directory | Purpose |
@@ -230,12 +230,153 @@ Mira provies a plugin framework that can run in kernel mode (userland is soon, t
 
 ### Development
 
-Want to contribute? Great!
+Want to contribute? Great! There is no set limit on contributors and people wanting to help out in any way!
 
-Join the OpenOrbis discord and have knowledge of C/C++ and FreeBSD or unix-like operating systems. Kernel experience is a plus.
+Join the OpenOrbis discord and have knowledge of C/C++ and FreeBSD or unix-like operating systems, web design and programming, rust-lang, content creator (youtube, twitch), or artist, or just want to find something to help out with like documentation, hosting, etc, kernel experience is a plus but not required by any means.
 
-#### Building for source
-TODO: WIP
+#### Building from source
+After following the instructions on cloning the repository and generating and fixing the protobuf files, you should be ready to build Mira from source. It was designed to be as easy as possible to build with the provided makefiles. 
+
+Each makefile (for MiraLoader, and Mira itself) follow a specific format due to compilers ignoring most changes in header (.h) files causing issues down the line.
+
+In order to create the proper build directory output (so you don't get "directory not found errors") is done with
+`make create` this will generate the proper folder structure that's required to build Mira.
+
+After this is done, then you will need to `make clean` which will clean up old object files (.o), payloads (.bin), and elf files. Without doing this, any changes you make in the headers will not be cleaned up and you *will* be wondering why you are getting a kernel panic on *correct* code (due to offset change or what not, that you can verify yourself in the binary)
+
+Finally build Mira, this will automatically build everything into the specified build directory using the default `MIRA_PLATFORM` target. You are able to override these options in both MiraLoader and Mira using `MIRA_PLATFORM=<specified platform> make` for your specific platform. (this works with make clean, make create as well)
+
+| Available Overrides | Description |
+| ------ | ------ |
+|`MIRA_PLATFORM`| Changes firmware version that MiraLoader/Mira targets, they *must* match for your firmware you are building for|
+|`BSD_INC`| freebsd-headers include path, defaults to `external/freebsd-headers/include`|
+|`OUT_DIR`| Output directory, defaults to `build`|
+
+There is a list of available platforms that Mira can be configured with located in `src/Boot/Config.hpp` for the most up-to-date, but as of writing here is the available list. 
+| Support Status | Description |
+| ------ | ------ |
+| Unsupported | May build, may not, previously was updated but no active updating |
+| Supported | Active updating and testing, as well as producing builds on CI |
+| No Support | No real support added, needs developer work to become functional + stable |
+
+| Available Platforms | Firmware |
+| ------ | ------ |
+|`MIRA_PLATFORM_ORBIS_BSD_176`| (Unsupported) 1.76 |
+|`MIRA_PLATFORM_ORBIS_BSD_355`| (Unsupported) 3.55 |
+|`MIRA_PLATFORM_ORBIS_BSD_400`| (Unsupported) 4.00 |
+|`MIRA_PLATFORM_ORBIS_BSD_405`| (Supported) 4.05 |
+|`MIRA_PLATFORM_ORBIS_BSD_407`| (Unsupported) 4.07 |
+|`MIRA_PLATFORM_ORBIS_BSD_455`| (Supported) 4.55 |
+|`MIRA_PLATFORM_ORBIS_BSD_474`| (Unsupported) 4.74 |
+|`MIRA_PLATFORM_ORBIS_BSD_500`| (Unsupported) 5.00 |
+|`MIRA_PLATFORM_ORBIS_BSD_501`| (Unsupported) 5.01 |
+|`MIRA_PLATFORM_ORBIS_BSD_503`| (Unsupported) 5.03 |
+|`MIRA_PLATFORM_ORBIS_BSD_505`| (Supported) 5.05 |
+|`MIRA_PLATFORM_ORBIS_BSD_550`| (No Support) 5.50 |
+|`MIRA_PLATFORM_ORBIS_BSD_553`| (No Support) 5.53 |
+|`MIRA_PLATFORM_ORBIS_BSD_555`| (No Support) 5.55 |
+|`MIRA_PLATFORM_ORBIS_BSD_600`| (No Support) 6.00 |
+|`MIRA_PLATFORM_ORBIS_BSD_620`| (Unsupported) 6.20 |
+|`MIRA_PLATFORM_ORBIS_BSD_650`| (Unsupported) 6.50 |
+
+Provided are some VSCode `tasks.json` formats:
+
+```
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Mira",
+            "type": "shell",
+            "command": "make clean;make create;make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Build MiraLoader",
+            "type": "shell",
+            "command": "cd loader;make clean;make create;make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Build protobuf-tests",
+            "type": "shell",
+            "command": "clang protobuf-c.c rpc.pb-c.c filemanager.pb-c.c main.c -o test.elf",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Build protobuf files",
+            "type": "shell",
+            "command": "python3 ./scripts/build_proto.py --inputDir=./external",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        }
+    ]
+}
+```
+
+And here is an example VSCode `c_cpp_properties.json`
+```
+{
+    "configurations": [
+        {
+            "name": "Mira",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/external/freebsd-headers/include"
+            ],
+            "defines": [
+                "_KERNEL",
+                "MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_501",
+                "__LP64__=1",
+                "_M_X64",
+                "__amd64__",
+                "_DEBUG",
+                "__BSD_VISIBLE",
+                "MIRA_UNSUPPORTED_PLATFORMS"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "clang-x64"
+        },
+        {
+            "name": "MiraLoader",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/loader",
+                "${workspaceFolder}/external/freebsd-headers/include"
+            ],
+            "defines": [
+                "_KERNEL",
+                "MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_501",
+                "__LP64__=1",
+                "_M_X64",
+                "__amd64__",
+                "_DEBUG",
+                "__BSD_VISIBLE",
+                "MIRA_UNSUPPORTED_PLATFORMS"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}
+```
 
 ### TODOs
 
