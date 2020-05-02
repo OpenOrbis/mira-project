@@ -63,9 +63,11 @@ This project would not be possible without these people (no paticluar order):
 * [LM] - RE (Research on System-Library-Loading)
 * [TheFlow] - RE
 * [samsepi0l] - Offset Porting
+* [xvortex] - Original VTX-Hen
 
 ### Special Thanks
 * [bigboss] - liborbis, and being a hater every step of the way
+* [rogero] - Original 5.01 testing
 * [Anon #1] - Developer (Code, Non-stop help, <3 thx bruv)
 * [Anon #2] - Developer (Code, Non-stop help, gl with job!)
 * [Anon #3] - Security (Future proofing design)
@@ -429,3 +431,5 @@ GPLv3
    [samsepi0l]: <https://github.com/ethylamine>
    [protobuf-c]: <https://github.com/protobuf-c/protobuf-c>
    [bigboss]: <https://github.com/psxdev>
+   [xvortex]: <https://github.com/xvortex>
+   [rogero]: <https://github.com/Rogero->
