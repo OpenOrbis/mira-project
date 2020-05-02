@@ -61,6 +61,8 @@ This project would not be possible without these people (no paticluar order):
 * [ChendoChap] - RE (Bug hunting, general kernel help)
 * [sugarleaf] - Initial 4.55 private exploit, inital help with Mira dev (retired/left)
 * [kozarovv] - RE (4.05 offsets)
+* [LM] - RE (Research on System-Library-Loading)
+* [TheFlow] - RE
 * [Anon #1] - Developer (Code, Non-stop help, <3 thx bruv)
 * [Anon #2] - Developer (Code, Non-stop help, gl with job!)
 * [Anon #3] - Security (Future proofing design)
@@ -141,3 +143,5 @@ GPLv3
    [ChendoChap]: <https://github.com/ChendoChap>
    [sugarleaf]: <https://github.com/sugarleaf>
    [kozarovv]: <https://github.com/kozarovv>
+   [LM]: <https://github.com/lightningmods>
+   [TheFlow]: <https://github.com/TheOfficialFloW>

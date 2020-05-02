@@ -116,7 +116,7 @@ struct thread* ThreadManager::GetDebuggerThread()
     return m_DebugThread;
 }
 
-struct thread* ThreadManager::GetFileIoThread()
+struct thread* ThreadManager::GetIoThread()
 {
     return m_IoThread;
 }

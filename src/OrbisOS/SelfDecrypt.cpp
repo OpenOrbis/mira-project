@@ -6,6 +6,7 @@
 #include <Utils/Kdlsym.hpp>
 
 #include <Mira.hpp>
+#include <OrbisOS/ThreadManager.hpp>
 
 extern "C"
 {
@@ -13,8 +14,11 @@ extern "C"
     #include <sys/unistd.h>
 };
 
+#ifdef ALIGN
+#undef ALIGN
 #define ALIGN(size, alignment) \
     (((size) + ((alignment) - 1)) & ~((alignment) - 1))
+#endif
 
 #define ALIGN_PAGE(size) \
     ALIGN(size, PAGE_SIZE)
@@ -41,7 +45,7 @@ SelfDecrypt::SelfDecrypt(const char* p_FilePath) :
         return;
     }
 
-    auto s_FileThread = s_ThreadManager->GetFileIoThread();
+    auto s_FileThread = s_ThreadManager->GetIoThread();
     if (s_FileThread == nullptr)
     {
         WriteLog(LL_Error,"could not get the file io thread");
@@ -381,6 +385,45 @@ bool SelfDecrypt::VerifyHeader()
     return true;
 }
 
+void SelfDecrypt::Close()
+{
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+    if (s_ThreadManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get thread manager");
+        return;
+    }
+
+    auto s_IoThread = s_ThreadManager->GetIoThread();
+    if (s_IoThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get the io thread");
+        return;
+    }
+
+    struct blob_t* s_Blob = m_Self.blobs;
+    struct blob_t* s_Next = nullptr;
+    if (s_Blob == nullptr)
+        return;
+    
+    while (s_Blob != nullptr)
+    {
+        s_Next = s_Blob->next;
+
+        delete [] s_Blob->data;
+        delete s_Blob;
+
+        s_Blob = s_Next;
+    }
+
+    // Close the file
+    if (m_Self.fd > -1)
+    {
+        kclose_t(m_Self.fd, s_IoThread);
+        m_Self.fd = -1;
+    }
+}
+
 bool SelfDecrypt::ReleaseContext()
 {
     auto ctxStatus = static_cast<uint32_t*>(kdlsym(ctxStatus));
@@ -392,4 +435,238 @@ bool SelfDecrypt::ReleaseContext()
     }
 
     return true;
+}
+
+bool SelfDecrypt::DecryptSegment(uint8_t* p_InputData, size_t p_InputDataLength, uint64_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_OutputData, uint64_t* p_InOutOutputSize)
+{
+    //auto sceSblDriverMapPages = (int(*)(uint64_t *gpu_paddr, void *cpu_vaddr, uint32_t npages, uint64_t flags, uint64_t unk, uint64_t *gpu_desc))kdlsym(sceSblDriverMapPages);
+    auto sceSblDriverUnmapPages = (int(*)(uint64_t gpu_desc))kdlsym(sceSblDriverUnmapPages);
+    auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+    auto make_chunk_table_system = (int(*)(uint64_t *segment_info_gpu_paddr, uint64_t *segment_info_gpu_desc, void *segment_info_cpu_vaddr, size_t segment_info_size, void *chunk_table_cpu_vaddr, size_t chunk_table_size, int type))kdlsym(make_chunk_table_system);
+    auto map_chunk_table = (int(*)(uint64_t *gpu_paddr, uint64_t *gpu_desc, void *cpu_vaddr))kdlsym(map_chunk_table);
+    auto s_sm_sxlock = (struct sx*)kdlsym(s_sm_sxlock);
+    auto _sx_xlock = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto _sx_xunlock = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
+
+    bool s_Success = false;
+    uint64_t s_SegmentDataGpuPAddr = 0;
+    uint64_t s_SegmentDataGpuDesc = 0;
+    uint8_t* s_SegmentData = nullptr;
+    uint64_t s_SegmentDataSize = 0;
+    uint64_t s_ChunkTableGpuPAddr = 0;
+    uint64_t s_ChunkTableGpuDesc = 0;
+    uint8_t* s_ChunkTable = nullptr;
+    //uint64_t s_InputMapped = 0;
+    //uint64_t s_InputMapDesc = 0;
+    int32_t s_Ret = 0;
+    const size_t c_ChunkTableSize = 0x4000;
+    uint8_t s_Payload[0x80] = { 0 };
+
+    // This is assigned to payload, don't attempt to free
+    sbl_authmgr_load_self_segment_t* s_Command = nullptr;
+
+    if (p_OutputData == nullptr)
+    {
+        WriteLog(LL_Error, "no output data provided.");
+        goto cleanup;
+    }
+
+    if (p_InOutOutputSize == nullptr)
+    {
+        WriteLog(LL_Error, "no input/output size provided");
+        goto cleanup;
+    }
+
+    // Create the segment data and copy it over
+    s_SegmentDataSize = ALIGN_PAGE(p_InputDataLength);
+    s_SegmentData = new uint8_t[s_SegmentDataSize];
+    if (s_SegmentData == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate segment data");
+        goto cleanup;
+    }
+    memset(s_SegmentData, 0, s_SegmentDataSize);
+    memcpy(s_SegmentData, p_InputData, p_InputDataLength);
+    
+    // Create a new chunk table buffer
+    
+    s_ChunkTable = new uint8_t[c_ChunkTableSize];
+    if (s_ChunkTable == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate chunk table");
+        goto cleanup;
+    }
+    memset(s_ChunkTable, 0, c_ChunkTableSize);
+    
+    // Create the chunk table system
+    s_Ret = make_chunk_table_system(
+        &s_SegmentDataGpuPAddr,
+        &s_SegmentDataGpuDesc,
+        s_SegmentData,
+        s_SegmentDataSize,
+        s_ChunkTable,
+        c_ChunkTableSize,
+        1);
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "make_chunk_table_system returned: (%d).", s_Ret);
+        goto cleanup;
+    }
+    
+    // Validate our returned arguments
+    if (s_SegmentDataGpuPAddr == 0 || s_SegmentDataGpuDesc == 0)
+    {
+        WriteLog(LL_Error, "cinvalid segment data paddr (%llx) or segment data gpu desc (%llx)", s_SegmentDataGpuPAddr, s_SegmentDataGpuDesc);
+        goto cleanup;
+    }
+
+    // Map the chunk table
+    s_Ret = map_chunk_table(
+        &s_ChunkTableGpuPAddr,
+        &s_ChunkTableGpuDesc,
+        s_ChunkTable);
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "map_chunk_table returned: (%d).", s_Ret);
+        goto cleanup;
+    }
+
+    // Decrypt the segment
+    s_Command = reinterpret_cast<sbl_authmgr_load_self_segment_t*>(&s_Payload[0]);
+    memset(s_Command, 0, sizeof(s_Payload));
+
+    s_Command->function = AUTHMGR_CMD_LOAD_SELF_SEGMENT;
+    s_Command->status = 0;
+    s_Command->chunk_table_addr = s_ChunkTableGpuPAddr;
+    s_Command->segment_index = p_SegmentIndex;
+    s_Command->is_block_table = p_IsBlockTable;
+    s_Command->context_id = m_Self.auth_ctx_id;
+
+    WriteLog(LL_Debug, "Sending load self segment");
+    sceSblServiceMailbox_locked(s_Ret, m_Self.svc_id, &s_Payload, &s_Payload);
+
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "sceSblServiceMailbox_locked returned: (%d).", s_Ret);
+        goto cleanup;
+    }
+
+    if (s_Command->status != 0)
+    {
+        WriteLog(LL_Error, "command status returned: (%d).", s_Command->status);
+        goto cleanup;
+    }
+
+    if (s_Command->function != AUTHMGR_CMD_LOAD_SELF_SEGMENT)
+    {
+        WriteLog(LL_Error, "invalid function");
+        goto cleanup;
+    }
+
+    // Bounds check the output size
+    if (*p_InOutOutputSize < p_InputDataLength)
+    {
+        WriteLog(LL_Error, "not enough output space: (%lld) < (%lld) bytes.", *p_InOutOutputSize, p_InputDataLength);
+        goto cleanup;
+    }
+
+    // Copy out the data
+    memcpy(p_OutputData, s_SegmentData, p_InputDataLength);
+
+    // Set our success
+    s_Success = true;
+
+cleanup:
+    // Free up all of the resources
+    if (s_ChunkTableGpuPAddr)
+    {
+        if ((s_Ret = sceSblDriverUnmapPages(s_ChunkTableGpuDesc)) != 0)
+            WriteLog(LL_Error, "could not unmap pages: (%d).", s_Ret);
+    }
+
+    if (s_SegmentDataGpuPAddr)
+    {
+        if ((s_Ret = sceSblDriverUnmapPages(s_SegmentDataGpuDesc)) != 0)
+            WriteLog(LL_Error, "could not unmap pages: (%d).", s_Ret);
+    }
+
+    if (s_ChunkTable)
+        delete [] s_ChunkTable;
+    
+    if (s_SegmentData)
+        delete [] s_SegmentData;
+
+    return s_Success;
+}
+
+bool SelfDecrypt::DecryptBlock(uint8_t* p_BlobData, uint64_t p_BlobSize)
+{
+    auto sceSblDriverMapPages = (int(*)(uint64_t *gpu_paddr, void *cpu_vaddr, uint32_t npages, uint64_t flags, uint64_t unk, uint64_t *gpu_desc))kdlsym(sceSblDriverMapPages);
+    /*auto sceSblDriverUnmapPages = (int(*)(uint64_t gpu_desc))kdlsym(sceSblDriverUnmapPages);
+    auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+    auto make_chunk_table_system = (int(*)(uint64_t *segment_info_gpu_paddr, uint64_t *segment_info_gpu_desc, void *segment_info_cpu_vaddr, size_t segment_info_size, void *chunk_table_cpu_vaddr, size_t chunk_table_size, int type))kdlsym(make_chunk_table_system);
+    auto map_chunk_table = (int(*)(uint64_t *gpu_paddr, uint64_t *gpu_desc, void *cpu_vaddr))kdlsym(map_chunk_table);
+    auto s_sm_sxlock = (struct sx*)kdlsym(s_sm_sxlock);
+    auto _sx_xlock = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto _sx_xunlock = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);*/
+
+    uint8_t* s_InputData = nullptr;
+    uint64_t s_InputSize = 0;
+    uint64_t s_InputMapped = 0;
+    uint64_t s_InputMapDesc = 0;
+
+    uint8_t* s_OutputData = nullptr;
+
+    uint64_t s_OutputSize = 0;
+    uint64_t s_OutputMapped = 0;
+    uint64_t s_OutputMapDesc = 0;
+
+    uint8_t s_Payload[0x80] = { 0 };
+
+    // Not allocated do not free
+    sbl_authmgr_load_self_block_t* s_Command = nullptr;
+
+    bool s_Success = false;
+
+    int32_t s_Ret = 0;
+
+    // Get the input data size and allocate new buffers
+    s_InputSize = ALIGN_PAGE(p_BlobSize);
+    s_InputData = new uint8_t[s_InputSize];
+    if (s_InputData == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate input data of size (%llx).", s_InputSize);
+        goto cleanup;
+    }
+    memset(s_InputData, 0, s_InputSize);
+    memcpy(s_InputData, p_BlobData, p_BlobSize);
+
+    if ((s_Ret = sceSblDriverMapPages(&s_InputMapped, s_InputData, 1, 0x61, 0, &s_InputMapDesc)) != 0)
+    {
+        WriteLog(LL_Error, "could not map driver pages: (%d).", s_Ret);
+        goto cleanup;
+    }
+
+    s_OutputSize = ALIGN_PAGE(p_BlobSize);
+    s_OutputData = new uint8_t[s_OutputSize];
+    if (s_OutputData == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate output data of size (%llx).", s_OutputData);
+        goto cleanup;
+    }
+    memset(s_OutputData, 0, s_OutputSize);
+
+    if ((s_Ret = sceSblDriverMapPages(&s_OutputMapped, s_OutputData, 1, 0x61, 0, &s_OutputMapDesc)) != 0)
+    {
+        WriteLog(LL_Error, "could not map driver pages: (%d).", s_Ret);
+        goto cleanup;
+    }
+
+    // Decrypt block
+    s_Command = reinterpret_cast<sbl_authmgr_load_self_block_t*>(&s_Payload[0]);
+    memset(s_Payload, 0, sizeof(s_Payload));
+    //memcpy(&s_Command->digest, &)
+    // TODO: Finish
+cleanup:
+    return s_Success;
 }
