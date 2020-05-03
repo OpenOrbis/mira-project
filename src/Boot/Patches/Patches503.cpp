@@ -206,3 +206,4 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 
 #endif
 }
+
