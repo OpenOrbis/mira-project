@@ -77,7 +77,7 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[1] = 0x90;
 
 	// Enable MAP_SELF
-	kmem = (uint8_t*)&gKernelBase[0x000117b0];
+	kmem = (uint8_t*)&gKernelBase[0x000117B0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
@@ -85,7 +85,7 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
 
-	kmem = (uint8_t *)&gKernelBase[0x000117c0];
+	kmem = (uint8_t *)&gKernelBase[0x000117C0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
@@ -191,5 +191,18 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
+
+	// patch suword_lwpid
+	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
+	// Patch by: JOGolden
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9D2];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9E1];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
 #endif
 }
