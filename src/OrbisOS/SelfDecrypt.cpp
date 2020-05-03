@@ -1,3 +1,4 @@
+#ifdef _disable_me_self_decrypt
 #include "SelfDecrypt.hpp"
 
 #include <Utils/SysWrappers.hpp>
@@ -599,7 +600,7 @@ cleanup:
     return s_Success;
 }
 
-bool SelfDecrypt::DecryptBlock(uint8_t* p_BlobData, uint64_t p_BlobSize)
+bool SelfDecrypt::DecryptBlock(uint8_t* p_BlobData, uint64_t p_BlobSize, self_block_info_t* p_Block, int p_SegmentIndex, int p_ContextId)
 {
     auto sceSblDriverMapPages = (int(*)(uint64_t *gpu_paddr, void *cpu_vaddr, uint32_t npages, uint64_t flags, uint64_t unk, uint64_t *gpu_desc))kdlsym(sceSblDriverMapPages);
     /*auto sceSblDriverUnmapPages = (int(*)(uint64_t gpu_desc))kdlsym(sceSblDriverUnmapPages);
@@ -665,8 +666,18 @@ bool SelfDecrypt::DecryptBlock(uint8_t* p_BlobData, uint64_t p_BlobSize)
     // Decrypt block
     s_Command = reinterpret_cast<sbl_authmgr_load_self_block_t*>(&s_Payload[0]);
     memset(s_Payload, 0, sizeof(s_Payload));
-    //memcpy(&s_Command->digest, &)
-    // TODO: Finish
+    
+    memcpy(&s_Command->digest, &p_Block->digest, sizeof(p_Block->digest));
+    memcpy(&s_Command->extent, &p_Block->extent, sizeof(p_Block->extent));
+
+    s_Command->function = AUTHMGR_CMD_LOAD_SELF_BLOCK;
+    s_Command->status = 0;
+    s_Command->pages_addr = s_OutputMapped;
+    s_Command->segment_index = p_SegmentIndex;
+    s_Command->context_id = p_ContextId;
+    s_Command->block_index = p_Block->index;
+
 cleanup:
     return s_Success;
 }
+#endif

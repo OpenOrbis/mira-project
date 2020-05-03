@@ -4,6 +4,7 @@
     Credits: https://github.com/AlexAltea/orbital/
     AlexAltea, fail0verflow, flatz
 */
+#ifdef _disable_me_self_decrypt
 #pragma once
 #include <Utils/Types.hpp>
 
@@ -186,7 +187,8 @@ namespace Mira
             bool ReleaseContext();
 
             bool DecryptSegment(uint8_t* p_InputData, size_t p_InputDataLength, uint64_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_OutputData, uint64_t* p_InOutOutputSize);
-            bool DecryptBlock(uint8_t* p_BlobData, uint64_t p_BlobSize);
+            bool DecryptBlock(uint8_t* p_BlobData, uint64_t p_BlobSize, self_block_info_t* p_Block, int p_SegmentIndex, int p_ContextId);
         };
     }
 }
+#endif

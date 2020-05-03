@@ -61,29 +61,36 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	if (s_Framework)
 	{
 		auto s_InitParams = s_Framework->GetInitParams();
+		if (s_InitParams)
+		{
+			WriteKernelFileLog("mira base: %p size: %p\n", s_InitParams->payloadBase, s_InitParams->payloadSize);
+			WriteKernelFileLog("mira proc: %p entrypoint: %p\n", s_InitParams->process, s_InitParams->entrypoint);
+			WriteKernelFileLog("mira mira_entry: %p\n", mira_entry);
+		}
 
-		WriteKernelFileLog("mira base: %p size: %p\n", s_InitParams->payloadBase, s_InitParams->payloadSize);
-		WriteKernelFileLog("mira proc: %p entrypoint: %p\n", s_InitParams->process, s_InitParams->entrypoint);
-		WriteKernelFileLog("mira mira_entry: %p\n", mira_entry);
+		WriteKernelFileLog("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
+    }
 
-		if (s_Framework)
-			WriteKernelFileLog("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
-	
+	if (frame)
+	{
 		WriteKernelFileLog("LastBranchFromOffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
 		WriteKernelFileLog("RipOffsetFromKernelBase: %p", frame->tf_rip - (uint64_t)gKernelBase);
 		WriteKernelFileLog("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
 		WriteKernelFileLog("OffsetFromMiraEntryRIP: (%p)", (uint64_t)frame->tf_rip - (uint64_t)mira_entry);
-    }
+	}
 
-	auto s_Saved = vm_fault_disable_pagefaults();
 	WriteKernelFileLog("call stack:\n");
+	auto s_Saved = vm_fault_disable_pagefaults();
     auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
-	auto amdFrameCount = 0;
-	while (Debugger2::IsStackSpace(amdFrame))
+	if (amdFrame)
 	{
-		WriteKernelFileLog("[%d] [r: %p] [f:%p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
-		amdFrame = amdFrame->f_frame;
-		amdFrameCount++;
+		auto amdFrameCount = 0;
+		while (Debugger2::IsStackSpace(amdFrame))
+		{
+			WriteKernelFileLog("[%d] [r: %p] [f:%p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
+			amdFrame = amdFrame->f_frame;
+			amdFrameCount++;
+		}
 	}
 	vm_fault_enable_pagefaults(s_Saved);
 

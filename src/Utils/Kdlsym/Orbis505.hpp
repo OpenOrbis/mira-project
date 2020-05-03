@@ -91,7 +91,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sbl_keymgr_buf_gva                     0x02748800
 #define kdlsym_addr_sbl_pfs_sx                             0x0271E5D8
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x0063C4F0
-#define kdlsym_addr_sceSblAuthMgrSmStart                   0x006418E0
+#define kdlsym_addr__sceSblAuthMgrSmStart                   0x006418E0
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader            0x00642B40
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader              0x0063C550
 #define kdlsym_addr_sceSblDriverSendMsg                    0x0061D7F0

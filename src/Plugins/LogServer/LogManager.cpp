@@ -31,13 +31,15 @@ LogManager::LogManager(uint16_t p_Port, char* p_Device) :
     // Zero out the address
     memset(&m_Address, 0, sizeof(m_Address));
 
-    // Define device
-    if (p_Device) {
-        memcpy(m_Device, p_Device, PATH_MAX);
-    } else {
-        char buffer[PATH_MAX] = DEFAULT_PATH;
-        memcpy(m_Device, buffer, PATH_MAX);
-    }
+    // Get the current device path
+    auto s_DevicePath = p_Device == nullptr ? DEFAULT_PATH : p_Device;
+
+    // Calcualte the path length and cap it
+    auto s_DevicePathLength = strlen(s_DevicePath);
+    if (s_DevicePathLength >= sizeof(m_Device))
+        s_DevicePathLength = sizeof(m_Device) - 1;
+    
+    memcpy(m_Device, s_DevicePath, s_DevicePathLength);
 }
 
 LogManager::~LogManager()
@@ -71,6 +73,8 @@ bool LogManager::OnResume()
 
 bool LogManager::Startup()
 {
+    WriteLog(LL_Error, "here");
+
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
@@ -78,9 +82,14 @@ bool LogManager::Startup()
         return false;
     }
 
+    WriteLog(LL_Error, "here");
+
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
+    WriteLog(LL_Error, "m_Socket (%d) &m_Socket (%p) s_MainThread (%p)", m_Socket, &m_Socket, s_MainThread);
+
     // Create a socket
     m_Socket = ksocket_t(AF_INET, SOCK_STREAM, 0, s_MainThread);
+    WriteLog(LL_Error, "socket: (%d)", m_Socket);
     if (m_Socket < 0)
     {
         WriteLog(LL_Error, "could not initialize socket (%d).", m_Socket);
@@ -95,8 +104,11 @@ bool LogManager::Startup()
     m_Address.sin_port = htons(m_Port);
     m_Address.sin_len = sizeof(m_Address);
 
+    WriteLog(LL_Error, "here");
+
     // Bind to port
     auto s_Ret = kbind_t(m_Socket, reinterpret_cast<struct sockaddr*>(&m_Address), sizeof(m_Address), s_MainThread);
+    WriteLog(LL_Error, "ret (%d).", s_Ret);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not bind socket (%d).", s_Ret);
@@ -119,8 +131,8 @@ bool LogManager::Startup()
     }
 
     // Create the new server processing thread, 8MiB stack
-    s_Ret = kthread_add(LogManager::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "RpcServer");
-    WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
+    s_Ret = kthread_add(LogManager::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "LogServer");
+    WriteLog(LL_Debug, "logserver kthread_add returned (%d).", s_Ret);
 
     return s_Ret == 0;
 }
@@ -167,8 +179,8 @@ void LogManager::ServerThread(void* p_UserArgs)
     //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     // Check for invalid usage
-    LogManager* s_Server = static_cast<LogManager*>(p_UserArgs);
-    if (s_Server == nullptr)
+    LogManager* s_LogManager = static_cast<LogManager*>(p_UserArgs);
+    if (s_LogManager == nullptr)
     {
         WriteLog(LL_Error, "invalid usage, userargs are null.");
         kthread_exit();
@@ -176,7 +188,7 @@ void LogManager::ServerThread(void* p_UserArgs)
     }
 
     // Set our running state
-    s_Server->m_Running = true;
+    s_LogManager->m_Running = true;
 
     // Create our timeout
     struct timeval s_Timeout
@@ -190,34 +202,26 @@ void LogManager::ServerThread(void* p_UserArgs)
     size_t s_ClientAddressLen = sizeof(s_ClientAddress);
     memset(&s_ClientAddress, 0, s_ClientAddressLen);
     s_ClientAddress.sin_len = s_ClientAddressLen;
-    char buffer[2];
+    char s_Buffer[2] = { 0 };
 
-    WriteLog(LL_Info, "Opening %s", s_Server->m_Device);
-    auto klog = kopen_t(s_Server->m_Device, 0x00, 0, s_MainThread);
-    if (klog < 0)
+    WriteLog(LL_Info, "Opening %s", s_LogManager->m_Device);
+    auto s_LogDevice = kopen_t(s_LogManager->m_Device, 0x00, 0, s_MainThread);
+    if (s_LogDevice < 0)
     {
-        WriteLog(LL_Error, "could not open %s for reading (%d).", s_Server->m_Device, klog);
+        WriteLog(LL_Error, "could not open %s for reading (%d).", s_LogManager->m_Device, s_LogDevice);
         kclose_t(s_ClientSocket, s_MainThread);
+        goto cleanup;
     }
-    while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
+
+    WriteLog(LL_Error, "here");
+    // Loop and try to accept a client
+    while ((s_ClientSocket = kaccept_t(s_LogManager->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
-        // Set the send recv and linger timeouts
-        /*auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_RCVTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
-        if (result < 0)
-        {
-            WriteLog(LL_Error, "could not set recv timeout (%d).", result);
-            kclose_t(s_ClientSocket, s_MainThread);
-            continue;
-        }
+        WriteLog(LL_Error, "here");
+        if (!s_LogManager->m_Running)
+            break;
 
-        result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_SNDTIMEO, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
-        if (result < 0)
-        {
-            WriteLog(LL_Error, "could not set send timeout (%d).", result);
-            kclose_t(s_ClientSocket, s_MainThread);
-            continue;
-        }*/
-
+        WriteLog(LL_Error, "here");
         // SO_LINGER
         s_Timeout.tv_sec = 0;
         auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
@@ -229,6 +233,8 @@ void LogManager::ServerThread(void* p_UserArgs)
             continue;
         }
 
+        WriteLog(LL_Error, "here");
+
         uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
 
         WriteLog(LL_Debug, "got new log connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
@@ -237,20 +243,35 @@ void LogManager::ServerThread(void* p_UserArgs)
             (l_Addr >> 16) & 0xFF,
             (l_Addr >> 24) & 0xFF);
 
+        // Loop reading the data from the klog
         auto bytesRead = 0;
-        while ((bytesRead = kread_t(klog, buffer, 1, s_MainThread)) > 0)
+        while ((bytesRead = kread_t(s_LogDevice, s_Buffer, 1, s_MainThread)) > 0)
         {
-            if (kwrite_t(s_ClientSocket, buffer, 1, s_MainThread) <= 0)
+            if (kwrite_t(s_ClientSocket, s_Buffer, 1, s_MainThread) <= 0)
                 break;
 
-            memset(buffer, 0, sizeof(buffer));
+            memset(s_Buffer, 0, sizeof(s_Buffer));
         }
 
+        WriteLog(LL_Error, "here");
+
+        WriteLog(LL_Debug, "log connection (%d) disconnected from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
+            (l_Addr & 0xFF),
+            (l_Addr >> 8) & 0xFF,
+            (l_Addr >> 16) & 0xFF,
+            (l_Addr >> 24) & 0xFF);
+        
+        // Close down the client socket that was created
+        kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+        kclose_t(s_ClientSocket, s_MainThread);
+
+        WriteLog(LL_Error, "here");
     }
 
+cleanup:
     // Disconnects all clients, set running to false
     WriteLog(LL_Debug, "logserver tearing down");
-    s_Server->Teardown();
+    s_LogManager->Teardown();
 
     WriteLog(LL_Debug, "logserver exiting cleanly");
     kthread_exit();
