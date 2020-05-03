@@ -9,6 +9,7 @@ struct task_struct;
 struct proc;
 struct proc_vm_map_entry;
 struct vnode;
+struct iovec;
 
 #define  VM_PROT_GPU_READ ((vm_prot_t)0x10)
 #define  VM_PROT_GPU_WRITE ((vm_prot_t)0x20)
@@ -64,6 +65,8 @@ extern int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_
 extern struct proc* proc_find_by_name(const char* name);
 extern int proc_get_vm_map(struct proc* p, struct proc_vm_map_entry** entries, size_t* num_entries);
 
+extern void build_iovec(struct iovec **iov, int *iovlen, const char *name, const char *val, size_t len);
+extern int kernel_vmount(int flags, ...);
 
 extern void	*memcpy(void * __restrict, const void * __restrict, size_t);
 extern void	*memmove(void *, const void *, size_t);

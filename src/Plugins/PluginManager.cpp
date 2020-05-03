@@ -7,10 +7,16 @@
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
 #include <Plugins/EmuRegistry/EmuRegistryPlugin.hpp>
+#include <Plugins/Substitute/Substitute.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
 #include <Utils/Span.hpp>
+
+extern "C"
+{
+    #include <sys/syslimits.h>
+};
 
 using namespace Mira::Plugins;
 
@@ -20,10 +26,12 @@ PluginManager::PluginManager() :
     m_FileManager(nullptr),
     m_FakeSelfManager(nullptr),
     m_FakePkgManager(nullptr),
-    m_EmuRegistry(nullptr)
+    m_EmuRegistry(nullptr),
+    m_Substitute(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
+    m_LoggerConsole = nullptr;
     m_FileManager = nullptr;
 }
 
@@ -55,7 +63,18 @@ bool PluginManager::OnLoad()
     }
     if (!m_Logger->OnLoad())
         WriteLog(LL_Error, "could not load logmanager");
-    
+
+    // Initialize Logger (Console)
+    char consolePath[PATH_MAX] = "/dev/console";
+    m_LoggerConsole = new Mira::Plugins::LogManagerExtent::LogManager(9997, consolePath);
+    if (m_LoggerConsole == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate log manager.(Console)");
+        return false;
+    }
+    if (!m_LoggerConsole->OnLoad())
+        WriteLog(LL_Error, "could not load logmanager (Console)");
+
     // Initialize file manager
     m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
     if (m_FileManager == nullptr)
@@ -95,6 +114,17 @@ bool PluginManager::OnLoad()
     }
     if (!m_EmuRegistry->OnLoad())
         WriteLog(LL_Error, "could not load emulated registry.");
+
+    // Initialize Substitute
+    m_Substitute = new Mira::Plugins::Substitute();
+    if (m_Substitute == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate substitute.");
+        return false;
+    }
+    if (!m_Substitute->OnLoad())
+        WriteLog(LL_Error, "could not load substitute.");
+
     return true;
 }
 
@@ -193,7 +223,33 @@ bool PluginManager::OnUnload()
         m_Logger = nullptr;
     }
 
+    // Delete the log server (Console)
+    if (m_LoggerConsole)
+    {
+        WriteLog(LL_Debug, "unloading log manager (Console)");
+
+        if (!m_LoggerConsole->OnUnload())
+            WriteLog(LL_Error, "logmanager could not unload (Console)");
+
+        // Free the file manager
+        delete m_LoggerConsole;
+        m_LoggerConsole = nullptr;
+    }
+
+    // Delete Substitute
+    if (m_Substitute)
+    {
+        WriteLog(LL_Debug, "unloading substitute");
+        if (!m_Substitute->OnUnload())
+            WriteLog(LL_Error, "substitute could not unload");
+
+        // Free Substitute
+        delete m_Substitute;
+        m_Substitute = nullptr;
+    }
+
     // Delete the debugger
+    // NOTA: Don't unload before the debugger for catch error if something wrong
     if (m_Debugger)
     {
         WriteLog(LL_Debug, "unloading debugger");
@@ -245,10 +301,17 @@ bool PluginManager::OnSuspend()
 
     if (!m_Logger->OnSuspend())
         WriteLog(LL_Error, "log manager suspend failed");
-    
+
+    if (!m_LoggerConsole->OnSuspend())
+        WriteLog(LL_Error, "log manager suspend failed (Console)");
+
+    if (!m_Substitute->OnSuspend())
+        WriteLog(LL_Error, "substitute suspend failed");
+
+    // Nota: Don't suspend before the debugger for catch error if something when wrong
     if (!m_Debugger->OnSuspend())
         WriteLog(LL_Error, "debugger suspend failed");
-    
+
     // Return final status
     return s_AllSuccess;
 }
@@ -266,11 +329,19 @@ bool PluginManager::OnResume()
     WriteLog(LL_Debug, "resuming log manager");
     if (!m_Logger->OnResume())
         WriteLog(LL_Error, "log manager resume failed"); 
+
+    WriteLog(LL_Debug, "resuming log manager (Console)");
+    if (!m_LoggerConsole->OnResume())
+        WriteLog(LL_Error, "log manager resume failed (Console)"); 
     
     WriteLog(LL_Debug, "resuming emuRegistry");
     if (!m_EmuRegistry->OnResume())
         WriteLog(LL_Error, "emuRegistry resume failed");
-    
+
+    WriteLog(LL_Debug, "resuming substitute");
+    if (!m_Substitute->OnResume())
+        WriteLog(LL_Error, "substitute resume failed");
+
     // Iterate through all of the plugins
     for (auto i = 0; i < m_Plugins.size(); ++i)
     {

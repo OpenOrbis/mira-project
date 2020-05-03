@@ -3,6 +3,27 @@
 #include <Utils/Kernel.hpp>
 
 struct proc;
+struct thread;
+
+struct posixldr_header {
+    uint32_t magic;
+    uint64_t entrypoint;
+    uint8_t ldrdone;
+    uint64_t stubentry;
+    uint64_t scePthreadAttrInit;
+    uint64_t scePthreadAttrSetstacksize;
+    uint64_t scePthreadCreate;
+    uint64_t thr_initial;
+} __attribute__((packed));
+
+struct prxldr_header {
+    uint32_t magic;
+    uint64_t entrypoint;
+    uint8_t prxdone;
+    uint64_t prx_path;
+    uint64_t sceKernelLoadStartModule;
+} __attribute__((packed));
+
 
 namespace Mira
 {
@@ -27,6 +48,11 @@ namespace Mira
 
             static int ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_ReadWriteSize, bool p_Write);
             static int GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries);
+            static int ExecutableWriteProtection(struct proc* p, bool write_allowed);
+            static int MountNullFS(char* where, char* what, int flags);
+            static int CreatePOSIXThread(struct proc* p, void* entrypoint);
+            static int LoadPRXModule(struct proc* p, const char* prx_path);
+            static int KillProcess(struct proc* p);
         };
     }
 }

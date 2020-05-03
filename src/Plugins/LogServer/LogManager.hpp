@@ -1,8 +1,13 @@
 #pragma once 
 #include <Utils/IModule.hpp>
 #include <Utils/Vector.hpp>
+#include <Utils/Hook.hpp>
 
 #include <netinet/in.h>
+#include <sys/syslimits.h>
+#include <sys/param.h>
+
+#define DEFAULT_PATH "/dev/klog"
 
 struct thread;
 
@@ -27,11 +32,14 @@ namespace Mira
                 // Thread
                 void* m_Thread;
 
+                // Device path
+                char m_Device[PATH_MAX];
+
                 // Running
                 volatile bool m_Running;
 
             public:
-                LogManager(uint16_t p_Port = 9998);
+                LogManager(uint16_t p_Port = 9998, char* p_Device = nullptr);
                 virtual ~LogManager();
 
                 bool Startup();

@@ -130,6 +130,24 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
+	// Patch to remove vm_fault: fault on nofault entry, addr %llx
+	kmem = (uint8_t*)&gKernelBase[0x002A4EB3];    
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch mprotect to allow RWX (mprotect) mapping 5.05
+	kmem = (uint8_t *)&gKernelBase[0x001A3C08];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
 	// flatz disable pfs signature check
 	kmem = (uint8_t *)&gKernelBase[0x006A2700];
 	kmem[0] = 0x31;
@@ -155,5 +173,36 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem = (uint8_t*)&gKernelBase[0x043612A];
 	kmem[0] = 0xEB; // jmp +0x3A
 	kmem[1] = 0x38;
+
+	// flatz allow mangled symbol in dynlib_do_dlsym
+	kmem = (uint8_t *)&gKernelBase[0x002AFB47];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;	
+
+	// Enable mount for unprivileged user
+	kmem = (uint8_t *)&gKernelBase[0x001DEBFE];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch suword_lwpid
+	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
+	// Patch by: JOGolden
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9D2];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9E1];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
 #endif
 }
