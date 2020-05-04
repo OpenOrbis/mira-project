@@ -193,7 +193,7 @@ void Patches::install_prerunPatches_474()
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 
-	kmem = (uint8_t *)&gKernelBase[0x0014A221];
+	kmem = (uint8_t *)&gKernelBase[0x0014A231];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 
