@@ -323,12 +323,7 @@ int Substitute::EnableHook(struct proc* p, int hook_id) {
 
     switch (hook->hook_type) {
         case HOOKTYPE_IAT: {
-            WriteLog(LL_Info, "Hook Type: IAT.");
-
             if (!hook->hook_enable && hook->process && hook->hook_function) {
-                WriteLog(LL_Error, "jmpslot_address: %p", (void*)hook->jmpslot_address);
-                WriteLog(LL_Error, "hook_function: %p", (void*)hook->hook_function);
-
                 int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, sizeof(uint64_t), &hook->hook_function, nullptr, true);
                 if (r_error != 0) {
                     WriteLog(LL_Error, "Unable to write the iat system: (%d)", r_error);
@@ -345,8 +340,6 @@ int Substitute::EnableHook(struct proc* p, int hook_id) {
         }
 
         case HOOKTYPE_JMP : {
-            WriteLog(LL_Info, "Hook Type: JMP.");
-
             if (!hook->hook_enable && hook->process && hook->original_function && hook->hook_function) {
 
                 // Use the jmpBuffer from Hook.cpp
@@ -443,7 +436,7 @@ void Substitute::CleanupProcessHook(struct proc* p) {
 }
 
 // Substitute : Hook the function in the process (With Import Address Table)
-int Substitute::HookIAT(struct proc* p, const char* name, int32_t flags, void* hook_function, uint64_t* original_function_out) {
+int Substitute::HookIAT(struct proc* p, const char* module_name, const char* name, int32_t flags, void* hook_function, uint64_t* original_function_out) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
@@ -453,7 +446,7 @@ int Substitute::HookIAT(struct proc* p, const char* name, int32_t flags, void* h
     }
 
     // Get the jmpslot offset for this nids
-    void* jmpslot_address = (void*)FindJmpslotAddress(p, name, flags);
+    void* jmpslot_address = (void*)FindJmpslotAddress(p, module_name, name, flags);
     if (!jmpslot_address) {
         WriteLog(LL_Error, "Unable to find the jmpslot address !");
         return -2;
@@ -628,10 +621,11 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 }
 
 // Substitute : Find pre-offset from the name or nids
-uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_t flags) {
+uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name, const char* name, int32_t flags) {
     auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
     auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto name_to_nids = (void(*)(const char *name, const char *nids_out))kdlsym(name_to_nids);
 
@@ -661,10 +655,31 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
         if (main_dylib_obj) {
-            // Get the main relocbase address, for calculation after
-            uint64_t main_relocbase = (uint64_t)(*(uint64_t*)(main_dylib_obj + 0x70));
+            // Search in all library
+            uint64_t dynlib_obj = main_dylib_obj;
 
-            uint64_t unk_obj = *(uint64_t*)(main_dylib_obj + 0x150);
+            // Check if we not are in the main executable
+            if (strncmp(module_name, SUBSTITUTE_MAIN_MODULE, SUBSTITUTE_MAX_NAME) != 0) {
+                for (;;) {
+                    char* lib_name = (char*)(*(uint64_t*)(dynlib_obj + 8));
+
+                    // If the libname (a path) containt the module name, it's the good object, break it
+                    if (lib_name && strstr(lib_name, module_name)) {
+                        break;
+                    }
+
+                    dynlib_obj = *(uint64_t*)(dynlib_obj);
+                    if (!dynlib_obj) {
+                        WriteLog(LL_Error, "Unable to find the library.");
+                        return 0; // Library not found
+                    }
+                }
+            }
+
+            // Get the main relocbase address, for calculation after
+            uint64_t relocbase = (uint64_t)(*(uint64_t*)(dynlib_obj + 0x70));
+
+            uint64_t unk_obj = *(uint64_t*)(dynlib_obj + 0x150);
             if (unk_obj) {
                 uint64_t string_table = *(uint64_t*)(unk_obj + 0x38);
 
@@ -704,7 +719,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* name, int32_
                             if (nids_f) {
                                 // Check if it's the good nids
                                 if (strncmp(nids_f, nids, 11) == 0) {
-                                    nids_offset_found = main_relocbase + r_offset;
+                                    nids_offset_found = relocbase + r_offset;
                                     break;
                                 }
                             }
@@ -1026,7 +1041,7 @@ int Substitute::OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* u
     }
 
     uint64_t original_function = 0;
-    hook_id = substitute->HookIAT(td->td_proc, uap->name, uap->flags, uap->hook_function, &original_function);
+    hook_id = substitute->HookIAT(td->td_proc, uap->module_name, uap->name, uap->flags, uap->hook_function, &original_function);
     if (hook_id >= 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
