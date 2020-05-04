@@ -39,6 +39,37 @@ void Patches::install_prerunPatches_455()
 	//kmem[5] = 0x65;
 	//kmem[6] = 0x8B;
 	//kmem[7] = 0x34;
+	
+	// sceSblACMgrIsAllowedSystemLevelDebugging
+	kmem = (uint8_t *)&gKernelBase[0x00169E00];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0016A530];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0016A550];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
 
 	// Enable rwx mapping
 	// Done By WildCard
