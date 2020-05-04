@@ -28,7 +28,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 
 	// Verbose Panics patch
 	// Done by WildCard
-  // TODO: CHECK THIS
 	kmem = (uint8_t *)&gKernelBase[0x003DBDC7];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
@@ -39,8 +38,7 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	//kmem[6] = 0x8B;
 	//kmem[7] = 0x34;
 
-  // sceSblACMgrIsAllowedSystemLevelDebugging
-  // TODO
+	// sceSblACMgrIsAllowedSystemLevelDebugging
 
 	// Enable rwx mapping
 	// Done By WildCard
@@ -63,27 +61,27 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	// Enable MAP_SELF
 	// Done by IDC
 	kmem = (uint8_t *)&gKernelBase[0x0016A5B0];
-  kmem[0] = 0xB8;
-  kmem[1] = 0x01;
-  kmem[2] = 0x00;
-  kmem[3] = 0x00;
-  kmem[4] = 0x00;
-  kmem[5] = 0xC3;
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
 
 	kmem = (uint8_t *)&gKernelBase[0x0016A5C0];
-  kmem[0] = 0xB8;
-  kmem[1] = 0x01;
-  kmem[2] = 0x00;
-  kmem[3] = 0x00;
-  kmem[4] = 0x00;
-  kmem[5] = 0xC3;
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
 
 	kmem = (uint8_t *)&gKernelBase[0x00143BE7];
-  kmem[0] = 0x31;
-  kmem[1] = 0xC0;
-  kmem[2] = 0x90;
-  kmem[3] = 0x90;
-  kmem[4] = 0x90;
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
 
 	// Patch copyinstr
 	// Done by CrazyVoid
