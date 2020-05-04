@@ -29,6 +29,7 @@ enum HookType {
 };
 
 #define SUBSTITUTE_MAX_NAME 255 // Max lenght for name
+#define SUBSTITUTE_MAX_HOOKS 1000 // Max possible hooks (all process)
 
 enum {
     SUBSTITUTE_IAT_NAME = 0,
@@ -37,11 +38,11 @@ enum {
 
 enum {
     SUBSTITUTE_STATE_DISABLE = 0,
-    SUBSTITUTE_STATE_ENABLE = 1
+    SUBSTITUTE_STATE_ENABLE = 1,
+    SUBSTITUTE_STATE_UNHOOK = 2
 };
 
 typedef struct {
-    int id;
     int hook_type;
     struct proc* process;
     void* jmpslot_address; // For IAT
@@ -94,8 +95,7 @@ namespace Mira
 
             // Hook management
             struct mtx hook_mtx;
-            SubstituteHook* hook_list;
-            int hook_nbr;
+            SubstituteHook hooks[SUBSTITUTE_MAX_HOOKS];
 
         public:
             // Syscall hook (Original pointer)
@@ -110,10 +110,10 @@ namespace Mira
 
             static Substitute* GetPlugin();
 
-            int FindAvailableHookID();
+            bool IsProcessAlive(struct proc* p_alive);
             SubstituteHook* GetHookByID(int hook_id);
-            SubstituteHook* AllocateNewHook();
-            void FreeOldHook(int hook_id);
+            SubstituteHook* AllocateHook(int* hook_id);
+            void FreeHook(int hook_id);
             int DisableHook(struct proc* p, int hook_id);
             int EnableHook(struct proc* p, int hook_id);
             int Unhook(struct proc* p, int hook_id);
@@ -124,7 +124,6 @@ namespace Mira
 
             uint64_t FindJmpslotAddress(struct proc* p, const char* name, int32_t flags);
             void* FindOriginalAddress(struct proc* p, const char* name, int32_t flags);
-            void DebugImportTable(struct proc* p);
 
             static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
             static int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
