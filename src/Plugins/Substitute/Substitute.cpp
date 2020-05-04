@@ -65,7 +65,7 @@ bool Substitute::OnLoad()
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
     WriteLog(LL_Info, "Loading Substitute ...");
-
+ 
     // Substitute mount / unmount
     m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
@@ -239,11 +239,13 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
         return -2;
     }
 
+    /*
     if (!IsProcessAlive(hook->process)) {
         WriteLog(LL_Error, "The process is not alive !");
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         return -3;
     }
+    */
 
     switch (hook->hook_type) {
         case HOOKTYPE_IAT: {
@@ -311,11 +313,13 @@ int Substitute::EnableHook(struct proc* p, int hook_id) {
         return -2;
     }
 
+    /*
     if (!IsProcessAlive(hook->process)) {
         WriteLog(LL_Error, "The process is not alive !");
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         return -3;
     }
+    */
 
     switch (hook->hook_type) {
         case HOOKTYPE_IAT: {
@@ -389,8 +393,6 @@ int Substitute::Unhook(struct proc* p, int hook_id) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-    DisableHook(p, hook_id);
-
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
     FreeHook(hook_id);
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
@@ -431,8 +433,10 @@ void Substitute::CleanupProcessHook(struct proc* p) {
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     for (int i = 0; i < SUBSTITUTE_MAX_HOOKS; i++) {
-        DisableHook(p, i);
-        FreeHook(i);
+        SubstituteHook* hook = GetHookByID(i);
+        if (hook && hook->process == p) {
+            FreeHook(i);
+        }
     }
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
@@ -574,28 +578,26 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
     void* addr = nullptr;
 
     if (p->p_dynlib) {
-        WriteLog(LL_Info, "[%s] Address of p_dynlib: %p", s_TitleId, p->p_dynlib);
-
-        // Lock dynlib object (Note: Locking will panic kernel sometime)
+        // Lock dynlib object
         struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
         A_sx_xlock_hard(dynlib_bind_lock, 0);
 
         uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
         if (main_dylib_obj) {
-            WriteLog(LL_Info, "[%s] Start searching ... (Main at %p)", s_TitleId, (void*)main_dylib_obj);
-
             // Search in all library
             int total = 0;
             uint64_t dynlib_obj = main_dylib_obj;
             for (;;) {
                 total++;
 
+                /*
                 char* lib_name = (char*)(*(uint64_t*)(dynlib_obj + 8));
                 void* relocbase = (void*)(*(uint64_t*)(dynlib_obj + 0x70));
                 uint64_t handle = *(uint64_t*)(dynlib_obj + 0x28);
+                */
 
-                WriteLog(LL_Info, "[%s] search(%i): %p lib_name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, lib_name, handle, relocbase);
+                //WriteLog(LL_Info, "[%s] search(%i): %p lib_name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, lib_name, handle, relocbase);
 
                 // Doing a dlsym with nids or name
                 if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
@@ -605,10 +607,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
                 }
 
                 if (addr) {
-                    WriteLog(LL_Info, "Found at %s (%s => %p)", lib_name, name, addr);
                     break;
-                } else {
-                    WriteLog(LL_Info, "Not found.");
                 }
 
                 dynlib_obj = *(uint64_t*)(dynlib_obj);
@@ -751,6 +750,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
+    // Check if it's a valid process
     if ( !(strstr(s_TitleId, "CUSA") || strstr(s_TitleId, "NPXS")) )
         return;
 
@@ -1027,7 +1027,7 @@ int Substitute::OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* u
 
     uint64_t original_function = 0;
     hook_id = substitute->HookIAT(td->td_proc, uap->name, uap->flags, uap->hook_function, &original_function);
-    if (hook_id > 0) {
+    if (hook_id >= 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
         WriteLog(LL_Error, "Unable to hook %s ! (%i)", uap->name, hook_id);
@@ -1060,7 +1060,7 @@ int Substitute::OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* u
     }
 
     hook_id = substitute->HookJmp(td->td_proc, uap->original_function, uap->hook_function);
-    if (hook_id > 0) {
+    if (hook_id >= 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
         WriteLog(LL_Error, "Unable to hook %p ! (%i)", uap->original_function, hook_id);
@@ -1142,17 +1142,14 @@ int32_t Substitute::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 {
     switch (p_Command) {
         case SUBSTITUTE_HOOK_IAT: {
-            WriteLog(LL_Info, "SUBSTITUTE_HOOK_IAT IOCTL Trigerred !");
             return Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
         }
 
         case SUBSTITUTE_HOOK_JMP: {
-            WriteLog(LL_Info, "SUBSTITUTE_HOOK_JMP IOCTL Trigerred !");
             return Substitute::OnIoctl_HookJMP(p_Thread, (struct substitute_hook_jmp*)p_Data);
         }
 
         case SUBSTITUTE_HOOK_STATE: {
-            WriteLog(LL_Info, "SUBSTITUTE_HOOK_STATE IOCTL Trigerred !");
             return Substitute::OnIoctl_StateHook(p_Thread, (struct substitute_state_hook*)p_Data);
         }
 
