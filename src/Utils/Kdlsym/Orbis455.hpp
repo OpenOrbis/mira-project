@@ -174,36 +174,36 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr__thread_lock_flags                     0x0
 
 // FakeSelf hooks
-#define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0
-#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x0
-#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0
-#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x0
+#define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0061F0FC
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0061F24F
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x006238BA
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x006244E1
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0061F976
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x00620599
 
 // FakePkg hooks
 #define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook       0x0
-#define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook                  0x0
-#define kdlsym_addr_npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook   0x0
-#define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook        0x0
+#define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook                  0x60ED5A
+#define kdlsym_addr_npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook   0x62DF00
+#define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook        0x62ECDE
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0x0
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchB                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchC                   0x0
+#define ssc_sceKernelIsGenuineCEX_patchA                   0x001486BB
+#define ssc_sceKernelIsGenuineCEX_patchB                   0x006E523B
+#define ssc_sceKernelIsGenuineCEX_patchC                   0x00852C6B
 #define ssc_sceKernelIsGenuineCEX_patchD                   0x0
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA                        0x0
-#define ssc_nidf_libSceDipsw_patchB                        0x0
-#define ssc_nidf_libSceDipsw_patchC                        0x0
+#define ssc_nidf_libSceDipsw_patchA                        0x001486E7
+#define ssc_nidf_libSceDipsw_patchB                        0x006E5267
+#define ssc_nidf_libSceDipsw_patchC                        0x00852C97
 #define ssc_nidf_libSceDipsw_patchD                        0x0
 
 #define ssc_enable_fakepkg_patch                           0x0
 
 // SceShellCore patches - use free prefix instead fake
-#define ssc_fake_to_free_patch                             0x0
+#define ssc_fake_to_free_patch                             0x00D40F28
 
 #endif
