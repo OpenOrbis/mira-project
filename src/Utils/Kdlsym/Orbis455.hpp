@@ -69,9 +69,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_memmove                                0x002EE740
 #define kdlsym_addr_memset                                 0x00302BD0
 #define kdlsym_addr_mini_syscore_self_binary               0x01471468
-#define kdlsym_addr_mount_arg                              0x0
-#define kdlsym_addr_mount_argb                             0x0
-#define kdlsym_addr_mount_argf                             0x0
+#define kdlsym_addr_mount_arg                              0x000DCF40
+#define kdlsym_addr_mount_argb                             0x000DB4E0
+#define kdlsym_addr_mount_argf                             0x000DD020
 #define kdlsym_addr_mtx_init                               0x0030E0C0
 #define kdlsym_addr_mtx_lock_sleep                         0x0030D710
 #define kdlsym_addr_mtx_unlock_sleep                       0x0030DA10
@@ -149,7 +149,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vmspace_acquire_ref                    0x00391EE0
 #define kdlsym_addr_vmspace_alloc                          0x00391A70
 #define kdlsym_addr_vmspace_free                           0x00391D10
-#define kdlsym_addr_vn_fullpath                            0x0
+#define kdlsym_addr_vn_fullpath                            0x002FB5B0
 #define kdlsym_addr_vsnprintf                              0x000182D0
 #define kdlsym_addr_Xfast_syscall                          0x003095D0
 #define kdlsym_addr_wakeup                                 0x00261140
@@ -164,14 +164,14 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vm_fault_disable_pagefaults            0x002A19F0
 #define kdlsym_addr_vm_fault_enable_pagefaults             0x002A1A20
 
-#define kdlsym_addr_gdt                                    0x0
+#define kdlsym_addr_gdt                                    0x01B55AD0
 
-#define kdlsym_addr_destroy_dev                            0x0
-#define kdlsym_addr_make_dev_p                             0x0
+#define kdlsym_addr_destroy_dev                            0x0036EAD0
+#define kdlsym_addr_make_dev_p                             0x0036E5A0
 
-#define kdlsym_addr_kproc_exit                             0x0
-#define kdlsym_addr_spinlock_exit                          0x0
-#define kdlsym_addr__thread_lock_flags                     0x0
+#define kdlsym_addr_kproc_exit                             0x00464980
+#define kdlsym_addr_spinlock_exit                          0x002828D0
+#define kdlsym_addr__thread_lock_flags                     0x0030DD70
 
 // FakeSelf hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0061F0FC
