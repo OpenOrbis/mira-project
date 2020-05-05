@@ -34,7 +34,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_critical_enter                         0x0023D560
 #define kdlsym_addr_critical_exit                          0x0023D570
 //#define kdlsym_addr_dmem_start_app_process                 0x0
-#define kdlsym_addr_dynlib_do_dlsym                        0x0
+#define kdlsym_addr_dynlib_do_dlsym                        0x00066A20
 #define kdlsym_addr_eventhandler_register                  0x003C97F0
 #define kdlsym_addr_exec_new_vmspace                       0x002E8850
 #define kdlsym_addr_faultin                                0x0030EE10
@@ -54,8 +54,8 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_kern_sysents                           0x0102B690
 #define kdlsym_addr_kern_thr_create                        0x002ECCD0
 #define kdlsym_addr_kernel_map                             0x01B31218
-#define kdlsym_addr_kernel_mount                           0x0
-#define kdlsym_addr_killproc                               0x0
+#define kdlsym_addr_kernel_mount                           0x000DD1C0
+#define kdlsym_addr_killproc                               0x00026230
 #define kdlsym_addr_kmem_alloc                             0x0016ECD0
 #define kdlsym_addr_kmem_free                              0x0016EEA0
 #define kdlsym_addr_kproc_create                           0x00464700
@@ -75,7 +75,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_mtx_init                               0x0030E0C0
 #define kdlsym_addr_mtx_lock_sleep                         0x0030D710
 #define kdlsym_addr_mtx_unlock_sleep                       0x0030DA10
-#define kdlsym_addr_name_to_nids                           0x0
+#define kdlsym_addr_name_to_nids                           0x00069730
 #define kdlsym_addr_pfind                                  0x00079780
 #define kdlsym_addr_pmap_activate                          0x00427530
 #define kdlsym_addr_printf                                 0x00017F30
