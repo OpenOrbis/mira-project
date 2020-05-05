@@ -87,10 +87,10 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_rootvnode                              0x021AFA30
 #define kdlsym_addr_RsaesPkcs1v15Dec2048CRT                0x003EF200
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x0258CCD0
-#define kdlsym_addr_sbl_keymgr_key_rbtree                  0x0
-#define kdlsym_addr_sbl_keymgr_key_slots                   0x0
-#define kdlsym_addr_sbl_keymgr_buf_va                      0x0
-#define kdlsym_addr_sbl_keymgr_buf_gva                     0x0
+#define kdlsym_addr_sbl_keymgr_key_rbtree                  0x02534DE0
+#define kdlsym_addr_sbl_keymgr_key_slots                   0x02534DD0
+#define kdlsym_addr_sbl_keymgr_buf_va                      0x02538000
+#define kdlsym_addr_sbl_keymgr_buf_gva                     0x02538200
 #define kdlsym_addr_sbl_pfs_sx                             0x0
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x00625C50
 #define kdlsym_addr__sceSblAuthMgrSmStart                  0x00622020
