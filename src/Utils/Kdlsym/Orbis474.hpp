@@ -34,7 +34,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_critical_enter                         0x0023F9E0
 #define kdlsym_addr_critical_exit                          0x0023F9F0
 // #define kdlsym_addr_dmem_start_app_process                 0x0
-#define kdlsym_addr_dynlib_do_dlsym                        0x002AFA80
+#define kdlsym_addr_dynlib_do_dlsym                        0x00066000
 #define kdlsym_addr_eventhandler_register                  0x003CA6A0
 #define kdlsym_addr_exec_new_vmspace                       0x002EAA50
 #define kdlsym_addr_faultin                                0x00311010
