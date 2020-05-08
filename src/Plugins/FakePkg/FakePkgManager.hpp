@@ -64,6 +64,10 @@ namespace Mira
             static int OnSceSblDriverSendMsg(OrbisOS::SblMsg* p_Message, size_t p_Size);
             static int OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line);
 
+            static bool ShellCorePatch();
+            static bool ShellUIPatch();
+            static bool InstallEventHandlers();
+
             };
     }
 }

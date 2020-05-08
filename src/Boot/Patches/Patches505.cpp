@@ -206,6 +206,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem = (uint8_t *)&gKernelBase[0x001EA9E1];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
-
+	
 #endif
 }

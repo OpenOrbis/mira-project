@@ -115,6 +115,5 @@ void Patches::install_prerunPatches_455()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
-
 #endif
 }
