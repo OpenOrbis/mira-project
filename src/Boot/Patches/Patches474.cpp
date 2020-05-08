@@ -13,7 +13,6 @@ void Patches::install_prerunPatches_474()
 	if (!gKernelBase)
 		return;
 
-	
 	// Use "kmem" for all patches
 	uint8_t *kmem;
 
@@ -31,7 +30,18 @@ void Patches::install_prerunPatches_474()
 	kmem[5] = 0x65;
 	kmem[6] = 0x8B;
 	kmem[7] = 0x34;
-	
+
+	// sceSblACMgrIsAllowedSystemLevelDebugging
+	kmem = (uint8_t *)&gKernelBase[0x00169060];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
+
 	kmem = (uint8_t *)&gKernelBase[0x00169790];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -122,12 +132,70 @@ void Patches::install_prerunPatches_474()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
+	// Patch to remove vm_fault: fault on nofault entry, addr %llx
+	kmem = (uint8_t*)&gKernelBase[0x002A160E];    
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch mprotect to allow RWX (mprotect) mapping 4.74
+	kmem = (uint8_t *)&gKernelBase[0x00397878];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// flatz disable pfs signature check
+	kmem = (uint8_t *)&gKernelBase[0x006A2DF0];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
+	// flatz enable debug RIFs
+	kmem = (uint8_t *)&gKernelBase[0x00630B10];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x00630B30];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
 	kmem = (uint8_t*)&gKernelBase[0x0001801A]; // This needs to be verified
 	kmem[0] = 0xEB; // jmp +0x3b
 	kmem[1] = 0x39;
 
+	// Enable mount for unprivileged user
+	kmem = (uint8_t *)&gKernelBase[0x000D9AE3];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch suword_lwpid
+	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
+	// Patch by: JOGolden
+
+	kmem = (uint8_t *)&gKernelBase[0x0014A222];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0014A231];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
 #endif
 }
-
