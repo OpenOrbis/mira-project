@@ -67,7 +67,7 @@ bool PluginManager::OnLoad()
             break;
         }
         if (!m_SyscallGuard->OnLoad())
-            WriteLog(LL_Error, "could not load syscall guard.");
+            WriteLog(LL_Error, "could not load syscall guard.");*/
 
         // Initialize Logger
         m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
@@ -80,7 +80,7 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load logmanager");
 
         // Initialize Logger (Console)
-        char consolePath[PATH_MAX] = "/dev/console";
+        char consolePath[] = "/dev/console";
         m_LoggerConsole = new Mira::Plugins::LogManagerExtent::LogManager(9997, consolePath);
         if (m_LoggerConsole == nullptr)
         {
@@ -89,7 +89,7 @@ bool PluginManager::OnLoad()
         }
         if (!m_LoggerConsole->OnLoad())
             WriteLog(LL_Error, "could not load logmanager (Console)");
-    */
+    
         // Initialize file manager
         m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
         if (m_FileManager == nullptr)
@@ -127,13 +127,13 @@ bool PluginManager::OnLoad()
         }
 
         // Initialize Substitute
-        /*m_Substitute = new Mira::Plugins::Substitute();
+        m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
         {
             WriteLog(LL_Error, "could not allocate substitute.");
             s_Success = false;
             break;
-        }*/
+        }
         
     } while (false);
 
@@ -270,7 +270,7 @@ bool PluginManager::OnUnload()
     }
 
     // Delete the log server
-    /*if (m_Logger)
+    if (m_Logger)
     {
         WriteLog(LL_Debug, "unloading log manager");
 
@@ -293,7 +293,7 @@ bool PluginManager::OnUnload()
         // Free the file manager
         delete m_LoggerConsole;
         m_LoggerConsole = nullptr;
-    }*/
+    }
 
     // Delete Substitute
     if (m_Substitute)
@@ -308,7 +308,7 @@ bool PluginManager::OnUnload()
     }
 
     // Delete the debugger
-    // NOTA: Don't unload before the debugger for catch error if something wrong
+    // NOTE: Don't unload before the debugger for catch error if something wrong
     if (m_Debugger)
     {
         WriteLog(LL_Debug, "unloading debugger");
@@ -393,8 +393,6 @@ bool PluginManager::OnSuspend()
         if (!m_Debugger->OnSuspend())
             WriteLog(LL_Error, "debugger suspend failed");
     }
-
-    
 
     // Return final status
     return s_AllSuccess;
