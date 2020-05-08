@@ -765,6 +765,8 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
+    WriteLog(LL_Debug, "process start (%s) (%d).", s_TitleId, p->p_pid);
+
     // Check if it's a valid process
     if ( !(strstr(s_TitleId, "CUSA") || strstr(s_TitleId, "NPXS")) )
         return;

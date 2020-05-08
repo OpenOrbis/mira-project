@@ -167,8 +167,12 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load emulated registry.");
     }
 
-    /*if (!m_Substitute->OnLoad())
-        WriteLog(LL_Error, "could not load substitute.");*/
+    if (m_Substitute)
+    {
+        if (!m_Substitute->OnLoad())
+            WriteLog(LL_Error, "could not load substitute.");
+    }
+
 
     return s_Success;
 }
