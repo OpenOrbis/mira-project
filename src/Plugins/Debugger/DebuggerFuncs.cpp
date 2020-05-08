@@ -567,12 +567,19 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         return false;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
 
     bool s_Success = false;
     int32_t s_Ret = 0;
@@ -603,7 +610,7 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
     memcpy(s_Name, p_Thread->td_name, s_NameLength);
     
     // Stop the process
-    s_Ret = kkill_t(p_Thread->td_proc->p_pid, SIGSTOP, s_MainThread);
+    s_Ret = kkill_t(p_Thread->td_proc->p_pid, SIGSTOP, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not stop process (%d).", s_Ret);
@@ -618,7 +625,7 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         goto cleanup;
     }
     memset(s_GpRegisters, 0, sizeof(*s_GpRegisters));
-    s_Ret = kptrace_t(PT_GETREGS, p_Thread->td_proc->p_pid, reinterpret_cast<caddr_t>(s_GpRegisters), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_GETREGS, p_Thread->td_proc->p_pid, reinterpret_cast<caddr_t>(s_GpRegisters), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not get gp regs (%d).", s_Ret);
@@ -669,7 +676,7 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
     }
 
     memset(s_FpRegisters, 0, sizeof(*s_FpRegisters));
-    s_Ret = kptrace_t(PT_GETFPREGS, p_Thread->td_proc->p_pid, reinterpret_cast<caddr_t>(s_FpRegisters), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_GETFPREGS, p_Thread->td_proc->p_pid, reinterpret_cast<caddr_t>(s_FpRegisters), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not get fp regs (%d).", s_Ret);
@@ -694,7 +701,7 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         goto cleanup;
     }
     memset(s_DbRegisters, 0, sizeof(*s_DbRegisters));
-    s_Ret = kptrace_t(PT_GETDBREGS, p_Thread->td_proc->p_pid, reinterpret_cast<caddr_t>(s_DbRegisters), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_GETDBREGS, p_Thread->td_proc->p_pid, reinterpret_cast<caddr_t>(s_DbRegisters), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not get db regs (%d).", s_Ret);
@@ -721,7 +728,7 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
     for (auto i = 0; i < s_DrCount; ++i)
         s_Dr[i] = s_DbRegisters->dr[i];
 
-    s_Ret = kkill_t(p_Thread->td_proc->p_pid, SIGCONT, s_MainThread);
+    s_Ret = kkill_t(p_Thread->td_proc->p_pid, SIGCONT, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not resume process (%d).", s_Ret);
@@ -834,12 +841,19 @@ bool Debugger2::GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info)
         return false;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
 
     bool s_Success = false;
     int32_t s_Ret = 0;
@@ -870,7 +884,7 @@ bool Debugger2::GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info)
     memcpy(s_Name, s_Thread->td_name, s_NameLength);
 
 
-    s_Ret = kkill_t(m_AttachedPid, SIGSTOP, s_MainThread);
+    s_Ret = kkill_t(m_AttachedPid, SIGSTOP, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not stop process (%d).", s_Ret);
@@ -879,7 +893,7 @@ bool Debugger2::GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info)
 
     
     memset(&s_GpRegisters, 0, sizeof(s_GpRegisters));
-    s_Ret = kptrace_t(PT_GETREGS, m_AttachedPid, reinterpret_cast<caddr_t>(&s_GpRegisters), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_GETREGS, m_AttachedPid, reinterpret_cast<caddr_t>(&s_GpRegisters), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not get gp regs (%d).", s_Ret);
@@ -924,7 +938,7 @@ bool Debugger2::GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info)
 
     
     memset(&s_FpRegisters, 0, sizeof(s_FpRegisters));
-    s_Ret = kptrace_t(PT_GETFPREGS, m_AttachedPid, reinterpret_cast<caddr_t>(&s_FpRegisters), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_GETFPREGS, m_AttachedPid, reinterpret_cast<caddr_t>(&s_FpRegisters), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not get fp regs (%d).", s_Ret);
@@ -945,7 +959,7 @@ bool Debugger2::GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info)
 
     
     memset(&s_DbRegisters, 0, sizeof(s_DbRegisters));
-    s_Ret = kptrace_t(PT_GETDBREGS, m_AttachedPid, reinterpret_cast<caddr_t>(&s_DbRegisters), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_GETDBREGS, m_AttachedPid, reinterpret_cast<caddr_t>(&s_DbRegisters), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not get db regs (%d).", s_Ret);
@@ -976,7 +990,7 @@ bool Debugger2::GetThreadFullInfo(int32_t p_ThreadId, DbgThreadFull* p_Info)
 
 
 
-    s_Ret = kkill_t(m_AttachedPid, SIGCONT, s_MainThread);
+    s_Ret = kkill_t(m_AttachedPid, SIGCONT, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not resume process (%d).", s_Ret);
@@ -1028,14 +1042,21 @@ bool Debugger2::SignalProcess(int32_t p_Signal)
         return false;
     }
     
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
 
-    auto s_Ret = kkill_t(m_AttachedPid, p_Signal, s_MainThread);
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
+
+    auto s_Ret = kkill_t(m_AttachedPid, p_Signal, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not send signal to pid (%d) err: (%d).", m_AttachedPid, s_Ret);

@@ -138,13 +138,6 @@ bool FakePkgManager::OnLoad()
 {
     WriteLog(LL_Debug, "patching shellcore");
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main mira thread");
-        return false;
-    }
-
     struct ::proc* s_Process = Utilities::FindProcessByName("SceShellCore");
     if (s_Process == nullptr)
     {

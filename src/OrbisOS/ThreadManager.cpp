@@ -9,6 +9,8 @@
 
 extern "C"
 {
+    #include <sys/param.h>
+    #include <sys/lock.h>
     #include <sys/proc.h>
     #include <sys/filedesc.h>
 };
@@ -98,6 +100,19 @@ bool ThreadManager::OnLoad()
 
 bool ThreadManager::OnUnload()
 {
+    auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
+
+    // Set the flag for shutting down
+    m_ThreadManagerRunning = false;
+
+    WriteLog(LL_Debug, "waiting for debugger thread to quit.");
+    while (m_DebugThreadRunning)
+        avcontrol_sleep(100);
+    
+    WriteLog(LL_Debug, "waiting for file io thread to quit.");
+    while (m_IoThread)
+        avcontrol_sleep(100);
+    
     return true;
 }
 
@@ -124,7 +139,10 @@ struct thread* ThreadManager::GetIoThread()
 void ThreadManager::FileIoThread(void* p_Argument)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-    auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
+    auto pause = (int(*)(const char *wmesg, int timo))kdlsym(pause);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    //auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
 
     // Get the thread manager
     auto s_ThreadManager = static_cast<ThreadManager*>(p_Argument);
@@ -150,39 +168,48 @@ void ThreadManager::FileIoThread(void* p_Argument)
 	{
 		WriteLog(LL_Info, "escaping thread (%s).", curthread->td_name);
 
+        WriteLog(LL_Error, "here");
 		s_Cred->cr_rgid = 0;
 		s_Cred->cr_svgid = 0;
+
+        WriteLog(LL_Error, "here");
 		
 		s_Cred->cr_uid = 0;
 		s_Cred->cr_ruid = 0;
 
+        WriteLog(LL_Error, "here");
         s_Cred->cr_prison = *(struct prison**)kdlsym(prison0);
 
         // Set our auth id as shellcore
 		s_Cred->cr_sceAuthID = SceAuthenticationId::SceShellCore;
 
+        WriteLog(LL_Error, "here");
 		// give maximum credentials
         for (auto i = 0; i < ARRAYSIZE(s_Cred->cr_sceCaps); ++i)
 		    s_Cred->cr_sceCaps[i] = SceCapabilites::Max;
+
+        WriteLog(LL_Error, "here");
     }
 
     // Get the parent proc, this should always be Mira
     auto s_ParentProc = curthread->td_proc;
     if (s_ParentProc)
     {
+        PROC_LOCK(s_ParentProc);
         auto s_FileDesc = s_ParentProc->p_fd;
         if (s_FileDesc)
         {
             s_FileDesc->fd_rdir = *(struct vnode**)kdlsym(rootvnode);
             s_FileDesc->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
         }
+        PROC_UNLOCK(s_ParentProc);
     }
     WriteLog(LL_Debug, "new credentials set for (%s).", curthread->td_name);
     
     s_ThreadManager->m_IoThreadRunning = true;
     
     while (s_ThreadManager->m_ThreadManagerRunning)
-        avcontrol_sleep(100);
+        pause("FileIoThread", 1);
 
     s_ThreadManager->m_IoThreadRunning = false;
     s_ThreadManager->m_IoThread = nullptr; // is this legal?
@@ -193,7 +220,10 @@ void ThreadManager::FileIoThread(void* p_Argument)
 void ThreadManager::DebuggerThread(void* p_Argument)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-    auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
+    auto pause = (int(*)(const char *wmesg, int timo))kdlsym(pause);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    //auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
 
     // Get the thread manager
     auto s_ThreadManager = static_cast<ThreadManager*>(p_Argument);
@@ -219,42 +249,51 @@ void ThreadManager::DebuggerThread(void* p_Argument)
 	{
 		WriteLog(LL_Info, "escaping thread (%s).", curthread->td_name);
 
+        WriteLog(LL_Error, "here");
 		s_Cred->cr_rgid = 0;
 		s_Cred->cr_svgid = 0;
+
+        WriteLog(LL_Error, "here");
 		
 		s_Cred->cr_uid = 0;
 		s_Cred->cr_ruid = 0;
 
+        WriteLog(LL_Error, "here");
         s_Cred->cr_prison = *(struct prison**)kdlsym(prison0);
 
         // Set our auth id as shellcore
 		s_Cred->cr_sceAuthID = SceAuthenticationId::Decid;
 
+        WriteLog(LL_Error, "here");
 		// give maximum credentials
         for (auto i = 0; i < ARRAYSIZE(s_Cred->cr_sceCaps); ++i)
 		    s_Cred->cr_sceCaps[i] = SceCapabilites::Max;
+
+        WriteLog(LL_Error, "here");
     }
 
     // Get the parent proc, this should always be Mira
     auto s_ParentProc = curthread->td_proc;
     if (s_ParentProc)
     {
+        PROC_LOCK(s_ParentProc);
         auto s_FileDesc = s_ParentProc->p_fd;
         if (s_FileDesc)
         {
             s_FileDesc->fd_rdir = *(struct vnode**)kdlsym(rootvnode);
             s_FileDesc->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
         }
+        PROC_UNLOCK(s_ParentProc);
     }
     WriteLog(LL_Debug, "new credentials set for (%s).", curthread->td_name);
     
     s_ThreadManager->m_DebugThreadRunning = true;
     
     while (s_ThreadManager->m_ThreadManagerRunning)
-        avcontrol_sleep(100);
+        pause("FileIoThread", 1);
 
     s_ThreadManager->m_DebugThreadRunning = false;
-    s_ThreadManager->m_DebugThread = nullptr;
+    s_ThreadManager->m_DebugThread = nullptr; // is this legal?
 
     kthread_exit();
 }

@@ -14,8 +14,22 @@ extern "C"
 
 int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write) 
 {
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
+
     auto proc_rwmem = (int(*)(struct proc* p, struct uio* uio))kdlsym(proc_rwmem);
-    struct thread* td = Mira::Framework::GetFramework()->GetMainThread();
+    struct thread* td = s_DebuggerThread;
     struct iovec iov;
     struct uio uio;
     int ret;

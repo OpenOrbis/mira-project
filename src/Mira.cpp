@@ -249,6 +249,12 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
+	if (!m_ThreadManager->OnLoad())
+	{
+		WriteLog(LL_Error, "could not load the thread manager.");
+		return false;
+	}
+
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
 	m_MessageManager = new Mira::Messaging::MessageManager();
@@ -383,6 +389,14 @@ bool Mira::Framework::Terminate()
 	{
 		delete m_CtrlDriver;
 		m_CtrlDriver = nullptr;
+	}
+
+	// Unload the thread manager
+	if (!m_ThreadManager->OnUnload())
+	{
+		WriteLog(LL_Error, "could not unload thread manager.");
+		delete m_ThreadManager;
+		m_ThreadManager = nullptr;
 	}
 
 	// Update our running state, to allow the proc to terminate
