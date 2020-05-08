@@ -37,11 +37,16 @@ Logger::Logger() :
 
 	memset(m_Buffer, 0, sizeof(m_Buffer));
 	memset(m_FinalBuffer, 0, sizeof(m_FinalBuffer));
+
+	// Initialize a mutex to prevent overlapping spam
+	auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+	mtx_init(&m_Mutex, "LogMtx", nullptr, MTX_SPIN);
 }
 
 Logger::~Logger()
 {
-
+	auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
+	mtx_destroy(&m_Mutex);
 }
 
 void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function, int32_t p_Line, const char* p_Format, ...)
@@ -94,8 +99,13 @@ void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function
 		break;
 	}
 
+	auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+
+	_mtx_lock_spin_flags(&m_Mutex, 0);
 	snprintf(m_FinalBuffer, sizeof(m_FinalBuffer), "%s[%s] %s:%d : %s %s\n", s_LevelColor, s_LevelString, p_Function, p_Line, m_Buffer, KNRM);
 	printf(m_FinalBuffer);
+	_mtx_unlock_spin_flags(&m_Mutex, 0);
 }
 
 void Logger::WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line, const char* p_Format, ...)
@@ -104,6 +114,8 @@ void Logger::WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line,
 	auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
 	auto vsnprintf = (int(*)(char *str, size_t size, const char *format, va_list ap))kdlsym(vsnprintf);
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
 	// Zero out the buffer
 	memset(m_Buffer, 0, sizeof(m_Buffer));
@@ -117,7 +129,9 @@ void Logger::WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line,
 	auto s_BytesWritten = snprintf(m_FinalBuffer, sizeof(m_FinalBuffer), "%s:%d : %s\n", p_Function, p_Line, m_Buffer);
 
 	// Print to the uart log
+	_mtx_lock_spin_flags(&m_Mutex, 0);
 	printf(m_FinalBuffer);
+	_mtx_unlock_spin_flags(&m_Mutex, 0);
 
 	// If we don't have a file handle, attempt to open one
 	if (m_Handle < 0)
@@ -130,5 +144,7 @@ void Logger::WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line,
 	if (m_Handle < 0)
 		return;
 	
+	_mtx_lock_spin_flags(&m_Mutex, 0);
 	(void)kwrite_t(m_Handle, m_FinalBuffer, s_BytesWritten, Mira::Framework::GetFramework()->GetMainThread());
+	_mtx_unlock_spin_flags(&m_Mutex, 0);
 }

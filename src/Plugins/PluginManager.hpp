@@ -2,6 +2,12 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Vector.hpp>
 
+extern "C"
+{
+    #include <sys/param.h>
+    #include <sys/mutex.h>
+}
+
 namespace Mira
 {
     namespace Plugins
@@ -28,12 +34,14 @@ namespace Mira
             Mira::Utils::IModule* m_FakePkgManager;
             Mira::Utils::IModule* m_EmuRegistry;
             Mira::Utils::IModule* m_Substitute;
+            Mira::Utils::IModule* m_SyscallGuard;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }
             Mira::Utils::IModule* GetFakeSelfManager() { return m_FakeSelfManager; }
             Mira::Utils::IModule* GetEmulatedRegistry() { return m_EmuRegistry; }
             Mira::Utils::IModule* GetSubstitute() { return m_Substitute; }
+            Mira::Utils::IModule* GetSyscallGuard() { return m_SyscallGuard; }
         };
     }
 }

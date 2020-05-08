@@ -780,9 +780,9 @@ SblKeyRbtreeEntry* FakePkgManager::sceSblKeymgrGetKey(unsigned int p_Handle)
     return nullptr;
 }
 
-int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line) {
-
-    WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
+int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line) 
+{
+    //WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
     auto sceSblKeymgrSetKeyStorage = (int (*)(uint64_t key_gpu_va, unsigned int key_size, uint32_t key_id, uint32_t key_handle))kdlsym(sceSblKeymgrSetKeyStorage);
     auto sblKeymgrKeySlots = (_SblKeySlotQueue *)kdlsym(sbl_keymgr_key_slots);
     auto sblKeymgrBufVa = (uint8_t*)kdlsym(sbl_keymgr_buf_va);
@@ -838,7 +838,7 @@ int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Op
         }
     }
 
-    done:
+done:
     /* XXX: no need to call SX unlock because we'll jump to original code which expects SX is already locked */
     return ret;
 }

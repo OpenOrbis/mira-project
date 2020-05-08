@@ -4,6 +4,9 @@
 extern "C"
 {
     #include "Rpc/rpc.pb-c.h"
+    #include <sys/param.h>
+    #include <sys/lock.h>
+    #include <sys/mutex.h>
 }
 
 namespace Mira
@@ -26,6 +29,7 @@ namespace Mira
         {
         private:
             Messaging::MessageListener m_Listeners[MessageManager_MaxListeners];
+            struct mtx m_Mutex;
 
         public:
             MessageManager();

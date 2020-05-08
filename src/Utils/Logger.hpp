@@ -47,6 +47,8 @@ namespace Mira
 
 			int32_t m_Handle;
 
+			struct mtx m_Mutex;
+
 		protected:
 			Logger();
 			~Logger();
