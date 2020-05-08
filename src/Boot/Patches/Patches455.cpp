@@ -115,10 +115,5 @@ void Patches::install_prerunPatches_455()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
-	
-	// the key itself should most likely be moved elsewhere but the offset can be obtained here, 32 bytes/256 bit
-	char *eap_hdd_key;
-	kmem = (uint8_t *)&gKernelBase[0x0258CCD0];
-	eap_hdd_key = &kmem[0];
 #endif
 }
