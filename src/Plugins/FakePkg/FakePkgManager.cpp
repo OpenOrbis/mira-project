@@ -16,6 +16,7 @@
 #include <OrbisOS/Utilities.hpp>
 
 #include <Mira.hpp>
+#include <Boot/Config.hpp>
 
 extern "C"
 {
@@ -338,6 +339,10 @@ bool FakePkgManager::ShellUIPatch()
     delete [] s_Entries;
     s_Entries = nullptr;
 
+    // TODO: Fix all fw suport; I don't feel like fixing 1.76 support atm -kd
+    #if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_505
+    #else
+
     uint8_t mov__eax_1__ret[6] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3 };
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
@@ -353,6 +358,8 @@ bool FakePkgManager::ShellUIPatch()
         WriteLog(LL_Error, "ssu_sceSblRcMgrIsStoreMode_patch");
         return false;
     }
+
+    #endif
 
     WriteLog(LL_Debug, "SceShellUI successfully patched");
 
