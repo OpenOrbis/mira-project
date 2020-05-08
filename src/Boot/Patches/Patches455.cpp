@@ -115,6 +115,42 @@ void Patches::install_prerunPatches_455()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
-
+	
+	// the key itself should most likely be moved elsewhere but the offset can be obtained here, 32 bytes/256 bit
+	// could probably be less lines too but wanted to keep formatting
+	char *eap_hdd_key;
+	kmem = (uint8_t *)&gKernelBase[0x0258CCD0];
+	eap_hdd_key[0] = kmem[0];
+	eap_hdd_key[1] = kmem[1];
+	eap_hdd_key[2] = kmem[2];
+	eap_hdd_key[3] = kmem[3];
+	eap_hdd_key[4] = kmem[4];
+	eap_hdd_key[5] = kmem[5];
+	eap_hdd_key[6] = kmem[6];
+	eap_hdd_key[7] = kmem[7];
+	eap_hdd_key[8] = kmem[8];
+	eap_hdd_key[9] = kmem[9];
+	eap_hdd_key[10] = kmem[10];
+	eap_hdd_key[11] = kmem[11];
+	eap_hdd_key[12] = kmem[12];
+	eap_hdd_key[13] = kmem[13];
+	eap_hdd_key[14] = kmem[14];
+	eap_hdd_key[15] = kmem[15];
+	eap_hdd_key[16] = kmem[16];
+	eap_hdd_key[17] = kmem[17];
+	eap_hdd_key[18] = kmem[18];
+	eap_hdd_key[19] = kmem[19];
+	eap_hdd_key[20] = kmem[20];
+	eap_hdd_key[21] = kmem[21];
+	eap_hdd_key[22] = kmem[22];
+	eap_hdd_key[23] = kmem[23];
+	eap_hdd_key[24] = kmem[24];
+	eap_hdd_key[25] = kmem[25];
+	eap_hdd_key[26] = kmem[26];
+	eap_hdd_key[27] = kmem[27];
+	eap_hdd_key[28] = kmem[28];
+	eap_hdd_key[29] = kmem[29];
+	eap_hdd_key[30] = kmem[30];
+	eap_hdd_key[31] = kmem[31];
 #endif
 }
