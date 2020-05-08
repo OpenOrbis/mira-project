@@ -12,13 +12,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+        # Checkout the repository
       - uses: actions/checkout@v2
+        # Install required stuff needed to build Mira
       - name: preinstall
         run: sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck
-      - name: create directroies
-        run: make create
-      - name: clean workspace
-        run: make clean
+        # Handle loader crap
+      - name: create loader directroies
+        run: cd loader; make create
+      - name: clean loader
+        run: cd loader; make clean
         # 5.05 Support
       - name: make 5.05 loader
         run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make
