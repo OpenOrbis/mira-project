@@ -14,8 +14,17 @@ using namespace Mira::Messaging;
 
 MessageManager::MessageManager()
 {
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+
+    // Create the message manager
+	mtx_init(&m_Mutex, "PluginMtx", nullptr, MTX_SPIN);
+
+    _mtx_lock_spin_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
         m_Listeners[i].Zero();
+    _mtx_unlock_spin_flags(&m_Mutex, 0);
 }
 
 MessageManager::~MessageManager()
@@ -25,6 +34,9 @@ MessageManager::~MessageManager()
 
 bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&))
 {
+    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+
     if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
     {
         WriteLog(LL_Error, "could not register callback, invalid category (%d).", p_Category);
@@ -39,9 +51,16 @@ bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, vo
 
     MessageListener* s_FoundEntry = nullptr;
     int32_t s_FreeIndex = -1;
-    for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
+
+    _mtx_lock_spin_flags(&m_Mutex, 0);
+    auto s_ListenerCount = ARRAYSIZE(m_Listeners);
+    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    for (auto i = 0; i < s_ListenerCount; ++i)
     {
+        _mtx_lock_spin_flags(&m_Mutex, 0);
         auto& l_CategoryEntry = m_Listeners[i];
+        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        
         if (!l_CategoryEntry.GetCallback() && 
             !l_CategoryEntry.GetCategory() && 
             !l_CategoryEntry.GetType())
@@ -62,6 +81,7 @@ bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, vo
         s_FoundEntry = &m_Listeners[i];
         break;
     }
+    
 
     if (s_FoundEntry != nullptr)
     {
@@ -74,13 +94,19 @@ bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, vo
         WriteLog(LL_Error, "no free index");
         return false;
     }
+
+    _mtx_lock_spin_flags(&m_Mutex, 0);
     m_Listeners[s_FreeIndex] = MessageListener(p_Category, p_Type, p_Callback);
+    _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     return true;
 }
 
 bool MessageManager::UnregisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&))
 {
+    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+
     if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
     {
         WriteLog(LL_Error, "could not register callback, invalid category (%d).", p_Category);
@@ -95,6 +121,8 @@ bool MessageManager::UnregisterCallback(RpcCategory p_Category, int32_t p_Type, 
 
     MessageListener* s_FoundEntry = nullptr;
     int32_t s_FoundIndex = -1;
+
+    _mtx_lock_spin_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
     {
         auto& l_CategoryEntry = m_Listeners[i];
@@ -111,13 +139,13 @@ bool MessageManager::UnregisterCallback(RpcCategory p_Category, int32_t p_Type, 
         s_FoundIndex = i;
         break;
     }
+    _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     if (s_FoundEntry == nullptr || s_FoundIndex == -1)
     {
         WriteLog(LL_Error, "category entry not found for cat: (%d).", p_Category);
         return false;
     }
-
 
     //WriteLog(LL_Warn, "foundIndex: %d", s_FoundIndex);
     //WriteLog(LL_Warn, "reset entry: %p, cat: %d, type: %x cb: %p", s_FoundEntry, s_FoundEntry->GetCategory(), s_FoundEntry->GetType(), s_FoundEntry->GetCallback());
@@ -253,8 +281,13 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_C
 
 void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
+    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+
     MessageListener* s_FoundEntry = nullptr;
     int32_t s_FoundIndex = -1;
+
+    _mtx_lock_spin_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
     {
         auto l_CategoryEntry = &m_Listeners[i];
@@ -271,6 +304,7 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
         s_FoundIndex = i;
         break;
     }
+    _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     if (s_FoundEntry == nullptr || s_FoundIndex == -1)
     {

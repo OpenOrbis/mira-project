@@ -474,13 +474,21 @@ void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, c
 
 void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
-    }
+		return;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+		return;
+	}
 
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -521,7 +529,7 @@ void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection,
         return;
     }
 
-    auto s_Ret = kmprotect_t(reinterpret_cast<void*>(s_Request->address), s_Request->length, s_Request->protection, s_MainThread);
+    auto s_Ret = kmprotect_t(reinterpret_cast<void*>(s_Request->address), s_Request->length, s_Request->protection, s_DebuggerThread);
 
     dbg_protect_process_memory_request__free_unpacked(s_Request, nullptr);
 
@@ -786,13 +794,21 @@ void Debugger2::OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const 
         return;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
-    }
+		return;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+		return;
+	}
 
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -818,7 +834,7 @@ void Debugger2::OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const 
         return;
     }
 
-    auto s_Ret = kkill_t(s_Debugger->m_AttachedPid, s_Request->signal, s_MainThread);
+    auto s_Ret = kkill_t(s_Debugger->m_AttachedPid, s_Request->signal, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not signal pid");
@@ -843,13 +859,21 @@ void Debugger2::OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, con
         return;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
-    }
+		return;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+		return;
+	}
 
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -940,13 +964,21 @@ void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, co
         return;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
-    }
+		return;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+		return;
+	}
 
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -993,13 +1025,21 @@ void Debugger2::OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         return;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
-    }
+		return;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+		return;
+	}
 
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -1104,13 +1144,21 @@ void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         return;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        return;
-    }
+		return;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+		return;
+	}
 
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -1200,7 +1248,7 @@ void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         s_DbReg.dr[s_DbgRegIndex] = s_Request->dbregisters->debugregs[s_DbgRegIndex];
     }
 
-    s_Ret = kptrace_t(PT_SETREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_Reg, 0, s_MainThread);
+    s_Ret = kptrace_t(PT_SETREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_Reg, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not set regs, thread tid: (%d).", s_Request->threadid);
@@ -1208,7 +1256,7 @@ void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         goto cleanup;
     }
 
-    s_Ret = kptrace_t(PT_SETFPREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_FpReg, 0, s_MainThread);
+    s_Ret = kptrace_t(PT_SETFPREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_FpReg, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not set fpregs, thread tid: (%d).", s_Request->threadid);
@@ -1216,7 +1264,7 @@ void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         goto cleanup;
     }
 
-    s_Ret = kptrace_t(PT_SETDBREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_DbReg, 0, s_MainThread);
+    s_Ret = kptrace_t(PT_SETDBREGS, s_Debugger->m_AttachedPid, (caddr_t)&s_DbReg, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not set dbregs, thread tid: (%d).", s_Request->threadid);

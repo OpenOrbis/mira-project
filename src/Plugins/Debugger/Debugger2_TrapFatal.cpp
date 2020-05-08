@@ -4,6 +4,7 @@
 
 extern "C"
 {
+	#include <sys/lock.h>
 	#include <sys/uio.h>
 	#include <sys/proc.h>
 	#include <sys/ioccom.h>
@@ -51,35 +52,48 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	auto vm_fault_disable_pagefaults = (int(*)(void))kdlsym(vm_fault_disable_pagefaults);
 	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+	auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 #define MAX_TRAP_MSG		33
 
+	auto s_LoggerMtx = Mira::Utils::Logger::GetInstance()->GetMutex();
+
 	
-	WriteKernelFileLog("kernel base: %p\n", gKernelBase);
+	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	printf("kernel base: %p\n", gKernelBase);
+	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
 
 	// Print extra information in case that Oni/Mira itself crashes
 	auto s_Framework = Mira::Framework::GetFramework();
 	if (s_Framework)
 	{
+		_mtx_lock_spin_flags(s_LoggerMtx, 0);
 		auto s_InitParams = s_Framework->GetInitParams();
 		if (s_InitParams)
 		{
-			WriteKernelFileLog("mira base: %p size: %p\n", s_InitParams->payloadBase, s_InitParams->payloadSize);
-			WriteKernelFileLog("mira proc: %p entrypoint: %p\n", s_InitParams->process, s_InitParams->entrypoint);
-			WriteKernelFileLog("mira mira_entry: %p\n", mira_entry);
+			
+			printf("mira base: %p size: %p\n", s_InitParams->payloadBase, s_InitParams->payloadSize);
+			printf("mira proc: %p entrypoint: %p\n", s_InitParams->process, s_InitParams->entrypoint);
+			printf("mira mira_entry: %p\n", mira_entry);
+			
 		}
 
-		WriteKernelFileLog("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
-    }
+		printf("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
+		_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+	}
 
 	if (frame)
 	{
-		WriteKernelFileLog("LastBranchFromOffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
-		WriteKernelFileLog("RipOffsetFromKernelBase: %p", frame->tf_rip - (uint64_t)gKernelBase);
-		WriteKernelFileLog("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
-		WriteKernelFileLog("OffsetFromMiraEntryRIP: (%p)", (uint64_t)frame->tf_rip - (uint64_t)mira_entry);
+		_mtx_lock_spin_flags(s_LoggerMtx, 0);
+		printf("LastBranchFromOffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
+		printf("RipOffsetFromKernelBase: %p\n", frame->tf_rip - (uint64_t)gKernelBase);
+		printf("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
+		printf("OffsetFromMiraEntryRIP: (%p)\n", (uint64_t)frame->tf_rip - (uint64_t)mira_entry);
+		_mtx_unlock_spin_flags(s_LoggerMtx, 0);
 	}
 
-	WriteKernelFileLog("call stack:\n");
+	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	printf("call stack:\n");
 	auto s_Saved = vm_fault_disable_pagefaults();
     auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
 	if (amdFrame)
@@ -87,12 +101,13 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		auto amdFrameCount = 0;
 		while (Debugger2::IsStackSpace(amdFrame))
 		{
-			WriteKernelFileLog("[%d] [r: %p] [f:%p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
+			printf("[%d] [r: %p] [f:%p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
 			amdFrame = amdFrame->f_frame;
 			amdFrameCount++;
 		}
 	}
 	vm_fault_enable_pagefaults(s_Saved);
+	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
 
 	static const char *trap_msg[] = {
 		"",					/*  0 unused */
@@ -146,23 +161,25 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		msg = trap_msg[type];
 	else
 		msg = "UNKNOWN";
-	
-	WriteKernelFileLog("\n\nFatal trap %d: %s while in %s mode\n", type, msg,
+	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	printf("\n\nFatal trap %d: %s while in %s mode\n", type, msg,
 	    ISPL(frame->tf_cs) == SEL_UPL ? "user" : "kernel");
 #ifdef SMP
 	/* two separate prints in case of a trap on an unmapped page */
-	WriteKernelFileLog("cpuid = %d; ", PCPU_GET(cpuid));
-	WriteKernelFileLog("apic id = %02x\n", PCPU_GET(apic_id));
+	printf("cpuid = %d; ", PCPU_GET(cpuid));
+	printf("apic id = %02x\n", PCPU_GET(apic_id));
 #endif
+	
+
 	if (type == T_PAGEFLT) {
-		WriteKernelFileLog("fault virtual address	= 0x%lx\n", eva);
-		WriteKernelFileLog("fault code		= %s %s %s, %s\n",
+		printf("fault virtual address	= 0x%lx\n", eva);
+		printf("fault code		= %s %s %s, %s\n",
 			code & PGEX_U ? "user" : "supervisor",
 			code & PGEX_W ? "write" : "read",
 			code & PGEX_I ? "instruction" : "data",
 			code & PGEX_P ? "protection violation" : "page not present");
 	}
-	WriteKernelFileLog("instruction pointer	= 0x%lx:0x%lx\n",
+	printf("instruction pointer	= 0x%lx:0x%lx\n",
 	       frame->tf_cs & 0xffff, frame->tf_rip);
         if (ISPL(frame->tf_cs) == SEL_UPL) {
 		ss = frame->tf_ss & 0xffff;
@@ -172,46 +189,50 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		esp = (long)&frame->tf_rsp;
 	}
 
-	WriteKernelFileLog("stack pointer	        = 0x%x:0x%lx\n", ss, esp);
-	WriteKernelFileLog("frame pointer	        = 0x%x:0x%lx\n", ss, frame->tf_rbp);
-	WriteKernelFileLog("code segment		= base 0x%lx, limit 0x%lx, type 0x%x\n",
+	printf("stack pointer	        = 0x%x:0x%lx\n", ss, esp);
+	printf("frame pointer	        = 0x%x:0x%lx\n", ss, frame->tf_rbp);
+	printf("code segment		= base 0x%lx, limit 0x%lx, type 0x%x\n",
 	       softseg.ssd_base, softseg.ssd_limit, softseg.ssd_type);
-	WriteKernelFileLog("			= DPL %d, pres %d, long %d, def32 %d, gran %d\n",
+	printf("			= DPL %d, pres %d, long %d, def32 %d, gran %d\n",
 	       softseg.ssd_dpl, softseg.ssd_p, softseg.ssd_long, softseg.ssd_def32,
 	       softseg.ssd_gran);
-	WriteKernelFileLog("processor eflags	= ");
+	printf("processor eflags	= ");
 	if (frame->tf_rflags & PSL_T)
-		WriteKernelFileLog("trace trap, ");
+		printf("trace trap, ");
 	if (frame->tf_rflags & PSL_I)
-		WriteKernelFileLog("interrupt enabled, ");
+		printf("interrupt enabled, ");
 	if (frame->tf_rflags & PSL_NT)
-		WriteKernelFileLog("nested task, ");
+		printf("nested task, ");
 	if (frame->tf_rflags & PSL_RF)
-		WriteKernelFileLog("resume, ");
-	WriteKernelFileLog("IOPL = %ld\n", (frame->tf_rflags & PSL_IOPL) >> 12);
-	WriteKernelFileLog("current process		= ");
+		printf("resume, ");
+	printf("IOPL = %ld\n", (frame->tf_rflags & PSL_IOPL) >> 12);
+	printf("current process		= ");
 	if (curproc) {
-		WriteKernelFileLog("%lu (%s)\n",
+		printf("%lu (%s)\n",
 		    (u_long)curproc->p_pid, curthread->td_name/* ?
 		    curthread->td_name : ""*/);
 	} else {
-		WriteKernelFileLog("Idle\n");
+		printf("Idle\n");
 	}
 
 #ifdef KDB
 	if (debugger_on_panic || kdb_active)
 		if (kdb_trap(type, 0, frame))
+		{
+			mtx_unlock_spin_flags(s_LoggerMtx, 0);
 			return;
+		}
 #endif
 
-	WriteKernelFileLog("trap number		= %d\n", type);
+	printf("trap number		= %d\n", type);
 	if (type <= MAX_TRAP_MSG)
 	{	
-		WriteKernelFileLog("%s\n", trap_msg[type]);
+		printf("%s\n", trap_msg[type]);
 	}
 	else
-		WriteKernelFileLog("unknown/reserved trap");
-	
+		printf("unknown/reserved trap");
+	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+
 	// Intentionally hang the thread
 	/*for (;;)
 		__asm__("nop");*/
@@ -237,7 +258,9 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	
 	s_TrapFatalHook->Disable();*/
 
+	_mtx_lock_spin_flags(s_LoggerMtx, 0);
 	printf("exiting crashed thread\n");
+	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
 	kthread_exit();
 
 	// Allow the debugger to be placed here manually and continue exceution

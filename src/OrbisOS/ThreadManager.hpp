@@ -20,9 +20,9 @@ namespace Mira
         protected:
             enum { ThreadManager_MaxThreads = 10 };
             
-            bool m_ThreadManagerRunning;
-            bool m_IoThreadRunning;
-            bool m_DebugThreadRunning;
+            volatile bool m_ThreadManagerRunning;
+            volatile bool m_IoThreadRunning;
+            volatile bool m_DebugThreadRunning;
 
             struct thread* m_IoThread;
             struct thread* m_DebugThread;

@@ -10,7 +10,9 @@ Debugger2::Debugger2(uint16_t p_Port) :
     m_Port(p_Port),
     m_AttachedPid(-1)
 {
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
 
+    mtx_init(&m_Mutex, "DbgLock", nullptr, MTX_SPIN);
 }
 
 Debugger2::~Debugger2()
@@ -299,17 +301,25 @@ bool Debugger2::Attach(int32_t p_ProcessId, int32_t* p_Status)
         return false;
     }
     
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
         if (p_Status)
             *p_Status = -EIO;
-        
-        WriteLog(LL_Error, "could not get main thread to attach");
-        return false;
-    }
+		return false;
+	}
 
-    auto s_Ret = kptrace_t(PT_ATTACH, p_ProcessId, 0, 0, s_MainThread);
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+        if (p_Status)
+            *p_Status = -EIO;
+		return false;
+	}
+
+    auto s_Ret = kptrace_t(PT_ATTACH, p_ProcessId, 0, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         if (p_Status)
@@ -320,7 +330,7 @@ bool Debugger2::Attach(int32_t p_ProcessId, int32_t* p_Status)
     }
 
     int32_t s_Status = 0;
-    s_Ret = kwait4_t(p_ProcessId, &s_Status, WUNTRACED, nullptr, s_MainThread);
+    s_Ret = kwait4_t(p_ProcessId, &s_Status, WUNTRACED, nullptr, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not wait for untraced pid (%d) ret (%d)", p_ProcessId, s_Ret);
@@ -335,7 +345,7 @@ bool Debugger2::Attach(int32_t p_ProcessId, int32_t* p_Status)
     m_AttachedPid = p_ProcessId;
 
     // Attempt to continue the process that we attached to
-    s_Ret = kptrace_t(PT_CONTINUE, m_AttachedPid, reinterpret_cast<caddr_t>(1), 0, s_MainThread);
+    s_Ret = kptrace_t(PT_CONTINUE, m_AttachedPid, reinterpret_cast<caddr_t>(1), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         if (p_Status)
@@ -362,18 +372,22 @@ bool Debugger2::Detach(bool p_Force, int32_t* p_Status)
         return false;
     }
     
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        if (p_Status)
-            *p_Status = -EEXIST;
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
 
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
 
     // Stop the process, so we can detach
-    auto s_Ret = kkill_t(m_AttachedPid, SIGSTOP, s_MainThread);
+    auto s_Ret = kkill_t(m_AttachedPid, SIGSTOP, s_DebuggerThread);
     if (s_Ret < 0)
     {
         if (p_Status)
@@ -387,7 +401,7 @@ bool Debugger2::Detach(bool p_Force, int32_t* p_Status)
     }
 
     // Detach from the process
-    s_Ret = kptrace_t(PT_DETACH, m_AttachedPid, 0, 0, s_MainThread);
+    s_Ret = kptrace_t(PT_DETACH, m_AttachedPid, 0, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         if (p_Status)
@@ -413,14 +427,21 @@ bool Debugger2::Step()
     if (m_AttachedPid < 0)
         return false;
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
     
-    auto s_Ret = kptrace_t(PT_STEP, m_AttachedPid, reinterpret_cast<caddr_t>(1), 0, s_MainThread);
+    auto s_Ret = kptrace_t(PT_STEP, m_AttachedPid, reinterpret_cast<caddr_t>(1), 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not step (%d).", s_Ret);
@@ -435,14 +456,21 @@ bool Debugger2::Suspend()
     if (m_AttachedPid < 0)
         return false;
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
     
-    auto s_Ret = kptrace_t(PT_SUSPEND, m_AttachedPid, 0, 0, s_MainThread);
+    auto s_Ret = kptrace_t(PT_SUSPEND, m_AttachedPid, 0, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not suspend (%d).", s_Ret);
@@ -457,14 +485,21 @@ bool Debugger2::Resume()
     if (m_AttachedPid < 0)
         return false;
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
     
-    auto s_Ret = kptrace_t(PT_RESUME, m_AttachedPid, 0, 0, s_MainThread);
+    auto s_Ret = kptrace_t(PT_RESUME, m_AttachedPid, 0, 0, s_DebuggerThread);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not resume (%d).", s_Ret);

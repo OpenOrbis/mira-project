@@ -2,7 +2,13 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Vector.hpp>
 
-#include <netinet/in.h>
+extern "C"
+{
+    #include <netinet/in.h>
+    #include <sys/param.h>
+    #include <sys/mutex.h>
+}
+
 
 struct thread;
 
@@ -38,6 +44,8 @@ namespace Mira
                 uint32_t m_NextConnectionId;
 
                 Rpc::Connection* m_Connections[RpcServer_MaxConnections];
+
+                struct mtx m_Mutex;
 
             public:
                 Server(uint16_t p_Port = RpcServer_DefaultPort);

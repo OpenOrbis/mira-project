@@ -90,13 +90,19 @@ void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
 
     if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
@@ -112,7 +118,7 @@ void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    int32_t s_Ret = kopen_t(s_Request->path, s_Request->flags, s_Request->mode, s_MainThread);
+    int32_t s_Ret = kopen_t(s_Request->path, s_Request->flags, s_Request->mode, s_IoThread);
 
     fm_open_request__free_unpacked(s_Request, nullptr);
 
@@ -122,20 +128,26 @@ void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
-
     if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
         return;
     }
+
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
 
     FmCloseRequest* s_Request = fm_close_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
     if (s_Request == nullptr)
@@ -145,7 +157,7 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTra
         return;
     }
 
-    kclose_t(s_Request->handle, s_MainThread);
+    kclose_t(s_Request->handle, s_IoThread);
 
     fm_close_request__free_unpacked(s_Request, nullptr);
 
@@ -154,13 +166,19 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTra
 
 void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
 
     if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
@@ -188,7 +206,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
     }
     memset(s_Data, 0, s_DataSize);
 
-    auto s_Ret = kread_t(s_Request->handle, s_Data, s_DataSize, s_MainThread);
+    auto s_Ret = kread_t(s_Request->handle, s_Data, s_DataSize, s_IoThread);
 
     fm_read_request__free_unpacked(s_Request, nullptr);
     s_Request = nullptr;
@@ -243,13 +261,19 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
 
     if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
@@ -266,7 +290,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
         return;
     }
 
-    auto s_DirectoryHandle = kopen_t(s_Request->path, 0x0000 | 0x00020000, 0777, s_MainThread);
+    auto s_DirectoryHandle = kopen_t(s_Request->path, 0x0000 | 0x00020000, 0777, s_IoThread);
     if (s_DirectoryHandle < 0)
     {
 		WriteLog(LL_Error, "could not open directory (%s) (%d).", s_Request->path, s_DirectoryHandle);
@@ -305,7 +329,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
     for (;;)
     {
         memset(s_Buffer, 0, sizeof(s_Buffer));
-        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_MainThread);
+        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_IoThread);
         if (s_ReadCount <= 0)
             break;
         
@@ -351,7 +375,7 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
             l_Pos += l_Dent->d_reclen;
         }
     }
-    kclose_t(s_DirectoryHandle, s_MainThread);
+    kclose_t(s_DirectoryHandle, s_IoThread);
 
     //WriteLog(LL_Debug, "here");
     FmGetDentsResponse s_Response = FM_GET_DENTS_RESPONSE__INIT;
@@ -454,14 +478,21 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
 
 uint64_t FileManager::GetDentCount(const char* p_Path)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return 0;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return 0;
+	}
 
-    auto s_DirectoryHandle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_MainThread);
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return 0;
+	}
+
+    auto s_DirectoryHandle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_IoThread);
     if (s_DirectoryHandle < 0)
     {
 		WriteLog(LL_Error, "could not open directory (%s) (%d).", p_Path, s_DirectoryHandle);
@@ -478,7 +509,7 @@ uint64_t FileManager::GetDentCount(const char* p_Path)
     for (;;)
     {
         memset(s_Buffer, 0, sizeof(s_Buffer));
-        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_MainThread);
+        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_IoThread);
         if (s_ReadCount <= 0)
             break;
         
@@ -489,20 +520,26 @@ uint64_t FileManager::GetDentCount(const char* p_Path)
             l_Pos += l_Dent->d_reclen;
         }
     }
-    kclose_t(s_DirectoryHandle, s_MainThread);
+    kclose_t(s_DirectoryHandle, s_IoThread);
 
     return s_DentCount;
 }
 
 void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
 
     if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
     {
@@ -532,7 +569,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
             return;
         }
 
-        int32_t s_Ret = kstat_t(const_cast<char*>(s_Request->path), &s_Stat, s_MainThread);
+        int32_t s_Ret = kstat_t(const_cast<char*>(s_Request->path), &s_Stat, s_IoThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
@@ -543,7 +580,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
     }
     else
     {
-        auto s_Ret = kfstat_t(s_Request->handle, &s_Stat, s_MainThread);
+        auto s_Ret = kfstat_t(s_Request->handle, &s_Stat, s_IoThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not stat (%s), returned (%d).", s_Request->path, s_Ret);
@@ -628,13 +665,19 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
 
     if (p_Message.data.data == nullptr)
     {
@@ -651,7 +694,7 @@ void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTr
         return;
     }
 
-    auto s_Ret = kunlink_t(s_Request->path, s_MainThread);
+    auto s_Ret = kunlink_t(s_Request->path, s_IoThread);
     if (s_Ret < 0)
     {
         fm_unlink_request__free_unpacked(s_Request, nullptr);
@@ -687,14 +730,20 @@ bool IsPhOverlapping(Elf64_Phdr* p_ProgramHeader, int p_ProgramHeaderIndex, Elf6
 void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
     // Get main thread
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
-        return;
-    }
-    WriteLog(LL_Debug, "mainThread: %p", s_MainThread);/*
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return;
+	}
+
+	auto s_SyscoreThread = s_ThreadManager->GetSyscoreMainThread();
+	if (s_SyscoreThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return;
+	}
+    WriteLog(LL_Debug, "syscoreThread: %p", s_SyscoreThread);/*
 
     // Root and escape our thread
 	if (s_MainThread->td_ucred)
@@ -885,14 +934,21 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 
 uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return nullptr;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return nullptr;
+	}
 
-    size_t s_Offset = klseek_t(p_SelfFd, 0, SEEK_END, s_MainThread);
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return nullptr;
+	}
+
+    size_t s_Offset = klseek_t(p_SelfFd, 0, SEEK_END, s_IoThread);
     if (s_Offset <= 0)
     {
         WriteLog(LL_Error, "invalid offset (%lld).", s_Offset);
@@ -901,7 +957,7 @@ uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
 
     size_t s_SelfSize = s_Offset;
 
-    s_Offset = klseek_t(p_SelfFd, 0, SEEK_SET, s_MainThread);
+    s_Offset = klseek_t(p_SelfFd, 0, SEEK_SET, s_IoThread);
     if (s_Offset < 0)
     {
         WriteLog(LL_Error, "could not seek (%lld).", s_Offset);
@@ -916,7 +972,7 @@ uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
     }
     memset(s_SelfData, 0, s_SelfSize);
 
-    s_Offset = kread_t(p_SelfFd, s_SelfData, s_SelfSize, s_MainThread);
+    s_Offset = kread_t(p_SelfFd, s_SelfData, s_SelfSize, s_IoThread);
     if (s_Offset != s_SelfSize)
     {
         // Free our allocated buffer
@@ -931,12 +987,19 @@ uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
 
 uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_SelfFd, size_t* p_OutElfSize)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return nullptr;
-    }
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return nullptr;
+	}
+
+	auto s_IoThread = s_ThreadManager->GetIoThread();
+	if (s_IoThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get io thread.");
+		return nullptr;
+	}
 
     if (p_SelfData == nullptr ||
         p_OutElfSize == nullptr)
@@ -1022,10 +1085,10 @@ uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_
         if (s_Phdr[l_PhIndex].p_type == PT_LOAD ||
             s_Phdr[l_PhIndex].p_type == PT_SCE_DYNLIBDATA)
         {
-            klseek_t(p_SelfFd, 0, SEEK_SET, s_MainThread);
-            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF | MAP_PREFAULT_READ, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            klseek_t(p_SelfFd, 0, SEEK_SET, s_IoThread);
+            auto l_ElfSegment = kmmap_t(nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_SHARED | MAP_SELF | MAP_PREFAULT_READ, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_IoThread);
             
-            WriteLog(LL_Warn, "%p = mmap(%p, 0x%llx, %d, %d, %d, %llx, %p)", l_ElfSegment, nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_PRIVATE | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_MainThread);
+            WriteLog(LL_Warn, "%p = mmap(%p, 0x%llx, %d, %d, %d, %llx, %p)", l_ElfSegment, nullptr, s_Phdr[l_PhIndex].p_filesz, PROT_READ, MAP_PRIVATE | MAP_SELF, p_SelfFd, (((uint64_t)l_PhIndex) << 32), s_IoThread);
             if (l_ElfSegment != MAP_FAILED || l_ElfSegment == nullptr)
             {
                 // For some strange reason mmap will return ENOMEM for no fucking reason
@@ -1038,7 +1101,7 @@ uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_
                 for (auto l_FileIndex = 0; l_FileIndex < s_Phdr[l_PhIndex].p_filesz; ++l_FileIndex)
                     s_ElfData[s_Phdr[l_PhIndex].p_offset + l_FileIndex] = l_ElfSegment[l_FileIndex];
             }
-            kmunmap_t(l_ElfSegment, s_Phdr[l_PhIndex].p_filesz, s_MainThread);
+            kmunmap_t(l_ElfSegment, s_Phdr[l_PhIndex].p_filesz, s_IoThread);
         }
     }
 

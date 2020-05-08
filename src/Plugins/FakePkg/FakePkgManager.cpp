@@ -16,9 +16,11 @@
 #include <OrbisOS/Utilities.hpp>
 
 #include <Mira.hpp>
+#include <Boot/Config.hpp>
 
 extern "C"
 {
+    #include <sys/eventhandler.h>
     #include <sys/sysent.h>
     #include <sys/proc.h>
     #include <sys/mman.h>
@@ -134,21 +136,15 @@ FakePkgManager::~FakePkgManager()
 
 }
 
-bool FakePkgManager::OnLoad()
+bool FakePkgManager::ShellCorePatch()
 {
-    WriteLog(LL_Debug, "patching shellcore");
+    WriteLog(LL_Debug, "patching SceShellCore");
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main mira thread");
-        return false;
-    }
 
     struct ::proc* s_Process = Utilities::FindProcessByName("SceShellCore");
     if (s_Process == nullptr)
     {
-        WriteLog(LL_Error, "could not find shellcore");
+        WriteLog(LL_Error, "could not find SceShellCore");
         return false;
     }
 
@@ -179,11 +175,11 @@ bool FakePkgManager::OnLoad()
 
     if (s_TextStart == nullptr)
     {
-        WriteLog(LL_Error, "could not find shellcore text start");
+        WriteLog(LL_Error, "could not find SceShellCore text start");
         return false;
     }
 
-    WriteLog(LL_Debug, "shellcore .text: (%p)", s_TextStart);
+    WriteLog(LL_Debug, "SceShellCore .text: (%p)", s_TextStart);
 
     // Free the entries we got returned
     delete [] s_Entries;
@@ -290,7 +286,113 @@ bool FakePkgManager::OnLoad()
         return false;
     }*/
 
-	WriteLog(LL_Error, "shellcore successfully patched");
+    WriteLog(LL_Debug, "SceShellCore successfully patched");
+
+    return true;
+}
+
+bool FakePkgManager::ShellUIPatch()
+{
+    WriteLog(LL_Debug, "patching SceShellUI");
+
+    struct ::proc* s_Process = Utilities::FindProcessByName("SceShellUI");
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find SceShellUI");
+        return false;
+    }
+
+    ProcVmMapEntry* s_Entries = nullptr;
+    size_t s_NumEntries = 0;
+    auto s_Ret = Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not get vm map");
+        return false;
+    }
+
+    if (s_Entries == nullptr || s_NumEntries == 0)
+    {
+        WriteLog(LL_Error, "invalid entries (%p) or numEntries (%d)", s_Entries, s_NumEntries);
+        return false;
+    }
+
+    uint8_t* s_LibKernelTextStart = nullptr;
+    for (auto i = 0; i < s_NumEntries; ++i)
+    {
+        if (!memcmp(s_Entries[i].name, "libkernel_sys.sprx", 18) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
+        {
+            s_LibKernelTextStart = (uint8_t*)s_Entries[i].start;
+            break;
+        }
+    }
+
+    if (s_LibKernelTextStart == nullptr)
+    {
+        WriteLog(LL_Error, "could not find SceShellUI libkernel_sys.sprx text start");
+        return false;
+    }
+
+    WriteLog(LL_Debug, "SceShellUI libkernel_sys.sprx .text: (%p)", s_LibKernelTextStart);
+
+    // Free the entries we got returned
+    delete [] s_Entries;
+    s_Entries = nullptr;
+
+    // TODO: Fix all fw suport; I don't feel like fixing 1.76 support atm -kd
+    #if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_505
+    #else
+
+    uint8_t mov__eax_1__ret[6] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3 };
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch");
+        return false;
+    }
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsStoreMode_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssu_sceSblRcMgrIsStoreMode_patch");
+        return false;
+    }
+
+    #endif
+
+    WriteLog(LL_Debug, "SceShellUI successfully patched");
+
+    return true;
+}
+
+bool FakePkgManager::InstallEventHandlers()
+{
+    bool s_Ret = false;
+
+    s_Ret = ShellUIPatch();
+    WriteLog(LL_Debug, "InstallEventHandlers finished");
+
+    return s_Ret;
+}
+
+bool FakePkgManager::OnLoad()
+{
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main mira thread");
+        return false;
+    }
+
+    ShellCorePatch();
+    ShellUIPatch();
+
+    // Initialize the event handlers
+    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
+
+    //eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(FakePkgManager::InstallEventHandlers), NULL, EVENTHANDLER_PRI_LAST);
+    eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(FakePkgManager::InstallEventHandlers), NULL, EVENTHANDLER_PRI_LAST);
 
     return true;
 }
@@ -326,11 +428,9 @@ void FakePkgManager::GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed
     auto fpu_ctx = (fpu_kern_ctx*)kdlsym(fpu_kern_ctx);
     auto Sha256Hmac = (void (*)(uint8_t hash[0x20], const uint8_t* data, size_t data_size, const uint8_t* key, int key_size))kdlsym(Sha256Hmac);
 
-    WriteLog(LL_Debug, "sha256hmac before");
     fpu_kern_enter(s_Thread, fpu_ctx, 0);
     Sha256Hmac(p_Key, (const uint8_t*)&s_D, sizeof(s_D), p_EncryptionKeyPFS, EKPFS_SIZE);
     fpu_kern_leave(s_Thread, fpu_ctx);
-    WriteLog(LL_Debug, "sha256hmac after");
 }
 
 void FakePkgManager::GenPfsEncKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint8_t p_Key[PFS_FINAL_KEY_SIZE])
@@ -780,9 +880,9 @@ SblKeyRbtreeEntry* FakePkgManager::sceSblKeymgrGetKey(unsigned int p_Handle)
     return nullptr;
 }
 
-int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line) {
-
-    WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
+int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line) 
+{
+    //WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
     auto sceSblKeymgrSetKeyStorage = (int (*)(uint64_t key_gpu_va, unsigned int key_size, uint32_t key_id, uint32_t key_handle))kdlsym(sceSblKeymgrSetKeyStorage);
     auto sblKeymgrKeySlots = (_SblKeySlotQueue *)kdlsym(sbl_keymgr_key_slots);
     auto sblKeymgrBufVa = (uint8_t*)kdlsym(sbl_keymgr_buf_va);
@@ -838,7 +938,7 @@ int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Op
         }
     }
 
-    done:
+done:
     /* XXX: no need to call SX unlock because we'll jump to original code which expects SX is already locked */
     return ret;
 }

@@ -249,6 +249,12 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
+	if (!m_ThreadManager->OnLoad())
+	{
+		WriteLog(LL_Error, "could not load the thread manager.");
+		return false;
+	}
+
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
 	m_MessageManager = new Mira::Messaging::MessageManager();
@@ -311,6 +317,7 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
+	/*
     // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
     struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
     if (ui_proc) {
@@ -319,7 +326,7 @@ bool Mira::Framework::Initialize()
         WriteLog(LL_Error, "Unable to find SceShellUI Process !");
     }
 
-	/*auto kthread_suspend = (int (*)(struct thread *td, int timo))kdlsym(kthread_suspend);
+	auto kthread_suspend = (int (*)(struct thread *td, int timo))kdlsym(kthread_suspend);
 	struct proc* proc0 = static_cast<struct proc*>(kdlsym(proc0));
 	auto _thread_lock_flags = (void (*)(struct thread *td, int opts, const char *file, int line))kdlsym(_thread_lock_flags);
 	auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
@@ -383,6 +390,14 @@ bool Mira::Framework::Terminate()
 	{
 		delete m_CtrlDriver;
 		m_CtrlDriver = nullptr;
+	}
+
+	// Unload the thread manager
+	if (!m_ThreadManager->OnUnload())
+	{
+		WriteLog(LL_Error, "could not unload thread manager.");
+		delete m_ThreadManager;
+		m_ThreadManager = nullptr;
 	}
 
 	// Update our running state, to allow the proc to terminate

@@ -66,7 +66,19 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
     if (p_ProcessId < 0)
         return -EIO;
     
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
+		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
 
     struct ptrace_io_desc s_Desc
     {
@@ -76,7 +88,7 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         .piod_len = p_ToReadWriteSize
     };
 
-    uint64_t s_Ret = kptrace_t(PT_IO, p_ProcessId, (caddr_t)&s_Desc, 0, s_MainThread);
+    uint64_t s_Ret = kptrace_t(PT_IO, p_ProcessId, (caddr_t)&s_Desc, 0, s_DebuggerThread);
     if (s_Ret != 0)
         return s_Ret;
     else
@@ -95,9 +107,19 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 	if (p_ToReadWriteAddress == nullptr)
 		return -EINVAL;
 
-	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-	if (s_MainThread == nullptr)
+	auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+	if (s_ThreadManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not get thread manager.");
 		return -EIO;
+	}
+
+	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	if (s_DebuggerThread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get debugger thread.");
+		return -EIO;
+	}
 
 	struct iovec s_Iov;
 	struct uio s_Uio;
@@ -126,7 +148,7 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 	s_Uio.uio_resid = (uint64_t)p_Size;
 	s_Uio.uio_segflg = UIO_SYSSPACE;
 	s_Uio.uio_rw = p_Write ? UIO_WRITE : UIO_READ;
-	s_Uio.uio_td = s_MainThread;
+	s_Uio.uio_td = s_DebuggerThread;
 
 	auto proc_rwmem = (int (*)(struct proc *p, struct uio *uio))kdlsym(proc_rwmem);
 	s_Ret = proc_rwmem(p_Process, &s_Uio);
@@ -258,6 +280,7 @@ int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entr
 		info[i].start = entry->start;
 		info[i].end = entry->end;
 		info[i].offset = entry->offset;
+		memcpy(info[i].name, entry->name, sizeof(info[i].name));
 
 		info[i].prot = 0;
 		if (entry->protection & VM_PROT_READ)
