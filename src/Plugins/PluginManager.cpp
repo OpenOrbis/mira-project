@@ -363,6 +363,7 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "emuRegistry suspend failed");
     }
     
+    // Suspend both of the loggers (cleans up the sockets)
     if (m_Logger)
     {
         if (!m_Logger->OnSuspend())
@@ -375,8 +376,12 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "log manager suspend failed (Console)");
     }
 
-    /*if (!m_Substitute->OnSuspend())
-        WriteLog(LL_Error, "substitute suspend failed");*/
+    // Suspend substitute (currently does nothing)
+    if (m_Substitute)
+    {
+        if (!m_Substitute->OnSuspend())
+            WriteLog(LL_Error, "substitute suspend failed");
+    }
 
     // Nota: Don't suspend before the debugger for catch error if something when wrong
     if (m_Debugger)
