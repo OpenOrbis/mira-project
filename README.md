@@ -60,7 +60,7 @@ This project would not be possible without these people (no paticluar order):
 * [ChendoChap] - RE (Bug hunting, general kernel help)
 * [sugarleaf] - Initial 4.55 private exploit, inital help with Mira dev (retired/left)
 * [kozarovv] - RE (4.05 offsets)
-* [LM] - RE (Research on System-Library-Loading)
+* [LM] - RE (Research on System-Library-Loading), assembler and linker script help
 * [TheFlow] - RE
 * [samsepi0l] - Offset Porting
 * [xvortex] - Original VTX-Hen
@@ -68,13 +68,13 @@ This project would not be possible without these people (no paticluar order):
 * [golden] - Ptrace patches, rpc ideas
 
 ### Special Thanks
-* [bigboss] - liborbis, and being a hater every step of the way
+* [bigboss] - liborbis with examples and orbisdev (and complaining a lot)
 * [rogero] - Original 5.01 testing
 * [AbkarinoMHM] - Original 5.01 testing
 * [wildcard] - General questions, and hardware help
-* [frangarcj] - sdk, musl, C++ support
-* [masterzorag] - sdk, musl, C++ support
-* [fjtrujy] - sdk, musl, C++ support
+* [frangarcj] - orbisdev sdk, musl, C++ support
+* [masterzorag] - orbisdev sdk, musl, C++ support
+* [fjtrujy] - orbisdev sdk, musl, C++ support
 * [Anon #1] - Developer (Code, Non-stop help, <3 thx bruv)
 * [Anon #2] - Developer (Code, Non-stop help, gl with job!)
 * [Anon #3] - Security (Future proofing design)
