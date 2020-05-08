@@ -18,10 +18,14 @@ jobs:
       - name: preinstall
         run: sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck
         # Handle loader crap
-      - name: create loader directroies
+      - name: create loader directories
         run: cd loader; make create
       - name: clean loader
         run: cd loader; make clean
+      - name: create mira directories
+        run: make create
+      - name: clean mira
+        run: make clean
         # 5.05 Support
       - name: make 5.05 loader
         run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make
