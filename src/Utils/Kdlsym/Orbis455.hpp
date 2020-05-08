@@ -206,7 +206,16 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x00D40F28
 
-// Eap HDD Key
-#define kdlsym_addr_eap_hdd_key                             0x0258CCD0
+// SceShellUI patches - debug patches
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0
+#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0
+
+// Eap HDD key
+#define kdlsym_addr_sbl_eap_internal_partition_key         0x0258CCD0
+
+#define kdlsym_addr__mtx_lock_spin_flags                   0x0030DA70
+#define kdlsym_addr__mtx_unlock_spin_flags                 0x0030DC30
+#define kdlsym_addr_pause                                  0x00261120
+#define kdlsym_addr_mtx_destroy                            0x0030E130
 
 #endif
