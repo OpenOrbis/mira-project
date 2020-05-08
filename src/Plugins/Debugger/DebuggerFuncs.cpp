@@ -230,7 +230,7 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         return false;
     }
 
-    if (IsProcessAlive(p_ProcessId))
+    if (!IsProcessAlive(p_ProcessId))
 	{
         WriteLog(LL_Error, "invalid pid (%d)", p_ProcessId);
         return false;

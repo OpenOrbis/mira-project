@@ -616,7 +616,6 @@ void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcInfo, 0, s_MessageData, s_MessageSize);
 
     delete [] s_MessageData;
-    dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
 }
 
 void Debugger2::OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
