@@ -12,14 +12,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
     - name: preinstall
-      uses: ryankurte/action-apt@v0.1.0
-      with:
-        # architectures to pass to dpkg --add-architecture
-        architectures: # optional
-        # apt packages to install
-        packages: build-essential git clang lldb clang-tidy clang-tools cppcheck
+      run: sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck
     - name: create directroies
       run: make create
     - name: clean workspace
