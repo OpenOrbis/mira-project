@@ -77,7 +77,7 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[1] = 0x90;
 
 	// Enable MAP_SELF
-	kmem = (uint8_t*)&gKernelBase[0x000117b0];
+	kmem = (uint8_t*)&gKernelBase[0x000117B0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
@@ -85,7 +85,7 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
 
-	kmem = (uint8_t *)&gKernelBase[0x000117c0];
+	kmem = (uint8_t *)&gKernelBase[0x000117C0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
@@ -130,6 +130,24 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
+	// Patch to remove vm_fault: fault on nofault entry, addr %llx
+	kmem = (uint8_t*)&gKernelBase[0x002A4EB3];    
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch mprotect to allow RWX (mprotect) mapping 5.03
+	kmem = (uint8_t *)&gKernelBase[0x001A3C08];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
 	// flatz disable pfs signature check
 	kmem = (uint8_t *)&gKernelBase[0x006A26C0];
 	kmem[0] = 0x31;
@@ -155,6 +173,37 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem = (uint8_t*)&gKernelBase[0x004360EA];
 	kmem[0] = 0xEB; // jmp +0x3A
 	kmem[1] = 0x38;
+
+	// flatz allow mangled symbol in dynlib_do_dlsym
+	kmem = (uint8_t *)&gKernelBase[0x002AF877];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;	
+
+	// Enable mount for unprivileged user
+	kmem = (uint8_t *)&gKernelBase[0x001DEAEE];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch suword_lwpid
+	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
+	// Patch by: JOGolden
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9D2];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x001EA9E1];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
 #endif
 }
 
