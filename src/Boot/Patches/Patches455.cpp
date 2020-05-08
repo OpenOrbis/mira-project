@@ -106,6 +106,15 @@ void Patches::install_prerunPatches_455()
 	kmem = (uint8_t*)&gKernelBase[0x0001801A];
 	kmem[0] = 0xEB; // jmp +0x3b
 	kmem[1] = 0x39;
+	
+	// Enable mount for unprivileged user
+	kmem = (uint8_t *)&gKernelBase[0x000DA483];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 
 #endif
 }
