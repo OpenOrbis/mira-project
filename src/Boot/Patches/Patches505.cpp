@@ -204,9 +204,5 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	
-	// the key itself should most likely be moved elsewhere but the offset can be obtained here, 32 bytes/256 bit
-	char *eap_hdd_key;
-	kmem = (uint8_t *)&gKernelBase[0x02790C90];
-	eap_hdd_key = &kmem[0];
 #endif
 }
