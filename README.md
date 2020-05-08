@@ -72,6 +72,9 @@ This project would not be possible without these people (no paticluar order):
 * [rogero] - Original 5.01 testing
 * [AbkarinoMHM] - Original 5.01 testing
 * [wildcard] - General questions, and hardware help
+* [frangarcj] - sdk, musl, C++ support
+* [masterzorag] - sdk, musl, C++ support
+* [fjtrujy] - sdk, musl, C++ support
 * [Anon #1] - Developer (Code, Non-stop help, <3 thx bruv)
 * [Anon #2] - Developer (Code, Non-stop help, gl with job!)
 * [Anon #3] - Security (Future proofing design)
@@ -479,3 +482,6 @@ GPLv3
    [wildcard]: <https://github.com/VV1LD>
    [4much4u]: <https://github.com/2much4u>
    [golden]: <https://github.com/jogolden>
+   [fjtrujy]: <https://github.com/fjtrujy>
+   [frangarcj]: <https://github.com/frangarcj>
+   [masterzorag]: <https://github.com/masterzorag>

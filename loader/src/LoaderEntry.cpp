@@ -86,9 +86,6 @@ void WriteNotificationLog(const char* text)
 void mira_escape(struct thread* td, void* uap)
 {
 	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
-
-	//auto critical_enter = (void(*)(void))kdlsym(critical_enter);
-	//auto crtical_exit = (void(*)(void))kdlsym(critical_exit);
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 
 	printf("[+] mira_escape\n");
@@ -112,13 +109,11 @@ void mira_escape(struct thread* td, void* uap)
 	td->td_ucred->cr_sceCaps[1] = SceCapabilities_t::Max;
 
 	// Apply patches
-	//critical_enter();
 	cpu_disable_wp();
 
 	Mira::Boot::Patches::install_prePatches();
 
 	cpu_enable_wp();
-	//crtical_exit();
 
 	printf("[-] mira_escape\n");
 }

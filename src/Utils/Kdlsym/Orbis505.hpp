@@ -213,5 +213,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 // Eap HDD key
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x02790C90                
 
+#define kdlsym_addr__mtx_lock_spin_flags                   0x00402100  
+#define kdlsym_addr__mtx_unlock_spin_flags                 0x004022C0 
+#define kdlsym_addr_pause                                  0x003FB920
+#define kdlsym_addr_mtx_destroy                            0x004027F0
 #endif
 

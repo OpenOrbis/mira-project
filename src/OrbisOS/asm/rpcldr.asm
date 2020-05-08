@@ -3,6 +3,7 @@
 ; Edited for Mira
 ; Use NASM for compile and edit Utilities
 
+rpcldr_payload_start:
 BITS 64
 DEFAULT REL
 
@@ -80,3 +81,4 @@ amd64_set_fsbase:
 	pop rbx
 	pop rbp
 	retn
+rpcldr_payload_end:
