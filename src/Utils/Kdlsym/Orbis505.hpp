@@ -211,7 +211,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001C090
 
 // Eap HDD key
-#define kdlsym_addr_eap_hdd_key                             0x02790C90                
+#define kdlsym_addr_sbl_eap_internal_partition_key         0x02790C90                
 
 #endif
 
