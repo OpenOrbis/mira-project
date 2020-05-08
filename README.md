@@ -64,6 +64,8 @@ This project would not be possible without these people (no paticluar order):
 * [TheFlow] - RE
 * [samsepi0l] - Offset Porting
 * [xvortex] - Original VTX-Hen
+* [4much4u] - Ptrace patches
+* [golden] - Ptrace patches, rpc ideas
 
 ### Special Thanks
 * [bigboss] - liborbis, and being a hater every step of the way
@@ -475,3 +477,5 @@ GPLv3
    [rogero]: <https://github.com/Rogero->
    [AbkarinoMHM]: https://github.com/AbkarinoMHM
    [wildcard]: <https://github.com/VV1LD>
+   [4much4u]: <https://github.com/2much4u>
+   [golden]: <https://github.com/jogolden>
