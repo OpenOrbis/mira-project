@@ -1,7 +1,5 @@
 #include <Boot/Patches.hpp>
 
-using namespace Mira::Boot;
-
 // Patches done by CrazyVoid
 // Thanks to
 // WildCard for helping with patches
@@ -13,11 +11,11 @@ using namespace Mira::Boot;
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
 */
-void Patches::install_prerunPatches_455()
+void Mira::Boot::Patches::install_prerunPatches_455()
 {
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455
 	// You must assign the kernel base pointer before anything is done
-	if(!gKernelBase)
+	if (!gKernelBase)
 		return;
 
 	// Use "kmem" for all patches
@@ -40,6 +38,37 @@ void Patches::install_prerunPatches_455()
 	//kmem[6] = 0x8B;
 	//kmem[7] = 0x34;
 
+	// sceSblACMgrIsAllowedSystemLevelDebugging
+	kmem = (uint8_t *)&gKernelBase[0x00169E00];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0016A530];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0016A550];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+	kmem[6] = 0x90;
+	kmem[7] = 0x90;
+
 	// Enable rwx mapping
 	// Done By WildCard
 	kmem = (uint8_t*)&gKernelBase[0x0016ED8C];
@@ -60,13 +89,28 @@ void Patches::install_prerunPatches_455()
 
 	// Enable MAP_SELF
 	// Done by IDC
-	kmem = (uint8_t *)&gKernelBase[0x00143BF2];
-	kmem[0] = 0x90;
-	kmem[1] = 0xE9;
+	kmem = (uint8_t *)&gKernelBase[0x0016A5B0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
 
-	kmem = (uint8_t *)&gKernelBase[0x00143E0E];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x0016A5C0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	kmem = (uint8_t *)&gKernelBase[0x00143BE7];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
 
 	// Patch copyinstr
 	// Done by CrazyVoid
@@ -101,12 +145,50 @@ void Patches::install_prerunPatches_455()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
+	// Patch to remove vm_fault: fault on nofault entry, addr %llx
+	kmem = (uint8_t*)&gKernelBase[0x0029F45E];    
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch mprotect to allow RWX (mprotect) mapping 4.55
+	kmem = (uint8_t *)&gKernelBase[0x00396A58];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// flatz disable pfs signature check
+	kmem = (uint8_t *)&gKernelBase[0x0069F4E0];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
+	// flatz enable debug RIFs
+	kmem = (uint8_t *)&gKernelBase[0x0062D720];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0062D740];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+	kmem[3] = 0x90;
+
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
 	kmem = (uint8_t*)&gKernelBase[0x0001801A];
 	kmem[0] = 0xEB; // jmp +0x3b
 	kmem[1] = 0x39;
-	
+
 	// Enable mount for unprivileged user
 	kmem = (uint8_t *)&gKernelBase[0x000DA483];
 	kmem[0] = 0x90;
@@ -115,5 +197,17 @@ void Patches::install_prerunPatches_455()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
+
+	// patch suword_lwpid
+	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
+	// Patch by: JOGolden
+
+	kmem = (uint8_t *)&gKernelBase[0x0014AB92];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x0014ABA1];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
 #endif
 }
