@@ -68,7 +68,7 @@ bool Debugger2::OnLoad()
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, OnSignalProcess);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
-    //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ReadKernelMem, OnReadKernelMemory);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, OnWriteKernelMemory);
@@ -95,7 +95,7 @@ bool Debugger2::OnUnload()
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, OnSignalProcess);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
-    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ReadKernelMem, OnReadKernelMemory);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, OnWriteKernelMemory);
