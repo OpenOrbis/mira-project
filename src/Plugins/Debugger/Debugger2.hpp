@@ -471,6 +471,14 @@ namespace Mira
             static void OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
             /**
+             * @brief RPC callback for getting thread information
+             *
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the thread id request
+             */
+            static void OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
              * @brief RPC callback for getting process threads
              *
              * @param p_Connection Requesting connection
