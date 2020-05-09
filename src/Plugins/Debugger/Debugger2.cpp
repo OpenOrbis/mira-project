@@ -64,7 +64,7 @@ bool Debugger2::OnLoad()
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Detach, OnDetach);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Breakpoint, OnAddBreakpoint);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Watchpoint, OnAddWatchpoint);
-    //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcThreads, OnGetProcThreads);
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcThreads, OnGetProcThreads);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, OnSignalProcess);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
@@ -91,7 +91,7 @@ bool Debugger2::OnUnload()
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Detach, OnDetach);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Breakpoint, OnAddBreakpoint);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_Watchpoint, OnAddWatchpoint);
-    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcThreads, OnGetProcThreads);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcThreads, OnGetProcThreads);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SignalProc, OnSignalProcess);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);

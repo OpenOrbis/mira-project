@@ -236,6 +236,13 @@ namespace Mira
             static bool GetProcessFullInfo(int32_t p_Pid, DbgProcessFull* p_Info);
 
             /**
+             * @brief Get the number of threads in a process
+             *
+             * @param p_Pid Process Id
+             */
+            static uint64_t GetProcessThreadCount(int32_t p_ProcessId);
+
+            /**
              */
             static bool GetCredentials(struct ucred* p_Credentials, DbgCred* p_Info);
             
@@ -468,6 +475,14 @@ namespace Mira
              * @param p_Message RpcMessage containing the pid request
              */
             static void OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief RPC callback for getting process threads
+             *
+             * @param p_Connection Requesting connection
+             * @param p_Message RpcMessage containing the pid request
+             */
+            static void OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
 
             /**
              * @brief RPC callback for allocating memory in a process
