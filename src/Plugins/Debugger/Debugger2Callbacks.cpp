@@ -172,46 +172,54 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 
     // DO NOT RETURN ANYWHERE IN HERE, WE MUST ALWAYS RELEASE THE LOCK
     sx_slock(allproclock);
-	FOREACH_PROC_IN_SYSTEM(s_Proc)
-		s_ProcCount++;
-
-    WriteLog(LL_Error, "procCount: (%lld).", s_ProcCount);
-
-    if (s_ProcCount == 0)
+    do
     {
-        sx_sunlock(allproclock);
-        WriteLog(LL_Error, "could not get any process");
-        goto cleanup;
-    }
-    
-    s_ProcessList = new DbgProcessLimited*[s_ProcCount];
-    memset(s_ProcessList, 0, sizeof(DbgProcessLimited*) * s_ProcCount);
-
-    FOREACH_PROC_IN_SYSTEM(s_Proc)
-	{
-        if (s_CurrentProcIndex >= s_ProcCount || s_Proc == nullptr)
-            break;
-
-        WriteLog(LL_Error, "currentProcIndex: (%lld).", s_CurrentProcIndex);
+        // Count all proc's
+        FOREACH_PROC_IN_SYSTEM(s_Proc)
+		    s_ProcCount++;
         
-        DbgProcessLimited* l_ProcLimited = new DbgProcessLimited;
-        if (l_ProcLimited == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate process info");
-            s_CurrentProcIndex++;
-            continue;
-        }
+        // Debug log the amount of procs
+        WriteLog(LL_Error, "procCount: (%lld).", s_ProcCount);
 
-        if (!s_Debugger->GetProcessLimitedInfo(s_Proc->p_pid, l_ProcLimited))
+        // If there was an error and we have 0 proc's bail out early
+        if (s_ProcCount == 0)
         {
-            WriteLog(LL_Error, "could not get limited process info");
-            s_CurrentProcIndex++;
-            continue;
+            WriteLog(LL_Error, "could not get any process");
+            break;
         }
+        
+        // Allocate a new process list
+        s_ProcessList = new DbgProcessLimited*[s_ProcCount];
+        memset(s_ProcessList, 0, sizeof(DbgProcessLimited*) * s_ProcCount);
 
-        s_ProcessList[s_CurrentProcIndex] = l_ProcLimited;
-        s_CurrentProcIndex++;
-    }
+        // Iterate each proc again
+        FOREACH_PROC_IN_SYSTEM(s_Proc)
+        {
+            // Bounds check that we only return the amount of procs that we want
+            if (s_CurrentProcIndex >= s_ProcCount || s_Proc == nullptr)
+                break;
+
+            WriteLog(LL_Error, "currentProcIndex: (%lld) (%s).", s_CurrentProcIndex, s_Proc->p_comm);
+            
+            DbgProcessLimited* l_ProcLimited = new DbgProcessLimited;
+            if (l_ProcLimited == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate process info");
+                s_CurrentProcIndex++;
+                continue;
+            }
+
+            if (!s_Debugger->GetProcessLimitedInfo(s_Proc->p_pid, l_ProcLimited))
+            {
+                WriteLog(LL_Error, "could not get limited process info");
+                s_CurrentProcIndex++;
+                continue;
+            }
+
+            s_ProcessList[s_CurrentProcIndex] = l_ProcLimited;
+            s_CurrentProcIndex++;
+        }
+    } while (false);
 	sx_sunlock(allproclock);
     // CAN RETURN AGAIN MKAY
 

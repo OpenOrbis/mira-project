@@ -79,7 +79,7 @@ message DbgFileDesc {
 
 message DbgProcessFull {
     repeated DbgThreadLimited threads = 1;
-    DbgCred cred = 2;
+    uint32 unused = 2;
     int32 processId = 3;
     uint64 parentProc = 4;
     int32 oppid = 5;

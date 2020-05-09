@@ -188,7 +188,7 @@ struct  _DbgProcessFull
   ProtobufCMessage base;
   size_t n_threads;
   DbgThreadLimited **threads;
-  DbgCred *cred;
+  uint32_t unused;
   int32_t processid;
   uint64_t parentproc;
   int32_t oppid;
@@ -212,7 +212,7 @@ struct  _DbgProcessFull
 };
 #define DBG_PROCESS_FULL__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&dbg_process_full__descriptor) \
-    , 0,NULL, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0,NULL }
+    , 0,NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, (char *)protobuf_c_empty_string, 0, 0,NULL }
 
 
 struct  _DbgVmEntry

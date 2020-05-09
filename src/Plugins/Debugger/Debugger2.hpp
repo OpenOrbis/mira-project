@@ -232,9 +232,13 @@ namespace Mira
              * @param p_Info Output information
              * @return true On success
              * @return false On failure
-             */
-             static bool GetProcessFullInfo(int32_t p_Pid, DbgProcessFull* p_Info);
+            */
+            static bool GetProcessFullInfo(int32_t p_Pid, DbgProcessFull* p_Info);
 
+            /**
+             */
+            static bool GetCredentials(struct ucred* p_Credentials, DbgCred* p_Info);
+            
             /**
              * @brief Get limited thread information
              * 
@@ -244,6 +248,8 @@ namespace Mira
              * @return false On failure
              */
             bool GetThreadLimitedInfo(int32_t p_ThreadId, DbgThreadLimited* p_Info);
+
+            static void FreeThreadLimitedInfo(DbgThreadLimited* p_Info);
 
             /**
              * @brief Get limited thread information

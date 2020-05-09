@@ -1355,13 +1355,13 @@ static const ProtobufCFieldDescriptor dbg_process_full__field_descriptors[21] =
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
   {
-    "cred",
+    "unused",
     2,
     PROTOBUF_C_LABEL_NONE,
-    PROTOBUF_C_TYPE_MESSAGE,
+    PROTOBUF_C_TYPE_UINT32,
     0,   /* quantifier_offset */
-    offsetof(DbgProcessFull, cred),
-    &dbg_cred__descriptor,
+    offsetof(DbgProcessFull, unused),
+    NULL,
     NULL,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
@@ -1597,7 +1597,6 @@ static const ProtobufCFieldDescriptor dbg_process_full__field_descriptors[21] =
 };
 static const unsigned dbg_process_full__field_indices_by_name[] = {
   10,   /* field[10] = code */
-  1,   /* field[1] = cred */
   5,   /* field[5] = dbgChild */
   15,   /* field[15] = dynlib */
   17,   /* field[17] = elfPath */
@@ -1616,6 +1615,7 @@ static const unsigned dbg_process_full__field_indices_by_name[] = {
   12,   /* field[12] = stype */
   14,   /* field[14] = suspendCount */
   0,   /* field[0] = threads */
+  1,   /* field[1] = unused */
   6,   /* field[6] = vmspace */
 };
 static const ProtobufCIntRange dbg_process_full__number_ranges[1 + 1] =
