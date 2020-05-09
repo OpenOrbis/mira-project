@@ -55,6 +55,17 @@ void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
     WriteLog(LL_Debug, "attached to: (%d).", s_Debugger->m_AttachedPid);
 
+    /*DbgThreadFull s_ThreadFull = DBG_THREAD_FULL__INIT;
+
+    if (!s_Debugger->GetThreadFullInfo(curthread, &s_ThreadFull))
+    {
+        WriteLog(LL_Error, "get thread full info failed.");
+    }
+    else
+    {
+        WriteLog(LL_Error, "worked fine");
+    }*/
+
     dbg_attach_request__free_unpacked(s_Request, nullptr);
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, s_Debugger->m_AttachedPid, nullptr, 0);
 }

@@ -681,6 +681,8 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         return false;
     }
 
+    WriteLog(LL_Error, "here");
+
     auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
     if (s_DebuggerThread == nullptr)
     {
@@ -688,12 +690,32 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         return false;
     }
 
+    // Stop the process if it's not already stopped
+    auto s_Process = p_Thread->td_proc;
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not get process.");
+        return false;
+    }
+
+    // In order to get registers we need to stop the process
+    auto s_Ret = kkill_t(s_Process->p_pid, SIGSTOP, s_DebuggerThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not stop process (%d).", s_Ret);
+        return false;
+    }
+
     *p_Info = DBG_THREAD_FULL__INIT;
+
+    WriteLog(LL_Error, "here");
 
     do
     {
         p_Info->proc = reinterpret_cast<uint64_t>(p_Thread->td_proc);
         p_Info->threadid = p_Thread->td_tid;
+
+        WriteLog(LL_Error, "here");
         
         auto s_ThreadNameLength = sizeof(p_Thread->td_name);
         auto s_ThreadName = new char[s_ThreadNameLength];
@@ -711,15 +733,10 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         p_Info->kernelstackpages = p_Thread->td_kstack_pages;
         p_Info->err_no = p_Thread->td_errno;
 
-        // Stop the process if it's not already stopped
-        auto s_Process = p_Thread->td_proc;
-        if (s_Process == nullptr)
-        {
-            WriteLog(LL_Error, "could not get process.");
-            break;
-        }
+        WriteLog(LL_Error, "here");
         
         auto s_ProcessId = s_Process->p_pid;
+        auto s_ThreadId = p_Thread->td_tid;
 
         struct reg s_Reg;
         struct fpreg s_FpReg;
@@ -728,45 +745,37 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         memset(&s_FpReg, 0, sizeof(s_FpReg));
         memset(&s_DbReg, 0, sizeof(s_DbReg));
 
-        // In order to get registers we need to stop the process
-        auto s_Ret = kkill_t(s_Process->p_pid, SIGSTOP, s_DebuggerThread);
-        if (s_Ret < 0)
-        {
-            WriteLog(LL_Error, "could not stop process (%d).", s_Ret);
-            break;
-        }
+        WriteLog(LL_Error, "here");
 
         // Get general purpose registers
-        s_Ret = kptrace_t(PT_GETREGS, s_ProcessId, reinterpret_cast<caddr_t>(&s_Reg), 0, s_DebuggerThread);
+        s_Ret = kptrace_t(PT_GETREGS, s_ThreadId, reinterpret_cast<caddr_t>(&s_Reg), 0, s_DebuggerThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not get gp registers (%d).", s_Ret);
             break;
         }
 
+        WriteLog(LL_Error, "here");
+
         // Get floating point registers
-        s_Ret = kptrace_t(PT_GETFPREGS, s_ProcessId, reinterpret_cast<caddr_t>(&s_FpReg), 0, s_DebuggerThread);
+        s_Ret = kptrace_t(PT_GETFPREGS, s_ThreadId, reinterpret_cast<caddr_t>(&s_FpReg), 0, s_DebuggerThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not get fp registers (%d).", s_Ret);
             break;
         }
 
+        WriteLog(LL_Error, "here");
+
         // Get debug registers
-        s_Ret = kptrace_t(PT_GETDBREGS, s_ProcessId, reinterpret_cast<caddr_t>(&s_DbReg), 0, s_DebuggerThread);
+        s_Ret = kptrace_t(PT_GETDBREGS, s_ThreadId, reinterpret_cast<caddr_t>(&s_DbReg), 0, s_DebuggerThread);
         if (s_Ret < 0)
         {
             WriteLog(LL_Error, "could not get debug registers (%d).", s_Ret);
             break;
         }
 
-        // Resume the process
-        s_Ret = kkill_t(s_ProcessId, SIGCONT, s_DebuggerThread);
-        if (s_Ret < 0)
-        {
-            WriteLog(LL_Error, "could not resume process (%d).", s_Ret);
-            break;
-        }
+        WriteLog(LL_Error, "here");
 
         // Allocate the general purpose registers (CALLEE NEEDS TO FREE)
         auto s_GpRegisters = new DbgGpRegisters();
@@ -775,6 +784,8 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
             WriteLog(LL_Error, "could not allocate gp registers.");
             break;
         }
+
+        WriteLog(LL_Error, "here");
 
         *s_GpRegisters = DBG_GP_REGISTERS__INIT;
         s_GpRegisters->r_r15 = s_Reg.r_r15;
@@ -805,6 +816,8 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
 
         p_Info->gpregisters = s_GpRegisters;
 
+        WriteLog(LL_Error, "here");
+
         // Allocate and set the floating point registers (CALLEE MUST FREE)
         auto s_FpRegisters = new DbgFpRegisters();
         if (s_FpRegisters == nullptr)
@@ -813,6 +826,8 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
             break;
         }
         *s_FpRegisters = DBG_FP_REGISTERS__INIT;
+
+        WriteLog(LL_Error, "here");
 
         // Get the data, because I don't feel like converting this (CALLEE MUST FREE)
         auto s_FpRegistersSize = sizeof(s_FpReg);
@@ -830,6 +845,8 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
 
         p_Info->fpregisters = s_FpRegisters;
 
+        WriteLog(LL_Error, "here");
+
         // Allocate the debug registers (CALLEE MUST FREE)
         auto s_DbRegisters = new DbgDbRegisters();
         if (s_DbRegisters == nullptr)
@@ -838,6 +855,8 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
             break;
         }
         *s_DbRegisters = DBG_DB_REGISTERS__INIT;
+
+        WriteLog(LL_Error, "here");
 
         // CALLEE MUST FREE
         auto s_DbRegsSize = ARRAYSIZE(s_DbReg.dr);
@@ -850,13 +869,25 @@ bool Debugger2::GetThreadFullInfo(struct thread* p_Thread, DbgThreadFull* p_Info
         for (auto i = 0; i < s_DbRegsSize; ++i)
             s_DbRegs[i] = s_DbReg.dr[i];
         
+        WriteLog(LL_Error, "here");
+        
         s_DbRegisters->debugregs = s_DbRegs;
         s_DbRegisters->n_debugregs = s_DbRegsSize;
 
         p_Info->dbregisters = s_DbRegisters;
+        WriteLog(LL_Error, "here");
 
+        // Resume the process
+        s_Ret = kkill_t(s_ProcessId, SIGCONT, s_DebuggerThread);
+        if (s_Ret < 0)
+        {
+            WriteLog(LL_Error, "could not resume process (%d).", s_Ret);
+            break;
+        }
         return true;
     } while (false);
+
+    WriteLog(LL_Error, "here");
     
     // handle cleanup
 
