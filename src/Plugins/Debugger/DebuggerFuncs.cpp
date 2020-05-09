@@ -504,6 +504,30 @@ cleanup:
     return s_Success;
 }
 
+uint64_t Debugger2::GetProcessThreadCount(int32_t p_ProcessId)
+{
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+
+    uint64_t s_ThreadCount = 0;
+    struct proc* s_Process = pfind(p_ProcessId);
+    struct thread* s_Thread = nullptr;
+
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
+        return 0;
+	}
+
+    _mtx_unlock_flags(&s_Process->p_mtx, 0, __FILE__, __LINE__);
+
+    // Get the threads
+    FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
+        s_ThreadCount++;
+
+    return s_ThreadCount;
+}
+
 bool Debugger2::GetThreadLimitedInfo(int32_t p_ThreadId, DbgThreadLimited* p_Info)
 {
     auto s_Thread = GetThreadById(p_ThreadId);
