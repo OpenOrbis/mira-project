@@ -1,6 +1,8 @@
 #pragma once
 #include <Boot/Config.hpp>
 
+// Offsets initially ported by SocraticBliss, and zecoxao, redone by kozarovv
+
 #if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_474
 /*
 These are the required functions in order for the Oni Framework to operate properly
