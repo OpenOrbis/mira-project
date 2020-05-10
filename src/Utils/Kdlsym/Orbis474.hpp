@@ -41,7 +41,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_critical_enter                         0x0023F9E0
 #define kdlsym_addr_critical_exit                          0x0023F9F0
 #define kdlsym_addr_destroy_dev                            0x0036F8F0
-// #define kdlsym_addr_dmem_start_app_process                 0x0
+//#define kdlsym_addr_dmem_start_app_process                 0x0
 #define kdlsym_addr_dynlib_do_dlsym                        0x00066000
 #define kdlsym_addr_dynlib_find_obj_by_handle              0x000670B0
 #define kdlsym_addr_eventhandler_deregister                0x003CAA10
@@ -104,7 +104,6 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_realloc                                0x003F88D0
 #define kdlsym_addr_rootvnode                              0x021B89E0
 #define kdlsym_addr_RsaesPkcs1v15Dec2048CRT                0x003F0070
-#define kdlsym_addr_sbl_eap_internal_partition_key         0x0259CCD0
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x0259CCD0
 #define kdlsym_addr_sbl_keymgr_buf_gva                     0x02548800
 #define kdlsym_addr_sbl_keymgr_buf_va                      0x02548000
