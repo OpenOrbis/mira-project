@@ -90,13 +90,14 @@ namespace Mira
 
         struct thread* GetMainThread() 
         { 
-            if (m_InitParams.process == nullptr)
+            auto s_Process = m_InitParams.process;
+            if (s_Process == nullptr)
                 return nullptr;
             
-            struct thread* s_Thread = m_InitParams.process->p_singlethread;
+            struct thread* s_Thread = s_Process->p_singlethread;
             if (s_Thread == nullptr)
             {
-                s_Thread = FIRST_THREAD_IN_PROC(m_InitParams.process);
+                s_Thread = FIRST_THREAD_IN_PROC(s_Process);
                 if (s_Thread == nullptr)
                     return nullptr;
             }

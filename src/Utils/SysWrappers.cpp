@@ -719,9 +719,11 @@ ssize_t kwrite_internal(int d, const void* buf, size_t nbytes, struct thread* td
 
 	int error;
 	struct write_args uap;
+	memset(&uap, 0, sizeof(uap));
 
 	// clear errors
 	td->td_retval[0] = 0;
+	//const auto off = offsetof(struct thread, td_retval);
 
 	// call syscall
 	uap.fd = d;

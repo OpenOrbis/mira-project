@@ -181,6 +181,15 @@ void Connection::ConnectionThread(void* p_Connection)
 
         // Validate the header magic
         auto s_Header = s_Transport->header;
+
+        if (s_Header == nullptr)
+        {
+            WriteLog(LL_Error, "could not get the transport header.");
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+            delete [] s_IncomingMessageData;
+            break;
+        }
+
         if (s_Header->magic != 2)
         {
             WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", s_Header->magic, 2);
