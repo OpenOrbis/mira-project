@@ -38,7 +38,7 @@ This project would not be possible without these people (no paticluar order):
 * [kiwidog] - Lead developer
 * [flatz] - Developer (Code, writeups, non-stop help we <3 u flatz)
 * [CrazyVoid] - Developer (Loader/self/SDK help, overall general help, OO moderator)
-* [theorywrong] - Developer (OverlayFS, general)
+* [theorywrong] - Developer (Substitute, OverlayFS, general)
 * [SiSTR0] - Developer (HEN support, general)
 * [SocraticBliss] - Developer (HEN support, general)
 * [valentinbreiz] - Developer (Mira Companion App v1)
@@ -235,7 +235,8 @@ Mira provies a plugin framework that can run in kernel mode (userland is soon, t
 | File Manager | src/plugins/FileManager |
 | (WIP) Fuse | src/plugins/FuseFS |
 | Log Server | src/plugins/LogServer |
-| OverlayFS (OrbisAFR) | src/plugins/OverlayFS |
+| (WIP) OverlayFS (OrbisAFR) | src/plugins/OverlayFS |
+| (WIP) Substitute | src/plugins/Substitute |
 
 ### Development
 
