@@ -64,7 +64,7 @@ This project would not be possible without these people (no paticluar order):
 * [TheFlow] - RE
 * [samsepi0l] - Offset Porting
 * [xvortex] - Original VTX-Hen
-* [4much4u] - Ptrace patches
+* [2much4u] - Ptrace patches
 * [golden] - Ptrace patches, rpc ideas
 
 ### Special Thanks
