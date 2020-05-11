@@ -22,7 +22,7 @@ void * operator new(unsigned long int p_Size)
 			__asm__("nop");
 	}
 
-	return malloc(p_Size, M_TEMP, M_ZERO | M_WAITOK);;
+	return malloc(p_Size, M_TEMP, M_ZERO | M_NOWAIT);
 }
 
 // placement new

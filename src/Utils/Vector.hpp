@@ -7,7 +7,7 @@ extern "C"
 {
     #include <sys/param.h>
     #include <sys/lock.h>
-    #include <sys/mutex.h>
+    #include <sys/sx.h>
 }
 
 template <typename T>
@@ -19,7 +19,7 @@ private:
     T* m_Array;
     static T m_Default;
 
-    struct mtx m_Mutex;
+    //struct sx m_Mutex;
 
 private:
     /**
@@ -69,27 +69,27 @@ public:
         m_Size(0),
         m_Array(nullptr)
     {
-        auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-        mtx_init(&m_Mutex, "", nullptr, MTX_SPIN);
+        // auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+        // mtx_init(&m_Mutex, "", nullptr, MTX_SPIN);
     }
 
     ~Vector()
     {
-        auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	    auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
-        auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
+        // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	    // auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+        // auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
 	    
-        _mtx_lock_spin_flags(&m_Mutex, 0);
+        // _mtx_lock_spin_flags(&m_Mutex, 0);
         if (m_Array != nullptr)
         {
             delete [] m_Array;
             m_Capacity = 0;
             m_Size = 0;
         }
-        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
         // Destroy the mutex afterwards
-        mtx_destroy(&m_Mutex);
+        // mtx_destroy(&m_Mutex);
 
         //WriteLog(LL_Debug, "deleted vector");
     }
@@ -122,10 +122,10 @@ public:
     //template<typename T>
     void push_back(const T& obj)
     {
-        auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	    auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+        // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	    // auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
-        _mtx_lock_spin_flags(&m_Mutex, 0);
+        // _mtx_lock_spin_flags(&m_Mutex, 0);
         if (m_Size == m_Capacity)
         {
             if (m_Capacity == 0)
@@ -143,7 +143,7 @@ public:
         //WriteLog(LL_Debug, "pushing object at %p", &obj);
         m_Array[m_Size] = obj;
         m_Size++;
-        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&m_Mutex, 0);
     }
 
     uint32_t size()
@@ -176,12 +176,12 @@ public:
     
     void clear()
     {
-        auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	    auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+        // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	    // auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
-        _mtx_lock_spin_flags(&m_Mutex, 0);
+        // _mtx_lock_spin_flags(&m_Mutex, 0);
         reserve_locked(1, false);
         m_Size = 0;
-        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&m_Mutex, 0);
     }
 };

@@ -13,6 +13,7 @@ extern "C"
     #include <sys/lock.h>
     #include <sys/proc.h>
     #include <sys/filedesc.h>
+    #include <sys/mutex.h>
 };
 
 using namespace Mira::OrbisOS;

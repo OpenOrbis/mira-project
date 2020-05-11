@@ -95,7 +95,7 @@ namespace Mira
             int32_t m_Socket;
             uint16_t m_Port;
 
-            struct mtx m_Mutex;
+            // struct sx m_Mutex;
             eventhandler_tag m_OnProcessExitTag;
             
 

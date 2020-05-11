@@ -27,14 +27,14 @@ Server::Server(uint16_t p_Port) :
     // Zero out the address
     memset(&m_Address, 0, sizeof(m_Address));
 
-    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-    mtx_init(&m_Mutex, "RpcMtx", nullptr, MTX_SPIN);
+    // auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    // mtx_init(&m_Mutex, "RpcMtx", nullptr, MTX_SPIN);
 }
 
 Server::~Server()
 {
-    auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
-	mtx_destroy(&m_Mutex);
+    // auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
+	// mtx_destroy(&m_Mutex);
 }
 
 bool Server::OnLoad()
@@ -71,19 +71,19 @@ bool Server::Startup()
         return false;
     }
     WriteLog(LL_Error, "here");
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
     
     int32_t s_Ret = -1;
 
     WriteLog(LL_Error, "here");
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     // Create a socket
     m_Socket = ksocket_t(AF_INET, SOCK_STREAM, 0, s_MainThread);
     WriteLog(LL_Error, "here");
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
     WriteLog(LL_Error, "here");
 
     if (m_Socket < 0)
@@ -93,14 +93,14 @@ bool Server::Startup()
     }
     WriteLog(LL_Info, "socket created: (%d).", m_Socket);
 
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     // Set our server to listen on 0.0.0.0:<port>
     memset(&m_Address, 0, sizeof(m_Address));
     m_Address.sin_family = AF_INET;
     m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
     m_Address.sin_port = htons(m_Port);
     m_Address.sin_len = sizeof(m_Address);
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     WriteLog(LL_Error, "here");
     // Bind to port
@@ -137,8 +137,8 @@ bool Server::Startup()
 
 bool Server::Teardown()
 {
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
@@ -155,9 +155,9 @@ bool Server::Teardown()
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         // Check that we have a valid connection
-        _mtx_lock_spin_flags(&m_Mutex, 0);
+        // _mtx_lock_spin_flags(&m_Mutex, 0);
         auto l_Connection = m_Connections[i];
-        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
         if (l_Connection == nullptr)
             continue;
@@ -185,8 +185,8 @@ bool Server::Teardown()
 void Server::ServerThread(void* p_UserArgs)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
@@ -218,14 +218,14 @@ void Server::ServerThread(void* p_UserArgs)
     memset(&s_ClientAddress, 0, s_ClientAddressLen);
     s_ClientAddress.sin_len = s_ClientAddressLen;
 
-    _mtx_lock_spin_flags(&s_Server->m_Mutex, 0);
+    // _mtx_lock_spin_flags(&s_Server->m_Mutex, 0);
     // Set our running state
     s_Server->m_Running = true;
 
     fd_set s_ReadFds;
     FD_ZERO(&s_ReadFds);
     FD_SET(s_Server->m_Socket, &s_ReadFds);
-    _mtx_unlock_spin_flags(&s_Server->m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&s_Server->m_Mutex, 0);
 
     while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
@@ -288,9 +288,9 @@ void Server::ServerThread(void* p_UserArgs)
             break;
         }
 
-        _mtx_lock_spin_flags(&s_Server->m_Mutex, 0);
+        // _mtx_lock_spin_flags(&s_Server->m_Mutex, 0);
         s_Server->m_Connections[s_FreeIndex] = l_Connection;
-        _mtx_unlock_spin_flags(&s_Server->m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&s_Server->m_Mutex, 0);
 
         // Send off for new client thread creation
         s_Server->OnHandleConnection(l_Connection);
@@ -350,8 +350,8 @@ void Server::OnHandleConnection(Rpc::Connection* p_Connection)
 
 void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
 {
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     if (p_Connection == nullptr)
     {
@@ -360,16 +360,16 @@ void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
     }
     WriteLog(LL_Debug, "client disconnect (%p).", p_Connection);
 
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     auto s_ConnectionSize = ARRAYSIZE(m_Connections);
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
     // Iterate through all connections and disconnect them
     for (auto i = 0; i < s_ConnectionSize; ++i)
     {
         // Check that we have a valid connection
-        _mtx_lock_spin_flags(&m_Mutex, 0);
+        // _mtx_lock_spin_flags(&m_Mutex, 0);
         auto l_Connection = m_Connections[i];
-        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&m_Mutex, 0);
         if (l_Connection == nullptr)
             continue;
         
@@ -377,9 +377,9 @@ void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
             continue;
 
         // Disconnect the client, the client will fire the Server::OnConnectionDisconnected
-        _mtx_lock_spin_flags(&m_Mutex, 0);
+        // _mtx_lock_spin_flags(&m_Mutex, 0);
         m_Connections[i] = nullptr;
-        _mtx_unlock_spin_flags(&m_Mutex, 0);
+        // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
         WriteLog(LL_Debug, "freeing connection at (%d) (%p).", i, l_Connection);
         delete l_Connection;
@@ -390,12 +390,12 @@ void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
 
 int32_t Server::GetSocketById(uint32_t p_Id)
 {
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     int32_t s_SocketId = -1;
 
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     for (uint32_t i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         auto l_Connection = m_Connections[i];
@@ -411,55 +411,55 @@ int32_t Server::GetSocketById(uint32_t p_Id)
         s_SocketId = l_Connection->GetSocket();
         break;
     }
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     return s_SocketId;
 }
 
 int32_t Server::GetFreeConnectionCount()
 {
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     int32_t s_Count = 0;
 
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         if (m_Connections[i] == nullptr)
             s_Count++;
     }
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     return s_Count;
 }
 
 int32_t Server::GetUsedConnectionCount()
 {
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     int32_t s_Count = 0;
 
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         if (m_Connections[i] != nullptr)
             s_Count++;
     }
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     return s_Count;
 }
 
 int32_t Server::GetFreeConnectionIndex()
 {
-    auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     int32_t s_FreeConnectionIndex = -1;
 
-    _mtx_lock_spin_flags(&m_Mutex, 0);
+    // _mtx_lock_spin_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         if (m_Connections[i] == nullptr)
@@ -468,7 +468,7 @@ int32_t Server::GetFreeConnectionIndex()
             break;
         }
     }
-    _mtx_unlock_spin_flags(&m_Mutex, 0);
+    // _mtx_unlock_spin_flags(&m_Mutex, 0);
 
     return s_FreeConnectionIndex;
 }

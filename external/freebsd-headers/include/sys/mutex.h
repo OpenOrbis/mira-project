@@ -259,7 +259,7 @@ void	_thread_lock_flags(struct thread *, int, const char *, int);
 #define mtx_lock(m)		_mtx_lock_flags((m), 0, __FILE__, __LINE__)
 #define mtx_lock_spin(m)	mtx_lock_spin_flags((m), 0)
 #define mtx_trylock(m)		mtx_trylock_flags((m), 0)
-#define mtx_unlock(m)		(*_mtx_unlock_flags)((m), 0, __FILE__, __LINE__)
+#define mtx_unlock(m)		_mtx_unlock_flags((m), 0, __FILE__, __LINE__)
 #define mtx_unlock_spin(m)	mtx_unlock_spin_flags((m), 0)
 
 struct mtx_pool;

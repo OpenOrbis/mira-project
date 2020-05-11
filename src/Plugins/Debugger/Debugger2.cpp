@@ -11,10 +11,10 @@ Debugger2::Debugger2(uint16_t p_Port) :
     m_OnProcessExitTag(nullptr),
     m_AttachedPid(-1)
 {
-    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    // auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
-    mtx_init(&m_Mutex, "DbgLock", nullptr, MTX_SPIN);
+    // mtx_init(&m_Mutex, "DbgLock", nullptr, MTX_SPIN);
 
     // Registers process exiting
     m_OnProcessExitTag = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), this, EVENTHANDLER_PRI_FIRST);
