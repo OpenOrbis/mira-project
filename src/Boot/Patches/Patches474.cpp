@@ -1,4 +1,3 @@
-#4.74
 #include <Boot/Patches.hpp>
 
 /*
