@@ -2301,7 +2301,7 @@ int knmount(struct iovec* iov, int iovlen, unsigned int flags, struct thread* td
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
-	auto sys_nmount = (int(*)(struct thread*, struct nmount_args*))sysents[378].sy_call;
+	auto sys_nmount = (int(*)(struct thread*, struct nmount_args*))sysents[SYS_NMOUNT].sy_call;
 	if (!sys_nmount)
 		return -1;
 
@@ -2332,6 +2332,118 @@ int knmount_t(struct iovec* iov, int iovlen, unsigned int flags, struct thread* 
 	for (;;)
 	{
 		ret = knmount(iov, iovlen, flags, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int klink(const	char *path, const char	*link, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_link = (int(*)(struct thread*, struct link_args*))sysents[SYS_LINK].sy_call;
+	if (!sys_link)
+		return -1;
+
+	int error;
+	struct link_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = path:
+	uap.link = link;
+
+	error = sys_link(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int klink_t(const char *path, const char *link, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = klink(path, link, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+
+int klinkat(int	fd1, const char	*path1,	int fd2, const char *path2, int	flag, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_linkat = (int(*)(struct thread*, struct linkat_args*))sysents[SYS_LINKAT].sy_call;
+	if (!sys_linkat)
+		return -1;
+
+	int error;
+	struct linkat_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.fd1 = fd1:
+	uap.path1 = path1;
+	uap.fd2 = fd2:
+	uap.path2 = path2;
+	uap.flag = flag:
+
+	error = sys_linkat(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int klinkat_t(int fd1, const char *path1, int fd2, const char *path2, int flag, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = klinkat(fd1, path1, fd2, path2, flag, td);
 		if (ret < 0)
 		{
 			if (ret == -EINTR)

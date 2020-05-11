@@ -7,7 +7,7 @@ DEFAULT REL
 
 magic: db 'MIRA'
 entrypoint: dq loadprx
-prxdone: db 0
+prxdone: dd 0
 prx_path: dq 0
 sceKernelLoadStartModule: dq 0
 
@@ -23,5 +23,6 @@ loadprx:
 	xor r9, r9
 	mov r12, qword [sceKernelLoadStartModule]
 	call r12
+	mov dword [prxdone], 1
 	xor eax, eax
 	ret

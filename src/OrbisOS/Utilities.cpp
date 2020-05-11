@@ -66,19 +66,7 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
     if (p_ProcessId < 0)
         return -EIO;
     
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return -EIO;
-	}
-
-	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
-	if (s_DebuggerThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get debugger thread.");
-		return -EIO;
-	}
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
 
     struct ptrace_io_desc s_Desc
     {
@@ -88,7 +76,7 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         .piod_len = p_ToReadWriteSize
     };
 
-    uint64_t s_Ret = kptrace_t(PT_IO, p_ProcessId, (caddr_t)&s_Desc, 0, s_DebuggerThread);
+    uint64_t s_Ret = kptrace_t(PT_IO, p_ProcessId, (caddr_t)&s_Desc, 0, s_MainThread);
     if (s_Ret != 0)
         return s_Ret;
     else
@@ -107,19 +95,9 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 	if (p_ToReadWriteAddress == nullptr)
 		return -EINVAL;
 
-	auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
+	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+	if (s_MainThread == nullptr)
 		return -EIO;
-	}
-
-	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
-	if (s_DebuggerThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get debugger thread.");
-		return -EIO;
-	}
 
 	struct iovec s_Iov;
 	struct uio s_Uio;
@@ -148,7 +126,7 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 	s_Uio.uio_resid = (uint64_t)p_Size;
 	s_Uio.uio_segflg = UIO_SYSSPACE;
 	s_Uio.uio_rw = p_Write ? UIO_WRITE : UIO_READ;
-	s_Uio.uio_td = s_DebuggerThread;
+	s_Uio.uio_td = s_MainThread;
 
 	auto proc_rwmem = (int (*)(struct proc *p, struct uio *uio))kdlsym(proc_rwmem);
 	s_Ret = proc_rwmem(p_Process, &s_Uio);
@@ -280,7 +258,6 @@ int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entr
 		info[i].start = entry->start;
 		info[i].end = entry->end;
 		info[i].offset = entry->offset;
-		memcpy(info[i].name, entry->name, sizeof(info[i].name));
 
 		info[i].prot = 0;
 		if (entry->protection & VM_PROT_READ)
@@ -416,6 +393,7 @@ int Utilities::KillProcess(struct proc* p)
 // Create a PThread (POSIX Thread) on remote process
 int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	auto thr_create = (int (*)(struct thread * td, uint64_t ctx, void* start_func, void *arg, char *stack_base, size_t stack_size, char *tls_base, long * child_tid, long * parent_tid, uint64_t flags, uint64_t rtp))kdlsym(kern_thr_create);
+	//auto DELAY = (void(*)(int delay))kdlsym(DELAY);
 
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
 
@@ -479,10 +457,11 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	void* s_thr_initial = (void*)((uint64_t)s_pthread_getthreadid_np + s_RelativeAddress + 0x8);
 
 	// Payload containts all call needed for create a thread (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
-	unsigned char s_Payload[0x100] = "\x4D\x49\x52\x41\x4D\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x72\x70\x63\x73\x74\x75\x62\x00\x48\x8B\x3D\xD9\xFF\xFF\xFF\x48\x8B\x37\x48\x8B\xBE\xE0\x01\x00\x00\xE8\x7A\x00\x00\x00\x48\x8D\x3D\xD3\xFF\xFF\xFF\x4C\x8B\x25\xA4\xFF\xFF\xFF\x41\xFF\xD4\xBE\x00\x00\x08\x00\x48\x8D\x3D\xBD\xFF\xFF\xFF\x4C\x8B\x25\x96\xFF\xFF\xFF\x41\xFF\xD4\x4C\x8D\x05\xB4\xFF\xFF\xFF\xB9\x00\x00\x00\x00\x48\x8B\x15\x70\xFF\xFF\xFF\x48\x8D\x35\x99\xFF\xFF\xFF\x48\x8D\x3D\x8A\xFF\xFF\xFF\x4C\x8B\x25\x73\xFF\xFF\xFF\x41\xFF\xD4\xC6\x05\x50\xFF\xFF\xFF\x01\xBF\x00\x00\x00\x00\xE8\x01\x00\x00\x00\xC3\xB8\xAF\x01\x00\x00\x49\x89\xCA\x0F\x05\xC3\xB8\xA5\x00\x00\x00\x49\x89\xCA\x0F\x05\xC3\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x89\x7D\xE8\x48\x8D\x75\xE8\xBF\x81\x00\x00\x00\xE8\xDA\xFF\xFF\xFF\x48\x83\xC4\x18\x5B\x5D\xC3";
+	unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x72\x70\x63\x73\x74\x75\x62\x00\x48\x8B\x3D\xD9\xFF\xFF\xFF\x48\x8B\x37\x48\x8B\xBE\xE0\x01\x00\x00\xE8\x7D\x00\x00\x00\x48\x8D\x3D\xD3\xFF\xFF\xFF\x4C\x8B\x25\xA4\xFF\xFF\xFF\x41\xFF\xD4\xBE\x00\x00\x08\x00\x48\x8D\x3D\xBD\xFF\xFF\xFF\x4C\x8B\x25\x96\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\x75\xFF\xFF\xFF\x01\x00\x00\x00\x4C\x8D\x05\xAA\xFF\xFF\xFF\xB9\x00\x00\x00\x00\x48\x8B\x15\x66\xFF\xFF\xFF\x48\x8D\x35\x8F\xFF\xFF\xFF\x48\x8D\x3D\x80\xFF\xFF\xFF\x4C\x8B\x25\x69\xFF\xFF\xFF\x41\xFF\xD4\xBF\x00\x00\x00\x00\xE8\x01\x00\x00\x00\xC3\xB8\xAF\x01\x00\x00\x49\x89\xCA\x0F\x05\xC3\xB8\xA5\x00\x00\x00\x49\x89\xCA\x0F\x05\xC3\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x89\x7D\xE8\x48\x8D\x75\xE8\xBF\x81\x00\x00\x00\xE8\xDA\xFF\xFF\xFF\x48\x83\xC4\x18\x5B\x5D\xC3";
 
 	// Setup payload
 	struct posixldr_header* s_PayloadHeader = (struct posixldr_header*)s_Payload;
+	s_PayloadHeader->ldrdone = 0; // for testing
 	s_PayloadHeader->stubentry = (uint64_t)entrypoint;
 	s_PayloadHeader->scePthreadAttrInit = (uint64_t)s_scePthreadAttrInit;
 	s_PayloadHeader->scePthreadAttrSetstacksize = (uint64_t)s_scePthreadAttrSetstacksize;
@@ -519,24 +498,18 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 		return -9;
 	}
 
-	/* TODO : Cleanup remote process memory
 	// Wait until it's done
-	void* s_ResultAddr = (void*)( (uint64_t)s_PayloadSpace + sizeof(uint32_t) + sizeof(uint64_t) );
-
-	uint8_t s_Ldrdone = 0;
-	s_Size = sizeof(uint8_t);
-	while (s_Ldrdone == 0) {
-		s_Ret = proc_rw_mem(p, s_ResultAddr, s_Size, &s_Ldrdone, &s_Size, false);
+	uint32_t result = 0;
+	while (!result) {
+		s_Size = sizeof(uint32_t);
+		s_Ret = proc_rw_mem(p, (void*)(s_PayloadSpace + sizeof(uint32_t) + sizeof(uint64_t)), s_Size, &result, &s_Size, false);
 		if (s_Ret) {
-			WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_ResultAddr);
-			break;
+			WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_PayloadSpace);
 		}
 	}
-	
 
 	// Cleanup remote memory
-	kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
-	*/
+	//kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
 
 	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) : Done.", s_TitleId, entrypoint);
 
@@ -579,7 +552,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
     }
 
 	// Payload containts all call needed for create a thread (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
-	unsigned char s_Payload[0x100] = "\x4D\x49\x52\x41\x25\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x72\x78\x73\x74\x75\x62\x00\x48\x8B\x3D\xE1\xFF\xFF\xFF\x48\x31\xF6\x48\x31\xD2\x48\x31\xC9\x4D\x31\xC0\x4D\x31\xC9\x4C\x8B\x25\xD3\xFF\xFF\xFF\x41\xFF\xD4\x31\xC0\xC3";	
+	unsigned char s_Payload[0x100] = "\x4D\x49\x52\x41\x28\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x72\x78\x73\x74\x75\x62\x00\x48\x8B\x3D\xE1\xFF\xFF\xFF\x48\x31\xF6\x48\x31\xD2\x48\x31\xC9\x4D\x31\xC0\x4D\x31\xC9\x4C\x8B\x25\xD3\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\xBA\xFF\xFF\xFF\x01\x00\x00\x00\x31\xC0\xC3";	
 
 	// Allocate memory
 	size_t s_PayloadSize = 0x8000; //sizeof(s_Payload) + PATH_MAX but need more for allow the allocation
@@ -591,6 +564,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 
 	// Setup payload
 	struct prxldr_header* s_PayloadHeader = (struct prxldr_header*)s_Payload;
+	s_PayloadHeader->prxdone = 0;
 	s_PayloadHeader->prx_path = (uint64_t)((uint64_t)s_PayloadSpace + sizeof(s_Payload));
 	s_PayloadHeader->sceKernelLoadStartModule = (uint64_t)s_LoadStartModule;
 
@@ -615,10 +589,8 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 
 	// Create a POSIX Thread
 	CreatePOSIXThread(p, s_Entrypoint);
-
-	/* TODO : Cleanup remote process memory */
-
-	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX : Done.", s_TitleId, prx_path);
+	
+	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX: Done.", s_TitleId, prx_path);
 
 	return 0;
 }

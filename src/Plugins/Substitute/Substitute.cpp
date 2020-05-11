@@ -148,26 +148,11 @@ Substitute* Substitute::GetPlugin()
     return s_SubstitutePlugin;
 }
 
-//////////////////////////
-// HOOK MANAGEMENT SYSTEM
-//////////////////////////
+//////////////////////////////////////////
+// HOOK MEMORY SYSTEM (Kernel Side) //
+//////////////////////////////////////////
 
-// Substitute : Check if the process is Alive
-bool Substitute::IsProcessAlive(struct proc* p_alive) {
-    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
-
-    struct proc* p = NULL;
-    FOREACH_PROC_IN_SYSTEM(p)
-    {
-        if (p == p_alive) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// Substitute : Return hook struct by this id
+// Substitute : Return hook struct by this id (MUTEX NEEDED)
 SubstituteHook* Substitute::GetHookByID(int hook_id) {
     // Check if the hook_id is in the specs
     if (hook_id < 0 || hook_id > SUBSTITUTE_MAX_HOOKS) {
@@ -186,7 +171,7 @@ SubstituteHook* Substitute::GetHookByID(int hook_id) {
     return &hooks[hook_id];
 }
 
-// Substitute : Allocate a new hook to the list
+// Substitute : Allocate a new hook to the list (MUTEX NEEDED)
 SubstituteHook* Substitute::AllocateHook(int* hook_id) {
     if (!hook_id) {
         WriteLog(LL_Error, "Invalid argument !");
@@ -207,11 +192,17 @@ SubstituteHook* Substitute::AllocateHook(int* hook_id) {
     return nullptr;
 }
 
-// Substitute : Free a hook from the list
+// Substitute : Free a hook from the list (MUTEX NEEDED)
 void Substitute::FreeHook(int hook_id) {
     SubstituteHook* hook = GetHookByID(hook_id);
 
     if (hook) {
+        // Free the chain list
+        if (hook->hook_type == HOOKTYPE_IAT && hook->iat.uap_chains) {
+            delete (hook->iat.uap_chains);
+        }
+
+        // Set to 0, now everything is available
         memset(hook, 0, sizeof(SubstituteHook));
         WriteLog(LL_Info, "The hook %i have been deleted.", hook_id);
     }
@@ -219,266 +210,226 @@ void Substitute::FreeHook(int hook_id) {
     return;
 }
 
-// Substitute : Disable the hook
-int Substitute::DisableHook(struct proc* p, int hook_id) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+//////////////////////////////////////////
+// HOOK MANAGEMENT SYSTEM (Kernel Side) //
+//////////////////////////////////////////
 
-    SubstituteHook* hook = GetHookByID(hook_id);
-    if (!hook) {
-        WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+// Substitute : Find a hook with similar process and jmpslot (MUTEX NEEDED)
+bool Substitute::FindJmpslotSimilarity(struct proc* p, void* jmpslot_addr, int* hook_id) {
+    if (!hook_id) {
+        WriteLog(LL_Error, "Invalid argument !");
+        *hook_id = -1;
+        return false;
+    }
+
+    SubstituteHook empty;
+    memset(&empty, 0, sizeof(SubstituteHook));
+
+    for (int i = 0; i < SUBSTITUTE_MAX_HOOKS; i++) {
+        // If empty, don't continue, just break instead of do all the list
+        if (memcmp(&hooks[i], &empty, sizeof(SubstituteHook)) == 0) {
+            break;
+        }
+
+        if (hooks[i].hook_type == HOOKTYPE_IAT) {
+            if (hooks[i].process == p && hooks[i].iat.jmpslot_address == jmpslot_addr) {
+                *hook_id = i;
+                return true;
+            }
+        }
+    }
+
+    *hook_id = -1;
+    return false;
+}
+
+// Substitute : Find position by chains address
+int Substitute::FindPositionByChain(uint64_t* chains, uint64_t chain) {
+    if (!chains) {
+        WriteLog(LL_Error, "Invalid argument !");
         return -1;
     }
 
-    if (hook->process != p) {
-        WriteLog(LL_Error, "Invalid handle : Another process trying to disable hook.");
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -2;
-    }
-
-    /*
-    if (!IsProcessAlive(hook->process)) {
-        WriteLog(LL_Error, "The process is not alive !");
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -3;
-    }
-    */
-
-    switch (hook->hook_type) {
-        case HOOKTYPE_IAT: {
-            if (hook->hook_enable && hook->process && hook->original_function) {
-                int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, sizeof(uint64_t), &hook->original_function, nullptr, true);
-                if (r_error != 0) {
-                    WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-                    return -4;
-                }
-
-                hook->hook_enable = false;
-            } else {
-                WriteLog(LL_Error, "Invalid value was detected.");
-            }
-
-            break;
-        }
-
-        case HOOKTYPE_JMP : {
-            if (hook->hook_enable && hook->process && hook->original_function && hook->backupSize > 0 && hook->backupData) {
-                int r_error = proc_rw_mem(hook->process, hook->original_function, hook->backupSize, hook->backupData, nullptr, true);
-                if (r_error != 0) {
-                    WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-                    return -5;
-                }
-
-                hook->hook_enable = false;
-            } else {
-                WriteLog(LL_Error, "Invalid value was detected.");
-            }
-
-            break;
-        }
-
-        default: {
-            WriteLog(LL_Error, "Invalid type of hook was detected.");
-            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            return -6;
-            break;
+    for (int i = 0; i < SUBSTITUTE_MAX_CHAINS; i++) {
+        if (chains[i] == chain) {
+            return i;
         }
     }
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
-    return 0;
+    return -1;
 }
 
-// Substitute : Enable the hook
-int Substitute::EnableHook(struct proc* p, int hook_id) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-  
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    SubstituteHook* hook = GetHookByID(hook_id);
-    if (!hook) {
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -1;
+// Substitute : Get UAP Address of last occurence of a chains (MUTEX NEEDED)
+void* Substitute::FindLastChainOccurence(uint64_t* chains, int* position) {
+    if (!chains || !position) {
+        WriteLog(LL_Error, "Invalid argument !");
+        return nullptr;
     }
 
-    if (hook->process != p) {
-        WriteLog(LL_Error, "Invalid handle : Another process trying to enable hook.");
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -2;
-    }
+    for (int i = 0; i < SUBSTITUTE_MAX_CHAINS; i++) {
+        if (chains[i] == 0) {
 
-    /*
-    if (!IsProcessAlive(hook->process)) {
-        WriteLog(LL_Error, "The process is not alive !");
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -3;
-    }
-    */
-
-    switch (hook->hook_type) {
-        case HOOKTYPE_IAT: {
-            if (!hook->hook_enable && hook->process && hook->hook_function) {
-                int r_error = proc_rw_mem(hook->process, hook->jmpslot_address, sizeof(uint64_t), &hook->hook_function, nullptr, true);
-                if (r_error != 0) {
-                    WriteLog(LL_Error, "Unable to write the iat system: (%d)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-                    return -4;
-                }
-
-                hook->hook_enable = true;
-            } else {
-                WriteLog(LL_Error, "Invalid value was detected.");
-            }
-
-            break;
-        }
-
-        case HOOKTYPE_JMP : {
-            if (!hook->hook_enable && hook->process && hook->original_function && hook->hook_function) {
-
-                // Use the jmpBuffer from Hook.cpp
-                uint8_t jumpBuffer[] = {
-                    0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,             // # jmp    QWORD PTR [rip+0x0]
-                    0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, // # DQ: AbsoluteAddress
-                }; // Shit takes 14 bytes
-
-                uint64_t* jumpBufferAddress = (uint64_t*)(jumpBuffer + 6);
-
-                // Assign the address
-                *jumpBufferAddress = (uint64_t)hook->hook_function;
-
-                int r_error = proc_rw_mem(hook->process, hook->original_function, sizeof(jumpBuffer), jumpBuffer, nullptr, true);
-                if (r_error != 0) {
-                    WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
-                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-                    return -5;
-                }
-
-                hook->hook_enable = true;
-            } else {
-                WriteLog(LL_Error, "Invalid value was detected.");
-            }
-
-            break;
-        }
-
-        default: {
-            WriteLog(LL_Error, "Invalid type of hook was detected.");
-            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            return -6;
-            break;
+            if ( (i-1) < 0 )
+                return nullptr;
+            *position = (i-1);
+            return (void*)chains[i-1];
         }
     }
 
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    return 0;
-}
-
-// Substitute : Unhook the function
-int Substitute::Unhook(struct proc* p, int hook_id) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-    FreeHook(hook_id);
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    WriteLog(LL_Info, "%i is now unhooked.", hook_id);
-
-    return 0;
-}
-
-// Substitute : Cleanup all hook
-void Substitute::CleanupAllHook() {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-    WriteLog(LL_Info, "Cleaning up all hook ...");
-
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    for (int i = 0; i < SUBSTITUTE_MAX_HOOKS; i++) {
-        FreeHook(i);
-    }
-
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-}
-
-// Substitute : Cleanup hook for a process
-void Substitute::CleanupProcessHook(struct proc* p) {
-    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-
-    if (!p)
-        return;
-
-    char* s_TitleId = (char*)((uint64_t)p + 0x390);
-    WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
-
-
-    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-
-    for (int i = 0; i < SUBSTITUTE_MAX_HOOKS; i++) {
-        SubstituteHook* hook = GetHookByID(i);
-        if (hook && hook->process == p) {
-            FreeHook(i);
-        }
-    }
-
-    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    return nullptr;
 }
 
 // Substitute : Hook the function in the process (With Import Address Table)
-int Substitute::HookIAT(struct proc* p, const char* module_name, const char* name, int32_t flags, void* hook_function, uint64_t* original_function_out) {
+int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const char* module_name, const char* name, int32_t flags, void* hook_function) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-    if (!p || !name || !hook_function) {
+    int r_error = 0;
+
+    if (!p || !name || !hook_function || !chain) {
+        WriteLog(LL_Error, "One of the parameter is incorrect !");
+        WriteLog(LL_Error, "p: %p", p);
+        WriteLog(LL_Error, "chain: %p", chain);
+        WriteLog(LL_Error, "name: %p", name);
+        WriteLog(LL_Error, "hook_function: %p", hook_function);
         WriteLog(LL_Error, "One of the parameter is incorrect !");
         return -1;
     }
 
-    // Get the jmpslot offset for this nids
+    // Get the jmpslot offset for this nids (Work like an id for detect if hook already present)
     void* jmpslot_address = (void*)FindJmpslotAddress(p, module_name, name, flags);
     if (!jmpslot_address) {
         WriteLog(LL_Error, "Unable to find the jmpslot address !");
         return -2;
     }
 
-    // Get the original value for this jmpslot
-    void* original_function = FindOriginalAddress(p, name, flags);
-    if (!original_function) {
-        WriteLog(LL_Error, "Unable to get the original value from the jmpslot !");
-        return -3;
-    }
-
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
-    int hook_id = -5;
-    SubstituteHook* new_hook = AllocateHook(&hook_id);
-    if (!new_hook) {
-        WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
-        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -4;
-    }
+    // Find if something is similar for this process
+    int hook_id = -1;
+    WriteLog(LL_Info, "jmpslot addr: %p", jmpslot_address);
+    if (FindJmpslotSimilarity(p, jmpslot_address, &hook_id)) {
+        // Similarity : Rebuild the hook chain for handle new hook of same function/process
+        WriteLog(LL_Info, "Similarity : Rebuild the hook chain");
+        SubstituteHook* hook = GetHookByID(hook_id);
 
-    // Set default value
-    new_hook->process = p;
-    new_hook->hook_type = HOOKTYPE_IAT;
-    new_hook->hook_function = hook_function;
-    new_hook->jmpslot_address = jmpslot_address;
-    new_hook->original_function = original_function;
-    new_hook->hook_enable = false;
+        if (!hook) {
+            WriteLog(LL_Error, "Unable to get the hook !");
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
 
-    if (original_function_out) {
-        *original_function_out = (uint64_t)original_function;
+        // Build the current chain
+        struct substitute_hook_uat current_chain;
+        current_chain.hook_id = hook_id;
+        current_chain.hook_function = hook_function;
+        current_chain.original_function = hook->iat.original_function;
+        current_chain.next = nullptr;
+
+        // Find lasted chain uap position and address
+        int last_chain_position = -1;
+        void* last_chain_addr = FindLastChainOccurence(hook->iat.uap_chains, &last_chain_position);
+        if (!last_chain_addr || last_chain_position < 0) {
+            WriteLog(LL_Error, "Unable to get the lasted chain address.");
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // Determinate if we have space for write
+        if ( (last_chain_position + 1) > SUBSTITUTE_MAX_CHAINS ) {
+            WriteLog(LL_Error, "SUBSTITUTE_MAX_CHAINS reached !");
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // Write current chain in the process
+        r_error = proc_rw_mem(p, chain, sizeof(struct substitute_hook_uat), &current_chain, nullptr, true);
+        if (r_error != 0) {
+            WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // Got the last chains struct into kernel
+        struct substitute_hook_uat last_chain;
+        r_error = proc_rw_mem(p, last_chain_addr, sizeof(struct substitute_hook_uat), &last_chain, nullptr, false);
+        if (r_error != 0) {
+            WriteLog(LL_Error, "Unable to read the last chain: (%d)", r_error);
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // The next chain of last chain is the current chain
+        last_chain.next = chain;
+
+        // Write the edited last chain in the process
+        r_error = proc_rw_mem(p, last_chain_addr, sizeof(struct substitute_hook_uat), &last_chain, nullptr, true);
+        if (r_error != 0) {
+            WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // Write the new chain address into the chain structure
+        hook->iat.uap_chains[(last_chain_position + 1)] = (uint64_t)chain;
+    } else {
+        // No similarity : Build a new hook block
+        WriteLog(LL_Info, "No similarity : Build a new hook block ...");
+
+        // Get the original value for this jmpslot
+        void* original_function = FindOriginalAddress(p, name, flags);
+        if (!original_function) {
+            WriteLog(LL_Error, "Unable to get the original value from the jmpslot !");
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        hook_id = -1;
+        SubstituteHook* new_hook = AllocateHook(&hook_id);
+        if (!new_hook || hook_id < 0) {
+            WriteLog(LL_Error, "Unable to allocate new hook (%p => %d) !", new_hook, hook_id);
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // Initialize chains
+        uint64_t* chains = new uint64_t[SUBSTITUTE_MAX_CHAINS];
+        memset(chains, 0, sizeof(uint64_t) * SUBSTITUTE_MAX_CHAINS);
+
+        // Setup uat values
+        struct substitute_hook_uat setup;
+        setup.hook_id = hook_id;
+        setup.hook_function = hook_function;
+        setup.original_function = original_function;
+        setup.next = nullptr;
+
+        // Write uat values into the process
+        r_error = proc_rw_mem(p, chain, sizeof(struct substitute_hook_uat), &setup, nullptr, true);
+        if (r_error != 0) {
+            WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -1;
+        }
+
+        // Write the first chains address
+        chains[0] = (uint64_t)chain;
+
+        // Set default value
+        new_hook->process = p;
+        new_hook->hook_type = HOOKTYPE_IAT;
+        new_hook->iat.uap_chains = chains;
+        new_hook->iat.jmpslot_address = jmpslot_address;
+        new_hook->iat.original_function = original_function;
+
+        // Enable first hook !
+        // Overwrite the jmpslot slot address
+        r_error = proc_rw_mem(p, jmpslot_address, sizeof(void*), &hook_function, nullptr, true);
+        if (r_error != 0) {
+            WriteLog(LL_Error, "Unable to write to the jmpslot address: (%d)", r_error);
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -5;
+        }
     }
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
@@ -542,17 +493,296 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     // Set default value
     new_hook->process = p;
     new_hook->hook_type = HOOKTYPE_JMP;
-    new_hook->hook_function = hook_function;
-    new_hook->original_function = original_address;
-    new_hook->backupData = backupData;
-    new_hook->backupSize = backupSize;
-    new_hook->hook_enable = false;
+    new_hook->jmp.jmpto = hook_function;
+    new_hook->jmp.orig_addr = original_address;
+    new_hook->jmp.backupData = backupData;
+    new_hook->jmp.backupSize = backupSize;
+    new_hook->jmp.enable = false;
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     WriteLog(LL_Info, "New hook is created (JMP) :  %i", hook_id);
 
     return hook_id;
+}
+
+// Substitute : Disable the hook
+int Substitute::DisableHook(struct proc* p, int hook_id) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* hook = GetHookByID(hook_id);
+    if (!hook) {
+        WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (hook->process != p) {
+        WriteLog(LL_Error, "Invalid handle : Another process trying to disable hook.");
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -2;
+    }
+
+    switch (hook->hook_type) {
+        case HOOKTYPE_IAT: {
+            WriteLog(LL_Error, "!!! WARNING !!! Not compatible with IAT Hook.");
+            break;
+        }
+
+        case HOOKTYPE_JMP : {
+            if (hook->process && hook->jmp.enable && hook->jmp.orig_addr && hook->jmp.backupSize > 0 && hook->jmp.backupData) {
+                int r_error = proc_rw_mem(hook->process, hook->jmp.orig_addr, hook->jmp.backupSize, hook->jmp.backupData, nullptr, true);
+                if (r_error != 0) {
+                    WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return -5;
+                }
+
+                hook->jmp.enable = false;
+            } else {
+                WriteLog(LL_Error, "Invalid value was detected.");
+            }
+
+            break;
+        }
+
+        default: {
+            WriteLog(LL_Error, "Invalid type of hook was detected.");
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -6;
+            break;
+        }
+    }
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return 0;
+}
+
+// Substitute : Enable the hook
+int Substitute::EnableHook(struct proc* p, int hook_id) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+  
+    int r_error = -1;
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* hook = GetHookByID(hook_id);
+    if (!hook) {
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (hook->process != p) {
+        WriteLog(LL_Error, "Invalid handle : Another process trying to enable hook.");
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -2;
+    }
+
+    switch (hook->hook_type) {
+        case HOOKTYPE_IAT: {
+            WriteLog(LL_Error, "!!! WARNING !!! Not compatible with IAT Hook.");
+            break;
+        }
+
+        case HOOKTYPE_JMP : {
+            if (hook->process && !hook->jmp.enable && hook->jmp.orig_addr && hook->jmp.jmpto) {
+
+                // Use the jmpBuffer from Hook.cpp
+                uint8_t jumpBuffer[] = {
+                    0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,             // # jmp    QWORD PTR [rip+0x0]
+                    0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, // # DQ: AbsoluteAddress
+                }; // Shit takes 14 bytes
+
+                uint64_t* jumpBufferAddress = (uint64_t*)(jumpBuffer + 6);
+
+                // Assign the address
+                *jumpBufferAddress = (uint64_t)hook->jmp.jmpto;
+
+                r_error = proc_rw_mem(hook->process, hook->jmp.orig_addr, sizeof(jumpBuffer), jumpBuffer, nullptr, true);
+                if (r_error != 0) {
+                    WriteLog(LL_Error, "Unable to write the jmp system: (%i)", r_error);
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return -5;
+                }
+
+                hook->jmp.enable = true;
+            } else {
+                WriteLog(LL_Error, "Invalid value was detected.");
+            }
+
+            break;
+        }
+
+        default: {
+            WriteLog(LL_Error, "Invalid type of hook was detected.");
+            _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            return -6;
+            break;
+        }
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    return 0;
+}
+
+// Substitute : Unhook the function
+int Substitute::Unhook(struct proc* p, int hook_id, struct substitute_hook_uat* chain) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    int r_error = -1;
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    SubstituteHook* hook = GetHookByID(hook_id);
+    if (!hook) {
+        WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -1;
+    }
+
+    if (hook->process != p) {
+        WriteLog(LL_Error, "Invalid handle : Another process trying to disable hook.");
+        _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        return -2;
+    }
+
+    switch (hook->hook_type) {
+        case HOOKTYPE_IAT: {
+            // Need to fix the chains
+
+            // Got the current chain
+            struct substitute_hook_uat current_chain;
+            r_error = proc_rw_mem(p, chain, sizeof(struct substitute_hook_uat), &current_chain, nullptr, false);
+            if (r_error != 0) {
+                WriteLog(LL_Error, "Unable to read the current chain: (%d)", r_error);
+                _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                return -3;
+            }
+
+            // I get the current position on the chain
+            int chain_position = FindPositionByChain(hook->iat.uap_chains, (uint64_t)chain);
+            if (chain_position < 0) {
+                WriteLog(LL_Error, "Unable to get the current chain position: (%d)", chain_position);
+                _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                return -4;    
+            }
+
+            // Before need to have the address of after
+            if (chain_position > 0) {
+                // If it's something inside, just need to do before->next = after
+                struct substitute_hook_uat before_chain;
+                void* before_chain_addr = (void*)hook->iat.uap_chains[chain_position-1];
+
+                // Read the before chain
+                r_error = proc_rw_mem(p, before_chain_addr, sizeof(struct substitute_hook_uat), &before_chain, nullptr, false);
+                if (r_error != 0) {
+                    WriteLog(LL_Error, "Unable to read the before chain: (%d)", r_error);
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return -5;
+                }
+
+                uint64_t next_addr = 0;
+                if ( (chain_position+1) < SUBSTITUTE_MAX_CHAINS ) {
+                    next_addr = hook->iat.uap_chains[chain_position+1];
+                }
+
+                before_chain.next = (struct substitute_hook_uat*)next_addr;
+            } else if (chain_position == 0) {
+                // If it's 0, all the chain is okey, just need to edit the jmpslot
+
+                // Get the next function chain
+                struct substitute_hook_uat next;
+                void* next_addr = (void*)hook->iat.uap_chains[1];
+
+                // Read the next chain
+                r_error = proc_rw_mem(p, next_addr, sizeof(struct substitute_hook_uat), &next, nullptr, false);
+                if (r_error != 0) {
+                    WriteLog(LL_Error, "Unable to read the next chain: (%d)", r_error);
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return -7;
+                }
+
+                // Edit the jmpslot address for the current hook
+                r_error = proc_rw_mem(p, hook->iat.jmpslot_address, sizeof(void*), &next.hook_function, nullptr, true);
+                if (r_error != 0) {
+                    WriteLog(LL_Error, "Unable to write to the jmpslot address: (%d)", r_error);
+                    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    return -8;
+                }
+            } else {
+                WriteLog(LL_Error, "Very very very weird issues is here");
+                _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                return -9;
+
+            }
+
+            // Update the chains table !
+            for (int i = chain_position; i < SUBSTITUTE_MAX_CHAINS; i++) {
+                if (hook->iat.uap_chains[i] == 0)
+                    break;
+
+                if ( (i+1) < SUBSTITUTE_MAX_CHAINS)
+                    hook->iat.uap_chains[i] = hook->iat.uap_chains[i+1];
+            }
+        }
+
+        case HOOKTYPE_JMP: {
+            // Simply free the space :)
+            FreeHook(hook_id);
+        }
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    WriteLog(LL_Info, "%i is now unhooked.", hook_id);
+
+    return 0;
+}
+
+// Substitute : Cleanup all hook
+void Substitute::CleanupAllHook() {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    WriteLog(LL_Info, "Cleaning up all hook ...");
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    for (int i = 0; i < SUBSTITUTE_MAX_HOOKS; i++) {
+        FreeHook(i);
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+}
+
+// Substitute : Cleanup hook for a process
+void Substitute::CleanupProcessHook(struct proc* p) {
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    if (!p)
+        return;
+
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
+
+
+    _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+
+    for (int i = 0; i < SUBSTITUTE_MAX_HOOKS; i++) {
+        SubstituteHook* hook = GetHookByID(i);
+        if (hook && hook->process == p) {
+            FreeHook(i);
+        }
+    }
+
+    _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 }
 
 //////////////////////////
@@ -588,9 +818,9 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
                 char* lib_name = (char*)(*(uint64_t*)(dynlib_obj + 8));
                 void* relocbase = (void*)(*(uint64_t*)(dynlib_obj + 0x70));
                 uint64_t handle = *(uint64_t*)(dynlib_obj + 0x28);
-                */
 
-                //WriteLog(LL_Info, "[%s] search(%i): %p lib_name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, lib_name, handle, relocbase);
+                WriteLog(LL_Info, "[%s] search(%i): %p lib_name: %s handle: 0x%lx relocbase: %p ...", s_TitleId, total, (void*)dynlib_obj, lib_name, handle, relocbase);
+                */
 
                 // Doing a dlsym with nids or name
                 if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
@@ -748,11 +978,11 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
     return nids_offset_found;
 }
 
-//////////////////////////
-// PROCESS MANAGEMENT
-//////////////////////////
+///////////////////////////////////////
+// PROCESS MANAGEMENT (Mount & Load) //
+///////////////////////////////////////
 
-// Substitute : Mount Substitute folder
+// Substitute : Mount Substitute folder and prepare prx for load
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
     if (!p)
@@ -765,10 +995,8 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
-    WriteLog(LL_Debug, "process start (%s) (%d).", s_TitleId, p->p_pid);
-
     // Check if it's a valid process
-    if ( !(strstr(s_TitleId, "CUSA") || strstr(s_TitleId, "NPXS")) )
+    if ( s_TitleId[0] == 0 )
         return;
 
     char s_SprxDirPath[PATH_MAX];
@@ -840,14 +1068,70 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
     // Mounting
     ret = Utilities::MountNullFS(s_substituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY);
-    if (ret >= 0) {
-        WriteLog(LL_Info, "[%s] mount folder success (%s => %s) (%d).", s_TitleId, s_RealSprxFolderPath, s_substituteFullMountPath, ret);
-    } else {
+    if (ret < 0) {
         krmdir_t(s_substituteFullMountPath, s_MainThread);
         WriteLog(LL_Error, "[%s] could not mount folder (%s => %s) (%d).", s_TitleId, s_RealSprxFolderPath, s_substituteFullMountPath, ret);
-        return;
+        goto end;
     }
 
+    // Prepare sce_modules folders
+    auto s_SceModuleDir = kopen_t("/sce_module/", 0x0000 | 0x00020000, 0777, s_ProcessThread);
+    if (s_DirectoryHandle < 0)
+    {
+        // Restore td ret value
+        td->td_retval[0] = original_td_value;
+        return ret;
+    }
+
+    // Define base folder research variable
+    uint64_t s_DentCount = 0;
+    char s_Buffer[0x1000] = { 0 };
+    memset(s_Buffer, 0, sizeof(s_Buffer));
+    int32_t s_ReadCount = 0;
+
+    // Check for available modules inside sce_modules ...
+    bool libc_missing = true;
+    bool libfios_missing = true;
+
+    s_DentCount = 0;
+    memset(s_Buffer, 0, sizeof(s_Buffer));
+    s_ReadCount = 0;
+    for (;;)
+    {
+        memset(s_Buffer, 0, sizeof(s_Buffer));
+        s_ReadCount = kgetdents_t(s_SceModuleDir, s_Buffer, sizeof(s_Buffer), td);
+        if (s_ReadCount <= 0)
+            break;
+        
+        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+        {
+            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+            s_DentCount++;
+
+            // Check if the sprx is legit
+            if (!strcmp(l_Dent->d_name, "libc.prx") || !strcmp(l_Dent->d_name, "libc.sprx")) {
+                libc_missing = false;
+            }
+
+            if (!strcmp(l_Dent->d_name, "libSceFios2.prx") || !strcmp(l_Dent->d_name, "libSceFios2.sprx")) {
+                libfios_missing = false;
+            }
+
+            l_Pos += l_Dent->d_reclen;
+        }
+    }
+
+    // Create link for missings prx
+    if (libc_missing) {
+        klink_t();
+    }
+
+    // Closing sce_module folder
+    kclose_t(s_DirectoryHandle, td);
+
+
+
+end:
     // Restore fd and cred
     *curthread_fd = orig_curthread_fd;
     *curthread_cred = orig_curthread_cred;
@@ -877,8 +1161,8 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
-    // If it's a compatible application
-    if ( !(strstr(s_TitleId, "CUSA") || strstr(s_TitleId, "NPXS")) )
+    // Check if it's a valid process
+    if ( s_TitleId[0] == 0 )
         return;
 
     // Getting needed thread
@@ -943,12 +1227,14 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
 // Substitute : Load PRX from Substitute folder
 int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_prx_args_ex* uap) {
     Substitute* substitute = GetPlugin();
-
+    
+    /*
     char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
+    */
 
     auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args_ex*))substitute->sys_dynlib_load_prx_p;
 
@@ -958,6 +1244,7 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
     // Save current td ret value
     int original_td_value = td->td_retval[0];
 
+    /*
     // Get the current path of the loaded library
     char path[PATH_MAX];
     memset(path, 0, sizeof(path));
@@ -1008,6 +1295,8 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
                     WriteLog(LL_Info, "[%s] Loading  %s ...", s_TitleId, s_RelativeSprxPath);
 
                     Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
+
+                    WriteLog(LL_Info, "Loading PRX Done !");
                 }
 
                 l_Pos += l_Dent->d_reclen;
@@ -1017,6 +1306,9 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
         // Closing substitute folder
         kclose_t(s_DirectoryHandle, td);
     }
+                   
+    WriteLog(LL_Info, "End of Dynlib Load PRX.");
+    */
 
     // Restore td ret value
     td->td_retval[0] = original_td_value;
@@ -1042,22 +1334,14 @@ int Substitute::OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* u
         return 0;
     }
 
-    uint64_t original_function = 0;
-    hook_id = substitute->HookIAT(td->td_proc, uap->module_name, uap->name, uap->flags, uap->hook_function, &original_function);
+    hook_id = substitute->HookIAT(td->td_proc, uap->chain, uap->module_name, uap->name, uap->flags, uap->hook_function);
     if (hook_id >= 0) {
         WriteLog(LL_Info, "New hook at %i", hook_id);
     } else {
         WriteLog(LL_Error, "Unable to hook %s ! (%i)", uap->name, hook_id);
     }
 
-    if (original_function <= 0) {
-        WriteLog(LL_Error, "Something weird have appened.");
-        uap->hook_id = -1;
-        return 0;
-    }
-
     uap->hook_id = hook_id;
-    uap->original_function = (void*)original_function;
     return 0;
 }
 
@@ -1133,7 +1417,7 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
         }
 
         case SUBSTITUTE_STATE_UNHOOK: {
-            ret = substitute->Unhook(td->td_proc, uap->hook_id);
+            ret = substitute->Unhook(td->td_proc, uap->hook_id, uap->chain);
             if (ret < 0) {
                 WriteLog(LL_Error, "Unable to unhook %i (%d) !", uap->hook_id, ret);  
                 uap->result = ret;

@@ -8,7 +8,7 @@ struct thread;
 struct posixldr_header {
     uint32_t magic;
     uint64_t entrypoint;
-    uint8_t ldrdone;
+    uint32_t ldrdone;
     uint64_t stubentry;
     uint64_t scePthreadAttrInit;
     uint64_t scePthreadAttrSetstacksize;
@@ -19,7 +19,7 @@ struct posixldr_header {
 struct prxldr_header {
     uint32_t magic;
     uint64_t entrypoint;
-    uint8_t prxdone;
+    uint32_t prxdone;
     uint64_t prx_path;
     uint64_t sceKernelLoadStartModule;
 } __attribute__((packed));
