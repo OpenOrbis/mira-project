@@ -163,177 +163,177 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         return;
     }
 
-    struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
-    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
-    auto __sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
-	auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
-	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-    auto critical_enter = (void(*)(void))kdlsym(critical_enter);
-	auto critical_exit = (void(*)(void))kdlsym(critical_exit);
+    // struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+    // struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+    // auto __sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+	// auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+	// auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	// auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    // auto critical_enter = (void(*)(void))kdlsym(critical_enter);
+	// auto critical_exit = (void(*)(void))kdlsym(critical_exit);
 
-    Vector<DbgProcessLimited*> s_Vector;
+    Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
 
-    critical_enter();
-    __sx_slock(allproclock, 0, LOCK_FILE, LOCK_LINE);
-    struct proc* s_Proc = nullptr;
-    LIST_FOREACH(s_Proc, allproc, p_list)
-    {
-        PROC_LOCK(s_Proc);
+    // Vector<DbgProcessLimited*> s_Vector;
 
-        // Allocate a new limited proc
-        auto s_ProcessLimited = new DbgProcessLimited();
-        if (s_ProcessLimited == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate dbg process limited.");
-            PROC_UNLOCK(s_Proc);
-            continue;
-        }
+    // __sx_slock(allproclock, 0, LOCK_FILE, LOCK_LINE);
+    // struct proc* s_Proc = nullptr;
+    // LIST_FOREACH(s_Proc, allproc, p_list)
+    // {
+    //     PROC_LOCK(s_Proc);
 
-        // Initialize said proc
-        *s_ProcessLimited = DBG_PROCESS_LIMITED__INIT;
+    //     // Allocate a new limited proc
+    //     auto s_ProcessLimited = new DbgProcessLimited();
+    //     if (s_ProcessLimited == nullptr)
+    //     {
+    //         WriteLog(LL_Error, "could not allocate dbg process limited.");
+    //         PROC_UNLOCK(s_Proc);
+    //         continue;
+    //     }
 
-        auto s_ProcessNameLength = sizeof(s_Proc->p_comm);
-        auto s_ProcessName = new char[s_ProcessNameLength];
-        if (s_ProcessName == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate process name.");
-            delete s_ProcessLimited;
-            PROC_UNLOCK(s_Proc);
-            continue;
-        }
-        memset(s_ProcessName, 0, s_ProcessNameLength);
-        memcpy(s_ProcessName, s_Proc->p_comm, s_ProcessNameLength);
-        s_ProcessLimited->name = s_ProcessName;
+    //     // Initialize said proc
+    //     *s_ProcessLimited = DBG_PROCESS_LIMITED__INIT;
 
-        s_ProcessLimited->processid = s_Proc->p_pid;
+    //     auto s_ProcessNameLength = sizeof(s_Proc->p_comm);
+    //     auto s_ProcessName = new char[s_ProcessNameLength];
+    //     if (s_ProcessName == nullptr)
+    //     {
+    //         WriteLog(LL_Error, "could not allocate process name.");
+    //         delete s_ProcessLimited;
+    //         PROC_UNLOCK(s_Proc);
+    //         continue;
+    //     }
+    //     memset(s_ProcessName, 0, s_ProcessNameLength);
+    //     memcpy(s_ProcessName, s_Proc->p_comm, s_ProcessNameLength);
+    //     s_ProcessLimited->name = s_ProcessName;
 
-        DbgVmEntry** s_Entries = nullptr;
-        size_t s_EntriesCount = 0;
+    //     s_ProcessLimited->processid = s_Proc->p_pid;
 
-        if (!GetVmMapEntries(s_Proc, true, s_Entries, s_EntriesCount))
-            WriteLog(LL_Warn, "could not get vm entries.");
-        else
-        {
-            s_ProcessLimited->n_entries = s_EntriesCount;
-            s_ProcessLimited->entries = s_Entries;
-        }
+    //     DbgVmEntry** s_Entries = nullptr;
+    //     size_t s_EntriesCount = 0;
 
-        s_Vector.push_back(s_ProcessLimited);
+    //     if (!GetVmMapEntries(s_Proc, true, s_Entries, s_EntriesCount))
+    //         WriteLog(LL_Warn, "could not get vm entries.");
+    //     else
+    //     {
+    //         s_ProcessLimited->n_entries = s_EntriesCount;
+    //         s_ProcessLimited->entries = s_Entries;
+    //     }
+
+    //     s_Vector.push_back(s_ProcessLimited);
         
-        PROC_UNLOCK(s_Proc);
-    }
-    __sx_sunlock(allproclock, LOCK_FILE, LOCK_LINE);
-    critical_exit();
+    //     PROC_UNLOCK(s_Proc);
+    // }
+    // __sx_sunlock(allproclock, LOCK_FILE, LOCK_LINE);
     
-    //WriteLog(LL_Debug, "here");
+    // //WriteLog(LL_Debug, "here");
 
-    do
-    {
-        // Vector should be filled with everything we need
-        auto s_Response = new DbgGetProcessListResponse();
-        if (s_Response == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate db get process list response.");
-            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-            break;
-        }
-        *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
+    // do
+    // {
+    //     // Vector should be filled with everything we need
+    //     auto s_Response = new DbgGetProcessListResponse();
+    //     if (s_Response == nullptr)
+    //     {
+    //         WriteLog(LL_Error, "could not allocate db get process list response.");
+    //         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+    //         break;
+    //     }
+    //     *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
 
-        auto s_VectorSize = s_Vector.size();
-        auto s_EntryList = new DbgProcessLimited*[s_VectorSize];
-        if (s_EntryList == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate outgoing entry list.");
-            delete s_Response;
-            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-            break;
-        }
+    //     auto s_VectorSize = s_Vector.size();
+    //     auto s_EntryList = new DbgProcessLimited*[s_VectorSize];
+    //     if (s_EntryList == nullptr)
+    //     {
+    //         WriteLog(LL_Error, "could not allocate outgoing entry list.");
+    //         delete s_Response;
+    //         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+    //         break;
+    //     }
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
 
-        // Copy over the entry list out
-        for (auto i = 0; i < s_VectorSize; ++i)
-            s_EntryList[i] = s_Vector.at(i);
+    //     // Copy over the entry list out
+    //     for (auto i = 0; i < s_VectorSize; ++i)
+    //         s_EntryList[i] = s_Vector.at(i);
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
         
-        s_Response->n_processes = s_VectorSize;
-        s_Response->processes = s_EntryList;
+    //     s_Response->n_processes = s_VectorSize;
+    //     s_Response->processes = s_EntryList;
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
 
-        auto s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
-        auto s_MessageData = new uint8_t[s_MessageSize];
-        if (s_MessageData == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate message data.");
-            delete s_Response;
-            delete [] s_EntryList;
-            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-            break;
-        }
-        memset(s_MessageData, 0, s_MessageSize);
+    //     auto s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
+    //     auto s_MessageData = new uint8_t[s_MessageSize];
+    //     if (s_MessageData == nullptr)
+    //     {
+    //         WriteLog(LL_Error, "could not allocate message data.");
+    //         delete s_Response;
+    //         delete [] s_EntryList;
+    //         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+    //         break;
+    //     }
+    //     memset(s_MessageData, 0, s_MessageSize);
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
 
-        auto s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_MessageData);
-        if (s_PackedSize != s_MessageSize)
-        {
-            WriteLog(LL_Error, "could not pack message.");
-            delete s_Response;
-            delete [] s_EntryList;
-            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-            break;
-        }
+    //     auto s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_MessageData);
+    //     if (s_PackedSize != s_MessageSize)
+    //     {
+    //         WriteLog(LL_Error, "could not pack message.");
+    //         delete s_Response;
+    //         delete [] s_EntryList;
+    //         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+    //         break;
+    //     }
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
 
-        Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, 0, s_MessageData, s_MessageSize);
+    //     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, 0, s_MessageData, s_MessageSize);
 
-        delete s_Response;
-        delete [] s_EntryList;
+    //     delete s_Response;
+    //     delete [] s_EntryList;
 
-        //WriteLog(LL_Debug, "here");
-    } while (false);
+    //     //WriteLog(LL_Debug, "here");
+    // } while (false);
     
-    //WriteLog(LL_Debug, "here");
+    // //WriteLog(LL_Debug, "here");
 
-    // Cleanup everything
-    for (auto l_EntryIndex = 0; l_EntryIndex < s_Vector.size(); ++l_EntryIndex)
-    {
-        auto l_Entry = s_Vector.at(l_EntryIndex);
-        if (l_Entry == nullptr)
-            continue;
+    // // Cleanup everything
+    // for (auto l_EntryIndex = 0; l_EntryIndex < s_Vector.size(); ++l_EntryIndex)
+    // {
+    //     auto l_Entry = s_Vector.at(l_EntryIndex);
+    //     if (l_Entry == nullptr)
+    //         continue;
         
-        //WriteLog(LL_Debug, "here");
-        delete [] l_Entry->name;
-        l_Entry->name = nullptr;
+    //     //WriteLog(LL_Debug, "here");
+    //     delete [] l_Entry->name;
+    //     l_Entry->name = nullptr;
 
-        //WriteLog(LL_Debug, "here");
-        // Free all of the vm entries that were allocated
-        for (auto l_VmEntryIndex = 0; l_VmEntryIndex < l_Entry->n_entries; ++l_VmEntryIndex)
-        {
-            auto l_VmEntry = l_Entry->entries[l_VmEntryIndex];
-            if (l_VmEntry == nullptr)
-                continue;
+    //     //WriteLog(LL_Debug, "here");
+    //     // Free all of the vm entries that were allocated
+    //     for (auto l_VmEntryIndex = 0; l_VmEntryIndex < l_Entry->n_entries; ++l_VmEntryIndex)
+    //     {
+    //         auto l_VmEntry = l_Entry->entries[l_VmEntryIndex];
+    //         if (l_VmEntry == nullptr)
+    //             continue;
             
-            //WriteLog(LL_Debug, "here");
+    //         //WriteLog(LL_Debug, "here");
 
-            delete [] l_VmEntry->name;
-            l_VmEntry->name = nullptr;
+    //         delete [] l_VmEntry->name;
+    //         l_VmEntry->name = nullptr;
 
-            //WriteLog(LL_Debug, "here");
-            delete l_VmEntry;
-            l_Entry->entries[l_VmEntryIndex] = nullptr;
-        }
+    //         //WriteLog(LL_Debug, "here");
+    //         delete l_VmEntry;
+    //         l_Entry->entries[l_VmEntryIndex] = nullptr;
+    //     }
 
-        //WriteLog(LL_Debug, "here");
+    //     //WriteLog(LL_Debug, "here");
 
-        delete l_Entry;
-    }
+    //     delete l_Entry;
+    // }
 
     //WriteLog(LL_Debug, "here");
 }
