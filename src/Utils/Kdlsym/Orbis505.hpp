@@ -217,5 +217,6 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr__mtx_unlock_spin_flags                 0x004022C0 
 #define kdlsym_addr_pause                                  0x003FB920
 #define kdlsym_addr_mtx_destroy                            0x004027F0
+#define kdlsym_addr_sx_init_flags                          0x000F5BB0
 #endif
 

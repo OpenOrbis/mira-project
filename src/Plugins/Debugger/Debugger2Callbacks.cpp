@@ -169,9 +169,12 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
 	auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto critical_enter = (void(*)(void))kdlsym(critical_enter);
+	auto critical_exit = (void(*)(void))kdlsym(critical_exit);
 
     Vector<DbgProcessLimited*> s_Vector;
 
+    critical_enter();
     __sx_slock(allproclock, 0, LOCK_FILE, LOCK_LINE);
     struct proc* s_Proc = nullptr;
     LIST_FOREACH(s_Proc, allproc, p_list)
@@ -221,6 +224,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         PROC_UNLOCK(s_Proc);
     }
     __sx_sunlock(allproclock, LOCK_FILE, LOCK_LINE);
+    critical_exit();
     
     //WriteLog(LL_Debug, "here");
 

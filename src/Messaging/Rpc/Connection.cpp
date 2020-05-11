@@ -110,6 +110,22 @@ void Connection::ConnectionThread(void* p_Connection)
         return;
     }
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira framework.");
+        kthread_exit();
+        return;
+    }
+
+    auto s_MessageManager = s_Framework->GetMessageManager();
+    if (s_MessageManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get message manager");
+        kthread_exit();
+        return;
+    }
+
     WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%x), thread: (%p).", 
                     s_Connection->m_Socket, 
                     s_Connection->m_Address.sin_addr.s_addr, 
@@ -136,19 +152,20 @@ void Connection::ConnectionThread(void* p_Connection)
         }
 
         // Allocate data for our incoming message size
-        auto s_IncomingMessageData = new uint8_t[MaxBufferSize];
+        auto s_IncomingMessageData = new uint8_t[s_IncomingMessageSize];
         if (s_IncomingMessageData == nullptr)
         {
             WriteLog(LL_Error, "could not allocate incoming message size (%llx)", s_IncomingMessageSize);
             break;
         }
-        memset(s_IncomingMessageData, 0, MaxBufferSize);
+        memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
 
         // Get the message data from the wire
         s_Ret = krecv_t(s_Connection->GetSocket(), s_IncomingMessageData, s_IncomingMessageSize, 0, s_MainThread);
         if (s_Ret != s_IncomingMessageSize)
         {
             WriteLog(LL_Error, "did not get correct amount of data (%llx) wanted (%llx)", s_Ret, s_IncomingMessageSize);
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
             delete [] s_IncomingMessageData;
             break;
         }
@@ -157,13 +174,10 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_Transport == nullptr)
         {
             WriteLog(LL_Error, "error unpacking incoming message");
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
             delete [] s_IncomingMessageData;
             break;
         }
-
-        // We should not need our allocated buffer anymore right?
-        delete [] s_IncomingMessageData;
-        s_IncomingMessageData = nullptr;
 
         // Validate the header magic
         auto s_Header = s_Transport->header;
@@ -171,6 +185,8 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", s_Header->magic, 2);
             rpc_transport__free_unpacked(s_Transport, nullptr);
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+            delete [] s_IncomingMessageData;
             break;
         }
 
@@ -180,6 +196,8 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "invalid category (%d).", s_Category);
             rpc_transport__free_unpacked(s_Transport, nullptr);
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+            delete [] s_IncomingMessageData;
             break;
         }
 
@@ -188,6 +206,8 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "attempted to handle outgoing message, fix ya code");
             rpc_transport__free_unpacked(s_Transport, nullptr);
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+            delete [] s_IncomingMessageData;
             break;
         }
 
@@ -196,22 +216,8 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "transport data does not have enough data, wanted (%d), have (%d).", s_Transport->data.len, MaxBufferSize);
             rpc_transport__free_unpacked(s_Transport, nullptr);
-            break;
-        }
-        
-        auto s_Framework = Mira::Framework::GetFramework();
-        if (s_Framework == nullptr)
-        {
-            WriteLog(LL_Error, "could not get mira framework.");
-            rpc_transport__free_unpacked(s_Transport, nullptr);
-            break;
-        }
-
-        auto s_MessageManager = s_Framework->GetMessageManager();
-        if (s_MessageManager == nullptr)
-        {
-            WriteLog(LL_Error, "could not get message manager");
-            rpc_transport__free_unpacked(s_Transport, nullptr);
+            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+            delete [] s_IncomingMessageData;
             break;
         }
 
@@ -221,6 +227,8 @@ void Connection::ConnectionThread(void* p_Connection)
         s_IncomingMessageSize = 0;
 
         rpc_transport__free_unpacked(s_Transport, nullptr);
+        memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+        delete [] s_IncomingMessageData;
     }
 
     s_Connection->Disconnect();

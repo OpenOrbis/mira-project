@@ -47,7 +47,7 @@ namespace Mira
 
 			int32_t m_Handle;
 			
-			// struct sx m_Mutex;
+			struct sx m_Mutex;
 
 		protected:
 			Logger();
@@ -56,7 +56,7 @@ namespace Mira
 		public:
 			static Mira::Utils::Logger* GetInstance();
 
-			// struct sx* GetMutex() { return &m_Mutex; }
+			struct sx* GetMutex() { return &m_Mutex; }
 
 			void WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function, int32_t p_Line, const char* p_Format, ...);
 			void WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line, const char* p_Format, ...);

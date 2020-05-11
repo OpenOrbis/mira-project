@@ -39,8 +39,8 @@ Logger::Logger() :
 	memset(m_FinalBuffer, 0, sizeof(m_FinalBuffer));
 
 	// Initialize a mutex to prevent overlapping spam
-	// auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-	// mtx_init(&m_Mutex, "LogMtx", nullptr, MTX_SPIN);
+	auto sx_init_flags = (void(*)(struct sx* sx, const char* description, int opts))kdlsym(sx_init_flags);
+	sx_init_flags(&m_Mutex, "logger sx", 0);
 }
 
 Logger::~Logger()
@@ -62,6 +62,8 @@ void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function
 	auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
 	auto vsnprintf = (int(*)(char *str, size_t size, const char *format, va_list ap))kdlsym(vsnprintf);
 	auto printf = (void(*)(char *format, ...))kdlsym(printf);
+	auto __sx_xlock = (int (*)(struct sx *sx, int opts, const char* file, int line))kdlsym(_sx_xlock);
+    auto __sx_xunlock = (int (*)(struct sx *sx, const char* file, int line))kdlsym(_sx_xunlock);
 
 	// Zero out the buffer
 	memset(m_Buffer, 0, sizeof(m_Buffer));
@@ -102,10 +104,10 @@ void Logger::WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function
 	// auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
 	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
-	// _mtx_lock_spin_flags(&m_Mutex, 0);
+	__sx_xlock(&m_Mutex, 0, __FILE__, __LINE__);
 	snprintf(m_FinalBuffer, sizeof(m_FinalBuffer), "%s[%s] %s:%d : %s %s\n", s_LevelColor, s_LevelString, p_Function, p_Line, m_Buffer, KNRM);
 	printf(m_FinalBuffer);
-	// _mtx_unlock_spin_flags(&m_Mutex, 0);
+	__sx_xunlock(&m_Mutex, __FILE__, __LINE__);
 }
 
 void Logger::WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line, const char* p_Format, ...)
