@@ -480,7 +480,7 @@ GPLv3
    [rogero]: <https://github.com/Rogero->
    [AbkarinoMHM]: https://github.com/AbkarinoMHM
    [wildcard]: <https://github.com/VV1LD>
-   [4much4u]: <https://github.com/2much4u>
+   [2much4u]: <https://github.com/2much4u>
    [golden]: <https://github.com/jogolden>
    [fjtrujy]: <https://github.com/fjtrujy>
    [frangarcj]: <https://github.com/frangarcj>
