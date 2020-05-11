@@ -2,7 +2,7 @@
 #include <Utils/New.hpp>
 #include <sys/param.h>
 #include <sys/lock.h>
-#include <sys/mutex.h>
+#include <sys/sx.h>
 
 enum LogLevels
 {
@@ -47,7 +47,7 @@ namespace Mira
 
 			int32_t m_Handle;
 			
-			struct mtx m_Mutex;
+			// struct sx m_Mutex;
 
 		protected:
 			Logger();
@@ -56,7 +56,7 @@ namespace Mira
 		public:
 			static Mira::Utils::Logger* GetInstance();
 
-			struct mtx* GetMutex() { return &m_Mutex; }
+			// struct sx* GetMutex() { return &m_Mutex; }
 
 			void WriteLog_Internal(enum LogLevels p_LogLevel, const char* p_Function, int32_t p_Line, const char* p_Format, ...);
 			void WriteKernelFileLog_Internal(const char* p_Function, int32_t p_Line, const char* p_Format, ...);

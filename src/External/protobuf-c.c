@@ -69,7 +69,7 @@ void __assert(const char * a, const char * b, int c, const char * d)
 	//auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
 	//auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
 	//auto vsnprintf = (int(*)(char *str, size_t size, const char *format, va_list ap))kdlsym(vsnprintf);
-	((void(*)(char *, ...))kdlsym(printf))("Assrtion failed: (%s), file %s, line %d.\n", a, b, c);
+	((void(*)(char *, ...))kdlsym(printf))("Assrtion failed: (%s), file %s, line %d (%s).\n", a, b, c, d);
     for (;;)
         __asm__("nop");
 }

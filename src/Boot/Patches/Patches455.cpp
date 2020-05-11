@@ -26,7 +26,7 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem = (uint8_t *)&gKernelBase[0x01997BC8];
 	kmem[0] = 0x00;
 
-	// Verbose Panics patch
+	// Verbose Panics
 	// Done by WildCard
 	kmem = (uint8_t *)&gKernelBase[0x003DBDC7];
 	kmem[0] = 0x90;
@@ -34,9 +34,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
-	//kmem[5] = 0x65;
-	//kmem[6] = 0x8B;
-	//kmem[7] = 0x34;
 
 	// sceSblACMgrIsAllowedSystemLevelDebugging
 	kmem = (uint8_t *)&gKernelBase[0x00169E00];
@@ -70,11 +67,11 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[7] = 0x90;
 
 	// Enable rwx mapping
-	// Done By WildCard
-	kmem = (uint8_t*)&gKernelBase[0x0016ED8C];
+	// Done by WildCard
+	kmem = (uint8_t *)&gKernelBase[0x0016ED8C];
 	kmem[0] = 0x07;
 
-	kmem = (uint8_t*)&gKernelBase[0x0016EDA2];
+	kmem = (uint8_t *)&gKernelBase[0x0016EDA2];
 	kmem[0] = 0x07;
 
 	// Patch copyin/copyout to allow userland + kernel addresses in both params
@@ -129,13 +126,16 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 
 	// ptrace patches
 	// Done by WildCard
-	kmem = (uint8_t *)&gKernelBase[0x0017D2EE];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x0017D2C1];
+	kmem[0] = 0xEB;
+
+	// second ptrace patch
+	kmem = (uint8_t *)&gKernelBase[0x0017D636];
+	kmem[0] = 0xE9;
+	kmem[1] = 0x15;
+	kmem[2] = 0x01;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x00116B9C];
@@ -146,7 +146,7 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[4] = 0x90;
 
 	// Patch to remove vm_fault: fault on nofault entry, addr %llx
-	kmem = (uint8_t*)&gKernelBase[0x0029F45E];    
+	kmem = (uint8_t *)&gKernelBase[0x0029F45E];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -185,8 +185,8 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
-	kmem = (uint8_t*)&gKernelBase[0x0001801A];
-	kmem[0] = 0xEB; // jmp +0x3b
+	kmem = (uint8_t *)&gKernelBase[0x0001801A];
+	kmem[0] = 0xEB;
 	kmem[1] = 0x39;
 
 	// Enable mount for unprivileged user
@@ -201,7 +201,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	// patch suword_lwpid
 	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
 	// Patch by: JOGolden
-
 	kmem = (uint8_t *)&gKernelBase[0x0014AB92];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
@@ -209,5 +208,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem = (uint8_t *)&gKernelBase[0x0014ABA1];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
+
 #endif
 }

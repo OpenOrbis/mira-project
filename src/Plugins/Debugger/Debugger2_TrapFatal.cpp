@@ -52,22 +52,22 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	auto vm_fault_disable_pagefaults = (int(*)(void))kdlsym(vm_fault_disable_pagefaults);
 	auto vm_fault_enable_pagefaults = (void(*)(int))kdlsym(vm_fault_enable_pagefaults);
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-	auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+	// auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
+	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 #define MAX_TRAP_MSG		33
 
-	auto s_LoggerMtx = Mira::Utils::Logger::GetInstance()->GetMutex();
+	// auto s_LoggerMtx = Mira::Utils::Logger::GetInstance()->GetMutex();
 
 	
-	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_lock_spin_flags(s_LoggerMtx, 0);
 	printf("kernel base: %p\n", gKernelBase);
-	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
 
 	// Print extra information in case that Oni/Mira itself crashes
 	auto s_Framework = Mira::Framework::GetFramework();
 	if (s_Framework)
 	{
-		_mtx_lock_spin_flags(s_LoggerMtx, 0);
+		// _mtx_lock_spin_flags(s_LoggerMtx, 0);
 		auto s_InitParams = s_Framework->GetInitParams();
 		if (s_InitParams)
 		{
@@ -79,24 +79,24 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		}
 
 		printf("mira messageManager: %p pluginManager: %p rpcServer: %p\n", s_Framework->GetMessageManager(), s_Framework->GetPluginManager(), s_Framework->GetRpcServer());
-		_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+		// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
 	}
 
 	if (frame)
 	{
-		_mtx_lock_spin_flags(s_LoggerMtx, 0);
+		// _mtx_lock_spin_flags(s_LoggerMtx, 0);
 		printf("LastBranchFromOffsetFromKernelBase: %p\n", frame->tf_last_branch_from - (uint64_t)gKernelBase);
 		printf("RipOffsetFromKernelBase: %p\n", frame->tf_rip - (uint64_t)gKernelBase);
 		printf("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
 		printf("OffsetFromMiraEntryRIP: (%p)\n", (uint64_t)frame->tf_rip - (uint64_t)mira_entry);
-		_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+		// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
 	}
 
-	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_lock_spin_flags(s_LoggerMtx, 0);
 	printf("call stack:\n");
 	auto s_Saved = vm_fault_disable_pagefaults();
     auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
-	if (amdFrame)
+	if (amdFrame != nullptr)
 	{
 		auto amdFrameCount = 0;
 		while (Debugger2::IsStackSpace(amdFrame))
@@ -107,7 +107,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		}
 	}
 	vm_fault_enable_pagefaults(s_Saved);
-	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
 
 	static const char *trap_msg[] = {
 		"",					/*  0 unused */
@@ -161,7 +161,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		msg = trap_msg[type];
 	else
 		msg = "UNKNOWN";
-	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_lock_spin_flags(s_LoggerMtx, 0);
 	printf("\n\nFatal trap %d: %s while in %s mode\n", type, msg,
 	    ISPL(frame->tf_cs) == SEL_UPL ? "user" : "kernel");
 #ifdef SMP
@@ -231,7 +231,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	}
 	else
 		printf("unknown/reserved trap");
-	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
 
 	// Intentionally hang the thread
 	/*for (;;)
@@ -258,9 +258,9 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	
 	s_TrapFatalHook->Disable();*/
 
-	_mtx_lock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_lock_spin_flags(s_LoggerMtx, 0);
 	printf("exiting crashed thread\n");
-	_mtx_unlock_spin_flags(s_LoggerMtx, 0);
+	// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
 	kthread_exit();
 
 	// Allow the debugger to be placed here manually and continue exceution

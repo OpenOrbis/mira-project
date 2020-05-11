@@ -6,7 +6,7 @@ extern "C"
 {
     #include <netinet/in.h>
     #include <sys/param.h>
-    #include <sys/mutex.h>
+    #include <sys/sx.h>
 }
 
 
@@ -45,7 +45,7 @@ namespace Mira
 
                 Rpc::Connection* m_Connections[RpcServer_MaxConnections];
 
-                struct mtx m_Mutex;
+                // struct sx m_Mutex;
 
             public:
                 Server(uint16_t p_Port = RpcServer_DefaultPort);

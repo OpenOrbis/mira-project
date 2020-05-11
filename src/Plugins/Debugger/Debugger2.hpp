@@ -40,7 +40,7 @@ extern "C"
 	#include <machine/pmap.h>
 	#include <machine/segments.h>
 
-	
+	#include <sys/eventhandler.h>
 };
 
 namespace Mira
@@ -95,7 +95,9 @@ namespace Mira
             int32_t m_Socket;
             uint16_t m_Port;
 
-            struct mtx m_Mutex;
+            // struct sx m_Mutex;
+            eventhandler_tag m_OnProcessExitTag;
+            
 
             // Local target information
 
@@ -207,13 +209,14 @@ namespace Mira
             /**
              * @brief Get the Vm Map Entries object
              * 
-             * @param p_Process LOCKED PROCESS
+             * @param p_Process Process
+             * @param p_ProcessLocked is the current process already locked?
              * @param p_Entries Output entries
              * @param p_EntriesCount Output entry count
              * @return true on success
              * @return false otherwise
              */
-            static bool GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries, size_t& p_EntriesCount);
+            static bool GetVmMapEntries(struct proc* p_Process, bool p_ProcessLocked, DbgVmEntry**& p_Entries, size_t& p_EntriesCount);
             
             /**
              * @brief Get limited process information
@@ -563,6 +566,14 @@ namespace Mira
              * @param p_Message RpcMessage with write kernel memory
              */
             static void OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+
+            /**
+             * @brief Event handler for when a process exists, that way we can catch
+             * 
+             * @param p_Arg Argument passed in (usually debugger instance)
+             * @param p_Process Process that is exiting
+             */
+            static void OnProcessExit(void* p_Arg, struct proc* p_Process);
         };
     }
 }

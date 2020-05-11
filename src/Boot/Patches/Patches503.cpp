@@ -25,9 +25,6 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
-	kmem[5] = 0x65;
-	kmem[6] = 0x8B;
-	kmem[7] = 0x34;
 
 	// sceSblACMgrIsAllowedSystemLevelDebugging
 	kmem = (uint8_t *)&gKernelBase[0x00010FC0];
@@ -77,7 +74,7 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[1] = 0x90;
 
 	// Enable MAP_SELF
-	kmem = (uint8_t*)&gKernelBase[0x000117B0];
+	kmem = (uint8_t *)&gKernelBase[0x000117B0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
@@ -114,13 +111,16 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[0] = 0xEB;
 
 	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0030D9C3];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x0030D9AA];
+	kmem[0] = 0xEB;
+
+	// second ptrace patch
+	kmem = (uint8_t *)&gKernelBase[0x0030DE01];
+	kmem[0] = 0xE9;
+	kmem[1] = 0xD0;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0005775C];
@@ -131,7 +131,7 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	kmem[4] = 0x90;
 
 	// Patch to remove vm_fault: fault on nofault entry, addr %llx
-	kmem = (uint8_t*)&gKernelBase[0x002A4EB3];    
+	kmem = (uint8_t *)&gKernelBase[0x002A4EB3];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -170,8 +170,8 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo
-	kmem = (uint8_t*)&gKernelBase[0x004360EA];
-	kmem[0] = 0xEB; // jmp +0x3A
+	kmem = (uint8_t *)&gKernelBase[0x004360EA];
+	kmem[0] = 0xEB;
 	kmem[1] = 0x38;
 
 	// flatz allow mangled symbol in dynlib_do_dlsym
@@ -195,7 +195,6 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 	// patch suword_lwpid
 	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
 	// Patch by: JOGolden
-
 	kmem = (uint8_t *)&gKernelBase[0x001EA9D2];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
@@ -206,4 +205,3 @@ void Mira::Boot::Patches::install_prerunPatches_503()
 
 #endif
 }
-
