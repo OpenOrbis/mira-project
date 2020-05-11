@@ -184,7 +184,7 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
 	kmem = (uint8_t *)&gKernelBase[0x00287074];
 	kmem[0] = 0x90;
-	kmem[1] = 0x90
+	kmem[1] = 0x90;
 
 #endif
 }
