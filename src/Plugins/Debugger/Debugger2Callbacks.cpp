@@ -167,168 +167,171 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
     struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
     auto __sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
 	auto __sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
-	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-    DbgGetProcessListResponse* s_Response = nullptr;
-    uint64_t s_MessageSize = 0;
-    uint8_t* s_Message = nullptr;
-    uint64_t s_PackedSize = 0;
+    Vector<DbgProcessLimited*> s_Vector;
 
+    __sx_slock(allproclock, 0, LOCK_FILE, LOCK_LINE);
     struct proc* s_Proc = nullptr;
-    uint64_t s_ProcCount = 0;
-    uint64_t s_CurrentProcIndex = 0;
+    LIST_FOREACH(s_Proc, allproc, p_list)
+    {
+        PROC_LOCK(s_Proc);
 
-    DbgProcessLimited** s_ProcessList = nullptr;
+        // Allocate a new limited proc
+        auto s_ProcessLimited = new DbgProcessLimited();
+        if (s_ProcessLimited == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate dbg process limited.");
+            PROC_UNLOCK(s_Proc);
+            continue;
+        }
 
-    // DO NOT RETURN ANYWHERE IN HERE, WE MUST ALWAYS RELEASE THE LOCK
-    sx_slock(allproclock);
+        // Initialize said proc
+        *s_ProcessLimited = DBG_PROCESS_LIMITED__INIT;
+
+        auto s_ProcessNameLength = sizeof(s_Proc->p_comm);
+        auto s_ProcessName = new char[s_ProcessNameLength];
+        if (s_ProcessName == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate process name.");
+            delete s_ProcessLimited;
+            PROC_UNLOCK(s_Proc);
+            continue;
+        }
+        memset(s_ProcessName, 0, s_ProcessNameLength);
+        memcpy(s_ProcessName, s_Proc->p_comm, s_ProcessNameLength);
+        s_ProcessLimited->name = s_ProcessName;
+
+        s_ProcessLimited->processid = s_Proc->p_pid;
+
+        DbgVmEntry** s_Entries = nullptr;
+        size_t s_EntriesCount = 0;
+
+        if (!GetVmMapEntries(s_Proc, true, s_Entries, s_EntriesCount))
+            WriteLog(LL_Warn, "could not get vm entries.");
+        else
+        {
+            s_ProcessLimited->n_entries = s_EntriesCount;
+            s_ProcessLimited->entries = s_Entries;
+        }
+
+        s_Vector.push_back(s_ProcessLimited);
+        
+        PROC_UNLOCK(s_Proc);
+    }
+    __sx_sunlock(allproclock, LOCK_FILE, LOCK_LINE);
+    
+    //WriteLog(LL_Debug, "here");
+
     do
     {
-        // Count all proc's
-        FOREACH_PROC_IN_SYSTEM(s_Proc)
-		    s_ProcCount++;
-        
-        // Debug log the amount of procs
-        WriteLog(LL_Error, "procCount: (%lld).", s_ProcCount);
-
-        // If there was an error and we have 0 proc's bail out early
-        if (s_ProcCount == 0)
+        // Vector should be filled with everything we need
+        auto s_Response = new DbgGetProcessListResponse();
+        if (s_Response == nullptr)
         {
-            WriteLog(LL_Error, "could not get any process");
+            WriteLog(LL_Error, "could not allocate db get process list response.");
+            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
             break;
         }
+        *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
+
+        //WriteLog(LL_Debug, "here");
+
+        auto s_VectorSize = s_Vector.size();
+        auto s_EntryList = new DbgProcessLimited*[s_VectorSize];
+        if (s_EntryList == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate outgoing entry list.");
+            delete s_Response;
+            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+            break;
+        }
+
+        //WriteLog(LL_Debug, "here");
+
+        // Copy over the entry list out
+        for (auto i = 0; i < s_VectorSize; ++i)
+            s_EntryList[i] = s_Vector.at(i);
+
+        //WriteLog(LL_Debug, "here");
         
-        // Allocate a new process list
-        s_ProcessList = new DbgProcessLimited*[s_ProcCount];
-        memset(s_ProcessList, 0, sizeof(DbgProcessLimited*) * s_ProcCount);
+        s_Response->n_processes = s_VectorSize;
+        s_Response->processes = s_EntryList;
 
-        // Iterate each proc again
-        FOREACH_PROC_IN_SYSTEM(s_Proc)
+        //WriteLog(LL_Debug, "here");
+
+        auto s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
+        auto s_MessageData = new uint8_t[s_MessageSize];
+        if (s_MessageData == nullptr)
         {
-            // Bounds check that we only return the amount of procs that we want
-            if (s_CurrentProcIndex >= s_ProcCount || s_Proc == nullptr)
-                break;
-
-            WriteLog(LL_Error, "currentProcIndex: (%lld) (%s).", s_CurrentProcIndex, s_Proc->p_comm);
-            
-            DbgProcessLimited* l_ProcLimited = new DbgProcessLimited;
-            if (l_ProcLimited == nullptr)
-            {
-                WriteLog(LL_Error, "could not allocate process info");
-                s_CurrentProcIndex++;
-                continue;
-            }
-
-            if (!s_Debugger->GetProcessLimitedInfo(s_Proc->p_pid, l_ProcLimited))
-            {
-                WriteLog(LL_Error, "could not get limited process info");
-                s_CurrentProcIndex++;
-                continue;
-            }
-
-            s_ProcessList[s_CurrentProcIndex] = l_ProcLimited;
-            s_CurrentProcIndex++;
+            WriteLog(LL_Error, "could not allocate message data.");
+            delete s_Response;
+            delete [] s_EntryList;
+            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+            break;
         }
-    } while (false);
-	sx_sunlock(allproclock);
-    // CAN RETURN AGAIN MKAY
+        memset(s_MessageData, 0, s_MessageSize);
 
-    WriteLog(LL_Error, "here");
-    s_Response = new DbgGetProcessListResponse;
-    if (s_Response == nullptr)
-    {
-        // TODO: Free resources
-        WriteLog(LL_Error, "could not allocate response");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        goto cleanup;
-    }
+        //WriteLog(LL_Debug, "here");
 
-    *s_Response = DBG_GET_PROCESS_LIST_RESPONSE__INIT;
+        auto s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_MessageData);
+        if (s_PackedSize != s_MessageSize)
+        {
+            WriteLog(LL_Error, "could not pack message.");
+            delete s_Response;
+            delete [] s_EntryList;
+            Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
+            break;
+        }
 
-    s_Response->processes = s_ProcessList;
-    s_Response->n_processes = s_ProcCount;
+        //WriteLog(LL_Debug, "here");
 
-    s_MessageSize = dbg_get_process_list_response__get_packed_size(s_Response);
-    s_Message = new uint8_t[s_MessageSize];
-    if (s_Message == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate message (%llx)", s_MessageSize);
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        goto cleanup;
-    }
-    memset(s_Message, 0, s_MessageSize);
+        Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, 0, s_MessageData, s_MessageSize);
 
-    WriteLog(LL_Error, "packedSize: (%lld).", s_MessageSize);
-
-    s_PackedSize = dbg_get_process_list_response__pack(s_Response, s_Message);
-    if (s_PackedSize != s_MessageSize)
-    {
-        WriteLog(LL_Error, "could not pack get process list message.");
-        Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EIO);
-        goto cleanup;
-    }
-
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, 0, s_Message, s_MessageSize);
-    WriteLog(LL_Error, "response sent");
-
-cleanup:
-    if (s_Response != nullptr)
-    {
         delete s_Response;
-        s_Response = nullptr;
-    }
+        delete [] s_EntryList;
 
-    if (s_Message != nullptr)
-    {
-        delete [] s_Message;
-        s_Message = nullptr;
-    }
+        //WriteLog(LL_Debug, "here");
+    } while (false);
+    
+    //WriteLog(LL_Debug, "here");
 
-    if (s_ProcessList != nullptr && s_ProcCount != 0)
+    // Cleanup everything
+    for (auto l_EntryIndex = 0; l_EntryIndex < s_Vector.size(); ++l_EntryIndex)
     {
-        // Iterate through each of the process counts
-        for (auto l_ProcessIndex = 0; l_ProcessIndex < s_ProcCount; ++l_ProcessIndex)
+        auto l_Entry = s_Vector.at(l_EntryIndex);
+        if (l_Entry == nullptr)
+            continue;
+        
+        //WriteLog(LL_Debug, "here");
+        delete [] l_Entry->name;
+        l_Entry->name = nullptr;
+
+        //WriteLog(LL_Debug, "here");
+        // Free all of the vm entries that were allocated
+        for (auto l_VmEntryIndex = 0; l_VmEntryIndex < l_Entry->n_entries; ++l_VmEntryIndex)
         {
-            auto l_Process = s_ProcessList[l_ProcessIndex];
-            if (l_Process == nullptr)
+            auto l_VmEntry = l_Entry->entries[l_VmEntryIndex];
+            if (l_VmEntry == nullptr)
                 continue;
             
-            // Iterate through all of the vm entries
-            for (auto l_VmEntryIndex = 0; l_VmEntryIndex < l_Process->n_entries; ++l_VmEntryIndex)
-            {
-                auto l_VmEntry = l_Process->entries[l_VmEntryIndex];
-                if (l_VmEntry == nullptr)
-                    continue;
+            //WriteLog(LL_Debug, "here");
 
-                // If the name was allocated, free it
-                if (l_VmEntry->name)
-                    delete [] l_VmEntry->name;
-                
-                l_VmEntry->name = nullptr;
-                
-                // Delete this entry
-                delete l_VmEntry;
-                l_Process->entries[l_VmEntryIndex] = nullptr;
-            }
+            delete [] l_VmEntry->name;
+            l_VmEntry->name = nullptr;
 
-            // Set the entry count to zero once we free all of them
-            l_Process->n_entries = 0;
-
-            // If the process name was allocated, free it
-            if (l_Process->name)
-                delete [] l_Process->name;
-            
-            l_Process->name = nullptr;
-            
-            // Free the process entry
-            delete l_Process;
-            s_ProcessList[l_ProcessIndex] = nullptr;
+            //WriteLog(LL_Debug, "here");
+            delete l_VmEntry;
+            l_Entry->entries[l_VmEntryIndex] = nullptr;
         }
 
-        delete [] s_ProcessList;
+        //WriteLog(LL_Debug, "here");
 
+        delete l_Entry;
     }
+
+    //WriteLog(LL_Debug, "here");
 }
 
 void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
@@ -595,17 +598,19 @@ void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const
         return;
     }
 
+    auto s_ProcessId = s_Request->processid;
+
+    dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
+
     DbgProcessFull s_ProcessInfo = DBG_PROCESS_FULL__INIT;
-    if (!s_Debugger->GetProcessFullInfo(s_Request->processid, &s_ProcessInfo))
+    if (!s_Debugger->GetProcessFullInfo(s_ProcessId, &s_ProcessInfo))
     {
-        dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
+        
         WriteLog(LL_Error, "could not get process info");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EEXIST);
         return;
     }
-
-    dbg_get_process_info_request__free_unpacked(s_Request, nullptr);
-    s_Request = nullptr;
 
     auto s_MessageSize = dbg_process_full__get_packed_size(&s_ProcessInfo);
     if (s_MessageSize == 0)
@@ -669,19 +674,17 @@ void Debugger2::OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const 
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
+    auto s_ThreadId = s_Request->threadid;
+    dbg_get_thread_info_request__free_unpacked(s_Request, nullptr);
+    s_Request = nullptr;
 
     DbgThreadFull s_Response = DBG_THREAD_FULL__INIT;
-
-    if (!s_Debugger->GetThreadFullInfo(s_Request->threadid, &s_Response))
+    if (!s_Debugger->GetThreadFullInfo(s_ThreadId, &s_Response))
     {
         WriteLog(LL_Error, "could not get thread full info");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
-        dbg_get_thread_info_request__free_unpacked(s_Request, nullptr);
         return;
     }
-
-    dbg_get_thread_info_request__free_unpacked(s_Request, nullptr);
-    s_Request = nullptr;
 
     auto s_MessageSize = dbg_thread_full__get_packed_size(&s_Response);
     if (s_MessageSize == 0)
@@ -1462,3 +1465,76 @@ cleanup:
         dbg_set_registers_request__free_unpacked(s_Request, nullptr);
 }
 
+
+bool Debugger2::GetProcessThreads(DbgThreadLimited** p_OutThreads, uint32_t p_ThreadCount)
+{
+    if (p_OutThreads == nullptr)
+        return false;
+    
+    // Zero out the entire allocated array
+    for (auto i = 0; i < p_ThreadCount; ++i)
+        p_OutThreads[i] = nullptr;
+
+    if (m_AttachedPid < 0)
+	{
+        WriteLog(LL_Error, "invalid pid (%d)", m_AttachedPid);
+        return false;
+    }
+
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+	auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+    auto _thread_lock_flags = (void(*)(struct thread *td, int opts, const char *file, int line))kdlsym(_thread_lock_flags);
+    struct proc* s_Process = pfind(m_AttachedPid);
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not find process for pid (%d).", m_AttachedPid);
+		return false;
+	}
+    _mtx_unlock_flags(&s_Process->p_mtx, 0, __FILE__, __LINE__);
+
+    uint64_t s_ThreadCount = 0;
+    struct thread* s_Thread = nullptr;
+    FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
+        s_ThreadCount++;
+    
+    s_Thread = nullptr;
+
+    uint64_t s_CurrentThreadIndex = 0;
+    FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
+    {
+        thread_lock(s_Thread);
+
+        if (s_CurrentThreadIndex >= s_ThreadCount)
+        {
+            thread_unlock(s_Thread);
+            WriteLog(LL_Error, "there was a new thread spun up during iteration");
+            break;
+        }
+
+        DbgThreadLimited* l_Thread = new DbgThreadLimited;
+        if (l_Thread == nullptr)
+        {
+            thread_unlock(s_Thread);
+            s_CurrentThreadIndex++;
+            WriteLog(LL_Error, "could not allocate thread limited");
+            continue;
+        }
+        
+        if (!GetThreadLimitedInfo(s_Thread, l_Thread))
+        {
+            thread_unlock(s_Thread);
+
+            delete l_Thread;
+            s_CurrentThreadIndex++;
+            WriteLog(LL_Error, "could not set thread limited info");
+            continue;
+        }
+
+        thread_unlock(s_Thread);
+        p_OutThreads[s_CurrentThreadIndex] = l_Thread;
+        s_CurrentThreadIndex++;
+    }
+
+    return true;
+}

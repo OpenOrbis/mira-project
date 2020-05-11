@@ -8,19 +8,26 @@ Debugger2::Debugger2(uint16_t p_Port) :
     m_ServerAddress { 0 },
     m_Socket(-1),
     m_Port(p_Port),
+    m_OnProcessExitTag(nullptr),
     m_AttachedPid(-1)
 {
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
     mtx_init(&m_Mutex, "DbgLock", nullptr, MTX_SPIN);
+
+    // Registers process exiting
+    m_OnProcessExitTag = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), this, EVENTHANDLER_PRI_FIRST);
 }
 
 Debugger2::~Debugger2()
 {
-    //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
-}
+    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
+	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
-#include <netinet/ip6.h>
+    EVENTHANDLER_DEREGISTER(process_exit, m_OnProcessExitTag);
+    m_OnProcessExitTag = nullptr;
+}
 
 bool Debugger2::ReplaceExceptionHandler(uint32_t p_ExceptionNumber, void* p_Function, void** p_PreviousFunction)
 {
@@ -509,79 +516,6 @@ bool Debugger2::Resume()
     return true;
 }
 
-bool Debugger2::GetProcessThreads(DbgThreadLimited** p_OutThreads, uint32_t p_ThreadCount)
-{
-    if (p_OutThreads == nullptr)
-        return false;
-    
-    // Zero out the entire allocated array
-    for (auto i = 0; i < p_ThreadCount; ++i)
-        p_OutThreads[i] = nullptr;
-
-    if (m_AttachedPid < 0)
-	{
-        WriteLog(LL_Error, "invalid pid (%d)", m_AttachedPid);
-        return false;
-    }
-
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-	auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
-    auto _thread_lock_flags = (void(*)(struct thread *td, int opts, const char *file, int line))kdlsym(_thread_lock_flags);
-    struct proc* s_Process = pfind(m_AttachedPid);
-	if (s_Process == nullptr)
-	{
-		WriteLog(LL_Error, "could not find process for pid (%d).", m_AttachedPid);
-		return false;
-	}
-    _mtx_unlock_flags(&s_Process->p_mtx, 0, __FILE__, __LINE__);
-
-    uint64_t s_ThreadCount = 0;
-    struct thread* s_Thread = nullptr;
-    FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
-        s_ThreadCount++;
-    
-    s_Thread = nullptr;
-
-    uint64_t s_CurrentThreadIndex = 0;
-    FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
-    {
-        thread_lock(s_Thread);
-
-        if (s_CurrentThreadIndex >= s_ThreadCount)
-        {
-            thread_unlock(s_Thread);
-            WriteLog(LL_Error, "there was a new thread spun up during iteration");
-            break;
-        }
-
-        DbgThreadLimited* l_Thread = new DbgThreadLimited;
-        if (l_Thread == nullptr)
-        {
-            thread_unlock(s_Thread);
-            s_CurrentThreadIndex++;
-            WriteLog(LL_Error, "could not allocate thread limited");
-            continue;
-        }
-        
-        if (!GetThreadLimitedInfo(s_Thread, l_Thread))
-        {
-            thread_unlock(s_Thread);
-
-            delete l_Thread;
-            s_CurrentThreadIndex++;
-            WriteLog(LL_Error, "could not set thread limited info");
-            continue;
-        }
-
-        thread_unlock(s_Thread);
-        p_OutThreads[s_CurrentThreadIndex] = l_Thread;
-        s_CurrentThreadIndex++;
-    }
-
-    return true;
-}
-
 struct thread* Debugger2::GetThreadById(int32_t p_ThreadId)
 {
     if (!IsProcessAlive(m_AttachedPid))
@@ -613,4 +547,44 @@ struct thread* Debugger2::GetThreadById(int32_t p_ThreadId)
         return nullptr;
 
     return s_CurThread;
+}
+
+
+void Debugger2::OnProcessExit(void* p_Debugger, struct proc* p_Process)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+
+    auto s_Debugger = static_cast<Debugger2*>(p_Debugger);
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger instance.");
+        return;
+    }
+
+    if (p_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not get exiting process.");
+        return;
+    }
+
+    PROC_LOCK(p_Process);
+    auto s_ProcessId = p_Process->p_pid;
+    PROC_UNLOCK(p_Process);
+
+    if (s_ProcessId <= 0)
+    {
+        WriteLog(LL_Error, "invalid process id (%d).", s_ProcessId);
+        return;
+    }
+
+    // Check to see if the process id matches
+    if (s_ProcessId != s_Debugger->m_AttachedPid)
+        return;
+
+    WriteLog(LL_Debug, "detaching from process and resetting state.");
+
+    int32_t s_Ret = 0;
+    if (!s_Debugger->Detach(true, &s_Ret))
+        WriteLog(LL_Error, "could not detach from pid (%d) (%d).", s_ProcessId, s_Ret);
 }

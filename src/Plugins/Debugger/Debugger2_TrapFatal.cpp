@@ -96,7 +96,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	printf("call stack:\n");
 	auto s_Saved = vm_fault_disable_pagefaults();
     auto amdFrame = reinterpret_cast<struct amd64_frame*>(frame->tf_rbp);
-	if (amdFrame)
+	if (amdFrame != nullptr)
 	{
 		auto amdFrameCount = 0;
 		while (Debugger2::IsStackSpace(amdFrame))

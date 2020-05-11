@@ -8,117 +8,152 @@
 #include <OrbisOS/Utilities.hpp>
 
 #include <Mira.hpp>
+#include <Utils/Vector.hpp>
 
 extern "C"
 {
     #include <sys/proc.h>
     #include <sys/ptrace.h>
     #include <machine/reg.h>
+
+    #include <vm/vm.h>
+    #include <vm/pmap.h>
+    #include <vm/vm_map.h>
 };
+
+//WriteLog(LL_Error, "kassert failed: (%s), (%s).", #exp, msg);
+#define	KASSERT(exp,msg) do { \
+} while (0)
+
 
 using namespace Mira::Plugins;
 
-bool Debugger2::GetVmMapEntries(struct proc* p_Process, DbgVmEntry**& p_Entries, size_t& p_EntriesCount)
+bool Debugger2::GetVmMapEntries(struct proc* p_Process, bool p_ProcessLocked, DbgVmEntry**& p_Entries, size_t& p_EntriesCount)
 {
-    // Set some default values
-    p_Entries = nullptr;
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	auto vmspace_acquire_ref = (struct vmspace* (*)(struct proc *))kdlsym(vmspace_acquire_ref);
+	auto vmspace_free = (void(*)(struct vmspace *))kdlsym(vmspace_free);
+	auto wakeup = (void(*)(void*))kdlsym(wakeup);
+	auto _vm_map_lock_read = (void(*)(vm_map_t map, const char *file, int line))kdlsym(_vm_map_lock_read);
+	auto _vm_map_unlock_read = (void(*)(vm_map_t map, const char *file, int line))kdlsym(_vm_map_unlock_read);
+	auto faultin = (void(*)(struct proc *p))kdlsym(faultin);
+
+    // Set our initial entry count
     p_EntriesCount = 0;
 
-    // Helper structures
-    ProcVmMapEntry* s_VmMapEntries = nullptr;
-    size_t s_VmMapEntriesCount = 0;
-
-    // Temporary space to hold the allocation until we complete
-    DbgVmEntry** s_DbgVmEntries = nullptr;
-
-    // Yer
-    int32_t s_Ret = 0;
-    bool s_Success = false;
-
     if (p_Process == nullptr)
-        goto cleanup;
-    
-    // Get the VM Entries
-    s_Ret = Mira::OrbisOS::Utilities::GetProcessVmMap(p_Process, &s_VmMapEntries, &s_VmMapEntriesCount);
-    if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "could not get process vm map (%d)", s_Ret);
-        goto cleanup;
+        WriteLog(LL_Error, "could not get process.");
+        return false;
     }
 
-    if (s_VmMapEntries == nullptr || s_VmMapEntriesCount == 0)
+    /*if (p_Entries == nullptr)
     {
-        WriteLog(LL_Warn, "there are no vm entries in this process?");
-        p_Entries = nullptr;
-        p_EntriesCount = 0;
+        WriteLog(LL_Error, "invalid output entries.");
+        return false;
+    }*/
 
-        s_Success = true;
-        goto cleanup;
-    }
+    Vector<DbgVmEntry*> s_Vector;
 
-    // Allocate a new list of pointers
-    s_DbgVmEntries = new DbgVmEntry*[s_VmMapEntriesCount];
-    if (s_DbgVmEntries == nullptr)
+    // Lock the process only if it hasn't already been locked
+    if (!p_ProcessLocked)
+        PROC_LOCK(p_Process);
+
+    // Check if process is exiting
+    if ((p_Process->p_flag & P_WEXIT) == 0)
     {
-        WriteLog(LL_Error, "could not allocate dbgvmentry list of count (%llx).", s_VmMapEntriesCount);
-        goto cleanup;
-    }
-    
-    // Zero out the entire list
-    memset(s_DbgVmEntries, 0, sizeof(*s_DbgVmEntries) * s_VmMapEntriesCount);
+        // Increment the process reference count
+        _PHOLD(p_Process);
+        do
+        {            
+            auto s_VmSpace = vmspace_acquire_ref(p_Process);
+            if (s_VmSpace == nullptr)
+            {
+                WriteLog(LL_Error, "could not get vmspace.");
+                break;
+            }
 
-    for (auto i = 0; i < s_VmMapEntriesCount; ++i)
-    {
-        // Allocate a new entry
-        auto l_Entry = new DbgVmEntry();
-        if (l_Entry == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate dbg vm entry");
-            continue;
+            auto s_VmMap = &s_VmSpace->vm_map;
+            vm_map_lock_read(s_VmMap);
+
+            for (vm_map_entry* l_Entry = s_VmMap->header.next; l_Entry != &s_VmMap->header; l_Entry = l_Entry->next)
+            {
+                if (l_Entry->eflags & MAP_ENTRY_IS_SUB_MAP)
+                    continue;
+                
+                auto l_VmMapEntry = new DbgVmEntry();
+                if (l_VmMapEntry == nullptr)
+                {
+                    WriteLog(LL_Error, "could not allocate vm map entry");
+                    continue;
+                }
+                *l_VmMapEntry = DBG_VM_ENTRY__INIT;
+
+                l_VmMapEntry->end = l_Entry->end;
+                
+                // Allocate the vm map entry name
+                auto l_EntryNameLength = sizeof(l_Entry->name);
+                auto l_EntryName = new char[l_EntryNameLength];
+                if (l_EntryName == nullptr)
+                {
+                    WriteLog(LL_Error, "could not allocate vm map entry name.");
+                    delete l_VmMapEntry;
+                    continue;
+                }
+                memset(l_EntryName, 0, l_EntryNameLength);
+                memcpy(l_EntryName, l_Entry->name, l_EntryNameLength);
+                l_VmMapEntry->name = l_EntryName;
+                
+                l_VmMapEntry->offset = l_Entry->offset;
+
+                // Calculate protection flags
+                auto s_Protection = PROT_NONE;
+                if (l_Entry->protection & VM_PROT_READ)
+                    s_Protection |= PROT_CPU_READ;
+                if (l_Entry->protection & VM_PROT_WRITE)
+                    s_Protection |= PROT_CPU_WRITE;
+                if (l_Entry->protection & VM_PROT_EXECUTE)
+                    s_Protection |= PROT_CPU_EXEC;
+                if (l_Entry->protection & VM_PROT_GPU_READ)
+                    s_Protection |= PROT_GPU_READ;
+                if (l_Entry->protection & VM_PROT_GPU_WRITE)
+                    s_Protection |= PROT_GPU_WRITE;
+                l_VmMapEntry->protection = s_Protection;
+
+                l_VmMapEntry->start = l_Entry->start;
+
+                // Add the entry to the vector
+                s_Vector.push_back(l_VmMapEntry);
+            }
+
+            vm_map_unlock_read(s_VmMap);
+            vmspace_free(s_VmSpace);
         }
-        memset(l_Entry, 0, sizeof(*l_Entry));
+        while (false);
 
-        *l_Entry = DBG_VM_ENTRY__INIT;
+        // Decrement the reference
+        _PRELE(p_Process);
+    }
+    
+    if (!p_ProcessLocked)
+        PROC_UNLOCK(p_Process);
 
-        // Allocate name
-        auto l_NameLen = sizeof(s_VmMapEntries[i].name);
-        auto l_Name = new char[l_NameLen];
-        if (l_Name == nullptr)
-        {
-            // Free our allocated entry
-            delete l_Entry;
-
-            WriteLog(LL_Error, "could not allocate name (%d)", l_NameLen);
-            continue;
-        }
-
-        // Zero the allocated buffer
-        memset(l_Name, 0, l_NameLen);
-
-        // Copy over the buffer
-        memcpy(l_Name, s_VmMapEntries[i].name, l_NameLen);
-
-        // Assign all of our entry things
-        l_Entry->name = l_Name;
-        l_Entry->start = s_VmMapEntries[i].start;
-        l_Entry->end = s_VmMapEntries[i].end;
-        l_Entry->offset = s_VmMapEntries[i].offset;
-        l_Entry->protection = s_VmMapEntries[i].prot;
-
-        // Assign our allocate entry to our index
-        s_DbgVmEntries[i] = l_Entry;
+    auto s_VectorSize = s_Vector.size();
+    auto s_EntryList = new DbgVmEntry*[s_VectorSize];
+    if (s_EntryList == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate outgoing entry list.");
+        return false;
     }
 
-    p_Entries = s_DbgVmEntries;
-    p_EntriesCount = s_VmMapEntriesCount;
-
-    s_Success = true;
-
-cleanup:
-    if (s_VmMapEntries)
-        delete [] s_VmMapEntries;
+    // Copy over the entry list out
+    for (auto i = 0; i < s_VectorSize; ++i)
+        s_EntryList[i] = s_Vector.at(i);
     
-    return s_Success;
+    p_EntriesCount = s_VectorSize;
+    p_Entries = s_EntryList;
+    return true;
 }
 
 bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
@@ -128,6 +163,8 @@ bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
         WriteLog(LL_Error, "invalid info");
         return false;
     }
+
+    *p_Info = DBG_PROCESS_LIMITED__INIT;
     
     if (!IsProcessAlive(p_Pid))
     {
@@ -143,85 +180,54 @@ bool Debugger2::GetProcessLimitedInfo(int32_t p_Pid, DbgProcessLimited* p_Info)
 		WriteLog(LL_Error, "could not find process for pid (%d).", p_Pid);
 		return false;
 	}
-    _mtx_unlock_flags(&s_Process->p_mtx, 0, __FILE__, __LINE__);
+    // pfind returns a locked proc
 
-    bool s_Success = false;
-    size_t s_NameLength = 0;
-    char* s_Name = nullptr;
+    // Hold our success status
+    bool s_Success = true;
 
-
-    //============================================
-    *p_Info = DBG_PROCESS_LIMITED__INIT;
-
-    p_Info->processid = s_Process->p_pid;
-
-    // Get the vm map
-    DbgVmEntry** s_VmEntries = nullptr;
-    size_t s_VmEntriesCount = 0;
-
-    if (!GetVmMapEntries(s_Process, s_VmEntries, s_VmEntriesCount))
+    do
     {
-        WriteLog(LL_Error, "could not get vm map entries");
-        goto cleanup;
-    }
-
-    // Name
-    s_NameLength = sizeof(s_Process->p_comm);
-    s_Name = new char[s_NameLength];
-    if (s_Name == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate memory for name len: (%x)", s_NameLength);
-        goto cleanup;
-    }
-    memset(s_Name, 0, s_NameLength);
-    memcpy(s_Name, s_Process->p_comm, s_NameLength);
-    p_Info->name = s_Name;
-
-    p_Info->entries = s_VmEntries;
-    p_Info->n_entries = s_VmEntriesCount;
-
-    s_Success = true;
-
-cleanup:
-    if (s_Success)
-        return s_Success;
-    
-    // We need to iterate over the vm entries list
-    if (s_VmEntries != nullptr && s_VmEntriesCount != 0)
-    {
-        for (auto i = 0; i < s_VmEntriesCount; ++i)
+        auto s_NameLength = sizeof(s_Process->p_comm);
+        auto s_Name = new char[s_NameLength];
+        if (s_Name == nullptr)
         {
-            // Get the entry
-            auto l_Entry = s_VmEntries[i];
-            if (l_Entry == nullptr)
-                continue;
-            
-            // If the name was allocated free it
-            if (l_Entry->name != nullptr)
-                delete [] l_Entry->name;
-            
-            l_Entry->name = nullptr;
-
-            // Finally delete the entry object
-            delete l_Entry;
-
-            // Clear the entry out of the list
-            s_VmEntries[i] = nullptr;
+            WriteLog(LL_Error, "could not allocate name");
+            s_Success = false;
+            break;
         }
+        memset(s_Name, 0, s_NameLength);
+        memcpy(s_Name, s_Process->p_comm, s_NameLength);
 
-        // Delete the entries list
-        delete [] s_VmEntries;
-
-        //s_VmEntries = nullptr;
-        //s_VmEntriesCount = 0;
+        p_Info->name = s_Name;
+        p_Info->processid = s_Process->p_pid;
     }
+    while (false);
+    
+    PROC_UNLOCK(s_Process);
 
-    if (s_Name)
-        delete [] s_Name;
+    // If there was an error with the proc info, skip attempting to get vm entries
+    if (s_Success == false)
+        return false;
+
+    // Get the vm map entries
+    DbgVmEntry** s_Entries = nullptr;
+    size_t s_EntriesCount = 0;
+
+    // This case shouldn't be failure, some kernel procs don't have any vm map entries
+    if (!GetVmMapEntries(s_Process, false, s_Entries, s_EntriesCount))
+    {
+        WriteLog(LL_Error, "could not get vm map entries.");
+    }
+    else
+    {
+        p_Info->n_entries = s_EntriesCount;
+        p_Info->entries = s_Entries;
+    }
 
     return s_Success;
 }
 
+// TODO: Rewrite me
 bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
 {
     if (p_Info == nullptr)
@@ -230,11 +236,15 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         return false;
     }
 
+    WriteLog(LL_Error, "here");
+
     if (!IsProcessAlive(p_ProcessId))
 	{
         WriteLog(LL_Error, "invalid pid (%d)", p_ProcessId);
         return false;
     }
+
+    WriteLog(LL_Error, "here");
 
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 	auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
@@ -261,47 +271,68 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
             s_ThreadCount++;
         
+        WriteLog(LL_Warn, "threadCount: (%d) for proc (%s).", s_ThreadCount, s_Process->p_comm);
+
         // Verify that we have some amount of threads
         if (s_ThreadCount == 0)
         {
-            WriteLog(LL_Error, "could not get any dents.");
+            WriteLog(LL_Error, "could not get any threads.");
             break;
         }
 
+        WriteLog(LL_Error, "here");
+
         DbgThreadLimited* s_Threads[s_ThreadCount];
         memset(s_Threads, 0, sizeof(s_Threads));
+
+        WriteLog(LL_Error, "here");
 
         FOREACH_THREAD_IN_PROC(s_Process, s_Thread)
         {
             // Bounds check our threads
             if (s_CurrentThreadIndex >= s_ThreadCount || s_Thread == nullptr)
                 break;
+
+            WriteLog(LL_Error, "here");
             
             // Allocate a new thread information
             auto l_ThreadInfo = new DbgThreadLimited();
             if (l_ThreadInfo == nullptr)
             {
                 WriteLog(LL_Error, "could not allocate thread information.");
+                s_CurrentThreadIndex++;
                 continue;
             }
             memset(l_ThreadInfo, 0, sizeof(*l_ThreadInfo));
+
+            WriteLog(LL_Error, "here");
 
             // Try and get the thread information (function initializes)
             if (!GetThreadLimitedInfo(s_Thread, l_ThreadInfo))
             {
                 WriteLog(LL_Error, "could not get thread limited info.");
                 delete l_ThreadInfo;
+                s_CurrentThreadIndex++;
                 continue;
             }
 
+            WriteLog(LL_Error, "here");
+
             s_Threads[s_CurrentThreadIndex] = l_ThreadInfo;
+
+            WriteLog(LL_Error, "here");
             
             // Increment our current thread index
             s_CurrentThreadIndex++;
         }
 
+        WriteLog(LL_Error, "here");
+
         // Assign our information
         p_Info->threads = s_Threads;
+        p_Info->n_threads = s_ThreadCount;
+
+        WriteLog(LL_Error, "here");
 
         // Placeholder value
         p_Info->unused = 0;
@@ -319,6 +350,8 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         p_Info->singlethread = reinterpret_cast<uint64_t>(s_Process->p_singlethread);
         p_Info->suspendcount = s_Process->p_suspcount;
         p_Info->dynlib = reinterpret_cast<uint64_t>(s_Process->p_dynlib);
+
+        WriteLog(LL_Error, "here");
         
         // The process name is a static length (CALLEE MUST FREE THIS)
         auto s_ProcessNameLength = sizeof(s_Process->p_comm);
@@ -332,6 +365,8 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         memcpy(s_ProcessName, s_Process->p_comm, s_ProcessNameLength);
         p_Info->name = s_ProcessName;
 
+        WriteLog(LL_Error, "here");
+
         // The elf path is a static length (CALLEE MUST FREE THIS)
         auto s_ElfPathLength = sizeof(s_Process->p_elfpath);
         auto s_ElfPath = new char[s_ElfPathLength];
@@ -343,6 +378,8 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         memset(s_ElfPath, 0, s_ElfPathLength);
         memcpy(s_ElfPath, s_Process->p_elfpath, s_ElfPathLength);
         p_Info->elfpath =  s_ElfPath;
+
+        WriteLog(LL_Error, "here");
 
         // The randomized path is static length (CALLEE MUST FREE THIS)
         auto s_RandomizedPathLength = sizeof(s_Process->p_randomized_path);
@@ -358,11 +395,13 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
 
         p_Info->numthreads = s_Process->p_numthreads;
 
+        WriteLog(LL_Error, "here");
+
         // Get the vm map
         DbgVmEntry** s_VmEntries = nullptr;
         size_t s_VmEntriesCount = 0;
 
-        if (!GetVmMapEntries(s_Process, s_VmEntries, s_VmEntriesCount))
+        if (!GetVmMapEntries(s_Process, false, s_VmEntries, s_VmEntriesCount)) // incorrect usage anyway
         {
             WriteLog(LL_Error, "could not get vm map entries");
             break;
@@ -370,10 +409,13 @@ bool Debugger2::GetProcessFullInfo (int32_t p_ProcessId, DbgProcessFull* p_Info)
         p_Info->mapentries = s_VmEntries;
         p_Info->n_mapentries = s_VmEntriesCount;
 
+        WriteLog(LL_Error, "here");
+
         return true;
     } while (false);
     
     // Handle cleanup
+    WriteLog(LL_Error, "here");
 
     // Cleanup the vm map entries
     if (p_Info->mapentries != nullptr && p_Info->n_mapentries != 0)
@@ -1312,7 +1354,8 @@ bool Debugger2::IsProcessAlive(int32_t p_ProcessId)
 		WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
 		return false;
 	}
-    _mtx_unlock_flags(&s_Process->p_mtx, 0, __FILE__, __LINE__);
+    PROC_UNLOCK(s_Process);
+    
 	return true;
 }
 
