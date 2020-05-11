@@ -108,9 +108,6 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 
-	// Patch memcpy stack
-	// Unnecessary <= 4.05
-
 	// ptrace patches
 	kmem = (uint8_t *)&gKernelBase[0x000AC2F1];
 	kmem[0] = 0xEB;
