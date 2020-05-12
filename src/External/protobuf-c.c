@@ -49,8 +49,7 @@
 //#include <string.h>	/* for strcmp, strlen, memcpy, memmove, memset */
 #include <sys/malloc.h>
 
-#include "protobuf-c/protobuf-c.h"
-
+#include <external/protobuf-c/protobuf-c/protobuf-c.h>
 
 #include <Utils/Kernel.hpp>
 #include <Utils/Kdlsym.hpp>
@@ -62,7 +61,9 @@
 #define TRUE				1
 #define FALSE				0
 
-#define PROTOBUF_C__ASSERT_NOT_REACHED()
+#define PROTOBUF_C__ASSERT_NOT_REACHED() __assert("PROTOBUF_C__ASSERT_NOT_REACHED", __FILE__, __LINE__, "PROTOBUF_C__ASSERT_NOT_REACHED")
+//assert(0)
+
 void __assert(const char * a, const char * b, int c, const char * d) 
 {
 	//WriteLog(LL_Error, "assert failed (%s) (%s) (%d) (%s)", a, b, c, d);
@@ -170,7 +171,7 @@ system_alloc(void *allocator_data, size_t size)
 	//return malloc(size);
 	struct malloc_type* M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
-	return ((void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc))(size, M_TEMP, M_ZERO | M_WAITOK);
+	return ((void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc))(size, M_TEMP, M_ZERO | M_NOWAIT);
 }
 
 static void
@@ -337,10 +338,9 @@ int32_size(int32_t v)
 static inline uint32_t
 zigzag32(int32_t v)
 {
-	if (v < 0)
-		return (-(uint32_t)v) * 2 - 1;
-	else
-		return (uint32_t)(v) * 2;
+	// Note:  the right-shift must be arithmetic
+	// Note:  left shift must be unsigned because of overflow
+	return ((uint32_t)(v) << 1) ^ (uint32_t)(v >> 31);
 }
 
 /**
@@ -402,10 +402,9 @@ uint64_size(uint64_t v)
 static inline uint64_t
 zigzag64(int64_t v)
 {
-	if (v < 0)
-		return (-(uint64_t)v) * 2 - 1;
-	else
-		return (uint64_t)(v) * 2;
+	// Note:  the right-shift must be arithmetic
+	// Note:  left shift must be unsigned because of overflow
+	return ((uint64_t)(v) << 1) ^ (uint64_t)(v >> 63);
 }
 
 /**
@@ -1063,7 +1062,6 @@ binary_data_pack(const ProtobufCBinaryData *bd, uint8_t *out)
 static inline size_t
 prefixed_message_pack(const ProtobufCMessage *message, uint8_t *out)
 {
-    
 	if (message == NULL) {
 		out[0] = 0;
 		return 1;
@@ -1071,8 +1069,8 @@ prefixed_message_pack(const ProtobufCMessage *message, uint8_t *out)
 		size_t rv = protobuf_c_message_pack(message, out + 1);
 		uint32_t rv_packed_size = uint32_size(rv);
 		if (rv_packed_size != 1)
-            ((void * (*)(void *dst,	const void *src, size_t	len))kdlsym(memmove))(out + rv_packed_size, out + 1, rv);
 			//memmove(out + rv_packed_size, out + 1, rv);
+			((void * (*)(void *dst,	const void *src, size_t	len))kdlsym(memmove))(out + rv_packed_size, out + 1, rv);
 		return uint32_pack(rv, out) + rv;
 	}
 }
@@ -1463,7 +1461,7 @@ repeated_field_pack(const ProtobufCFieldDescriptor *field,
 		actual_length_size = uint32_size(payload_len);
 		if (length_size_min != actual_length_size) {
 			assert(actual_length_size == length_size_min + 1);
-			(void)memmove(out + header_len + 1, out + header_len,
+			memmove(out + header_len + 1, out + header_len,
 				payload_len);
 			header_len++;
 		}
@@ -2357,7 +2355,7 @@ merge_messages(ProtobufCMessage *earlier_msg,
 				 * message, earlier message will be freed after
 				 * this function is called anyway
 				 */
-				(void)memset(earlier_elem, 0, el_size);
+				memset(earlier_elem, 0, el_size);
 
 				if (field->quantifier_offset != 0) {
 					/* Set the has field or the case enum,
@@ -2450,10 +2448,8 @@ parse_int32(unsigned len, const uint8_t *data)
 static inline int32_t
 unzigzag32(uint32_t v)
 {
-	if (v & 1)
-		return -(v >> 1) - 1;
-	else
-		return v >> 1;
+	// Note:  Using unsigned types prevents undefined behavior
+	return (int32_t)((v >> 1) ^ (~(v & 1) + 1));
 }
 
 static inline uint32_t
@@ -2494,10 +2490,8 @@ parse_uint64(unsigned len, const uint8_t *data)
 static inline int64_t
 unzigzag64(uint64_t v)
 {
-	if (v & 1)
-		return -(v >> 1) - 1;
-	else
-		return v >> 1;
+	// Note:  Using unsigned types prevents undefined behavior
+	return (int64_t)((v >> 1) ^ (~(v & 1) + 1));
 }
 
 static inline uint64_t
@@ -2709,7 +2703,7 @@ parse_oneof_member (ScannedMember *scanned_member,
 			break;
 		}
 
-		(void)memset (member, 0, el_size);
+		memset (member, 0, el_size);
 	}
 	if (!parse_required_member (scanned_member, member, allocator, TRUE))
 		return FALSE;
@@ -2971,7 +2965,7 @@ message_init_generic(const ProtobufCMessageDescriptor *desc,
 {
 	unsigned i;
 
-	(void)memset(message, 0, desc->sizeof_message);
+	memset(message, 0, desc->sizeof_message);
 	message->descriptor = desc;
 	for (i = 0; i < desc->n_fields; i++) {
 		if (desc->fields[i].default_value != NULL &&
@@ -3102,7 +3096,7 @@ protobuf_c_message_unpack(const ProtobufCMessageDescriptor *desc,
 		}
 		required_fields_bitmap_alloced = TRUE;
 	}
-	(void)memset(required_fields_bitmap, 0, required_fields_bitmap_len);
+	memset(required_fields_bitmap, 0, required_fields_bitmap_len);
 
 	/*
 	 * Generated code always defines "message_init". However, we provide a
@@ -3568,7 +3562,7 @@ protobuf_c_service_generated_init(ProtobufCService *service,
 	service->descriptor = descriptor;
 	service->destroy = destroy;
 	service->invoke = protobuf_c_service_invoke_internal;
-	(void)memset(service + 1, 0, descriptor->n_methods * sizeof(GenericHandler));
+	memset(service + 1, 0, descriptor->n_methods * sizeof(GenericHandler));
 }
 
 void protobuf_c_service_destroy(ProtobufCService *service)
@@ -3695,5 +3689,3 @@ protobuf_c_service_descriptor_get_method_by_name(const ProtobufCServiceDescripto
 		return desc->methods + desc->method_indices_by_name[start];
 	return NULL;
 }
-
-#pragma clang diagnostic pop // unused-variable, unused-value

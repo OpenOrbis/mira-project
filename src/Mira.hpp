@@ -10,6 +10,7 @@ extern "C"
 {
     #include <sys/param.h>
     #include <sys/proc.h>
+    #include <sys/sysproto.h> // ioctl_args
 
     void mira_entry(void* args);
 };
@@ -90,13 +91,14 @@ namespace Mira
 
         struct thread* GetMainThread() 
         { 
-            if (m_InitParams.process == nullptr)
+            auto s_Process = m_InitParams.process;
+            if (s_Process == nullptr)
                 return nullptr;
             
-            struct thread* s_Thread = m_InitParams.process->p_singlethread;
+            struct thread* s_Thread = s_Process->p_singlethread;
             if (s_Thread == nullptr)
             {
-                s_Thread = FIRST_THREAD_IN_PROC(m_InitParams.process);
+                s_Thread = FIRST_THREAD_IN_PROC(s_Process);
                 if (s_Thread == nullptr)
                     return nullptr;
             }
@@ -109,5 +111,10 @@ namespace Mira
         static void OnMiraShutdown(void* __unused p_Reserved);
 
         static void OnSceSblSysVeri(void* __unused p_Reserved);
+
+        // Credits: LM (need to move this to a better location, but stopgap fix for now.)
+        static int OnIoctl(struct thread* p_Thread, struct ioctl_args* p_Uap);
+        static int OnWorkaround8849(struct thread* p_Thread, uint32_t* p_Uap);
+
     };
 }
