@@ -1,12 +1,10 @@
 #include <Boot/Patches.hpp>
 
-using namespace Mira::Boot;
-
 /*
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
 */
-void Patches::install_prerunPatches_474()
+void Mira::Boot::Patches::install_prerunPatches_474()
 {
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_474
 	// You must assign the kernel base pointer before anything is done
@@ -17,7 +15,7 @@ void Patches::install_prerunPatches_474()
 	uint8_t *kmem;
 
 	// Enable UART
-	kmem = (uint8_t *)&gKernelBase[0x0199FC18]; //based on 5.01 patch
+	kmem = (uint8_t *)&gKernelBase[0x0199FC18];
 	kmem[0] = 0x00;
 
 	// Verbose Panics
@@ -27,9 +25,6 @@ void Patches::install_prerunPatches_474()
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
-	kmem[5] = 0x65;
-	kmem[6] = 0x8B;
-	kmem[7] = 0x34;
 
 	// sceSblACMgrIsAllowedSystemLevelDebugging
 	kmem = (uint8_t *)&gKernelBase[0x00169060];
@@ -112,17 +107,20 @@ void Patches::install_prerunPatches_474()
 	kmem[1] = 0x90;
 
 	// Patch memcpy stack
-	kmem = (uint8_t *)&gKernelBase[0x00149D4D];//ok
+	kmem = (uint8_t *)&gKernelBase[0x00149D4D];
 	kmem[0] = 0xEB;
 
 	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0017C54E];//based on 4.55
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x0017C521];
+	kmem[0] = 0xEB;
+
+	// second ptrace patch
+	kmem = (uint8_t *)&gKernelBase[0x0017C896];
+	kmem[0] = 0xE9;
+	kmem[1] = 0x15;
+	kmem[2] = 0x01;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0011622C];
@@ -133,7 +131,7 @@ void Patches::install_prerunPatches_474()
 	kmem[4] = 0x90;
 
 	// Patch to remove vm_fault: fault on nofault entry, addr %llx
-	kmem = (uint8_t*)&gKernelBase[0x002A160E];    
+	kmem = (uint8_t *)&gKernelBase[0x002A160E];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -172,8 +170,8 @@ void Patches::install_prerunPatches_474()
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
-	kmem = (uint8_t*)&gKernelBase[0x0001801A]; // This needs to be verified
-	kmem[0] = 0xEB; // jmp +0x3b
+	kmem = (uint8_t *)&gKernelBase[0x0001801A];
+	kmem[0] = 0xEB;
 	kmem[1] = 0x39;
 
 	// Enable mount for unprivileged user
@@ -188,7 +186,6 @@ void Patches::install_prerunPatches_474()
 	// patch suword_lwpid
 	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
 	// Patch by: JOGolden
-
 	kmem = (uint8_t *)&gKernelBase[0x0014A222];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
