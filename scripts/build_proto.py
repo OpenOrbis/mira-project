@@ -38,11 +38,13 @@ def fixFile(fileName):
 if __name__== "__main__":
     inputDirectory = "."
     miraDirectory = "."
+    noMvPbcFiles = false
 
     parser = argparse.ArgumentParser(prog="build_proto.py")
     parser.add_argument("--inputDir", help="input directory (default: .)")
     parser.add_argument("--outputDir", help="output directory (default is input directory)")
     parser.add_argument("--miraDir", help="mira directory (default: .)")
+    parser.add_argument("--noPbcMv", help="option to skip the move of the protobuf files (default: false)")
 
     args = parser.parse_args()
 
@@ -89,18 +91,19 @@ if __name__== "__main__":
     for file in (csharpFileList + pbcPathList):
         fixFile(file)
 
-    # Move fixed protobuf files
-    for file in pbcFileList:
-        sourcePath = os.path.join(inputDirectory, file)
-        destinationPath = ""
+    if noMvPbcFiles is false:
+        # Move fixed protobuf files
+        for file in pbcFileList:
+            sourcePath = os.path.join(inputDirectory, file)
+            destinationPath = ""
 
-        if "debugger" in file:
-            destinationPath = os.path.join(miraDirectory, ("src/Plugins/Debugger/" + file))
-        elif "filemanager" in file:
-            destinationPath = os.path.join(miraDirectory, ("src/Plugins/FileManager/" + file))
-        elif "rpc" in file:
-            destinationPath = os.path.join(miraDirectory, ("src/Messaging/Rpc/" + file))
+            if "debugger" in file:
+                destinationPath = os.path.join(miraDirectory, ("src/Plugins/Debugger/" + file))
+            elif "filemanager" in file:
+                destinationPath = os.path.join(miraDirectory, ("src/Plugins/FileManager/" + file))
+            elif "rpc" in file:
+                destinationPath = os.path.join(miraDirectory, ("src/Messaging/Rpc/" + file))
 
-        os.replace(sourcePath, destinationPath)
+            os.replace(sourcePath, destinationPath)
 
     print("completed")
