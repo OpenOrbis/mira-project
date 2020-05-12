@@ -100,7 +100,7 @@ These can be installed (on Ubuntu, other platforms may vary) by using the comman
 
 #### Cloning the repository
 Cloning the repository is easily done by:
-`git clone https://github.com/kiwidoggie/miracpp.git`
+`git clone https://github.com/OpenOrbis/mira-project.git`
 
 #### Protobuf files
 The RPC messaging system leverages protobuf in order to easily expand and add cross-language RPC support. This involves 2 major components for the default build. Due to previous dependencies, we are not using the C++ version of protobuf due to not having a full STL runtime in the kernel (it was too much work/effort) so instead we are leveraging the [protobuf-c] project.
@@ -111,7 +111,7 @@ Installing protobuf-c should only need to be done once, there is support for pro
 You can follow the protobuf build instructions located [here](https://github.com/protobuf-c/protobuf-c#building)
 
 ##### Building the protobuf file definitions + fixing them
-Currently there is a script that will handle *most* of the work required for building new protobuf files. From the *ROOT* of the cloned directory (miracpp/) you can use the provided python script for generating new protobuf files.
+Currently there is a script that will handle *most* of the work required for building new protobuf files. From the *ROOT* of the cloned directory (mira-project/) you can use the provided python script for generating new protobuf files.
 
 `python3 ./scripts/build_proto.py --inputDir=./external`
 
@@ -119,6 +119,7 @@ By default the script will only run in the local directory it was called from. T
 
 `--inputDir=<input directory>`
 `--outputDir=<output directory>` (otherwise use the input directory as default)
+`--miraDir=<mira directory>`
 
 The vscode `tasks.json` can be configured to do this automatically in the project repository
 
@@ -134,33 +135,10 @@ The vscode `tasks.json` can be configured to do this automatically in the projec
         }
 ```
 
-The script takes care of generating the .c/.h files, as well as the C# (.cs) counterparts for use with the MiraLib/API.
+The script takes care of generating, fixing, and moving the .c/.h files, as well as the C# (.cs) counterparts for use with the MiraLib/API.
 
 ##### Moving and fixing the .c includes
 This part has not been scripted yet, because if someone were to add a new proto file, they would have to manually update the script.
-
-###### Moving the protobuf files
-At the time of writing, the default protobuf files that are generated inside of the `<miracpp root>/external` will need to be moved
-
-|File|Intended Location|
-| ------ | ------ |
-|`external/debugger_structs.pb-c.(c/h)` | `src/Plugins/Debugger` |
-|`external/debugger.pb-c.(c/h)` | `src/Plugins/Debugger` |
-|`external/filemanager.pb-c.(c/h)` | `src/Plugins/FileManager` |
-|`external/debugger_structs.pb-c.(c/h)` | `src/Plugins/Debugger` |
-|`external/rpc.pb-c.(c/h)` | `src/Messaging/Rpc` |
-
-###### Fixing the moved protobuf files include paths
-In order to prevent linking issues due to the new moved file locations, you will manually have to update the include paths (until the python script supports fixing them on it's own, `psst feel free to submit a PR for it`)
-
-|File|Unpatched Include Location|Patched Include Location|
-| ------ | ------ | ------ |
-|`src/Messaging/Rpc/rpc.pb-c.c`| `#include "external/rpc.pb-c.h"`| `#include "rpc.pb-c.h"` |
-|`src/Plugins/FileManager/filemanager.pb-c.c`| `#include "external/filemanager.pb-c.h"`| `#include "filemanager.pb-c.h"` |
-|`src/Plugins/Debugger/debugger.pb-c.c`| `#include "external/debugger.pb-c.h"`| `#include "debugger.pb-c.h"` |
-|`src/Plugins/Debugger/debugger_structs.pb-c.c`| `#include "external/debugger_structs.pb-c.h"`| `#include "debugger_structs.pb-c.h"` |
-
-So you get the idea, change the include path to the "local" path of the header file. The actual .h file should be fine as-is.
 
 ###### (Optional) Manually fix the C# protobuf files
 If you did not use the python script, the C# files will not be automatically fixed for you. There is an issue with modern versions of C# and the output that protobuf generates for .cs files.
@@ -203,7 +181,7 @@ _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
 And you can include this anywhere in your C# project and begin to use extension methods to add them to MiraConnection for usage in your own application.
 
 #### Source code layout
-The current miracpp repository is self-contained, meaning everything the project depends on should be within the repo itself. Here is a layout of the source repository (all from root of miracpp directory)
+The current mira-project repository is self-contained, meaning everything the project depends on should be within the repo itself. Here is a layout of the source repository (all from root of mira-project directory)
 
 | Directory | Purpose |
 | ------ | ------ |
@@ -225,7 +203,7 @@ The current miracpp repository is self-contained, meaning everything the project
 
 ### Plugins
 
-Mira provies a plugin framework that can run in kernel mode (userland is soon, thanks to TW!), it provies a stable framework for startup, shutdown, suspend, resume in order to ensure clean operation of Mira.
+Mira provides a plugin framework that can run in kernel mode (userland is soon, thanks to TW!), it provides a stable framework for startup, shutdown, suspend, resume in order to ensure clean operation of Mira.
 
 | Plugin | Directory |
 | ------ | ------ |
@@ -246,7 +224,7 @@ Want to contribute? Great! There is no set limit on contributors and people want
 Join the OpenOrbis discord and have knowledge of C/C++ and FreeBSD or unix-like operating systems, web design and programming, rust-lang, content creator (youtube, twitch), or artist, or just want to find something to help out with like documentation, hosting, etc, kernel experience is a plus but not required by any means.
 
 #### Building from source
-After following the instructions on cloning the repository and generating and fixing the protobuf files, you should be ready to build Mira from source. It was designed to be as easy as possible to build with the provided makefiles. 
+After following the instructions on cloning the repository and generating the protobuf files, you should be ready to build Mira from source. It was designed to be as easy as possible to build with the provided makefiles.
 
 Each makefile (for MiraLoader, and Mira itself) follow a specific format due to compilers ignoring most changes in header (.h) files causing issues down the line.
 
@@ -263,7 +241,7 @@ Finally build Mira, this will automatically build everything into the specified 
 |`BSD_INC`| freebsd-headers include path, defaults to `external/freebsd-headers/include`|
 |`OUT_DIR`| Output directory, defaults to `build`|
 
-There is a list of available platforms that Mira can be configured with located in `src/Boot/Config.hpp` for the most up-to-date, but as of writing here is the available list. 
+There is a list of available platforms that Mira can be configured with located in `src/Boot/Config.hpp` for the most up-to-date, but as of writing here is the available list.
 | Support Status | Description |
 | ------ | ------ |
 | Unsupported | May build, may not, previously was updated but no active updating |
@@ -400,7 +378,7 @@ Lets assume our firmware is `8.88` found in the PlayStation 4 System Software me
 
 1. Add your new firmware to `src/Boot/Config.hpp` you will see a bunch of defines already there, add your firmware in the correct version order
     a. **#define MIRA_PLATFORM_ORBIS_BSD_888 888**
-2. Fix any structure changes for the kernel in freebsd-headers. You should compare against what's already there and add fields that have been added via 
+2. Fix any structure changes for the kernel in freebsd-headers. You should compare against what's already there and add fields that have been added via
     a. **#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_888**
     b. *HINT:* These are usually done in `struct proc`, `struct thread`, `struct ucred` if applicable, located in `exernal/freebsd-headers/include`.
 3. Add a new static function in `src/Boot/Patches.hpp` with your pre-boot patches, this will be called after MiraLoader finishes and before Mira runs
