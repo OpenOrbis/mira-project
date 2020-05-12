@@ -35,7 +35,8 @@ You can also:
 
 This project would not be possible without these people (no paticluar order):
 
-* [kiwidog] - Lead developer
+* [kiwidog] - Developer
+* [SpecterDev] - Developer
 * [flatz] - Developer (Code, writeups, non-stop help we <3 u flatz)
 * [CrazyVoid] - Developer (Loader/self/SDK help, overall general help, OO moderator)
 * [theorywrong] - Developer (OverlayFS, general)
@@ -64,7 +65,7 @@ This project would not be possible without these people (no paticluar order):
 * [TheFlow] - RE
 * [samsepi0l] - Offset Porting
 * [xvortex] - Original VTX-Hen
-* [4much4u] - Ptrace patches
+* [2much4u] - Ptrace patches
 * [golden] - Ptrace patches, rpc ideas
 
 ### Special Thanks
@@ -480,8 +481,9 @@ GPLv3
    [rogero]: <https://github.com/Rogero->
    [AbkarinoMHM]: https://github.com/AbkarinoMHM
    [wildcard]: <https://github.com/VV1LD>
-   [4much4u]: <https://github.com/2much4u>
+   [2much4u]: <https://github.com/2much4u>
    [golden]: <https://github.com/jogolden>
    [fjtrujy]: <https://github.com/fjtrujy>
    [frangarcj]: <https://github.com/frangarcj>
    [masterzorag]: <https://github.com/masterzorag>
+   [SpecterDev]: <https://github.com/Cryptogenic>
