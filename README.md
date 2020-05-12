@@ -118,6 +118,7 @@ By default the script will only run in the local directory it was called from. T
 
 `--inputDir=<input directory>`
 `--outputDir=<output directory>` (otherwise use the input directory as default)
+`--miraDir=<mira directory>`
 
 The vscode `tasks.json` can be configured to do this automatically in the project repository
 
@@ -133,33 +134,10 @@ The vscode `tasks.json` can be configured to do this automatically in the projec
         }
 ```
 
-The script takes care of generating the .c/.h files, as well as the C# (.cs) counterparts for use with the MiraLib/API.
+The script takes care of generating, fixing, and moving the .c/.h files, as well as the C# (.cs) counterparts for use with the MiraLib/API.
 
 ##### Moving and fixing the .c includes
 This part has not been scripted yet, because if someone were to add a new proto file, they would have to manually update the script.
-
-###### Moving the protobuf files
-At the time of writing, the default protobuf files that are generated inside of the `<mira-project root>/external` will need to be moved
-
-|File|Intended Location|
-| ------ | ------ |
-|`external/debugger_structs.pb-c.(c/h)` | `src/Plugins/Debugger` |
-|`external/debugger.pb-c.(c/h)` | `src/Plugins/Debugger` |
-|`external/filemanager.pb-c.(c/h)` | `src/Plugins/FileManager` |
-|`external/rpc.pb-c.(c/h)` | `src/Messaging/Rpc` |
-
-###### Fixing the moved protobuf files include paths
-In order to prevent linking issues due to the new moved file locations, you will manually have to update the include paths (until the python script supports fixing them on it's own, `psst feel free to submit a PR for it`)
-
-|File|Unpatched Include Location|Patched Include Location|
-| ------ | ------ | ------ |
-|`src/Messaging/Rpc/rpc.pb-c.c`| `#include "external/rpc.pb-c.h"`| `#include "rpc.pb-c.h"` |
-|`src/Plugins/FileManager/filemanager.pb-c.c`| `#include "external/filemanager.pb-c.h"`| `#include "filemanager.pb-c.h"` |
-|`src/Plugins/Debugger/debugger.pb-c.c`| `#include "external/debugger.pb-c.h"`| `#include "debugger.pb-c.h"` |
-|`src/Plugins/Debugger/debugger.pb-c.h`| `#include "external/debugger_structs.pb-c.h"`| `#include "debugger_structs.pb-c.h"` |
-|`src/Plugins/Debugger/debugger_structs.pb-c.c`| `#include "external/debugger_structs.pb-c.h"`| `#include "debugger_structs.pb-c.h"` |
-
-So you get the idea, change the include path to the "local" path of the header file. The actual .h file should be fine as-is.
 
 ###### (Optional) Manually fix the C# protobuf files
 If you did not use the python script, the C# files will not be automatically fixed for you. There is an issue with modern versions of C# and the output that protobuf generates for .cs files.
@@ -245,7 +223,7 @@ Want to contribute? Great! There is no set limit on contributors and people want
 Join the OpenOrbis discord and have knowledge of C/C++ and FreeBSD or unix-like operating systems, web design and programming, rust-lang, content creator (youtube, twitch), or artist, or just want to find something to help out with like documentation, hosting, etc, kernel experience is a plus but not required by any means.
 
 #### Building from source
-After following the instructions on cloning the repository and generating and fixing the protobuf files, you should be ready to build Mira from source. It was designed to be as easy as possible to build with the provided makefiles.
+After following the instructions on cloning the repository and generating the protobuf files, you should be ready to build Mira from source. It was designed to be as easy as possible to build with the provided makefiles.
 
 Each makefile (for MiraLoader, and Mira itself) follow a specific format due to compilers ignoring most changes in header (.h) files causing issues down the line.
 
