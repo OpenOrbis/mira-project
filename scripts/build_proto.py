@@ -38,13 +38,13 @@ def fixFile(fileName):
 if __name__== "__main__":
     inputDirectory = "."
     miraDirectory = "."
-    noMvPbcFiles = false
+    noMvPbcFiles = False
 
     parser = argparse.ArgumentParser(prog="build_proto.py")
     parser.add_argument("--inputDir", help="input directory (default: .)")
     parser.add_argument("--outputDir", help="output directory (default is input directory)")
     parser.add_argument("--miraDir", help="mira directory (default: .)")
-    parser.add_argument("--noPbcMv", help="option to skip the move of the protobuf files (default: false)")
+    parser.add_argument("--noPbcMv", help="option to skip the move of the protobuf files (default: False)")
 
     args = parser.parse_args()
 
@@ -91,7 +91,7 @@ if __name__== "__main__":
     for file in (csharpFileList + pbcPathList):
         fixFile(file)
 
-    if noMvPbcFiles is false:
+    if noMvPbcFiles is False:
         # Move fixed protobuf files
         for file in pbcFileList:
             sourcePath = os.path.join(inputDirectory, file)
