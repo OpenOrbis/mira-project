@@ -120,6 +120,7 @@ By default the script will only run in the local directory it was called from. T
 `--inputDir=<input directory>`
 `--outputDir=<output directory>` (otherwise use the input directory as default)
 `--miraDir=<mira directory>`
+`--noMvPbcFiles=<true or false>` (allows you to skip the move of the protobuf files, default: false)
 
 The vscode `tasks.json` can be configured to do this automatically in the project repository
 
@@ -139,6 +140,16 @@ The script takes care of generating, fixing, and moving the .c/.h files, as well
 
 ##### Moving and fixing the .c includes
 This part has not been scripted yet, because if someone were to add a new proto file, they would have to manually update the script.
+
+###### (Optional) Moving the protobuf files manually
+If you decide to not move the protobuf files automatically with the script you can still do it manually (or you can move your own ones).
+
+|File|Intended Location|
+| ------ | ------ |
+|`external/debugger_structs.pb-c.(c/h)` | `src/Plugins/Debugger` |
+|`external/debugger.pb-c.(c/h)` | `src/Plugins/Debugger` |
+|`external/filemanager.pb-c.(c/h)` | `src/Plugins/FileManager` |
+|`external/rpc.pb-c.(c/h)` | `src/Messaging/Rpc` |
 
 ###### (Optional) Manually fix the C# protobuf files
 If you did not use the python script, the C# files will not be automatically fixed for you. There is an issue with modern versions of C# and the output that protobuf generates for .cs files.
