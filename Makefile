@@ -109,15 +109,18 @@ loader-build:
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $< ..."
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
+	@mkdir -p $(@D)
 	@$(CC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo "Compiling $< ..."
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
+	@mkdir -p $(@D)
 	@$(CPPC) $(CFLAGS) -std=c++17 -fno-rtti $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."
+	@mkdir -p $(@D)
 	@$(CC) $(SFLAGS) -c -o $@ $< 
 
 clean:
