@@ -202,13 +202,13 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_nidf_libSceDipsw_patchC                        0x00799447
 #define ssc_nidf_libSceDipsw_patchD                        0x00946D87
 
-#define ssc_enable_fakepkg_patch                           0x0
+#define ssc_enable_fakepkg_patch                           0x003E0602
 
 // SceShellCore patches - use free prefix instead fake
-#define ssc_fake_to_free_patch                             0x00EA7B67
+#define ssc_fake_to_free_patch                             0x00EA7A47
 
 // SceShellUI patches - debug patches
-#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0
-#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001BD90
+#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001C090
 
 #endif

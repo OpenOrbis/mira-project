@@ -193,24 +193,24 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchB                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchC                   0x0
+#define ssc_sceKernelIsGenuineCEX_patchA                   0x0011A0DB
+#define ssc_sceKernelIsGenuineCEX_patchB                   0x0066EA3B
+#define ssc_sceKernelIsGenuineCEX_patchC                   0x007F554B
 #define ssc_sceKernelIsGenuineCEX_patchD                   0x0
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA                        0x0
-#define ssc_nidf_libSceDipsw_patchB                        0x0
-#define ssc_nidf_libSceDipsw_patchC                        0x0
+#define ssc_nidf_libSceDipsw_patchA                        0x0011A107
+#define ssc_nidf_libSceDipsw_patchB                        0x0066EA67
+#define ssc_nidf_libSceDipsw_patchC                        0x007F5577
 #define ssc_nidf_libSceDipsw_patchD                        0x0
 
-#define ssc_enable_fakepkg_patch                           0x0
+#define ssc_enable_fakepkg_patch                           0x0032F8F3
 
 // SceShellCore patches - use free prefix instead fake
-#define ssc_fake_to_free_patch                             0x0
+#define ssc_fake_to_free_patch                             0x00C980EE
 
 // SceShellUI patches - debug patches
-#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0
-#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x000198C0
+#define ssu_sceSblRcMgrIsStoreMode_patch                   0x00019BC0
 
 #endif
