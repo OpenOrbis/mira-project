@@ -6,7 +6,7 @@
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
 */
-void Mira::Boot::Patches::install_prerunPatches_405() 
+void Mira::Boot::Patches::install_prerunPatches_405()
 {
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405
 	// You must assign the kernel base pointer before anything is done
@@ -38,7 +38,7 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[5] = 0xC3;
 	kmem[6] = 0x90;
 	kmem[7] = 0x90;
-	
+
 	kmem = (uint8_t *)&gKernelBase[0x00360570];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -48,7 +48,7 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[5] = 0xC3;
 	kmem[6] = 0x90;
 	kmem[7] = 0x90;
-	
+
 	kmem = (uint8_t *)&gKernelBase[0x00360590];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -185,6 +185,19 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem = (uint8_t *)&gKernelBase[0x00287074];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
+
+	// Patch debug setting errors
+	kmem = (uint8_t *)&gKernelBase[0x004CECB7];
+	kmem[0] = 0x00;
+	kmem[1] = 0x00;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+
+	kmem = (uint8_t *)&gKernelBase[0x004CFB9B];
+	kmem[0] = 0x00;
+	kmem[1] = 0x00;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
 
 #endif
 }
