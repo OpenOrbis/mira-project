@@ -1,0 +1,26 @@
+// IDL file for RPC interactions (ported from protobuf)
+
+namespace Mira.Rpc;
+
+enum RpcCategory:byte
+{
+    None = 0,
+    System = 1,
+    Log = 2,
+    Debug = 3,
+    File = 4,
+    Command = 5,
+    Max = 6
+}
+
+struct RpcTransport
+{
+    magic:ubyte; // 0x2
+    category:RpcCategory; // Enum
+    type:uint32;
+    error:int64;
+    isRequest:bool;
+    //data:[ubyte]; // Opaque message data
+    dataSize: uint64;
+    // Manually send data because C sucks
+}

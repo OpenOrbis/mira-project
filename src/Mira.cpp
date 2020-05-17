@@ -363,7 +363,7 @@ bool Mira::Framework::Initialize()
 	// DBG: Intentionally fault
 	//*((uint64_t*)0x1337) = 0xBADBABE;
 
-	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	/*auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
     struct sysent* sysents = sv->sv_table;
 
 	gIoctl = (myIoctl_t)sysents[SYS_IOCTL].sy_call;
@@ -371,7 +371,7 @@ bool Mira::Framework::Initialize()
 
 	gWorkaround = (myWorkaround_t)sysents[SYS_WORKAROUND8849].sy_call;
 	sysents[SYS_WORKAROUND8849].sy_call = (sy_call_t*)OnWorkaround8849;
-
+*/
 	return true;
 }
 

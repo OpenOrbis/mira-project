@@ -315,3 +315,39 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
     if (s_FoundEntry->GetCallback())
         s_FoundEntry->GetCallback()(p_Connection, p_Message);
 }
+
+void MessageManager::SendRawResponse(Rpc::Connection* p_Connection, void* p_Data, size_t p_DataSize)
+{
+    if (p_Connection == nullptr)
+    {
+        WriteLog(LL_Error, "could not get connection.");
+        return;
+    }
+
+    if (p_Data == nullptr)
+    {
+        WriteLog(LL_Error, "invalid data.");
+        return;
+    }
+    
+    if (p_DataSize <= 0 || p_DataSize > MessageManager_MaxMessageSize)
+    {
+        WriteLog(LL_Error, "invalid data size.");
+        return;
+    }
+    auto s_Socket = p_Connection->GetSocket();
+    if (s_Socket < 0)
+    {
+        WriteLog(LL_Error, "invalid socket.");
+        return;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetThreadManager()->GetMiraMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread.");
+        return;
+    }
+
+    auto s_BytesWritten = kwrite_t(s_Socket, p_Data, p_DataSize, s_MainThread);
+}

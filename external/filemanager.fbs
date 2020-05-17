@@ -1,0 +1,215 @@
+
+namespace Mira.Plugins.FileManager;
+
+// ==========================================
+// Echo
+// ==========================================
+
+struct FmEchoRequest
+{
+    message:[char : 1024];
+}
+
+struct FmEchoResponse
+{
+    charsWritten:int32;
+}
+
+// ==========================================
+// Open
+// ==========================================
+
+struct FmOpenRequest
+{
+    flags:int32;
+    mode:int32;
+    path:[char : 1024];
+}
+
+struct FmOpenResponse
+{
+    handle:int32;
+}
+
+// ==========================================
+// Close
+// ==========================================
+
+struct FmCloseRequest
+{
+    handle:int32;
+}
+
+struct FmCloseResponse
+{
+    success:bool;
+}
+
+// ==========================================
+// Seek
+// ==========================================
+
+struct FmSeekRequest
+{
+    handle:int32;
+    offset:int64;
+    whence:int32;
+}
+
+struct FmSeekResponse
+{
+    offset:int64;
+}
+
+// ==========================================
+// Read
+// ==========================================
+
+struct FmReadRequest
+{
+    handle:int32;
+    size:uint64; // Max = 0x4000
+}
+
+struct FmReadResponse
+{
+    data:[ubyte : 0x4000];
+}
+
+// ==========================================
+// Write
+// ==========================================
+
+struct FmWriteRequest
+{
+    handle:int32;
+    size:uint64;
+}
+
+struct FmWriteResponse
+{
+    bytesWritten:int64;
+}
+
+// ==========================================
+// Directory entries
+// ==========================================
+
+struct FmDent
+{
+    fileno:uint32;
+    recLen:uint32;
+    type:uint32;
+    name:[char : 256];
+}
+
+struct FmGetDentsRequest
+{
+    path:[char : 1024];
+}
+
+struct FmGetDentsResponse
+{
+    dentCount: uint64;
+    //dents:[FmDent];
+    // Manually send FmDent back for the dentCount
+}
+
+// ==========================================
+// Stat
+// ==========================================
+
+struct FmTimespec
+{
+    tv_sec:int64;
+    tv_nsec:int32;
+}
+
+struct FmStatPathRequest
+{
+    path:[char : 1024];
+}
+
+struct FmStatHandleRequest
+{
+    handle:int32;
+}
+
+struct FmStatResponse
+{
+    st_dev:uint32;
+    st_ino:uint32;
+    st_mode:uint32;
+    st_nlink:uint32;
+    st_uid:uint32;
+    st_gid:uint32;
+    st_rdev:uint32;
+    st_atim:FmTimespec;
+    st_mtim:FmTimespec;
+    st_ctim:FmTimespec;
+    st_size:int64;
+    st_blocks:int64;
+    st_blksize:uint32;
+    st_flags:uint32;
+    st_gen:uint32;
+    st_lspare:int32;
+    st_birthtim:FmTimespec;
+}
+
+// ==========================================
+// Mkdir
+// ==========================================
+
+struct FmMkdirRequest
+{
+    path:[char : 1024];
+    mode:int32;
+}
+
+struct FmMkdirResponse
+{
+    created:bool;
+}
+
+// ==========================================
+// Rmdir
+// ==========================================
+
+struct FmRmdirRequest
+{
+    path:[char : 1024];
+}
+
+struct FmRmdirResponse
+{
+    removed:bool;
+}
+
+// ==========================================
+// Unlink (delete)
+// ==========================================
+
+struct FmUnlinkRequest
+{
+    path:[char : 1024];
+}
+
+struct FmUnlinkResponse
+{
+    unlinked:bool;
+}
+
+// ==========================================
+// Decrypt self
+// ==========================================
+
+struct FmDecryptSelfRequest
+{
+    path:[char : 1024];
+}
+
+struct FmDecryptSelfResponse
+{
+    dataSize: uint64;
+    // Send the data manually because C sucks nuts
+}

@@ -44,6 +44,15 @@ namespace Mira
             void SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
             void SendResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, uint32_t p_Type, int64_t p_Error, void* p_Data, uint32_t p_DataSize);
             
+            /**
+             * @brief Sends raw data to the socket on the connection, this is needed because C has struct limits which break shit
+             * 
+             * @param p_Connection Rpc connection
+             * @param p_Data Pointer to data buffer
+             * @param p_Size Size of the data buffer
+             */
+            void SendRawResponse(Rpc::Connection* p_Connection, void* p_Data, size_t p_Size);
+            
             void OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
         };
     }
