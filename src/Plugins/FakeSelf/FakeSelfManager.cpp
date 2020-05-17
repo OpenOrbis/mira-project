@@ -396,16 +396,16 @@ int FakeSelfManager::SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, Se
         return -EAGAIN;
     }
     
-    SelfHeader* s_Header = reinterpret_cast<SelfHeader*>(p_Context->header);
-    SelfFakeAuthInfo* s_FakeInfo = reinterpret_cast<SelfFakeAuthInfo*>(p_Context->header + s_Header->headerSize + s_Header->metaSize - 0x100);
-
+    SelfHeader* s_Header = p_Context->header;
+    auto s_Data = reinterpret_cast<const char*>(p_Context->header);
+    auto s_FakeInfo = reinterpret_cast<const SelfFakeAuthInfo*>(s_Data + s_Header->headerSize + s_Header->metaSize - 0x100);
     if (s_FakeInfo->size == sizeof(s_FakeInfo->info))
     {
         memcpy(p_Info, &s_FakeInfo->info, sizeof(*p_Info));
         return 0;
     }
 
-    WriteLog(LL_Error, "ealready");
+    WriteLog(LL_Error, "ealready (no valid authinfo)");
     return -EALREADY;
 }
 
