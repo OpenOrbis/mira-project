@@ -36,8 +36,6 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00360570];
 	kmem[0] = 0xB8;
@@ -46,8 +44,6 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00360590];
 	kmem[0] = 0xB8;
@@ -56,8 +52,6 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	// Enable rwx mapping
 	kmem = (uint8_t *)&gKernelBase[0x0036958D];
@@ -151,20 +145,17 @@ void Mira::Boot::Patches::install_prerunPatches_405()
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// flatz enable debug RIFs
 	kmem = (uint8_t *)&gKernelBase[0x00620B20];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00620B40];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// Enable *all* debugging logs (in vprintf)
 	kmem = (uint8_t *)&gKernelBase[0x00347665];
