@@ -90,6 +90,17 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		printf("OffsetFromMiraEntry: [tf_last_branch_from-mira_entry]:%p [mira_entry-tf_last_branch_from]:%p\n", frame->tf_last_branch_from - reinterpret_cast<uint64_t>(mira_entry), reinterpret_cast<uint64_t>(mira_entry) - frame->tf_last_branch_from);
 		printf("OffsetFromMiraEntryRIP: (%p)\n", (uint64_t)frame->tf_rip - (uint64_t)mira_entry);
 		// _mtx_unlock_spin_flags(s_LoggerMtx, 0);
+
+		// Dump registers
+		printf("registers:n\n");
+		printf("rax: %016llx  rbx: %016llx\n", frame->tf_rax, frame->tf_rbx);
+		printf("rcx: %016llx  rdx: %016llx\n", frame->tf_rcx, frame->tf_rdx);
+		printf("rsi: %016llx  rdi: %016llx\n", frame->tf_rsi, frame->tf_rdi);
+		printf("rbp: %016llx  rsp: %016llx\n", frame->tf_rbp, frame->tf_rsp);
+		printf("r8 : %016llx  r9 : %016llx\n", frame->tf_r8, frame->tf_r9);
+		printf("r10: %016llx  r11: %016llx\n", frame->tf_r10, frame->tf_r11);
+		printf("r12: %016llx  r13: %016llx\n", frame->tf_r12, frame->tf_r13);
+		printf("r14: %016llx  r15: %016llx\n", frame->tf_r14, frame->tf_r15);
 	}
 
 	// _mtx_lock_spin_flags(s_LoggerMtx, 0);
