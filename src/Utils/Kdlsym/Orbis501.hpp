@@ -216,7 +216,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceRegMgrSetInt                        0x004F8940
 #define kdlsym_addr_sceRegMgrGetBin                        0x004FA300
 #define kdlsym_addr_sceRegMgrSetBin                        0x004FA250
-#define kdlsym_addr_sceRegMgrGetStr                        0x0
-#define kdlsym_addr_sceRegMgrSetStr                        0x0
+#define kdlsym_addr_sceRegMgrGetStr                        0x004FA180
+#define kdlsym_addr_sceRegMgrSetStr                        0x004F9FC0
 
 #endif
