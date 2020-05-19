@@ -212,4 +212,12 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001BD90
 #define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001C090
 
+// sceRegMgr
+#define kdlsym_addr_sceRegMgrGetInt                        0x004F9E50
+#define kdlsym_addr_sceRegMgrSetInt                        0x004F8D10
+#define kdlsym_addr_sceRegMgrGetBin                        0x004FA6D0
+#define kdlsym_addr_sceRegMgrSetBin                        0x004FA620
+#define kdlsym_addr_sceRegMgrGetStr                        0x0
+#define kdlsym_addr_sceRegMgrSetStr                        0x0
+
 #endif
