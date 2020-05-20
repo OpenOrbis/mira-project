@@ -50,7 +50,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_exec_new_vmspace                       0x002EAA50
 #define kdlsym_addr_faultin                                0x00311010
 #define kdlsym_addr_fget_unlocked                          0x0042DFD0
-#define kdlsym_addr_fpu_kern_ctx                           0x02528CC0
+#define kdlsym_addr_fpu_kern_ctx                           0x02549700
 #define kdlsym_addr_fpu_kern_enter                         0x00058B60
 #define kdlsym_addr_fpu_kern_leave                         0x00058C60
 #define kdlsym_addr_free                                   0x003F87A0
