@@ -148,6 +148,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_nidf_libSceDipsw_patchC                        0x0
 #define ssc_nidf_libSceDipsw_patchD                        0x0
 
+// SceShellCore patches - enable remote pkg installer
+#define ssc_enable_data_mount_patch                        0x0
+
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x0
 #endif
