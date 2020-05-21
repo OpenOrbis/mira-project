@@ -210,7 +210,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_fake_to_free_patch                             0x00C980EE
 
 // SceShellCore patches - enable remote pkg installer
-#define ssc_enable_data_mount_patch                        0x0
+#define ssc_enable_data_mount_patch                        0x00276A7C
 
 // SceShellUI patches - debug patches
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x000198C0
