@@ -54,13 +54,9 @@ const char* gNull = "(null)";
 uint8_t* gKernelBase = nullptr;
 struct logger_t* gLogger = nullptr;
 
-// ++ LM Patches (eventually move this somewhere better)
-typedef int (*myIoctl_t)(struct thread* td, struct ioctl_args* uap);
 typedef int (*myWorkaround_t)(struct thread* td, void* uap);
 
-static myIoctl_t gIoctl = nullptr;
 static myWorkaround_t gWorkaround = nullptr;
-// -- LM Patches
 
 Mira::Framework* Mira::Framework::m_Instance = nullptr;
 Mira::Framework* Mira::Framework::GetFramework()
@@ -366,30 +362,10 @@ bool Mira::Framework::Initialize()
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
     struct sysent* sysents = sv->sv_table;
 
-	gIoctl = (myIoctl_t)sysents[SYS_IOCTL].sy_call;
-	sysents[SYS_IOCTL].sy_call = (sy_call_t*)OnIoctl;
-
 	gWorkaround = (myWorkaround_t)sysents[SYS_WORKAROUND8849].sy_call;
 	sysents[SYS_WORKAROUND8849].sy_call = (sy_call_t*)OnWorkaround8849;
 
 	return true;
-}
-
-// ++ LM Patches
-int Mira::Framework::OnIoctl(struct thread* p_Thread, struct ioctl_args* p_Uap)
-{
-	switch (p_Uap->com)
-	{
-		case 0xFFFFFFFF40048806:
-		case 0x40048806:
-		{
-			((int*)p_Uap->data)[0] = 1;
-			p_Thread->td_retval[0] = 0;
-			return 0;
-		}
-	}
-
-	return ((int(*)(struct thread* td, void* uap))gIoctl)(p_Thread, p_Uap);
 }
 
 int Mira::Framework::OnWorkaround8849(struct thread* p_Thread, uint32_t* p_Uap)
