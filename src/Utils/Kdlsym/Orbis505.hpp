@@ -108,6 +108,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sbl_keymgr_key_rbtree                  0x02744558
 #define kdlsym_addr_sbl_keymgr_key_slots                   0x02744548
 #define kdlsym_addr_sbl_pfs_sx                             0x0271E5D8
+#define kdlsym_addr_sbl_drv_msg_mtx                        0x0271E210
 #define kdlsym_addr_sceSblACMgrGetPathId                   0x000117E0
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x0063C4F0
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader            0x00642B40
@@ -211,12 +212,4 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001BD90
 #define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001C090
 
-// Eap HDD key
-#define kdlsym_addr_sbl_eap_internal_partition_key         0x02790C90                
-
-#define kdlsym_addr__mtx_lock_spin_flags                   0x00402100  
-#define kdlsym_addr__mtx_unlock_spin_flags                 0x004022C0 
-#define kdlsym_addr_pause                                  0x003FB920
-#define kdlsym_addr_mtx_destroy                            0x004027F0
-#define kdlsym_addr_sx_init_flags                          0x000F5BB0
 #endif

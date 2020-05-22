@@ -193,16 +193,16 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0069B214
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchB                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchC                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchD                   0x0
+#define ssc_sceKernelIsGenuineCEX_patchA                   0x0014BC6B
+#define ssc_sceKernelIsGenuineCEX_patchB                   0x006F3C5B
+#define ssc_sceKernelIsGenuineCEX_patchC                   0x007278D3
+#define ssc_sceKernelIsGenuineCEX_patchD                   0x0086168B
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA                        0x0
-#define ssc_nidf_libSceDipsw_patchB                        0x0
-#define ssc_nidf_libSceDipsw_patchC                        0x0
-#define ssc_nidf_libSceDipsw_patchD                        0x0
+#define ssc_nidf_libSceDipsw_patchA                        0x0014BC97
+#define ssc_nidf_libSceDipsw_patchB                        0x001FEAA8
+#define ssc_nidf_libSceDipsw_patchC                        0x006F3C87
+#define ssc_nidf_libSceDipsw_patchD                        0x008616B7
 
 #define ssc_enable_fakepkg_patch                           0x00385032
 
@@ -210,7 +210,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_fake_to_free_patch                             0x00D50208
 
 // SceShellUI patches - debug patches
-#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0
-#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001A130
+#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001A430
 
 #endif

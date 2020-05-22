@@ -31,3 +31,13 @@ jobs:
         run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make
       - name: make 5.05 elf
         run: MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make
+      - name: Upload 5.05 loader
+        uses: actions/upload-artifact@v2
+        with:
+          name: MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_505.bin
+          path: loader/build/MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_505.bin
+      - name: Upload 5.05 elf
+        uses: actions/upload-artifact@v2
+        with:
+          name: Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_505.elf
+          path: build/Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_505.elf

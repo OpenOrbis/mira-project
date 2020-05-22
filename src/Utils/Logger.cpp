@@ -39,7 +39,7 @@ Logger::Logger() :
 	memset(m_FinalBuffer, 0, sizeof(m_FinalBuffer));
 
 	// Initialize a mutex to prevent overlapping spam
-	auto sx_init_flags = (void(*)(struct sx* sx, const char* description, int opts))kdlsym(sx_init_flags);
+	auto sx_init_flags = (void(*)(struct sx* sx, const char* description, int opts))kdlsym(_sx_init_flags);
 	sx_init_flags(&m_Mutex, "logger sx", 0);
 }
 

@@ -120,6 +120,7 @@ By default the script will only run in the local directory it was called from. T
 `--inputDir=<input directory>`
 `--outputDir=<output directory>` (otherwise use the input directory as default)
 `--miraDir=<mira directory>`
+`--noMvPbcFiles=<true or false>` (allows you to skip the move of the protobuf files, default: false)
 
 The vscode `tasks.json` can be configured to do this automatically in the project repository
 
@@ -139,6 +140,16 @@ The script takes care of generating, fixing, and moving the .c/.h files, as well
 
 ##### Moving and fixing the .c includes
 This part has not been scripted yet, because if someone were to add a new proto file, they would have to manually update the script.
+
+###### (Optional) Moving the protobuf files manually
+If you decide to not move the protobuf files automatically with the script you can still do it manually (or you can move your own ones).
+
+|File|Intended Location|
+| ------ | ------ |
+|`external/debugger_structs.pb-c.(c/h)` | `src/Plugins/Debugger` |
+|`external/debugger.pb-c.(c/h)` | `src/Plugins/Debugger` |
+|`external/filemanager.pb-c.(c/h)` | `src/Plugins/FileManager` |
+|`external/rpc.pb-c.(c/h)` | `src/Messaging/Rpc` |
 
 ###### (Optional) Manually fix the C# protobuf files
 If you did not use the python script, the C# files will not be automatically fixed for you. There is an issue with modern versions of C# and the output that protobuf generates for .cs files.
@@ -221,7 +232,7 @@ Mira provides a plugin framework that can run in kernel mode (userland is soon, 
 
 Want to contribute? Great! There is no set limit on contributors and people wanting to help out in any way!
 
-Join the OpenOrbis discord and have knowledge of C/C++ and FreeBSD or unix-like operating systems, web design and programming, rust-lang, content creator (youtube, twitch), or artist, or just want to find something to help out with like documentation, hosting, etc, kernel experience is a plus but not required by any means.
+Join the [OpenOrbis discord](https://discord.gg/GQr8ydn) and have knowledge of C/C++ and FreeBSD or unix-like operating systems, web design and programming, rust-lang, content creator (youtube, twitch), or artist, or just want to find something to help out with like documentation, hosting, etc, kernel experience is a plus but not required by any means.
 
 #### Building from source
 After following the instructions on cloning the repository and generating the protobuf files, you should be ready to build Mira from source. It was designed to be as easy as possible to build with the provided makefiles.
@@ -370,9 +381,9 @@ And here is an example VSCode `c_cpp_properties.json`
 #### Firmware porting guide
 Lets say you are an eager developer, even a newbie that wants to try and contribute in some way or form to porting to a firmware that is not under active support. Here's the steps you would need to accomplish new builds *from scratch*. We will start by adding a non-existent firmware and work our way from that.
 
-**NOTE: This assumes you already have a kernel dump for your firmware, and things already labeled. If you need help with this step, you can ask in `#help` on the discord but you are pretty much on your own.***
+**NOTE: This assumes you already have a kernel dump for your firmware, and things already labeled. If you need help with this step, you can ask in `#help` on the [Discord](https://discord.gg/GQr8ydn) but you are pretty much on your own.***
 
-**WARNING: DO NOT SEND YOUR DUMPED KERNEL IN THE CHANNEL/DISCORD SERVER AS IT IS COPYRIGHTED MATERIALS AND YOU WILL BE WARNED/BANNED!!**
+**WARNING: DO NOT SEND YOUR DUMPED KERNEL IN THE CHANNEL/[DISCORD SERVER](https://discord.gg/GQr8ydn) AS IT IS COPYRIGHTED MATERIALS AND YOU WILL BE WARNED/BANNED!!**
 
 Lets assume our firmware is `8.88` found in the PlayStation 4 System Software menu.
 

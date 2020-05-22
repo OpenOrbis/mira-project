@@ -230,16 +230,30 @@ SblMapListEntry* FakeSelfManager::SceSblDriverFindMappedPageListByGpuVa(vm_offse
         WriteLog(LL_Error, "invalid gpu va");
         return nullptr;
     }
-    
+
+    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+    auto s_SblDrvMsgMtx = (struct mtx*)kdlsym(sbl_drv_msg_mtx);
+
     SblMapListEntry* s_Entry = *(SblMapListEntry**)kdlsym(gpu_va_page_list);
+    SblMapListEntry* s_FinalEntry = nullptr;
+
+    // Lock before we iterate this list, because other paths can absolutely use it concurrently
+    _mtx_lock_flags(s_SblDrvMsgMtx, 0, __FILE__, __LINE__);
+
     while (s_Entry)
     {
         if (s_Entry->gpuVa == p_GpuVa)
-            return s_Entry;
+        {
+            s_FinalEntry = s_Entry;
+            break;
+        }
+
         s_Entry = s_Entry->next;
     }
 
-    return nullptr;
+    _mtx_unlock_flags(s_SblDrvMsgMtx, 0, __FILE__, __LINE__);
+    return s_FinalEntry;
 }
 
 vm_offset_t FakeSelfManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t* p_NumPageGroups)
@@ -396,16 +410,16 @@ int FakeSelfManager::SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, Se
         return -EAGAIN;
     }
     
-    SelfHeader* s_Header = reinterpret_cast<SelfHeader*>(p_Context->header);
-    SelfFakeAuthInfo* s_FakeInfo = reinterpret_cast<SelfFakeAuthInfo*>(p_Context->header + s_Header->headerSize + s_Header->metaSize - 0x100);
-
+    SelfHeader* s_Header = p_Context->header;
+    auto s_Data = reinterpret_cast<const char*>(p_Context->header);
+    auto s_FakeInfo = reinterpret_cast<const SelfFakeAuthInfo*>(s_Data + s_Header->headerSize + s_Header->metaSize - 0x100);
     if (s_FakeInfo->size == sizeof(s_FakeInfo->info))
     {
         memcpy(p_Info, &s_FakeInfo->info, sizeof(*p_Info));
         return 0;
     }
 
-    WriteLog(LL_Error, "ealready");
+    WriteLog(LL_Error, "ealready (no valid authinfo)");
     return -EALREADY;
 }
 
