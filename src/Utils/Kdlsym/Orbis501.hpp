@@ -186,7 +186,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0063DE7D
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0063DFC1
 #define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x00642DAB
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x006439AC
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x006439C2
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x0063E71C
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x0063F338
 

@@ -43,8 +43,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x0016A530];
 	kmem[0] = 0xB8;
@@ -53,8 +51,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x0016A550];
 	kmem[0] = 0xB8;
@@ -63,8 +59,6 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	// Enable rwx mapping
 	// Done by WildCard
@@ -168,20 +162,17 @@ void Mira::Boot::Patches::install_prerunPatches_455()
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// flatz enable debug RIFs
 	kmem = (uint8_t *)&gKernelBase[0x0062D720];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x0062D740];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
