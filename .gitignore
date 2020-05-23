@@ -9,3 +9,7 @@
 build/*
 .code-workspace*
 reeee/*
+# PVS-Studio Ignores
+project.log
+report.tasks
+strace_out
