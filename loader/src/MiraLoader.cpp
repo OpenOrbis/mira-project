@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include "MiraLoader.hpp"
