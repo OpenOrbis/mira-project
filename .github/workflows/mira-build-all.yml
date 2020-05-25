@@ -28,9 +28,9 @@ jobs:
         run: make clean
         # 5.05 Support
       - name: make 5.05 loader
-        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 MIRA_CHECKS=TRUE make
       - name: make 5.05 elf
-        run: MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make
+        run: MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 MIRA_CHECKS=TRUE make
       - name: Upload 5.05 loader
         uses: actions/upload-artifact@v2
         with:
