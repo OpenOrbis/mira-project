@@ -306,6 +306,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 		kthread_exit();
 		return;
 	}
+	printf("logger created\n");
 
 	// Create launch parameters, this is floating in "free kernel space" so the other process should
 	// be able to grab and use the pointer directly

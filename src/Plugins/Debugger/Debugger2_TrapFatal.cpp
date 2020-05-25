@@ -199,8 +199,10 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 		if(s_InitParams)
 		{
 			printf("## mira base:   %p (size: %p)\n", s_InitParams->payloadBase, s_InitParams->payloadSize);
+			printf("## mira allocated base: %p (size: %p)\n", s_InitParams->allocatedBase, s_InitParams->payloadSize);
 			printf("## mira proc:   %p (entry: %p)\n", s_InitParams->process, s_InitParams->entrypoint);
 			printf("## mira entrypoint (mira_entry): %p\n", mira_entry);
+			printf("## instruction pointer offset (mira allocated base: %p)\n", frame->tf_rip - (uint64_t)s_InitParams->allocatedBase);
 		}
 
 		printf("##     messageManager: %p\n", s_Framework->GetMessageManager());
@@ -209,6 +211,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	}
 
 	printf("##\n");
+	
 	printf("## instruction pointer offset (kernel: %p) (mira_entry: %p)\n##\n",
 		frame->tf_rip - (uint64_t)gKernelBase,
 		frame->tf_rip - (uint64_t)mira_entry

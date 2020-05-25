@@ -420,19 +420,24 @@ int Utilities::KillProcess(struct proc* p)
 int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	auto thr_create = (int (*)(struct thread * td, uint64_t ctx, void* start_func, void *arg, char *stack_base, size_t stack_size, char *tls_base, long * child_tid, long * parent_tid, uint64_t flags, uint64_t rtp))kdlsym(kern_thr_create);
 
+	if (p == nullptr)
+	{
+		WriteLog(LL_Error, "invalid proc!");
+		return -1;
+	}
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
 
 	// Check if arguments is correct
 	if (!p || !entrypoint) {
 		WriteLog(LL_Error, "Invalid argument !");
-		return -1;
+		return -2;
 	}
 
 	// Got substitute plugin
 	Plugins::Substitute* substitute = Mira::Plugins::Substitute::GetPlugin();
 	if (!substitute) {
 		WriteLog(LL_Error, "Substitute dependency is required.");
-		return -2;
+		return -3;
 	}
 
 	size_t s_Size = 0;
@@ -454,7 +459,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 		WriteLog(LL_Error, "[%s] scePthreadCreate: %p", s_TitleId, s_scePthreadCreate);
 		WriteLog(LL_Error, "[%s] pthread_getthreadid_np: %p", s_TitleId, s_pthread_getthreadid_np);
 
-		return -3;
+		return -4;
 	}
 
 	// Determine thr_initial by finding the first instruction *cmp* and got the relative address
@@ -463,12 +468,12 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	s_Ret = proc_rw_mem(p, s_pthread_getthreadid_np, s_Size, s_ValidInstruction, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_pthread_getthreadid_np);
-		return -4;
+		return -5;
 	}
 
 	if ( !(s_ValidInstruction[0] == 0x48 && s_ValidInstruction[1] == 0x83 && s_ValidInstruction[2] == 0x3D) ) {
 		WriteLog(LL_Error, "[%s] Invalid instruction detected ! Abord.", s_TitleId);
-		return -5;
+		return -6;
 	} 
 
 	uint64_t s_RelativeAddress = 0;
@@ -476,7 +481,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	s_Ret = proc_rw_mem(p, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3), s_Size, &s_RelativeAddress, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3));
-		return -6;
+		return -7;
 	}
 
 	void* s_thr_initial = (void*)((uint64_t)s_pthread_getthreadid_np + s_RelativeAddress + 0x8);
@@ -498,7 +503,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	auto s_PayloadSpace = kmmap_t(nullptr, s_PayloadSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0, s_ProcessThread);
 	if (s_PayloadSpace == nullptr || s_PayloadSpace == MAP_FAILED || (uint64_t)s_PayloadSpace < 0) {
 		WriteLog(LL_Error, "[%s] Unable to allocate remote process memory (%llx size) (ret: %llx)", s_TitleId, s_PayloadSize, s_PayloadSpace);
-		return -7;
+		return -8;
 	}
 
 	// Copy payload to process
@@ -507,7 +512,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to write process memory at %p !", s_TitleId, (void*)(s_PayloadSpace));
 		kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
-		return -8;
+		return -9;
 	}
 
 	// Define stack address
@@ -519,7 +524,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	if (s_Ret) {
 		WriteLog(LL_Error, "[%s] Unable to launch thread ! (ret: %d)", s_TitleId, s_Ret);
 		kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
-		return -9;
+		return -10;
 	}
 
 	/* TODO : Cleanup remote process memory

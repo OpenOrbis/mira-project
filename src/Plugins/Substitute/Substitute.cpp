@@ -641,7 +641,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
 
 
     // Get the nids of the function
-    char nids[0xD];
+    char nids[0xD] = { 0 };
     if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
         snprintf(nids, sizeof(nids), "%s", name); // nids = name
     } else {
