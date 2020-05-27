@@ -37,8 +37,6 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00011730];
 	kmem[0] = 0xB8;
@@ -47,8 +45,6 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00011750];
 	kmem[0] = 0xB8;
@@ -57,8 +53,6 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	// Enable rwx mapping
 	kmem = (uint8_t *)&gKernelBase[0x000FCC38];
@@ -156,20 +150,17 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// flatz enable debug RIFs
 	kmem = (uint8_t *)&gKernelBase[0x0064AED0];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x0064AEF0];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
@@ -178,7 +169,7 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[1] = 0x38;
 
 	// flatz allow mangled symbol in dynlib_do_dlsym
-	kmem = (uint8_t *)&gKernelBase[0x002AF877];
+	kmem = (uint8_t *)&gKernelBase[0x002AFB47];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -187,7 +178,7 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[5] = 0x90;
 
 	// Enable mount for unprivileged user
-	kmem = (uint8_t *)&gKernelBase[0x001DEAEE];
+	kmem = (uint8_t *)&gKernelBase[0x001DEBFE];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -218,6 +209,15 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[1] = 0x00;
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
+
+	// prtinf hook patches
+	kmem = (uint8_t *)&gKernelBase[0x00435D66];
+	kmem[0] = 0xEB;
+	kmem[1] = 0x1E;
+
+	kmem = (uint8_t *)&gKernelBase[0x00435D84];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
 
 #endif
 }

@@ -33,6 +33,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_allproc                                0x01FE3498
 #define kdlsym_addr_allproc_lock                           0x01FE3438
 #define kdlsym_addr_avcontrol_sleep                        0x006AE670
+#define kdlsym_addr_cloneuio                               0x0035F810
+#define kdlsym_addr_console_cdev                           0x01A06FE0
+#define kdlsym_addr_console_write                          0x0026EB20
 #define kdlsym_addr_contigfree                             0x002761C0
 #define kdlsym_addr_contigmalloc                           0x00275E60
 #define kdlsym_addr_copyin                                 0x00286DF0
@@ -40,6 +43,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_copyout                                0x00286D70
 #define kdlsym_addr_critical_enter                         0x001E2660
 #define kdlsym_addr_critical_exit                          0x001E2670
+#define kdlsym_addr_deci_tty_write                         0x00470EF0
 #define kdlsym_addr_destroy_dev                            0x001F5BF0
 //#define kdlsym_addr_dmem_start_app_process                 0x0
 #define kdlsym_addr_dynlib_do_dlsym                        0x000E0770
@@ -75,6 +79,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_kproc_exit                             0x001C9590
 #define kdlsym_addr_kthread_add                            0x001C9890
 #define kdlsym_addr_kthread_exit                           0x001C9B60
+#define kdlsym_addr_M_IOV                                  0x01340C90
 #define kdlsym_addr_M_LINKER                               0x013468D0
 #define kdlsym_addr_M_MOUNT                                0x01356480
 #define kdlsym_addr_M_TEMP                                 0x0134B730
@@ -175,6 +180,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vsnprintf                              0x00347900
 #define kdlsym_addr_wakeup                                 0x0008A7C0
 #define kdlsym_addr_Xfast_syscall                          0x0030EB30
+
+// Kernel Hooks
+#define kdlsym_addr_printf_hook                            0x018876A8
 
 // FakeSelf hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0061185C
