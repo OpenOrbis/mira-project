@@ -34,6 +34,7 @@ namespace Mira
             Mira::Utils::IModule* m_FakePkgManager;
             Mira::Utils::IModule* m_EmuRegistry;
             Mira::Utils::IModule* m_Substitute;
+            Mira::Utils::IModule* m_BrowserActivator;
             Mira::Utils::IModule* m_SyscallGuard;
 
         public:
@@ -41,6 +42,7 @@ namespace Mira
             Mira::Utils::IModule* GetFakeSelfManager() { return m_FakeSelfManager; }
             Mira::Utils::IModule* GetEmulatedRegistry() { return m_EmuRegistry; }
             Mira::Utils::IModule* GetSubstitute() { return m_Substitute; }
+            Mira::Utils::IModule* GetBrowserActivator() { return m_BrowserActivator; }
             Mira::Utils::IModule* GetSyscallGuard() { return m_SyscallGuard; }
         };
     }
