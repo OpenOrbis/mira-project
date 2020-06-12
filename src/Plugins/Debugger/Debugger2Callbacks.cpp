@@ -764,6 +764,9 @@ void Debugger2::OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const
 
     if(!s_Debugger->GetProcessThreads(s_DbgThreads, s_ThreadCount))
     {
+        if (s_DbgThreads != nullptr)
+            delete [] s_DbgThreads;
+        
         WriteLog(LL_Error, "could not get process threads");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
