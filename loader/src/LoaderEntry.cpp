@@ -91,7 +91,7 @@ char* usbpath()
 	for (int x = 0; x <= 7; x++)
 	{
 		snprintf(usbbuf, 100, "/mnt/usb%i/.dirtest", x);
-		usb = sceKernelOpen(usbbuf, 0x0001 | 0x0200 | 0x0400, 0777);
+		usb = sceKernelOpen(usbbuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 		if (usb != -1)
 		{
 			sceKernelClose(usb);
@@ -171,8 +171,8 @@ void mira_escape(struct thread* td, void* uap)
 
 int MD5_hash_compare(const char *usbfile)
 {
-	 unsigned char c[16];
-	 unsigned char c2[16];
+	 unsigned char c[MD5_HASH_LENGTH];
+	 unsigned char c2[MD5_HASH_LENGTH];
     int i;
     FILE *usb = fopen (usbfile, "rb");
     FILE *hdd = fopen ("/user/MiraLoader.elf", "rb");
@@ -198,14 +198,9 @@ int MD5_hash_compare(const char *usbfile)
     MD5_Final (c2,&mdContext2);
 
 
-  printf("MD5 HASH OF USB ELF IS %i%i%i%i%i%i%i%i%i%i%i%i%i%i%i\n", c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15]);
-  printf("MD5 HASH OF HDD ELF IS %i%i%i%i%i%i%i%i%i%i%i%i%i%i%i\n", c2[1], c2[2], c2[3], c2[4], c2[5], c2[6], c2[7], c2[8], c2[9], c2[10], c2[11], c2[12], c2[13], c2[14], c2[15]);
-
-
     for(i = 0; i < 16; i++) 
     {
-    	printf("c[%i] = %i\n", i, c[i]);
-    	printf("c2[%i] = %i\n", i, c2[i]);
+         
          if(c[i] != c2[i])
          {
          	return DIFFERENT_HASH;
@@ -220,16 +215,15 @@ int MD5_hash_compare(const char *usbfile)
 return SAME_HASH;
 }
 
-     int ftruncate(int fd, off_t length)
-     {
-     	return syscall(480, fd, length);
-     }
+int ftruncate(int fd, off_t length)
+ {
+     	return syscall2(480, fd, length);
+  }
 
-
-    int munmap(void *addr,	size_t len)
-    {
-    	return syscall(73, addr, len);
-    }
+  int munmap(void *addr, size_t len)
+  {
+    	return syscall2(73, addr, len);
+   }
 
 int copyFile(char *sourcefile)
 {
@@ -239,7 +233,7 @@ int copyFile(char *sourcefile)
     size_t filesize;
 
     /* SOURCE */
-    sfd = sceKernelOpen(sourcefile, O_RDONLY, 0x000);
+    sfd = sceKernelOpen(sourcefile, O_RDONLY, 0);
     filesize = sceKernelLseek(sfd, 0, SEEK_END);
 
     if(filesize < 0) return -1;
@@ -247,7 +241,7 @@ int copyFile(char *sourcefile)
     src = _mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, sfd, 0);
 
     /* DESTINATION */
-    dfd = sceKernelOpen("/user/MiraLoader.elf", O_RDWR | O_CREAT | O_TRUNC, 0666);
+    dfd = sceKernelOpen("/user/MiraLoader.elf", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
     ftruncate(dfd, filesize);
 
@@ -338,7 +332,7 @@ extern "C" void* mira_entry(void* args)
 
      memset(buffer, 0, bufferSize);
 
-	int hddfile = sceKernelOpen("/user/MiraLoader.elf", 0x0000, 0x0000); 
+	int hddfile = sceKernelOpen("/user/MiraLoader.elf", O_RDONLY, 0); 
 	
 if (strlen(usbpath()) == 0 || hddfile < 0)
 {
@@ -403,13 +397,13 @@ network:
 
 if (strlen(usbpath()) != 0 ||  hddfile > 0)
 {
- char filebuffer[200] = { 0 };
+ char filebuffer[MAX_PATH] = { 0 };
 
 
 
 
-snprintf(filebuffer, 200, "%s/MiraLoader.elf", usbpath());
-int filefd = sceKernelOpen(filebuffer, 0x000, 0x000);
+snprintf(filebuffer, MAX_PATH, "%s/MiraLoader.elf", usbpath());
+int filefd = sceKernelOpen(filebuffer, O_RDONLY, 0);
 if(filefd > 0)
 {
 	WriteNotificationLog("Found USB");
@@ -422,13 +416,13 @@ if(filefd > 0)
 if (filefd > 0)
 {
 
-	if (sceKernelOpen("/user/MiraLoader.elf", 0x0000, 0x0000) > 0)
+	if (sceKernelOpen("/user/MiraLoader.elf", O_RDONLY, 0) > 0)
 	{
 		printf("HDD ELF already exists checking Hashs\n");
 		if (MD5_hash_compare(filebuffer) != SAME_HASH)
 		{
 
-            printf("MD5_hash_compare Report different HASH copying\n");
+                        printf("MD5_hash_compare Report different HASH copying\n");
 			if (copyFile(filebuffer) == 0)
 			{
 
@@ -467,7 +461,7 @@ else
 	
 
 
-    currentSize = sceKernelLseek(filefd, 0, 2);
+    currentSize = sceKernelLseek(filefd, 0, SEEK_END);
 
 	if (currentSize < 0)
 	{
@@ -477,7 +471,7 @@ else
     }
 
 
-    sceKernelLseek(filefd, 0, 0);
+    sceKernelLseek(filefd, 0, SEEK_SET);
 
 	 
 	 buffer = (unsigned char*)_mmap(0,currentSize,PROT_READ,MAP_FILE|MAP_PRIVATE,filefd,0);
