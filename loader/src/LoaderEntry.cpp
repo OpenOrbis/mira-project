@@ -89,7 +89,7 @@ char* usbpath()
 	usbbuf[0] = '\0';
 	for (int x = 0; x <= 7; x++)
 	{
-		snprintf(usbbuf, 100, "/mnt/usb%i/.dirtest", x);
+		snprintf(usbbuf, sizeof(usbbuf), "/mnt/usb%i/.dirtest", x);
 		usb = sceKernelOpen(usbbuf, O_WRONLY | O_CREAT | O_TRUNC, 0777);
 		if (usb != -1)
 		{
@@ -331,7 +331,7 @@ extern "C" void* mira_entry(void* args)
 
      memset(buffer, 0, bufferSize);
 
-	int hddfile = sceKernelOpen("/user/MiraLoader.elf", O_RDONLY, 0); 
+int hddfile = sceKernelOpen("/user/MiraLoader.elf", O_RDONLY, 0); 
 	
 if (strlen(usbpath()) == 0 || hddfile < 0)
 {
@@ -407,7 +407,6 @@ if(filefd > 0)
 {
 	WriteNotificationLog("Found USB");
 	printf("USB at %s\n", filebuffer);
-	//WriteNotificationLog(filebuffer);
 }
 
 
