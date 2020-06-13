@@ -1,0 +1,43 @@
+name: Orbis474
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+        # Checkout the repository
+      - uses: actions/checkout@v2
+        # Install required stuff needed to build Mira
+      - name: preinstall
+        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck
+        # Handle loader crap
+      - name: create loader directories
+        run: cd loader; make create
+      - name: clean loader
+        run: cd loader; make clean
+      - name: create mira directories
+        run: make create
+      - name: clean mira
+        run: make clean
+        # 4.74 Support
+      - name: make 4.74 loader
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_474 MIRA_CHECKS=TRUE make
+      - name: make 4.74 elf
+        run: MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_474 MIRA_CHECKS=TRUE make
+      - name: Upload 4.74 loader
+        uses: actions/upload-artifact@v2
+        with:
+          name: MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_474.bin
+          path: loader/build/MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_474.bin
+      - name: Upload 4.74 elf
+        uses: actions/upload-artifact@v2
+        with:
+          name: Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_474.elf
+          path: build/Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_474.elf
