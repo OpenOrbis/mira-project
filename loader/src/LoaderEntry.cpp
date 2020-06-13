@@ -338,7 +338,9 @@ extern "C" void* mira_entry(void* args)
 
      memset(buffer, 0, bufferSize);
 
-if (strlen(usbpath()) == 0)
+	int hddfile = sceKernelOpen("/user/MiraLoader.elf", 0x0000, 0x0000); 
+	
+if (strlen(usbpath()) == 0 || hddfile < 0)
 {
 network:
 
@@ -398,7 +400,6 @@ network:
 	sceNetSocketClose(serverSocket);
 }
 
-int hddfile = sceKernelOpen("/user/MiraLoader.elf", 0x0000, 0x0000); 
 
 if (strlen(usbpath()) != 0 ||  hddfile > 0)
 {
