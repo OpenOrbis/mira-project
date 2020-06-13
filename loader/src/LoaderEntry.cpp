@@ -216,12 +216,12 @@ return SAME_HASH;
 
 int ftruncate(int fd, off_t length)
  {
-     	return syscall2(480, fd, length);
+     	return syscall(480, fd, length);
   }
 
   int munmap(void *addr, size_t len)
   {
-    	return syscall2(73, addr, len);
+    	return syscall(73, addr, len);
    }
 
 int copyFile(char *sourcefile)
@@ -396,12 +396,12 @@ network:
 
 if (strlen(usbpath()) != 0 ||  hddfile > 0)
 {
- char filebuffer[MAX_PATH] = { 0 };
+ char filebuffer[PATH_MAX] = { 0 };
 
 
 
 
-snprintf(filebuffer, MAX_PATH, "%s/MiraLoader.elf", usbpath());
+snprintf(filebuffer, PATH_MAX, "%s/MiraLoader.elf", usbpath());
 int filefd = sceKernelOpen(filebuffer, O_RDONLY, 0);
 if(filefd > 0)
 {
