@@ -33,7 +33,8 @@ extern "C"
 #include <sys/fcntl.h>
 #include <sys/mman.h>
 #include <netinet/in.h>
-
+#include <Utils/_Syscall.hpp>
+#include <MD5/md5.h>
 #include <Boot/MiraLoader.hpp>
 
 using namespace Mira::Utils;
@@ -57,9 +58,53 @@ int(*sceNetListen)(int, int) = nullptr;
 int(*sceNetAccept)(int, struct sockaddr *, unsigned int *) = nullptr;
 int(*sceNetRecv)(int, void *, size_t, int) = nullptr;
 
+
+typedef int FILE;
+
+void *(*fmemcpy)(void *destination, const void *source, size_t num);
+FILE *(*fopen)(const char *filename, const char *mode) = nullptr;
+size_t (*fread)(void *ptr, size_t size, size_t count, FILE *stream) = nullptr;
+size_t (*fwrite)(const void * ptr, size_t size, size_t count, FILE *stream ) = nullptr;
+int (*fseek)(FILE *stream, long int offset, int origin) = nullptr;
+long int(*ftell)(FILE *stream) = nullptr;
+int (*fclose)(FILE *stream) = nullptr;
+void *(*fuck_malloc)(size_t size) = nullptr;
+void (*fuck_free)(void *ptr) = nullptr;
+
 int(*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 
 void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap);
+
+int (*sceKernelOpen)(const char *path, int flags, int mode)= nullptr;
+ssize_t (*sceKernelRead)(int fd, void *buf, size_t nbyte)= nullptr;
+int (*sceKernelLseek)(int fd, off_t offset, int whence)= nullptr;
+int (*sceKernelClose)(int fd)= nullptr;
+ssize_t (*sceKernelWrite)(int d, const void *buf, size_t nbytes)= nullptr;
+int (*printf)(const char *_Restrict, ...);
+
+
+char* usbpath()
+{
+	int usb;
+	static char usbbuf[100];
+	usbbuf[0] = '\0';
+	for (int x = 0; x <= 7; x++)
+	{
+		snprintf(usbbuf, 100, "/mnt/usb%i/.dirtest", x);
+		usb = sceKernelOpen(usbbuf, 0x0001 | 0x0200 | 0x0400, 0777);
+		if (usb != -1)
+		{
+			sceKernelClose(usb);
+			
+			snprintf(usbbuf, 100, "/mnt/usb%i", x);
+
+			return usbbuf;
+
+		}
+	}
+
+	return NULL;
+}
 
 
 void WriteNotificationLog(const char* text)
@@ -121,6 +166,109 @@ void mira_escape(struct thread* td, void* uap)
 	printf("[-] mira_escape\n");
 }
 
+#define DIFFERENT_HASH 1
+#define SAME_HASH 0
+
+int MD5_hash_compare(const char *usbfile)
+{
+	 unsigned char c[16];
+	 unsigned char c2[16];
+    int i;
+    FILE *usb = fopen (usbfile, "rb");
+    FILE *hdd = fopen ("/user/MiraLoader.elf", "rb");
+    MD5_CTX mdContext;
+
+    MD5_CTX mdContext2;
+    int bytes2 = 0;
+    unsigned char data2[1024];
+
+    int bytes = 0;
+    unsigned char data[1024];
+
+    MD5_Init (&mdContext);
+    while ((bytes = fread (data, 1, 1024, usb)) != 0)
+        MD5_Update (&mdContext, data, bytes);
+    MD5_Final (c,&mdContext);
+   
+
+
+    MD5_Init (&mdContext2);
+    while ((bytes2 = fread (data2, 1, 1024, hdd)) != 0)
+        MD5_Update (&mdContext2, data2, bytes2);
+    MD5_Final (c2,&mdContext2);
+
+
+  printf("MD5 HASH OF USB ELF IS %i%i%i%i%i%i%i%i%i%i%i%i%i%i%i\n", c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12], c[13], c[14], c[15]);
+  printf("MD5 HASH OF HDD ELF IS %i%i%i%i%i%i%i%i%i%i%i%i%i%i%i\n", c2[1], c2[2], c2[3], c2[4], c2[5], c2[6], c2[7], c2[8], c2[9], c2[10], c2[11], c2[12], c2[13], c2[14], c2[15]);
+
+
+    for(i = 0; i < 16; i++) 
+    {
+    	printf("c[%i] = %i\n", i, c[i]);
+    	printf("c2[%i] = %i\n", i, c2[i]);
+         if(c[i] != c2[i])
+         {
+         	return DIFFERENT_HASH;
+         }
+
+
+    }
+
+    fclose (usb);
+    fclose (hdd);
+
+return SAME_HASH;
+}
+
+     int ftruncate(int fd, off_t length)
+     {
+     	return syscall(480, fd, length);
+     }
+
+
+    int munmap(void *addr,	size_t len)
+    {
+    	return syscall(73, addr, len);
+    }
+
+int copyFile(char *sourcefile)
+{
+
+    int sfd, dfd;
+    char *src, *dest;
+    size_t filesize;
+
+    /* SOURCE */
+    sfd = sceKernelOpen(sourcefile, O_RDONLY, 0x000);
+    filesize = sceKernelLseek(sfd, 0, SEEK_END);
+
+    if(filesize < 0) return -1;
+
+    src = _mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, sfd, 0);
+
+    /* DESTINATION */
+    dfd = sceKernelOpen("/user/MiraLoader.elf", O_RDWR | O_CREAT | O_TRUNC, 0666);
+
+    ftruncate(dfd, filesize);
+
+    dest = _mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, dfd, 0);
+
+    /* COPY */
+
+    fmemcpy(dest, src, filesize);
+
+
+    munmap(src, filesize);
+    munmap(dest, filesize);
+
+    sceKernelClose(sfd);
+    sceKernelClose(dfd);
+
+
+    return 0;
+}
+//libkernel_web.sprx
+//libkernel_sys.sprx
 
 extern "C" void* mira_entry(void* args)
 {
@@ -130,12 +278,37 @@ extern "C" void* mira_entry(void* args)
 	//int32_t sysUtilModuleId = -1;
 	int32_t netModuleId = -1;
 	int32_t libcModuleId = -1;
+	int32_t libkernModuleId = -1;
 	//int32_t libKernelWebModuleId = -1;
 
 	{
 		Dynlib::LoadPrx("libSceLibcInternal.sprx", &libcModuleId);
 
 		Dynlib::Dlsym(libcModuleId, "snprintf", &snprintf);
+
+		/* FILE Stuff*/
+
+	Dynlib::Dlsym(libcModuleId, "fopen", &fopen);
+	Dynlib::Dlsym(libcModuleId, "memcpy", &fmemcpy);
+	Dynlib::Dlsym(libcModuleId, "fread", &fread);
+	Dynlib::Dlsym(libcModuleId, "fwrite", &fwrite);
+	Dynlib::Dlsym(libcModuleId, "fseek", &fseek);
+	Dynlib::Dlsym(libcModuleId, "ftell", &ftell);
+	Dynlib::Dlsym(libcModuleId, "fclose", &fclose);
+	Dynlib::Dlsym(libcModuleId, "printf", &printf);
+
+
+
+		if(Dynlib::LoadPrx("libkernel_web.sprx", &libkernModuleId))
+		    Dynlib::LoadPrx("libkernel_sys.sprx", &libkernModuleId);
+
+	Dynlib::Dlsym(libkernModuleId, "sceKernelOpen", &sceKernelOpen);
+	Dynlib::Dlsym(libkernModuleId, "sceKernelClose", &sceKernelClose);
+	Dynlib::Dlsym(libkernModuleId, "sceKernelLseek", &sceKernelLseek);
+	Dynlib::Dlsym(libkernModuleId, "sceKernelWrite", &sceKernelWrite);
+
+
+
 
 	}
 
@@ -159,7 +332,16 @@ extern "C" void* mira_entry(void* args)
 		WriteNotificationLog("could not allocate 5MB buffer");
 		return nullptr;
 	}
-	memset(buffer, 0, bufferSize);
+
+	int32_t currentSize = 0;
+	int32_t recvSize = 0;
+
+     memset(buffer, 0, bufferSize);
+
+if (strlen(usbpath()) == 0)
+{
+network:
+
 	//Loader::Memset(buffer, 0, bufferSize);
 	// Hold our server socket address
 	struct sockaddr_in serverAddress = { 0 };
@@ -205,8 +387,7 @@ extern "C" void* mira_entry(void* args)
 		return nullptr;
 	}
 
-	int32_t currentSize = 0;
-	int32_t recvSize = 0;
+
 
 	// Recv one byte at a time until we get our buffer
 	while ((recvSize = sceNetRecv(clientSocket, buffer + currentSize, bufferSize - currentSize, 0)) > 0)
@@ -215,6 +396,106 @@ extern "C" void* mira_entry(void* args)
 	// Close the client and server socket connections
 	sceNetSocketClose(clientSocket);
 	sceNetSocketClose(serverSocket);
+}
+
+int hddfile = sceKernelOpen("/user/MiraLoader.elf", 0x0000, 0x0000); 
+
+if (strlen(usbpath()) != 0 ||  hddfile > 0)
+{
+ char filebuffer[200] = { 0 };
+
+
+
+
+snprintf(filebuffer, 200, "%s/MiraLoader.elf", usbpath());
+int filefd = sceKernelOpen(filebuffer, 0x000, 0x000);
+if(filefd > 0)
+{
+	WriteNotificationLog("Found USB");
+	printf("USB at %s\n", filebuffer);
+	//WriteNotificationLog(filebuffer);
+}
+
+
+
+if (filefd > 0)
+{
+
+	if (sceKernelOpen("/user/MiraLoader.elf", 0x0000, 0x0000) > 0)
+	{
+		printf("HDD ELF already exists checking Hashs\n");
+		if (MD5_hash_compare(filebuffer) != SAME_HASH)
+		{
+
+            printf("MD5_hash_compare Report different HASH copying\n");
+			if (copyFile(filebuffer) == 0)
+			{
+
+				filefd = hddfile;
+				
+			}
+			else
+			{
+				WriteNotificationLog("Copy FAILED switching to Network Mode");
+				goto network;
+			}
+		}
+		else
+		{
+			printf("[UPDATE] MD5_hash_compare Reports SAME HASH no copying needed\n");
+		}
+	}
+	else
+	{
+		printf("HDD ELF DOESNT Exist && USB is connected with file copying from %s\n", filebuffer);
+		if (copyFile(filebuffer) == -1)
+		{
+			WriteNotificationLog("Copy FAILED switching to Network Mode");
+			goto network;
+		}
+
+	}
+
+}
+else
+{
+	WriteNotificationLog("Loading from HDD no USB");
+	printf("Loading from HDD no USB\n");
+	filefd = hddfile;
+}
+	
+
+
+    currentSize = sceKernelLseek(filefd, 0, 2);
+
+	if (currentSize < 0)
+	{
+        WriteNotificationLog("invaild file size switching to Network Mode");
+        goto network;
+
+    }
+
+
+    sceKernelLseek(filefd, 0, 0);
+
+	 
+	 buffer = (unsigned char*)_mmap(0,currentSize,PROT_READ,MAP_FILE|MAP_PRIVATE,filefd,0);
+  if (buffer == MAP_FAILED) {WriteNotificationLog("Failed to alloc MMAP switching to Network Mode");  goto network;}
+
+
+  	sceKernelClose(filefd);
+	sceKernelClose(hddfile);
+
+}
+	
+else
+{
+WriteNotificationLog("File Not Found Switching to Network Mode");
+goto network;
+
+}
+
+
 
 	// Determine if we launch a elf or a payload
 	if (buffer[0] == ELFMAG0 &&
