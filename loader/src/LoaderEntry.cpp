@@ -333,7 +333,7 @@ extern "C" void* mira_entry(void* args)
 
 int hddfile = sceKernelOpen("/user/MiraLoader.elf", O_RDONLY, 0); 
 	
-if (strlen(usbpath()) == 0 || hddfile < 0)
+if (strlen(usbpath()) == 0 && hddfile < 0)
 {
 network:
 
