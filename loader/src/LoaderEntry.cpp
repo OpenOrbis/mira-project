@@ -418,8 +418,8 @@ if (0 < filefd)
 		printf("HDD ELF already exists checking Hashs\n");
 		if (MD5_hash_compare(filebuffer) != SAME_HASH)
 		{
-
-                        printf("MD5_hash_compare Report different HASH copying\n");
+                        
+                        WriteNotificationLog("MD5_hash_compare Report different HASH copying\n");
 			if (copyFile(filebuffer) == 0)
 			{
 
