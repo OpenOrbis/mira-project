@@ -2369,8 +2369,8 @@ int klink(const	char *path, const char	*link, struct thread* td)
 	td->td_retval[0] = 0;
 
 	// call syscall
-	uap.path = path:
-	uap.link = link;
+	uap.path = (char*)path;
+	uap.link = (char*)link;
 
 	error = sys_link(td, &uap);
 	if (error)
@@ -2424,11 +2424,11 @@ int klinkat(int	fd1, const char	*path1,	int fd2, const char *path2, int	flag, st
 	td->td_retval[0] = 0;
 
 	// call syscall
-	uap.fd1 = fd1:
-	uap.path1 = path1;
-	uap.fd2 = fd2:
-	uap.path2 = path2;
-	uap.flag = flag:
+	uap.fd1 = fd1;
+	uap.path1 = (char*)path1;
+	uap.fd2 = fd2;
+	uap.path2 = (char*)path2;
+	uap.flag = flag;
 
 	error = sys_linkat(td, &uap);
 	if (error)
@@ -2446,6 +2446,58 @@ int klinkat_t(int fd1, const char *path1, int fd2, const char *path2, int flag, 
 	for (;;)
 	{
 		ret = klinkat(fd1, path1, fd2, path2, flag, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int ksandbox_path_internal(char* path, struct thread* td) {
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_sandbox_path = (int(*)(struct thread*, struct sandbox_path_args*))sysents[SYS_SANDBOX_PATH].sy_call;
+	if (!sys_sandbox_path)
+		return -1;
+
+	int error;
+	struct sandbox_path_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = path;
+
+	error = sys_sandbox_path(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int ksandbox_path_t(char* path, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = ksandbox_path_internal(path, td);
 		if (ret < 0)
 		{
 			if (ret == -EINTR)

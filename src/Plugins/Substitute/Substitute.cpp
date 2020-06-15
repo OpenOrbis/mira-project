@@ -71,8 +71,8 @@ bool Substitute::OnLoad()
     m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
     // Substitute syscall hook (PRX Loader)
-    sys_dynlib_load_prx_p = (void*)sysents[SYS_DYNLIB_LOAD_PRX].sy_call;
-    sysents[SYS_DYNLIB_LOAD_PRX].sy_call = (sy_call_t*)Sys_dynlib_load_prx_hook;
+    sys_dynlib_dlsym_p = (void*)sysents[SYS_DYNLIB_DLSYM].sy_call;
+    sysents[SYS_DYNLIB_DLSYM].sy_call = (sy_call_t*)Sys_dynlib_dlsym_hook;
 
     mtx_init(&hook_mtx, "Substitute SPIN Lock", NULL, MTX_SPIN);
 
@@ -107,9 +107,9 @@ bool Substitute::OnUnload()
     }
 
     // Cleanup substitute hook (PRX Loader)
-    if (sys_dynlib_load_prx_p) {
-        sysents[SYS_DYNLIB_LOAD_PRX].sy_call = (sy_call_t*)sys_dynlib_load_prx_p;
-        sys_dynlib_load_prx_p = nullptr;
+    if (sys_dynlib_dlsym_p) {
+        sysents[SYS_DYNLIB_DLSYM].sy_call = (sy_call_t*)sys_dynlib_dlsym_p;
+        sys_dynlib_dlsym_p = nullptr;
     }
 
     CleanupAllHook();
@@ -990,13 +990,12 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
 
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
     // Check if it's a valid process
-    if ( s_TitleId[0] == 0 )
+    if ( !s_TitleId || s_TitleId[0] == 0 )
         return;
 
     char s_SprxDirPath[PATH_MAX];
@@ -1026,6 +1025,23 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         return;
     }
 
+    // Get ucred and filedesc of current thread
+    struct ucred* curthread_cred = curthread->td_proc->p_ucred;
+    struct filedesc* curthread_fd = curthread->td_proc->p_fd;
+
+    // Save current cred and fd
+    struct ucred orig_curthread_cred = *curthread_cred;
+    struct filedesc orig_curthread_fd = *curthread_fd;
+
+    // Set max to current thread cred and fd
+    curthread_cred->cr_uid = 0;
+    curthread_cred->cr_ruid = 0;
+    curthread_cred->cr_rgid = 0;
+    curthread_cred->cr_groups[0] = 0;
+
+    curthread_cred->cr_prison = *(struct prison**)kdlsym(prison0);
+    curthread_fd->fd_rdir = curthread_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+
     // Mounting substitute folder into the process
     char s_RealSprxFolderPath[PATH_MAX];
     char s_substituteFullMountPath[PATH_MAX];
@@ -1049,92 +1065,13 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         return;
     }
 
-    // Get ucred and filedesc of current thread
-    struct ucred* curthread_cred = curthread->td_proc->p_ucred;
-    struct filedesc* curthread_fd = curthread->td_proc->p_fd;
-
-    // Save current cred and fd
-    struct ucred orig_curthread_cred = *curthread_cred;
-    struct filedesc orig_curthread_fd = *curthread_fd;
-
-    // Set max to current thread cred and fd
-    curthread_cred->cr_uid = 0;
-    curthread_cred->cr_ruid = 0;
-    curthread_cred->cr_rgid = 0;
-    curthread_cred->cr_groups[0] = 0;
-
-    curthread_cred->cr_prison = *(struct prison**)kdlsym(prison0);
-    curthread_fd->fd_rdir = curthread_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
-
     // Mounting
     ret = Utilities::MountNullFS(s_substituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY);
     if (ret < 0) {
         krmdir_t(s_substituteFullMountPath, s_MainThread);
         WriteLog(LL_Error, "[%s] could not mount folder (%s => %s) (%d).", s_TitleId, s_RealSprxFolderPath, s_substituteFullMountPath, ret);
-        goto end;
+        return;
     }
-
-    // Prepare sce_modules folders
-    auto s_SceModuleDir = kopen_t("/sce_module/", 0x0000 | 0x00020000, 0777, s_ProcessThread);
-    if (s_DirectoryHandle < 0)
-    {
-        // Restore td ret value
-        td->td_retval[0] = original_td_value;
-        return ret;
-    }
-
-    // Define base folder research variable
-    uint64_t s_DentCount = 0;
-    char s_Buffer[0x1000] = { 0 };
-    memset(s_Buffer, 0, sizeof(s_Buffer));
-    int32_t s_ReadCount = 0;
-
-    // Check for available modules inside sce_modules ...
-    bool libc_missing = true;
-    bool libfios_missing = true;
-
-    s_DentCount = 0;
-    memset(s_Buffer, 0, sizeof(s_Buffer));
-    s_ReadCount = 0;
-    for (;;)
-    {
-        memset(s_Buffer, 0, sizeof(s_Buffer));
-        s_ReadCount = kgetdents_t(s_SceModuleDir, s_Buffer, sizeof(s_Buffer), td);
-        if (s_ReadCount <= 0)
-            break;
-        
-        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
-        {
-            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
-            s_DentCount++;
-
-            // Check if the sprx is legit
-            if (!strcmp(l_Dent->d_name, "libc.prx") || !strcmp(l_Dent->d_name, "libc.sprx")) {
-                libc_missing = false;
-            }
-
-            if (!strcmp(l_Dent->d_name, "libSceFios2.prx") || !strcmp(l_Dent->d_name, "libSceFios2.sprx")) {
-                libfios_missing = false;
-            }
-
-            l_Pos += l_Dent->d_reclen;
-        }
-    }
-
-    // Create link for missings prx
-    if (libc_missing) {
-        klink_t();
-    }
-
-    // Closing sce_module folder
-    kclose_t(s_DirectoryHandle, td);
-
-
-
-end:
-    // Restore fd and cred
-    *curthread_fd = orig_curthread_fd;
-    *curthread_cred = orig_curthread_cred;
 
     // Cleanup
     if (s_Freepath)
@@ -1144,12 +1081,19 @@ end:
 
     // Closing substitute folder
     kclose_t(s_DirectoryHandle, s_MainThread);
+
+    // Restore fd and cred
+    *curthread_fd = orig_curthread_fd;
+    *curthread_cred = orig_curthread_cred;
+    return;
 }
 
 // Substitute : Unmount Substitute folder
 void Substitute::OnProcessExit(void *arg, struct proc *p) {
     if (!p)
         return;
+
+    int ret = 0;
 
     // Get process information
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
@@ -1158,11 +1102,10 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     Substitute* substitute = GetPlugin();
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
     // Check if it's a valid process
-    if ( s_TitleId[0] == 0 )
+    if ( !s_TitleId || s_TitleId[0] == 0 )
         return;
 
     // Getting needed thread
@@ -1206,7 +1149,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     WriteLog(LL_Info, "[%s] Cleaning substitute ...", s_TitleId);
 
     // Unmount substitute folder if the folder exist
-    int ret = kunmount_t(s_substituteFullMountPath, MNT_FORCE, s_MainThread);
+    ret = kunmount_t(s_substituteFullMountPath, MNT_FORCE, s_MainThread);
     if (ret < 0) {
         WriteLog(LL_Error, "could not unmount folder (%s) (%d), Trying to remove anyway ...", s_substituteFullMountPath, ret);
     }
@@ -1225,39 +1168,93 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
 }
 
 // Substitute : Load PRX from Substitute folder
-int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_prx_args_ex* uap) {
+int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_args* uap) {
     Substitute* substitute = GetPlugin();
-    
-    /*
-    char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
+    if (!substitute) {
+        WriteLog(LL_Error, "Substitute dependency is needed");
+        return 1;
+    }
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+    auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
     auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
-    */
-
-    auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args_ex*))substitute->sys_dynlib_load_prx_p;
+    //auto copyin = (int(*)(const void *uaddr, void * kaddr, size_t len))kdlsym(copyin);
+    auto copyout = (int(*)(const void *kaddr, void *uaddr, size_t len))kdlsym(copyout);
+    auto sys_dynlib_dlsym = (int(*)(struct thread*, void*))substitute->sys_dynlib_dlsym_p;
+    if (!sys_dynlib_dlsym)
+        return 1;
 
     // Call original syscall
-    int ret = sys_dynlib_load_prx(td, uap);
-
-    // Save current td ret value
+    int ret = sys_dynlib_dlsym(td, uap);
     int original_td_value = td->td_retval[0];
 
-    /*
-    // Get the current path of the loaded library
-    char path[PATH_MAX];
-    memset(path, 0, sizeof(path));
-    size_t done = 0;
-
-    if (!uap->path) {
+    if (!td) {
+        WriteLog(LL_Error, "Syscall called without thread ?");
         return ret;
     }
 
-    copyinstr((void*)uap->path, (void*)path, PATH_MAX, &done);
+    char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
 
-    // If libc is loaded
-    if (strstr(path, "libc.prx") || strstr(path, "libc.sprx")) {
+    // Check if it's a valid process
+    if ( !s_TitleId || s_TitleId[0] == 0 ) {
+        td->td_retval[0] = original_td_value;
+        return ret;
+    }
+
+    char name[50]; // Todo: Find max name character !
+    size_t done;
+    copyinstr(uap->name, name, sizeof(name), &done);
+
+    // Process search for sysmodule preload symbol, give him a custom function instead
+    if (strncmp("sceSysmodulePreloadModuleForLibkernel", name, sizeof(name)) == 0) {
+        WriteLog(LL_Info, "[%s] sceSysmodulePreloadModuleForLibkernel trigerred (ret: %d td_retval[0]: %d) !", s_TitleId, ret, td->td_retval[0]);
+
+        // Get the original value
+        void* sysmodule_preload_original = substitute->FindOriginalAddress(td->td_proc, "sceSysmodulePreloadModuleForLibkernel", 0);
+        WriteLog(LL_Info, "sceSysmodulePreloadModuleForLibkernel: %p", sysmodule_preload_original);
+
+        // Payload [entrypoint_trigger] (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
+        unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x34\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x6F\x53\x75\x62\x73\x74\x69\x74\x75\x74\x65\x4C\x6F\x61\x64\x50\x52\x58\x00\x48\x8B\x05\xD5\xFF\xFF\xFF\xFF\xD0\x57\x56\x52\x50\xBF\x00\x00\x00\x00\x48\x8D\x35\xD3\xFF\xFF\xFF\x48\x8D\x15\xC4\xFF\xFF\xFF\xB8\x4F\x02\x00\x00\x0F\x05\x58\x5A\x5E\x5F\xC3";
+
+        // Allocate memory on the remote process
+        size_t s_PayloadSize = 0x8000; //sizeof(s_Payload) + PATH_MAX but need more for allow the allocation
+        auto s_PayloadSpace = kmmap_t(nullptr, s_PayloadSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0, td);
+        if (s_PayloadSpace == nullptr || s_PayloadSpace == MAP_FAILED || (uint64_t)s_PayloadSpace < 0) {
+            WriteLog(LL_Error, "[%s] Unable to allocate remote process memory (%llx size) (ret: %llx)", s_TitleId, s_PayloadSize, s_PayloadSpace);
+            td->td_retval[0] = original_td_value;
+            return ret;
+        }
+
+        // Setup payload
+        struct entrypointhook_header* s_PayloadHeader = (struct entrypointhook_header*)s_Payload;
+        s_PayloadHeader->epdone = 0;
+        s_PayloadHeader->sceSysmodulePreloadModuleForLibkernel = (uint64_t)sysmodule_preload_original;
+        s_PayloadHeader->fakeReturnAddress = (uint64_t)s_PayloadSpace;
+
+        // Define entry point
+        uint64_t s_PayloadEntrypoint = (uint64_t)(s_PayloadSpace + s_PayloadHeader->entrypoint);
+
+        WriteLog(LL_Info, "s_PayloadSpace: %p", (void*)s_PayloadSpace);
+        WriteLog(LL_Info, "s_PayloadEntrypoint: %p", (void*)s_PayloadEntrypoint);
+
+        // Copy payload to process
+        size_t s_Size = sizeof(s_Payload);
+        int s_Ret = proc_rw_mem(td->td_proc, (void*)(s_PayloadSpace), s_Size, s_Payload, &s_Size, true);
+        if (s_Ret > 0) {
+            WriteLog(LL_Error, "[%s] Unable to write process memory at %p !", s_TitleId, (void*)(s_PayloadSpace));
+            kmunmap_t(s_PayloadSpace, s_PayloadSize, td);
+            td->td_retval[0] = original_td_value;
+            return ret;
+        }
+
+        // Setup the new address instead of original
+        copyout(&s_PayloadEntrypoint, uap->result, sizeof(uint64_t));
+    }
+
+    // Load every custom library !
+    if (strncmp("doSubstituteLoadPRX", name, sizeof(name)) == 0) {
+        WriteLog(LL_Info, "[%s] doSubstituteLoadPRX trigerred, load prx ...", s_TitleId);
 
         // Opening substitute folder
         auto s_DirectoryHandle = kopen_t("/substitute/", 0x0000 | 0x00020000, 0777, td);
@@ -1297,6 +1294,7 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
                     Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
 
                     WriteLog(LL_Info, "Loading PRX Done !");
+                    break;
                 }
 
                 l_Pos += l_Dent->d_reclen;
@@ -1305,11 +1303,12 @@ int Substitute::Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_p
 
         // Closing substitute folder
         kclose_t(s_DirectoryHandle, td);
-    }
-                   
-    WriteLog(LL_Info, "End of Dynlib Load PRX.");
-    */
 
+        // TODO: It's impossible to cleanup because page is needed after !
+        //WriteLog(LL_Info, "[%s] cleanup payload (fake result: %p)...", s_TitleId, (void*)uap->result);
+        //kmunmap_t(uap->result, 0x8000, td);
+    }
+    
     // Restore td ret value
     td->td_retval[0] = original_td_value;
     return ret;

@@ -16,12 +16,20 @@ extern "C"
 struct proc;
 struct mtx;
 
-struct dynlib_load_prx_args_ex {
-    char*    path;  // const char *
-    uint64_t unk1;   // int *
-    uint64_t pRes;   // int *
-    uint64_t unk2;   // int *
+struct dynlib_dlsym_args {
+    int id;
+    char* name;
+    uint64_t* result;
 };
+
+struct entrypointhook_header {
+    uint32_t magic;
+    uint64_t entrypoint;
+    uint32_t epdone;
+    uint64_t sceSysmodulePreloadModuleForLibkernel;
+    uint64_t fakeReturnAddress;
+} __attribute__((packed));
+
 
 /////////////////////////////////////////
 // Substitute Parameter (Don't forget to update library !)
@@ -144,7 +152,7 @@ namespace Mira
 
         public:
             // Syscall hook (Original pointer)
-            void* sys_dynlib_load_prx_p;
+            void* sys_dynlib_dlsym_p;
 
             // Plugin Base
             Substitute();
@@ -187,7 +195,7 @@ namespace Mira
 
         protected:
             // Event to trigger
-            static int Sys_dynlib_load_prx_hook(struct thread* td, struct dynlib_load_prx_args_ex* uap);
+            static int Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_args* uap);
             static void OnProcessStart(void *arg, struct proc *p);
             static void OnProcessExit(void *arg, struct proc *p);
         };

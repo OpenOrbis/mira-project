@@ -294,74 +294,6 @@ error:
 	return ret;
 }
 
-// Allow / Disallow to write on a executable
-int Utilities::ExecutableWriteProtection(struct proc* p, bool write_allowed) {
-    struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
-
-    if (!s_ProcessThread) {
-    	WriteLog(LL_Error, "[%d] Could not get the first thread.", p->p_pid);
-        return -1;
-    }
-
-    // Get the start text address of my process
-    uint64_t s_TextStart = 0;
-    uint64_t s_TextSize = 0;
-    ProcVmMapEntry* s_Entries = nullptr;
-    size_t s_NumEntries = 0;
-    auto s_Ret = Utilities::GetProcessVmMap(p, &s_Entries, &s_NumEntries);
-    if (s_Ret < 0)
-    {
-        WriteLog(LL_Error, "[%d] Could not get the VM Map.", p->p_pid);
-        return -2;
-    }
-
-    if (s_Entries == nullptr || s_NumEntries == 0)
-    {
-        WriteLog(LL_Error, "[%d] Invalid entries (%p) or numEntries (%d)", p->p_pid, s_Entries, s_NumEntries);
-        return -3;
-    }
-
-    for (auto i = 0; i < s_NumEntries; ++i)
-    {
-        if (s_Entries[i].prot == (PROT_READ | PROT_EXEC))
-        {
-            s_TextStart = (uint64_t)s_Entries[i].start;
-            s_TextSize = ((uint64_t)s_Entries[i].end - (uint64_t)s_Entries[i].start);
-            break;
-        }
-    }
-
-    if (s_TextStart == 0 || s_TextSize)
-    {
-        WriteLog(LL_Error, "[%d] Could not find text start or size for this process !", p->p_pid);
-        WriteLog(LL_Error, "[%d] Could not find text start or size for this process !", p->p_pid);
-
-	    // Free the s_Entries
-	    delete [] s_Entries;
-	    s_Entries = nullptr;
-        return -4;
-    } else {
-        WriteLog(LL_Info, "[%d] text pointer: %p !", p->p_pid, s_TextStart);
-    }
-
-    if (write_allowed) {
-    	s_Ret = kmprotect_t((void*)s_TextStart, s_TextSize, (PROT_READ | PROT_WRITE | PROT_EXEC), s_ProcessThread);
-    	if (s_Ret < 0) {
-    		WriteLog(LL_Error, "[%d] Unable to mprotect(1) ! (err: %d)", p->p_pid, s_Ret);
-    	}
-    } else {
-    	s_Ret = kmprotect_t((void*)s_TextStart, s_TextSize, (PROT_READ | PROT_EXEC), s_ProcessThread);
-    	if (s_Ret < 0) {
-    		WriteLog(LL_Error, "[%d] Unable to mprotect(2) ! (err: %d)", p->p_pid, s_Ret);
-    	}
-    }
-
-    // Free the s_Entries
-    delete [] s_Entries;
-    s_Entries = nullptr;
-    return 0;
-}
-
 // Mount NullFS folder
 int Utilities::MountNullFS(char* where, char* what, int flags)
 {
@@ -393,7 +325,6 @@ int Utilities::KillProcess(struct proc* p)
 // Create a PThread (POSIX Thread) on remote process
 int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	auto thr_create = (int (*)(struct thread * td, uint64_t ctx, void* start_func, void *arg, char *stack_base, size_t stack_size, char *tls_base, long * child_tid, long * parent_tid, uint64_t flags, uint64_t rtp))kdlsym(kern_thr_create);
-	//auto DELAY = (void(*)(int delay))kdlsym(DELAY);
 
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
 
@@ -457,11 +388,11 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	void* s_thr_initial = (void*)((uint64_t)s_pthread_getthreadid_np + s_RelativeAddress + 0x8);
 
 	// Payload containts all call needed for create a thread (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
-	unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x72\x70\x63\x73\x74\x75\x62\x00\x48\x8B\x3D\xD9\xFF\xFF\xFF\x48\x8B\x37\x48\x8B\xBE\xE0\x01\x00\x00\xE8\x7D\x00\x00\x00\x48\x8D\x3D\xD3\xFF\xFF\xFF\x4C\x8B\x25\xA4\xFF\xFF\xFF\x41\xFF\xD4\xBE\x00\x00\x08\x00\x48\x8D\x3D\xBD\xFF\xFF\xFF\x4C\x8B\x25\x96\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\x75\xFF\xFF\xFF\x01\x00\x00\x00\x4C\x8D\x05\xAA\xFF\xFF\xFF\xB9\x00\x00\x00\x00\x48\x8B\x15\x66\xFF\xFF\xFF\x48\x8D\x35\x8F\xFF\xFF\xFF\x48\x8D\x3D\x80\xFF\xFF\xFF\x4C\x8B\x25\x69\xFF\xFF\xFF\x41\xFF\xD4\xBF\x00\x00\x00\x00\xE8\x01\x00\x00\x00\xC3\xB8\xAF\x01\x00\x00\x49\x89\xCA\x0F\x05\xC3\xB8\xA5\x00\x00\x00\x49\x89\xCA\x0F\x05\xC3\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x89\x7D\xE8\x48\x8D\x75\xE8\xBF\x81\x00\x00\x00\xE8\xDA\xFF\xFF\xFF\x48\x83\xC4\x18\x5B\x5D\xC3";
+	unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x72\x70\x63\x73\x74\x75\x62\x00\x48\x8B\x3D\xD9\xFF\xFF\xFF\x48\x8B\x37\x48\x8B\xBE\xE0\x01\x00\x00\xE8\x7D\x00\x00\x00\x48\x8D\x3D\xD3\xFF\xFF\xFF\x4C\x8B\x25\xA4\xFF\xFF\xFF\x41\xFF\xD4\xBE\x00\x00\x08\x00\x48\x8D\x3D\xBD\xFF\xFF\xFF\x4C\x8B\x25\x96\xFF\xFF\xFF\x41\xFF\xD4\x4C\x8D\x05\xB4\xFF\xFF\xFF\xB9\x00\x00\x00\x00\x48\x8B\x15\x70\xFF\xFF\xFF\x48\x8D\x35\x99\xFF\xFF\xFF\x48\x8D\x3D\x8A\xFF\xFF\xFF\x4C\x8B\x25\x73\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\x4A\xFF\xFF\xFF\x01\x00\x00\x00\xBF\x00\x00\x00\x00\xE8\x01\x00\x00\x00\xC3\xB8\xAF\x01\x00\x00\x49\x89\xCA\x0F\x05\xC3\xB8\xA5\x00\x00\x00\x49\x89\xCA\x0F\x05\xC3\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x89\x7D\xE8\x48\x8D\x75\xE8\xBF\x81\x00\x00\x00\xE8\xDA\xFF\xFF\xFF\x48\x83\xC4\x18\x5B\x5D\xC3";
 
 	// Setup payload
 	struct posixldr_header* s_PayloadHeader = (struct posixldr_header*)s_Payload;
-	s_PayloadHeader->ldrdone = 0; // for testing
+	s_PayloadHeader->ldrdone = 0;
 	s_PayloadHeader->stubentry = (uint64_t)entrypoint;
 	s_PayloadHeader->scePthreadAttrInit = (uint64_t)s_scePthreadAttrInit;
 	s_PayloadHeader->scePthreadAttrSetstacksize = (uint64_t)s_scePthreadAttrSetstacksize;
@@ -509,7 +440,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	}
 
 	// Cleanup remote memory
-	//kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
+	kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
 
 	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) : Done.", s_TitleId, entrypoint);
 
