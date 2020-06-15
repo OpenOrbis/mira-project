@@ -410,7 +410,7 @@ if(filefd > 0)
 
 
 
-if (0 > filefd)
+if (0 < filefd)
 {
 
 	if (sceKernelOpen("/user/MiraLoader.elf", O_RDONLY, 0) > 0)
