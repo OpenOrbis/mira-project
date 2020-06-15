@@ -213,14 +213,14 @@ int MD5_hash_compare(const char *usbfile)
 return SAME_HASH;
 }
 
-int ftruncate(int fd, off_t length)
+void* sys_ftruncate(int fd, off_t length)
  {
-     	return syscall(480, fd, length);
+     	return syscall2(480,reinterpret_cast<void*>(fd), reinterpret_cast<void*>(length));
   }
 
-  int munmap(void *addr, size_t len)
+  void* munmap(void *addr, size_t len)
   {
-    	return syscall(73, addr, len);
+    	return syscall2(73, addr, reinterpret_cast<void*>(len));
    }
 
 int copyFile(char *sourcefile)
@@ -241,7 +241,7 @@ int copyFile(char *sourcefile)
     /* DESTINATION */
     dfd = sceKernelOpen("/user/MiraLoader.elf", O_RDWR | O_CREAT | O_TRUNC, 0777);
 
-    ftruncate(dfd, filesize);
+    sys_ftruncate(dfd, filesize);
 
     dest = _mmap(NULL, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, dfd, 0);
 
