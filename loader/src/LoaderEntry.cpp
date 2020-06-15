@@ -67,8 +67,7 @@ size_t (*fwrite)(const void * ptr, size_t size, size_t count, FILE *stream ) = n
 int (*fseek)(FILE *stream, long int offset, int origin) = nullptr;
 long int(*ftell)(FILE *stream) = nullptr;
 int (*fclose)(FILE *stream) = nullptr;
-void *(*fuck_malloc)(size_t size) = nullptr;
-void (*fuck_free)(void *ptr) = nullptr;
+
 
 int(*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 
