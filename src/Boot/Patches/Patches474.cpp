@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include <Boot/Patches.hpp>
 
 /*
@@ -34,8 +37,6 @@ void Mira::Boot::Patches::install_prerunPatches_474()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00169790];
 	kmem[0] = 0xB8;
@@ -44,8 +45,6 @@ void Mira::Boot::Patches::install_prerunPatches_474()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x001697B0];
 	kmem[0] = 0xB8;
@@ -54,8 +53,6 @@ void Mira::Boot::Patches::install_prerunPatches_474()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	// Enable rwx mapping
 	kmem = (uint8_t *)&gKernelBase[0x0016DFEC];
@@ -111,16 +108,13 @@ void Mira::Boot::Patches::install_prerunPatches_474()
 	kmem[0] = 0xEB;
 
 	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0017C521];
-	kmem[0] = 0xEB;
-
-	// second ptrace patch
-	kmem = (uint8_t *)&gKernelBase[0x0017C896];
-	kmem[0] = 0xE9;
-	kmem[1] = 0x15;
-	kmem[2] = 0x01;
-	kmem[3] = 0x00;
-	kmem[4] = 0x00;
+	kmem = (uint8_t *)&gKernelBase[0x0017C54E];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0011622C];
@@ -153,20 +147,17 @@ void Mira::Boot::Patches::install_prerunPatches_474()
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// flatz enable debug RIFs
 	kmem = (uint8_t *)&gKernelBase[0x00630B10];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00630B30];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo (ported by kiwidog)
@@ -206,6 +197,14 @@ void Mira::Boot::Patches::install_prerunPatches_474()
 	kmem[1] = 0x00;
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
+
+	// prtinf hook patches
+	kmem = (uint8_t *)&gKernelBase[0x00018026];
+	kmem[0] = 0xEB;
+	kmem[1] = 0x2D;
+
+	kmem = (uint8_t *)&gKernelBase[0x00018049];
+	kmem[0] = 0xEB;
 
 #endif
 }

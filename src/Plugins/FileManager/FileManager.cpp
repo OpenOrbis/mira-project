@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "FileManager.hpp"
 #include <Utils/Kernel.hpp>
 #include <Utils/SysWrappers.hpp>
@@ -957,12 +960,8 @@ uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
 
     size_t s_SelfSize = s_Offset;
 
+    // This is unsigned, will never be < 0
     s_Offset = klseek_t(p_SelfFd, 0, SEEK_SET, s_IoThread);
-    if (s_Offset < 0)
-    {
-        WriteLog(LL_Error, "could not seek (%lld).", s_Offset);
-        return nullptr;
-    }
 
     auto s_SelfData = new uint8_t[s_SelfSize];
     if (s_SelfData == nullptr)

@@ -5,6 +5,12 @@ MIRA_PLATFORM := MIRA_PLATFORM_ORBIS_BSD_505
 #MIRA_PLATFORM_ORBIS_BSD_505
 endif
 
+# Check to see if we are building in CI/Checking mode
+# Leave empty (erase TRUE) if disabling
+ifeq ($(MIRA_CHECKS),)
+MIRA_CHECKS :=
+endif
+
 # Project name
 PROJ_NAME := MiraLoader
 
@@ -86,7 +92,9 @@ all: post-build
 
 pre-build:
 	@echo "Pre-Build"
+ifneq ($(strip $(MIRA_CHECKS)),)
 	@cppcheck $(SRC_DIR) $(I_DIRS) $(C_DEFS) --enable=information --check-config
+endif
 	@$(MAKE) --no-print-directory clean
 
 post-build: main-build
@@ -98,16 +106,24 @@ post-build: main-build
 
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
+ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
+else
+	$(MAKE) --no-print-directory $(ALL_OBJ)
+endif
 	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $< ..."
+ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
+endif
 	@$(CC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo "Compiling $< ..."
+ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
+endif
 	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s

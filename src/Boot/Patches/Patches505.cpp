@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include <Boot/Patches.hpp>
 
 /*
@@ -34,8 +37,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00011730];
 	kmem[0] = 0xB8;
@@ -44,8 +45,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00011750];
 	kmem[0] = 0xB8;
@@ -54,8 +53,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	// Enable rwx mapping
 	kmem = (uint8_t *)&gKernelBase[0x000FCD48];
@@ -153,20 +150,17 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// flatz enable debug RIFs
 	kmem = (uint8_t *)&gKernelBase[0x0064B2B0];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x0064B2D0];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
-	kmem[3] = 0x90;
 
 	// Enable *all* debugging logs (in vprintf)
 	// Patch by: SiSTRo
@@ -215,6 +209,15 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[1] = 0x00;
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
+
+	// prtinf hook patches
+	kmem = (uint8_t *)&gKernelBase[0x00436136];
+	kmem[0] = 0xEB;
+	kmem[1] = 0x1E;
+
+	kmem = (uint8_t *)&gKernelBase[0x00436154];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
 
 #endif
 }

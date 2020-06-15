@@ -4,14 +4,17 @@ The Mira Project is a set of tools that grants you more power and control over y
 
 It works differently to the custom firmware experience on Playstation 3, where CFW would be installed on the system via modified PUP files (e.g. Rebug), however once the framework is installed and ran it gives users the same functionality they were previously used to.
 
+If you would like to contribute join us on [Open Orbis Discord], it is the only location where you can find the official project.
+
 # Build Status
 | Firmware Version | Passing |
 | ------ | ------ |
-|4.05|[![Build Status](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)|
-|4.55|[![Build Status](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)|
-|4.74|[![Build Status](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)|
-|5.01|[![Build Status](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)](https://ci.appveyor.com/api/projects/status/github/OpenOrbis/mira-project)|
-|5.05|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis505/badge.svg)
+|4.05|WIP|
+|4.55|WIP|
+|4.74|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis474/badge.svg)|
+|5.01|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis501/badge.svg)|
+|5.03|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis503/badge.svg)|
+|5.05|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis505/badge.svg)|
 
 # New Features!
 
@@ -67,6 +70,9 @@ This project would not be possible without these people (no paticluar order):
 * [xvortex] - Original VTX-Hen
 * [2much4u] - Ptrace patches
 * [golden] - Ptrace patches, rpc ideas
+* [idc] - Developer
+* [lordfriky] - MacOS support and script fixes
+* [ethylamine] - Developer
 
 ### Special Thanks
 * [bigboss] - liborbis with examples and orbisdev (and complaining a lot)
@@ -477,3 +483,7 @@ GPLv3
    [frangarcj]: <https://github.com/frangarcj>
    [masterzorag]: <https://github.com/masterzorag>
    [SpecterDev]: <https://github.com/Cryptogenic>
+   [idc]: <https://github.com/idc>
+   [lordfriky]: <https://github.com/lordfriky>
+   [ethylamine]: <https://github.com/ethylamine>
+   [Open Orbis Discord]: <https://discord.com/invite/GQr8ydn>

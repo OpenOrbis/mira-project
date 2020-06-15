@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "Mira.hpp"
 
 //
@@ -76,10 +79,12 @@ Mira::Framework::Framework() :
 	m_EventHandlersInstalled(false),
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
+	m_ShutdownTag(nullptr),
 	m_ThreadManager(nullptr),
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
-	m_RpcServer(nullptr)
+	m_RpcServer(nullptr),
+	m_CtrlDriver(nullptr)
 {
 
 }
@@ -237,6 +242,7 @@ bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
 	m_InitParams.payloadSize = p_Params->payloadSize;
 	m_InitParams.process = p_Params->process;
 	m_InitParams.isRunning = p_Params->isRunning;
+	m_InitParams.allocatedBase = p_Params->allocatedBase;
 
 	return true;
 }

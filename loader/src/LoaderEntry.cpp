@@ -1,6 +1,9 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 extern "C"
 {
-#include <Utils/_Syscall.hpp>
+	#include <Utils/_Syscall.hpp>
 };
 
 #include <Utils/New.hpp>
@@ -303,6 +306,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 		kthread_exit();
 		return;
 	}
+	printf("logger created\n");
 
 	// Create launch parameters, this is floating in "free kernel space" so the other process should
 	// be able to grab and use the pointer directly

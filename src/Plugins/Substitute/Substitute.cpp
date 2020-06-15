@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "Substitute.hpp"
 
 #include <Utils/Kdlsym.hpp>
@@ -868,7 +871,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
 
 
     // Get the nids of the function
-    char nids[0xD];
+    char nids[0xD] = { 0 };
     if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
         snprintf(nids, sizeof(nids), "%s", name); // nids = name
     } else {
