@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 #define VA_ARGS(...) , ##__VA_ARGS__
-#define WriteLog(x, y, ...) printf(y VA_ARGS(__VA_ARGS__))
+#define WriteLog(x, y, ...) printf(y VA_ARGS(__VA_ARGS__)); printf("\n")
 enum LogLevels
 {
 	LL_None,
