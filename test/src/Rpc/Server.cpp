@@ -117,7 +117,7 @@ bool Server::Startup()
     // Set our server to listen on 0.0.0.0:<port>
     (void)memset(&m_Address, 0, sizeof(m_Address));
     m_Address.sin_family = AF_INET;
-    m_Address.sin_addr.s_addr = INADDR_ANY; //htonl(INADDR_ANY);
+    m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
     m_Address.sin_port = htons(m_Port);
     #ifdef __PS4__
     m_Address.sin_len = sizeof(m_Address);
@@ -230,6 +230,8 @@ void Server::ServerThread(void* p_UserArgs)
     // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
 	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
     #endif
+
+    WriteLog(LL_Debug, "server thread");
 
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
