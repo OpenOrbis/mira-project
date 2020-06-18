@@ -6,12 +6,16 @@
 
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
-
+#include <Utils/Vector.hpp>
 #include <Utils/SysWrappers.hpp>
 
-#include <sys/proc.h>
-#include <sys/socket.h>
-#include <sys/filedesc.h>
+extern "C"
+{
+    #include <sys/proc.h>
+    #include <sys/socket.h>
+    #include <sys/filedesc.h>
+};
+
 
 #include <Mira.hpp>
 
@@ -30,14 +34,14 @@ Server::Server(uint16_t p_Port) :
     // Zero out the address
     memset(&m_Address, 0, sizeof(m_Address));
 
-    // auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-    // mtx_init(&m_Mutex, "RpcMtx", nullptr, MTX_SPIN);
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    mtx_init(&m_Mutex, "MiraRpcSrv", nullptr, MTX_DEF);
 }
 
 Server::~Server()
 {
-    // auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
-	// mtx_destroy(&m_Mutex);
+    auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
+	mtx_destroy(&m_Mutex);
 }
 
 bool Server::OnLoad()
@@ -66,130 +70,167 @@ bool Server::OnResume()
 
 bool Server::Startup()
 {
-    WriteLog(LL_Error, "here");
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
-    WriteLog(LL_Error, "here");
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
-
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
+
+    bool s_Success = false;
+    _mtx_lock_flags(&m_Mutex, 0);
+    do
+    {
+        WriteLog(LL_Error, "RpcServer thread starting...");
+        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        if (s_MainThread == nullptr)
+        {
+            WriteLog(LL_Error, "could not get main thread");
+            break;
+        }
+
+        // Create a socket
+        WriteLog(LL_Error, "Creating new socket");
+        auto s_Ret = ksocket_t(AF_INET, SOCK_STREAM, 0, s_MainThread);
+        if (s_Ret < 0)
+        {
+            WriteLog(LL_Error, "could not initialize socket (%d).", s_Ret);
+            break;
+        }
+        m_Socket = s_Ret;
+        WriteLog(LL_Info, "socket created: (%d).", s_Ret);
+
+        // Set our server to listen on 0.0.0.0:<port>
+        memset(&m_Address, 0, sizeof(m_Address));
+        m_Address.sin_family = AF_INET;
+        m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
+        m_Address.sin_port = htons(m_Port);
+        m_Address.sin_len = sizeof(m_Address);
+
+        // Bind to port
+        WriteLog(LL_Debug, "Attempting to bind...");
+        s_Ret = kbind_t(m_Socket, reinterpret_cast<struct sockaddr*>(&m_Address), sizeof(m_Address), s_MainThread);
+        if (s_Ret < 0)
+        {
+            WriteLog(LL_Error, "could not bind socket (%d).", s_Ret);
+            kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+            kclose_t(m_Socket, s_MainThread);
+            m_Socket = -1;
+            break;
+        }
+        WriteLog(LL_Info, "socket (%d) bound to port (%d).", m_Socket, m_Port);
+
+        // Listen on the port for new connections
+        WriteLog(LL_Debug, "Attempting to listen for new connections...");
+        s_Ret = klisten_t(m_Socket, RpcServer_MaxConnections, s_MainThread);
+        if (s_Ret < 0)
+        {
+            WriteLog(LL_Error, "could not listen on socket (%d).", s_Ret);
+            kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+            kclose_t(m_Socket, s_MainThread);
+            m_Socket = -1;
+            break;
+        }
+
+        // Create the new server processing thread, 8MiB stack
+        WriteLog(LL_Debug, "Creating new server thread");
+        s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 32, "RpcServer");
+        
+        WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
+    } while (false);
+    _mtx_unlock_flags(&m_Mutex, 0);
     
-    int32_t s_Ret = -1;
-
-    WriteLog(LL_Error, "here");
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
-    // Create a socket
-    m_Socket = ksocket_t(AF_INET, SOCK_STREAM, 0, s_MainThread);
-    WriteLog(LL_Error, "here");
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
-    WriteLog(LL_Error, "here");
-
-    if (m_Socket < 0)
-    {
-        WriteLog(LL_Error, "could not initialize socket (%d).", m_Socket);
-        return false;
-    }
-    WriteLog(LL_Info, "socket created: (%d).", m_Socket);
-
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
-    // Set our server to listen on 0.0.0.0:<port>
-    memset(&m_Address, 0, sizeof(m_Address));
-    m_Address.sin_family = AF_INET;
-    m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
-    m_Address.sin_port = htons(m_Port);
-    m_Address.sin_len = sizeof(m_Address);
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
-
-    WriteLog(LL_Error, "here");
-    // Bind to port
-    s_Ret = kbind_t(m_Socket, reinterpret_cast<struct sockaddr*>(&m_Address), sizeof(m_Address), s_MainThread);
-    if (s_Ret < 0)
-    {
-        WriteLog(LL_Error, "could not bind socket (%d).", s_Ret);
-        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-        kclose_t(m_Socket, s_MainThread);
-        m_Socket = -1;
-        return false;
-    }
-    WriteLog(LL_Info, "socket (%d) bound to port (%d).", m_Socket, m_Port);
-
-    WriteLog(LL_Error, "here");
-    // Listen on the port for new connections
-    s_Ret = klisten_t(m_Socket, RpcServer_MaxConnections, s_MainThread);
-    if (s_Ret < 0)
-    {
-        WriteLog(LL_Error, "could not listen on socket (%d).", s_Ret);
-        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-        kclose_t(m_Socket, s_MainThread);
-        m_Socket = -1;
-        return false;
-    }
-
-    WriteLog(LL_Error, "here");
-    // Create the new server processing thread, 8MiB stack
-    s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "RpcServer");
-    WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
-    
-    return s_Ret == 0;
+    return s_Success;
 }
 
 bool Server::Teardown()
 {
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
+    bool s_Success = false;
+    _mtx_lock_flags(&m_Mutex, 0);
+    do
     {
-        WriteLog(LL_Error, "could not get main thread");
-        return false;
-    }
+        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        if (s_MainThread == nullptr)
+        {
+            WriteLog(LL_Error, "could not get main thread");
+            break;
+        }
 
-    // Set that we no longer want to run this server instance
-    m_Running = false;
-    WriteLog(LL_Debug, "we are no longer running...");
+        // Set that we no longer want to run this server instance
+        m_Running = false;
+        WriteLog(LL_Debug, "we are no longer running...");
 
-    // Iterate through all connections and disconnect them
-    for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
+
+        // Iterate through all connections and disconnect them
+        for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
+        {
+            // Check that we have a valid connection
+            // _mtx_lock_spin_flags(&m_Mutex, 0);
+            auto l_Connection = m_Connections[i];
+            // _mtx_unlock_spin_flags(&m_Mutex, 0);
+
+            if (l_Connection == nullptr)
+                continue;
+
+            // Disconnect the client, the client will fire the Server::OnConnectionDisconnected
+            if (l_Connection->IsRunning())
+                l_Connection->Disconnect();
+        }
+
+        WriteLog(LL_Debug, "all clients have been disconnected");
+
+        // Close the server socket
+        if (m_Socket > 0)
+        {
+            kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+            kclose_t(m_Socket, s_MainThread);
+            m_Socket = -1;
+        }
+
+        WriteLog(LL_Debug, "socket is killed");
+        s_Success = true;
+    } while (false);
+    _mtx_unlock_flags(&m_Mutex, 0);
+
+    return s_Success;
+}
+
+bool Server::SetClientIndex(int32_t p_Index, Rpc::Connection* p_Connection)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    bool s_Success = false;
+    _mtx_lock_flags(&m_Mutex, 0);
+    do
     {
-        // Check that we have a valid connection
-        // _mtx_lock_spin_flags(&m_Mutex, 0);
-        auto l_Connection = m_Connections[i];
-        // _mtx_unlock_spin_flags(&m_Mutex, 0);
-
-        if (l_Connection == nullptr)
-            continue;
+        if (p_Index < 0 || p_Index >= ARRAYSIZE(m_Connections))
+            break;
         
-        // Disconnect the client, the client will fire the Server::OnConnectionDisconnected
-        if (l_Connection->IsRunning())
-            l_Connection->Disconnect();
-    }
+        if (m_Connections[p_Index] != nullptr)
+            break;
+        
+        m_Connections[p_Index] = p_Connection;
+        s_Success = true;
+    } while (false);
+    _mtx_unlock_flags(&m_Mutex, 0);
 
-    WriteLog(LL_Debug, "all clients have been disconnected");
+    return s_Success;
+}
 
-    // Close the server socket
-    if (m_Socket > 0)
-    {
-        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-		kclose_t(m_Socket, s_MainThread);
-        m_Socket = -1;
-    }
+void Server::SetRunningState(bool p_IsRunning)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
-    WriteLog(LL_Debug, "socket is killed");
-
-    return true;
+    _mtx_lock_flags(&m_Mutex, 0);
+    m_Running = p_IsRunning;
+    _mtx_unlock_flags(&m_Mutex, 0);
 }
 
 void Server::ServerThread(void* p_UserArgs)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
 
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
@@ -221,14 +262,12 @@ void Server::ServerThread(void* p_UserArgs)
     memset(&s_ClientAddress, 0, s_ClientAddressLen);
     s_ClientAddress.sin_len = s_ClientAddressLen;
 
-    // _mtx_lock_spin_flags(&s_Server->m_Mutex, 0);
     // Set our running state
-    s_Server->m_Running = true;
+    s_Server->SetRunningState(true);
 
     fd_set s_ReadFds;
     FD_ZERO(&s_ReadFds);
     FD_SET(s_Server->m_Socket, &s_ReadFds);
-    // _mtx_unlock_spin_flags(&s_Server->m_Mutex, 0);
 
     while ((s_ClientSocket = kaccept_t(s_Server->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
@@ -291,9 +330,18 @@ void Server::ServerThread(void* p_UserArgs)
             break;
         }
 
-        // _mtx_lock_spin_flags(&s_Server->m_Mutex, 0);
-        s_Server->m_Connections[s_FreeIndex] = l_Connection;
-        // _mtx_unlock_spin_flags(&s_Server->m_Mutex, 0);
+        // Takes server lock
+        if (!s_Server->SetClientIndex(s_FreeIndex, l_Connection))
+        {
+            WriteLog(LL_Error, "could not set into free index, something's wrong here.");
+
+            kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
+            kclose_t(s_ClientSocket, s_MainThread);
+
+            delete l_Connection;
+            l_Connection = nullptr;
+            break;
+        }
 
         // Send off for new client thread creation
         s_Server->OnHandleConnection(l_Connection);
@@ -304,8 +352,6 @@ void Server::ServerThread(void* p_UserArgs)
 
         if (!s_Server->m_Running)
             break;
-        
-        // TODO: Handle timeout
     }
 
     // Disconnects all clients, set running to false
@@ -342,8 +388,8 @@ void Server::OnHandleConnection(Rpc::Connection* p_Connection)
         return;
     }
 
-    // Get connection, 8MiB stack
-    auto s_Ret = kthread_add(Connection::ConnectionThread, p_Connection, s_Process, reinterpret_cast<thread **>(p_Connection->Internal_GetThread()), 0, 200, "RpcConn");
+    // Get connection
+    auto s_Ret = kthread_add(Connection::ConnectionThread, p_Connection, s_Process, reinterpret_cast<thread **>(p_Connection->Internal_GetThread()), 0, 32, "RpcConn");
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not start new connection thread (%d).", s_Ret);
@@ -351,10 +397,11 @@ void Server::OnHandleConnection(Rpc::Connection* p_Connection)
     }
 }
 
+// This is sent from any thread, the connection has terminated and is requesting cleanup
 void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
 {
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     if (p_Connection == nullptr)
     {
@@ -363,42 +410,42 @@ void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
     }
     WriteLog(LL_Debug, "client disconnect (%p).", p_Connection);
 
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
-    auto s_ConnectionSize = ARRAYSIZE(m_Connections);
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
-    // Iterate through all connections and disconnect them
-    for (auto i = 0; i < s_ConnectionSize; ++i)
+    _mtx_lock_flags(&m_Mutex, 0);
+    do
     {
-        // Check that we have a valid connection
-        // _mtx_lock_spin_flags(&m_Mutex, 0);
-        auto l_Connection = m_Connections[i];
-        // _mtx_unlock_spin_flags(&m_Mutex, 0);
-        if (l_Connection == nullptr)
-            continue;
-        
-        if (l_Connection->GetId() != p_Connection->GetId())
-            continue;
+        auto s_ConnectionSize = ARRAYSIZE(m_Connections);
+        // Iterate through all connections and disconnect them
+        for (auto i = 0; i < s_ConnectionSize; ++i)
+        {
+            // Check that we have a valid connection
+            auto l_Connection = m_Connections[i];
+            if (l_Connection == nullptr)
+                continue;
+            
+            if (l_Connection->GetId() != p_Connection->GetId())
+                continue;
 
-        // Disconnect the client, the client will fire the Server::OnConnectionDisconnected
-        // _mtx_lock_spin_flags(&m_Mutex, 0);
-        m_Connections[i] = nullptr;
-        // _mtx_unlock_spin_flags(&m_Mutex, 0);
+            // Remove the client from the list
+            m_Connections[i] = nullptr;
 
-        WriteLog(LL_Debug, "freeing connection at (%d) (%p).", i, l_Connection);
-        delete l_Connection;
-        break;
-    }
+            WriteLog(LL_Debug, "freeing connection at (%d) (%p).", i, l_Connection);
+            delete l_Connection;
+            break;
+        }
+    } while (false);
+    _mtx_unlock_flags(&m_Mutex, 0);
+    
     
 }
 
 int32_t Server::GetSocketById(uint32_t p_Id)
 {
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     int32_t s_SocketId = -1;
 
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
+    _mtx_lock_flags(&m_Mutex, 0);
     for (uint32_t i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         auto l_Connection = m_Connections[i];
@@ -414,55 +461,55 @@ int32_t Server::GetSocketById(uint32_t p_Id)
         s_SocketId = l_Connection->GetSocket();
         break;
     }
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
+    _mtx_unlock_flags(&m_Mutex, 0);
 
     return s_SocketId;
 }
 
 int32_t Server::GetFreeConnectionCount()
 {
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     int32_t s_Count = 0;
 
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
+    _mtx_lock_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         if (m_Connections[i] == nullptr)
             s_Count++;
     }
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
+    _mtx_unlock_flags(&m_Mutex, 0);
 
     return s_Count;
 }
 
 int32_t Server::GetUsedConnectionCount()
 {
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     int32_t s_Count = 0;
 
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
+    _mtx_lock_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         if (m_Connections[i] != nullptr)
             s_Count++;
     }
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
+    _mtx_unlock_flags(&m_Mutex, 0);
 
     return s_Count;
 }
 
 int32_t Server::GetFreeConnectionIndex()
 {
-    // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
-	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     int32_t s_FreeConnectionIndex = -1;
 
-    // _mtx_lock_spin_flags(&m_Mutex, 0);
+    _mtx_lock_flags(&m_Mutex, 0);
     for (auto i = 0; i < ARRAYSIZE(m_Connections); ++i)
     {
         if (m_Connections[i] == nullptr)
@@ -471,7 +518,7 @@ int32_t Server::GetFreeConnectionIndex()
             break;
         }
     }
-    // _mtx_unlock_spin_flags(&m_Mutex, 0);
+    _mtx_unlock_flags(&m_Mutex, 0);
 
     return s_FreeConnectionIndex;
 }

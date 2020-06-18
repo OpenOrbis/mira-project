@@ -6,7 +6,8 @@ extern "C"
 {
     #include <netinet/in.h>
     #include <sys/param.h>
-    #include <sys/sx.h>
+    #include <sys/lock.h>
+    #include <sys/mutex.h>
 }
 
 
@@ -45,7 +46,7 @@ namespace Mira
 
                 Rpc::Connection* m_Connections[RpcServer_MaxConnections];
 
-                // struct sx m_Mutex;
+                struct mtx m_Mutex;
 
             public:
                 Server(uint16_t p_Port = RpcServer_DefaultPort);
@@ -72,6 +73,9 @@ namespace Mira
 
             private:
                 static void ServerThread(void* p_UserData);
+
+                bool SetClientIndex(int32_t p_Index, Rpc::Connection* p_Connection);
+                void SetRunningState(bool p_IsRunning);
             };
         }
     }
