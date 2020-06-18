@@ -177,7 +177,7 @@ extern "C" void mira_entry(void* args)
 
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
-	struct vmspace* vmspace = vmspace_alloc(0, PAGE_SIZE);
+	struct vmspace* vmspace = vmspace_alloc(0, PAGE_SIZE * 2048); // Allocate 8MiB
 	WriteLog(LL_Debug, "here");
 	if (!vmspace)
 	{
@@ -190,13 +190,13 @@ extern "C" void mira_entry(void* args)
 	initParams->process->p_vmspace = vmspace;
 	if (initParams->process == curthread->td_proc)
 	{
-		WriteLog(LL_Debug, "here");
+		WriteLog(LL_Debug, "Activating vmspace physical map");
 		pmap_activate(curthread);
-		WriteLog(LL_Debug, "here");
 	}
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
+	WriteLog(LL_Debug, "Creating initial 3 file descriptors (0, 1, 2).");
 	int descriptor = kopen_t(const_cast<char*>("/dev/console"), 1, 0, curthread);
 	WriteLog(LL_Debug, "/dev/console descriptor: %d", descriptor);
 	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2_t(descriptor, 1, curthread));

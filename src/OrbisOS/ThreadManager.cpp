@@ -94,8 +94,8 @@ bool ThreadManager::OnLoad()
     m_ThreadManagerRunning = true;
 
     // Create the io and debug thread
-    auto s_IoThreadRet = kthread_add(ThreadManager::FileIoThread, this, s_MiraProc, &m_IoThread, 0, 200, "miraIo");
-    auto s_DebugThreadRet = kthread_add(ThreadManager::DebuggerThread, this, s_MiraProc, &m_DebugThread, 0, 200, "miraDbg");
+    auto s_IoThreadRet = kthread_add(ThreadManager::FileIoThread, this, s_MiraProc, &m_IoThread, 0, 32, "miraIo");
+    auto s_DebugThreadRet = kthread_add(ThreadManager::DebuggerThread, this, s_MiraProc, &m_DebugThread, 0, 32, "miraDbg");
 
     WriteLog(LL_Debug, "IoThread (%d) DebugThread (%d).", s_IoThreadRet, s_DebugThreadRet);
 

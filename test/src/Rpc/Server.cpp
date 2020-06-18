@@ -153,7 +153,7 @@ bool Server::Startup()
 
     #ifdef __PS4__
     // Create the new server processing thread, 8MiB stack
-    s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "RpcServer");
+    s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 32, "RpcServer");
     WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
     #else
     pthread_attr_t s_Attributes;
@@ -386,7 +386,7 @@ void Server::OnHandleConnection(Rpc::Connection* p_Connection)
     }
 
     // Get connection, 8MiB stack
-    auto s_Ret = kthread_add(Connection::ConnectionThread, p_Connection, s_Process, reinterpret_cast<thread **>(p_Connection->Internal_GetThread()), 0, 200, "RpcConn");
+    auto s_Ret = kthread_add(Connection::ConnectionThread, p_Connection, s_Process, reinterpret_cast<thread **>(p_Connection->Internal_GetThread()), 0, 32, "RpcConn");
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "could not start new connection thread (%d).", s_Ret);

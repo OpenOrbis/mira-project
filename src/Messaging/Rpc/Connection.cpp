@@ -62,6 +62,10 @@ Connection::~Connection()
 
 void Connection::Disconnect()
 {
+    // Even if something freakish happens try to free resources
+    if (m_Running)
+        m_Running = false;
+    
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
@@ -69,9 +73,7 @@ void Connection::Disconnect()
         return;
     }
 
-    if (m_Running)
-        m_Running = false;
-    
+    // If the socket is in use, kill it, should break out of the threaded loop
     if (m_Socket > 0)
     {
         kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
@@ -79,10 +81,7 @@ void Connection::Disconnect()
         m_Socket = -1;
     }
 
-    WriteLog(LL_Debug, "client (%p) disconnected.", this);
-
-    if (m_Server != nullptr)
-        m_Server->OnConnectionDisconnected(this);
+    WriteLog(LL_Debug, "client (%p) disconnecting.", this);
 }
 
 void Connection::ConnectionThread(void* p_Connection)
@@ -138,7 +137,7 @@ void Connection::ConnectionThread(void* p_Connection)
 
     uint64_t s_IncomingMessageSize = 0;
     ssize_t s_Ret = -1;
-    while ((s_Ret = krecv_t(s_Connection->GetSocket(), &s_IncomingMessageSize, sizeof(s_IncomingMessageSize), 0, s_MainThread)) > 0)
+    while (((s_Ret = krecv_t(s_Connection->GetSocket(), &s_IncomingMessageSize, sizeof(s_IncomingMessageSize), 0, s_MainThread)) > 0) && s_Connection->m_Running)
     {
         // Make sure that we got all of the data
         if (s_Ret != sizeof(s_IncomingMessageSize))
@@ -151,6 +150,12 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_IncomingMessageSize > MaxBufferSize)
         {
             WriteLog(LL_Error, "incoming message size (%llx) > max buffer size (%llx)", s_IncomingMessageSize, MaxBufferSize);
+            break;
+        }
+
+        if (s_IncomingMessageSize == 0)
+        {
+            WriteLog(LL_Error, "invalid message size.");
             break;
         }
 
@@ -204,7 +209,7 @@ void Connection::ConnectionThread(void* p_Connection)
 
         // Validate message category
         auto s_Category = s_Header->category;
-        if (s_Category < RPC_CATEGORY__NONE || s_Category > RPC_CATEGORY__MAX)
+        if (s_Category < RPC_CATEGORY__NONE || s_Category >= RPC_CATEGORY__MAX)
         {
             WriteLog(LL_Error, "invalid category (%d).", s_Category);
             rpc_transport__free_unpacked(s_Transport, nullptr);
@@ -235,15 +240,21 @@ void Connection::ConnectionThread(void* p_Connection)
 
         s_MessageManager->OnRequest(s_Connection, *s_Transport);
 
-        // Zero out the header for use next iteration
-        s_IncomingMessageSize = 0;
-
+        // Free the protobuf
         rpc_transport__free_unpacked(s_Transport, nullptr);
+
+        // Zero out the header for use next iteration
         memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+        s_IncomingMessageSize = 0;
         delete [] s_IncomingMessageData;
     }
 
+    // Cleans up resources
     s_Connection->Disconnect();
+
+    // Tell the server to free this memory
+    if (s_Connection != nullptr && s_Connection->m_Server != nullptr)
+        s_Connection->m_Server->OnConnectionDisconnected(s_Connection);
 
     kthread_exit();
 }

@@ -127,6 +127,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sceSblPfsSetKeys                       0x0061EFA0
 #define kdlsym_addr_sceSblRngGetRandomNumber               0x00647A50
 #define kdlsym_addr_sceSblServiceMailbox                   0x00632540
+#define kdlsym_addr_sched_prio                             0x0031EE00
 #define kdlsym_addr_self_orbis_sysvec                      0x019BBCD0
 #define kdlsym_addr_Sha256Hmac                             0x002D55B0
 #define kdlsym_addr_snprintf                               0x00436350
