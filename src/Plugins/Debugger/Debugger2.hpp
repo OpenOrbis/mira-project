@@ -421,7 +421,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing attach rpc message
              */
-            static void OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
             
             /**
              * @brief RPC callback for detaching from a process
@@ -429,7 +429,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing detach rpc message
              */
-            static void OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for writing kernel memory
@@ -437,7 +437,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage with single step message
              */
-            static void OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for getting a process list of all running processes on the console
@@ -445,7 +445,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing process list request message
              */
-            static void OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for reading attached process memory
@@ -453,7 +453,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing rpm request
              */
-            static void OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
             
             /**
              * @brief RPC callback for writing attached process memory
@@ -461,7 +461,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing wpm request
              */
-            static void OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for changing memory protection
@@ -469,7 +469,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing protect process memory request
              */
-            static void OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for getting process information
@@ -477,7 +477,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the pid request
              */
-            static void OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for getting thread information
@@ -485,7 +485,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the thread id request
              */
-            static void OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for getting process threads
@@ -493,7 +493,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the pid request
              */
-            static void OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for allocating memory in a process
@@ -501,7 +501,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the size and permission
              */
-            static void OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for freeing memory in a process
@@ -509,7 +509,7 @@ namespace Mira
              * @param p_Connection Requesing connection
              * @param p_Message RpcMessage containing the memory to free
              */
-            static void OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for adding a breakpoint
@@ -517,7 +517,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the breakpoint to add
              */
-            static void OnAddBreakpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnAddBreakpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for adding a watchpoint
@@ -525,7 +525,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the watchpoint to add
              */
-            static void OnAddWatchpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnAddWatchpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for signaling the process
@@ -533,7 +533,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the signal information
              */
-            static void OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for getting thread registers
@@ -541,7 +541,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the thread id to get registers for
              */
-            static void OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for setting the thread registers
@@ -549,7 +549,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage containing the set thread registers message
              */
-            static void OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for reading kernel memory
@@ -557,7 +557,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage with the read kernel memory request
              */
-            static void OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief RPC callback for writing kernel memory
@@ -565,7 +565,7 @@ namespace Mira
              * @param p_Connection Requesting connection
              * @param p_Message RpcMessage with write kernel memory
              */
-            static void OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            static void OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
             /**
              * @brief Event handler for when a process exists, that way we can catch

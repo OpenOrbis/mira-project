@@ -179,7 +179,7 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, RpcCategor
     SendResponse(p_Connection, p_Category, 0,  p_Error < 0 ? p_Error : (-p_Error), nullptr, 0);
 }
 
-void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     if (p_Connection == nullptr)
         return;
@@ -298,7 +298,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_C
     SendResponse(p_Connection, s_Response);
 }
 
-void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     // auto _mtx_unlock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_unlock_spin_flags);
 	// auto _mtx_lock_spin_flags = (void(*)(struct mtx* mutex, int flags))kdlsym(_mtx_lock_spin_flags);

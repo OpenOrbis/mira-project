@@ -44,7 +44,7 @@ Mira::Framework::Framework()
     WriteLog(LL_Error, "sadada");
 }
 
-static void MyCallback(Mira::Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+static void MyCallback(Mira::Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_Framework = Mira::Framework::GetFramework();
     if (s_Framework == nullptr)

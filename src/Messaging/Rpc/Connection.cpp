@@ -241,7 +241,7 @@ void Connection::ConnectionThread(void* p_Connection)
             break;
         }
 
-        s_MessageManager->OnRequest(s_Connection, *s_Transport);
+        s_MessageManager->OnRequest(s_Connection, const_cast<const RpcTransport*>(s_Transport));
 
         WriteLog(LL_Error, "here");
 
