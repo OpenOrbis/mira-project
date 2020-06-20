@@ -36,17 +36,17 @@ namespace Mira
                 virtual const char* GetDescription() override { return "replaces ftp"; }
 
             private:
-                static void OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnWrite(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnMkDir(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnRmDir(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
-                static void OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+                static void OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnWrite(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnMkDir(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnRmDir(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
+                static void OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
                 static uint8_t* DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize);
                 static uint8_t* DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_SelfFd, size_t* p_OutElfSize);

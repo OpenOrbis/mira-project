@@ -35,7 +35,7 @@ MessageManager::~MessageManager()
 
 }
 
-bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&))
+bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport*))
 {
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
@@ -105,7 +105,7 @@ bool MessageManager::RegisterCallback(RpcCategory p_Category, int32_t p_Type, vo
     return s_Success;
 }
 
-bool MessageManager::UnregisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport&))
+bool MessageManager::UnregisterCallback(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection*, const RpcTransport*))
 {
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
@@ -169,10 +169,19 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, RpcCategor
     SendResponse(p_Connection, p_Category, 0,  p_Error < 0 ? p_Error : (-p_Error), nullptr, 0);
 }
 
-void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     if (p_Connection == nullptr)
+    {
+        WriteLog(LL_Error, "could not get connection.");
         return;
+    }
+    
+    if (p_Message == nullptr)
+    {
+        WriteLog(LL_Error, "could not get message.");
+        return;
+    }
 
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
@@ -203,24 +212,18 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
-    WriteLog(LL_Error, "here");
-
-    auto s_SerializedSize = rpc_transport__get_packed_size(&p_Message);
+    auto s_SerializedSize = rpc_transport__get_packed_size(p_Message);
     if (s_SerializedSize <= 0)
     {
         WriteLog(LL_Error, "invalid serialized size (%x)", s_SerializedSize);
         return;
     }
 
-    WriteLog(LL_Error, "here");
-
     if (s_SerializedSize > MessageManager_MaxMessageSize)
     {
         WriteLog(LL_Error, "serialized size too large (%x) > (%llx)", s_SerializedSize, MessageManager_MaxMessageSize);
         return;
     }
-
-    WriteLog(LL_Error, "here");
 
     // Allocate enough space for size + message data
     auto s_TotalSize = sizeof(uint64_t) + s_SerializedSize;
@@ -232,20 +235,14 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
     }
     memset(s_SerializedData, 0, s_TotalSize);
 
-    WriteLog(LL_Error, "here");
-
     // Set the message size
     *(uint64_t*)s_SerializedData = s_SerializedSize;
-
-    WriteLog(LL_Error, "here");
 
     // Get the message start
     auto s_MessageStart = s_SerializedData + sizeof(uint64_t);
 
-    WriteLog(LL_Error, "here");
-
     // Pack the message
-    auto s_Ret = rpc_transport__pack(&p_Message, s_MessageStart);
+    auto s_Ret = rpc_transport__pack(p_Message, s_MessageStart);
     if (s_Ret != s_SerializedSize)
     {
         WriteLog(LL_Error, "could not serialize data");
@@ -253,9 +250,6 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         delete [] s_SerializedData;
         return;
     }
-    //WriteLog(LL_Debug, "packed message size (%x)", s_Ret);
-
-    WriteLog(LL_Error, "here");
 
     // Get and send the data
     auto s_BytesWritten = kwrite_t(s_Socket, s_SerializedData, s_TotalSize, s_MainThread);
@@ -267,7 +261,6 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
-    WriteLog(LL_Error, "here");
     memset(s_SerializedData, 0, s_TotalSize);
     delete [] s_SerializedData;
 }
@@ -297,15 +290,27 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_C
     s_Response.header = &s_Header;
 
     s_Response.data.data = static_cast<uint8_t*>(p_Data);
-    s_Response.data.len = p_DataSize;
+    s_Response.data.len = p_Data == nullptr ? 0 : p_DataSize;
 
-    SendResponse(p_Connection, s_Response);
+    SendResponse(p_Connection, &s_Response);
 }
 
-void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_Connection == nullptr)
+    {
+        WriteLog(LL_Error, "invalid connection.");
+        return;
+    }
+
+    if (p_Message == nullptr)
+    {
+        WriteLog(LL_Error, "could not get message.");
+        return;
+    }
 
     MessageListener* s_FoundEntry = nullptr;
     int32_t s_FoundIndex = -1;
@@ -319,10 +324,10 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
             if (l_CategoryEntry == nullptr)
                 continue;
                         
-            if (l_CategoryEntry->GetCategory() != p_Message.header->category)
+            if (l_CategoryEntry->GetCategory() != p_Message->header->category)
                 continue;
             
-            if (l_CategoryEntry->GetType() != p_Message.header->type)
+            if (l_CategoryEntry->GetType() != p_Message->header->type)
                 continue;
             
             s_FoundEntry = &m_Listeners[i];
@@ -332,7 +337,7 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
 
         if (s_FoundEntry == nullptr || s_FoundIndex == -1)
         {
-            WriteLog(LL_Error, "could not find endpoint c: (%x) t:(%x)", p_Message.header->category, p_Message.header->type);
+            WriteLog(LL_Error, "could not find endpoint c: (%x) t:(%x)", p_Message->header->category, p_Message->header->type);
             break;
         }
         
