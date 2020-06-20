@@ -245,7 +245,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
     auto s_Ret = rpc_transport__pack(p_Message, s_MessageStart);
     if (s_Ret != s_SerializedSize)
     {
-        WriteLog(LL_Error, "could not serialize data");
+        WriteLog(LL_Error, "could not serialize data (%llx) != (%llx).", s_Ret, s_SerializedSize);
         memset(s_SerializedData, 0, s_TotalSize);
         delete [] s_SerializedData;
         return;
