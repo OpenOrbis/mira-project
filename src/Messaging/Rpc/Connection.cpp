@@ -128,6 +128,14 @@ void Connection::ConnectionThread(void* p_Connection)
         return;
     }
 
+    auto s_Buffer = new uint8_t[MaxBufferSize];
+    if (s_Buffer == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate maximum buffer length.");
+        kthread_exit();
+        return;
+    }
+
     WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%x), thread: (%p).", 
                     s_Connection->m_Socket, 
                     s_Connection->m_Address.sin_addr.s_addr, 
@@ -162,31 +170,23 @@ void Connection::ConnectionThread(void* p_Connection)
             break;
         }
 
-        // Allocate data for our incoming message size
-        auto s_IncomingMessageData = new uint8_t[s_IncomingMessageSize];
-        if (s_IncomingMessageData == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate incoming message size (%llx)", s_IncomingMessageSize);
-            break;
-        }
-        memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+        // Zero our buffer
+        memset(s_Buffer, 0, MaxBufferSize);
 
         // Get the message data from the wire
-        s_Ret = krecv_t(s_Socket, s_IncomingMessageData, s_IncomingMessageSize, 0, s_MainThread);
+        s_Ret = krecv_t(s_Socket, s_Buffer, s_IncomingMessageSize, 0, s_MainThread);
         if (s_Ret != s_IncomingMessageSize)
         {
             WriteLog(LL_Error, "did not get correct amount of data (%llx) wanted (%llx)", s_Ret, s_IncomingMessageSize);
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
-        RpcTransport* s_Transport = rpc_transport__unpack(nullptr, s_IncomingMessageSize, s_IncomingMessageData);
+        RpcTransport* s_Transport = rpc_transport__unpack(nullptr, s_IncomingMessageSize, s_Buffer);
         if (s_Transport == nullptr)
         {
             WriteLog(LL_Error, "error unpacking incoming message");
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
@@ -196,8 +196,7 @@ void Connection::ConnectionThread(void* p_Connection)
         if (s_Header == nullptr)
         {
             WriteLog(LL_Error, "could not get the transport header.");
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
@@ -205,8 +204,7 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "incorrect magic got(%d) wanted (%d).", s_Header->magic, 2);
             rpc_transport__free_unpacked(s_Transport, nullptr);
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
@@ -216,8 +214,7 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "invalid category (%d).", s_Category);
             rpc_transport__free_unpacked(s_Transport, nullptr);
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
@@ -226,8 +223,7 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "attempted to handle outgoing message, fix ya code");
             rpc_transport__free_unpacked(s_Transport, nullptr);
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
@@ -236,8 +232,7 @@ void Connection::ConnectionThread(void* p_Connection)
         {
             WriteLog(LL_Error, "transport data does not have enough data, wanted (%d), have (%d).", s_Transport->data.len, MaxBufferSize);
             rpc_transport__free_unpacked(s_Transport, nullptr);
-            memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
-            delete [] s_IncomingMessageData;
+            memset(s_Buffer, 0, MaxBufferSize);
             break;
         }
 
@@ -249,10 +244,13 @@ void Connection::ConnectionThread(void* p_Connection)
         rpc_transport__free_unpacked(s_Transport, nullptr);
 
         // Zero out the header for use next iteration
-        memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
+        memset(s_Buffer, 0, MaxBufferSize);
         s_IncomingMessageSize = 0;
-        delete [] s_IncomingMessageData;
     }
+
+    // Free the maximum buffer size
+    memset(s_Buffer, 0, MaxBufferSize);
+    delete [] s_Buffer;
 
     WriteLog(LL_Error, "why did we get here (%d)", s_Connection->m_Running);
 
