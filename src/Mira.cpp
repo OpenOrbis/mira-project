@@ -462,6 +462,24 @@ bool Mira::Framework::Terminate()
 	return true;
 }
 
+struct thread* Mira::Framework::GetMainThread()
+{ 
+	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+	auto s_Process = m_InitParams.process;
+	if (s_Process == nullptr)
+		return nullptr;
+	
+	_mtx_lock_flags(&s_Process->p_mtx, 0);
+	struct thread* s_Thread = s_Process->p_singlethread;
+	if (s_Thread == nullptr)
+		s_Thread = FIRST_THREAD_IN_PROC(s_Process);
+	_mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+	return s_Thread;
+}
+
 bool Mira::Framework::InstallEventHandlers()
 {
 	if (m_EventHandlersInstalled)

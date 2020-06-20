@@ -18,7 +18,7 @@ PROJ_NAME := test
 CPPC	:=	clang++
 
 # Linker
-LNK		:= clang  # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
+LNK		:= clang++  # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
 
 # C compiler
 CC		:=	clang
@@ -121,7 +121,7 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 endif
-	@$(CPPC) $(CFLAGS) -std=c++17 -fno-rtti $(I_DIRS) -c $< -o $@
+	@$(CPPC) $(CFLAGS) -std=c++17 -stdlib=libc++ -fno-rtti $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."

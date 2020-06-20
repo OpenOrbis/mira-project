@@ -203,6 +203,8 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
+    WriteLog(LL_Error, "here");
+
     auto s_SerializedSize = rpc_transport__get_packed_size(&p_Message);
     if (s_SerializedSize <= 0)
     {
@@ -210,11 +212,15 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
+    WriteLog(LL_Error, "here");
+
     if (s_SerializedSize > MessageManager_MaxMessageSize)
     {
         WriteLog(LL_Error, "serialized size too large (%x) > (%llx)", s_SerializedSize, MessageManager_MaxMessageSize);
         return;
     }
+
+    WriteLog(LL_Error, "here");
 
     // Allocate enough space for size + message data
     auto s_TotalSize = sizeof(uint64_t) + s_SerializedSize;
@@ -226,31 +232,43 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
     }
     memset(s_SerializedData, 0, s_TotalSize);
 
+    WriteLog(LL_Error, "here");
+
     // Set the message size
     *(uint64_t*)s_SerializedData = s_SerializedSize;
 
+    WriteLog(LL_Error, "here");
+
     // Get the message start
     auto s_MessageStart = s_SerializedData + sizeof(uint64_t);
+
+    WriteLog(LL_Error, "here");
 
     // Pack the message
     auto s_Ret = rpc_transport__pack(&p_Message, s_MessageStart);
     if (s_Ret != s_SerializedSize)
     {
         WriteLog(LL_Error, "could not serialize data");
+        memset(s_SerializedData, 0, s_TotalSize);
         delete [] s_SerializedData;
         return;
     }
     //WriteLog(LL_Debug, "packed message size (%x)", s_Ret);
+
+    WriteLog(LL_Error, "here");
 
     // Get and send the data
     auto s_BytesWritten = kwrite_t(s_Socket, s_SerializedData, s_TotalSize, s_MainThread);
     if (s_BytesWritten < 0)
     {
         WriteLog(LL_Error, "could not send data (%lld).", s_BytesWritten);
+        memset(s_SerializedData, 0, s_TotalSize);
         delete [] s_SerializedData;
         return;
     }
 
+    WriteLog(LL_Error, "here");
+    memset(s_SerializedData, 0, s_TotalSize);
     delete [] s_SerializedData;
 }
 

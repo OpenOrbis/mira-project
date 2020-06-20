@@ -134,6 +134,8 @@ bool Server::Startup()
         s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 32, "RpcServer");
         
         WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
+
+        s_Success = s_Ret == 0;
     } while (false);
     _mtx_unlock_flags(&m_Mutex, 0);
     
@@ -424,18 +426,22 @@ void Server::OnConnectionDisconnected(Rpc::Connection* p_Connection)
             
             if (l_Connection->GetId() != p_Connection->GetId())
                 continue;
+            
+            // Attempt to get the client lock
+            _mtx_lock_flags(l_Connection->GetMutex(), 0);
 
             // Remove the client from the list
             m_Connections[i] = nullptr;
+
+            // Once we have excluse access, release and free
+            _mtx_unlock_flags(l_Connection->GetMutex(), 0);
 
             WriteLog(LL_Debug, "freeing connection at (%d) (%p).", i, l_Connection);
             delete l_Connection;
             break;
         }
-    } while (false);
+    } while (false); 
     _mtx_unlock_flags(&m_Mutex, 0);
-    
-    
 }
 
 int32_t Server::GetSocketById(uint32_t p_Id)

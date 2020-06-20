@@ -1,6 +1,13 @@
 #pragma once
 #include <Utils/Vector.hpp>
-#include <netinet/in.h>
+
+extern "C"
+{
+    #include <netinet/in.h>
+    #include <sys/param.h>
+    #include <sys/lock.h>
+    #include <sys/mutex.h>
+};
 
 namespace Mira
 {
@@ -32,14 +39,19 @@ namespace Mira
                 // Server reference
                 Rpc::Server* m_Server;
 
-                uint8_t* m_MessageBuffer;
+                struct mtx m_Mutex;
 
             public:
                 Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Socket, struct sockaddr_in& p_Address);
                 virtual ~Connection();
 
+                // This Takes a lock
                 void Disconnect();
 
+                // This takes a lock
+                void SetRunning(bool p_Running);
+
+                struct mtx* GetMutex() { return &m_Mutex; }
                 int32_t GetSocket() { return m_Socket; }
                 uint32_t GetId() { return m_Id; }
                 bool IsRunning() { return m_Running; }
