@@ -12,7 +12,7 @@ extern "C"
 using namespace Mira;
 using namespace Mira::Plugins;
 
-void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -30,14 +30,14 @@ void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgAttachRequest* s_Request = dbg_attach_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgAttachRequest* s_Request = dbg_attach_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack attach request");
@@ -73,7 +73,7 @@ void Debugger2::OnAttach(Messaging::Rpc::Connection* p_Connection, const RpcTran
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, s_Debugger->m_AttachedPid, nullptr, 0);
 }
 
-void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -91,14 +91,14 @@ void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTran
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgDetachRequest* s_Request = dbg_detach_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgDetachRequest* s_Request = dbg_detach_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack detach request");
@@ -120,7 +120,7 @@ void Debugger2::OnDetach(Messaging::Rpc::Connection* p_Connection, const RpcTran
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_Attach, 0, nullptr, 0);
 }
 
-void Debugger2::OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -148,9 +148,8 @@ void Debugger2::OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, con
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, 0, nullptr, 0);
 }
 
-void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    WriteLog(LL_Error, "here");
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
     {
@@ -159,7 +158,6 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         return;
     }
 
-    WriteLog(LL_Error, "here");
     auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
     if (s_Debugger == nullptr)
     {
@@ -167,7 +165,6 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
-    WriteLog(LL_Error, "here");
 
     // struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
     // struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
@@ -344,7 +341,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
     //WriteLog(LL_Debug, "here");
 }
 
-void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -362,14 +359,14 @@ void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, co
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgReadProcessMemoryRequest* s_Request = dbg_read_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgReadProcessMemoryRequest* s_Request = dbg_read_process_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack rpm request");
@@ -445,7 +442,7 @@ void Debugger2::OnReadProcessMemory(Messaging::Rpc::Connection* p_Connection, co
     delete [] s_Buffer;
 }
 
-void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -463,14 +460,14 @@ void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, c
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgWriteProcessMemoryRequest* s_Request = dbg_write_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgWriteProcessMemoryRequest* s_Request = dbg_write_process_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack wpm request");
@@ -504,7 +501,7 @@ void Debugger2::OnWriteProcessMemory(Messaging::Rpc::Connection* p_Connection, c
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_WriteMem, 0, nullptr, 0);
 }
 
-void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
 	if (s_ThreadManager == nullptr)
@@ -538,14 +535,14 @@ void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection,
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgProtectProcessMemoryRequest* s_Request = dbg_protect_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgProtectProcessMemoryRequest* s_Request = dbg_protect_process_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack protect proc memory request");
@@ -575,7 +572,7 @@ void Debugger2::OnProtectProcessMemory(Messaging::Rpc::Connection* p_Connection,
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_ProtectMem, s_Ret, nullptr, 0);
 }
 
-void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -593,14 +590,14 @@ void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgGetProcessInfoRequest* s_Request = dbg_get_process_info_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgGetProcessInfoRequest* s_Request = dbg_get_process_info_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack get process info request");
@@ -652,7 +649,7 @@ void Debugger2::OnGetProcessInfo(Messaging::Rpc::Connection* p_Connection, const
     delete [] s_MessageData;
 }
 
-void Debugger2::OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -670,14 +667,14 @@ void Debugger2::OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const 
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgGetThreadInfoRequest* s_Request = dbg_get_thread_info_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgGetThreadInfoRequest* s_Request = dbg_get_thread_info_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack get thread info request");
@@ -727,7 +724,7 @@ void Debugger2::OnGetThreadInfo(Messaging::Rpc::Connection* p_Connection, const 
     delete [] s_MessageData;
 }
 
-void Debugger2::OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
@@ -745,14 +742,14 @@ void Debugger2::OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const
         return;
     }
 
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
 
-    DbgGetProcessThreadsRequest* s_Request = dbg_get_process_threads_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgGetProcessThreadsRequest* s_Request = dbg_get_process_threads_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack get process threads request");
@@ -811,9 +808,9 @@ void Debugger2::OnGetProcThreads(Messaging::Rpc::Connection* p_Connection, const
     delete [] s_MessageData;
 }
 
-void Debugger2::OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -844,7 +841,7 @@ void Debugger2::OnAllocateProcessMemory(Messaging::Rpc::Connection* p_Connection
         return;
     }
 
-    DbgAllocateProcessMemoryRequest* s_Request = dbg_allocate_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgAllocateProcessMemoryRequest* s_Request = dbg_allocate_process_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack allocate request");
@@ -905,9 +902,9 @@ cleanup:
     }
 }
 
-void Debugger2::OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -938,7 +935,7 @@ void Debugger2::OnFreeProcessMemory(Messaging::Rpc::Connection* p_Connection, co
         return;
     }
 
-    DbgFreeProcessMemoryRequest* s_Request = dbg_free_process_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgFreeProcessMemoryRequest* s_Request = dbg_free_process_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack free request");
@@ -963,23 +960,23 @@ cleanup:
 
 }
 
-void Debugger2::OnAddBreakpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnAddBreakpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     WriteLog(LL_Error, "breakpoints not implemented");
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EEXIST);
 }
 
-void Debugger2::OnAddWatchpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnAddWatchpoint(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
     WriteLog(LL_Error, "watchpoints not implemented");
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -EEXIST);
 }
 
-void Debugger2::OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -1018,7 +1015,7 @@ void Debugger2::OnSignalProcess(Messaging::Rpc::Connection* p_Connection, const 
         return;
     }
 
-    DbgSignalProcessRequest* s_Request = dbg_signal_process_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgSignalProcessRequest* s_Request = dbg_signal_process_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack signal request");
@@ -1042,9 +1039,9 @@ cleanup:
 }
 
 
-void Debugger2::OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -1083,7 +1080,7 @@ void Debugger2::OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, con
         return;
     }
 
-    DbgReadKernelMemoryRequest* s_Request = dbg_read_kernel_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgReadKernelMemoryRequest* s_Request = dbg_read_kernel_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack read kernel memory request");
@@ -1147,9 +1144,9 @@ void Debugger2::OnReadKernelMemory(Messaging::Rpc::Connection* p_Connection, con
     delete [] s_MessageData;
 }
 
-void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -1188,7 +1185,7 @@ void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, co
         return;
     }
 
-    DbgWriteKernelMemoryRequest* s_Request = dbg_write_kernel_memory_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgWriteKernelMemoryRequest* s_Request = dbg_write_kernel_memory_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack write kernel memory request");
@@ -1208,9 +1205,9 @@ void Debugger2::OnWriteKernelMemory(Messaging::Rpc::Connection* p_Connection, co
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, 0, nullptr, 0);
 }
 
-void Debugger2::OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -1249,7 +1246,7 @@ void Debugger2::OnGetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         return;
     }
 
-    DbgGetRegistersRequest* s_Request = dbg_get_registers_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgGetRegistersRequest* s_Request = dbg_get_registers_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not unpack get registers request");
@@ -1327,9 +1324,9 @@ cleanup:
         delete [] s_PackedData;
 }
 
-void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message.data.data == nullptr || p_Message.data.len <= 0)
+    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "could not get data");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
@@ -1368,7 +1365,7 @@ void Debugger2::OnSetThreadRegisters(Messaging::Rpc::Connection* p_Connection, c
         return;
     }
 
-    DbgSetRegistersRequest* s_Request = dbg_set_registers_request__unpack(nullptr, p_Message.data.len, p_Message.data.data);
+    DbgSetRegistersRequest* s_Request = dbg_set_registers_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "could not read set registers request");

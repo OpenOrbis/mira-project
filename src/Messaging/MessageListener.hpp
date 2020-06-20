@@ -15,7 +15,7 @@ namespace Mira
         private:
             RpcCategory m_Category;
             int32_t m_Type;
-            void(*m_Callback)(Rpc::Connection* p_Connection, const RpcTransport& p_Message);
+            void(*m_Callback)(Rpc::Connection* p_Connection, const RpcTransport* p_Message);
 
         public:
             MessageListener() :
@@ -26,7 +26,7 @@ namespace Mira
 
             }
 
-            MessageListener(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection* p_Connection, const RpcTransport& p_Message)) :
+            MessageListener(RpcCategory p_Category, int32_t p_Type, void(*p_Callback)(Rpc::Connection* p_Connection, const RpcTransport* p_Message)) :
                 m_Category(p_Category),
                 m_Type(p_Type),
                 m_Callback(p_Callback)
@@ -87,7 +87,7 @@ namespace Mira
 
             RpcCategory GetCategory() { return m_Category; }
             int32_t GetType() { return m_Type; }
-            auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, const RpcTransport& p_Message)
+            auto GetCallback() -> void(*)(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
             {
                 return m_Callback;
             };
