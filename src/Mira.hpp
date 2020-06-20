@@ -89,22 +89,8 @@ namespace Mira
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
         Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }
 
-        struct thread* GetMainThread() 
-        { 
-            auto s_Process = m_InitParams.process;
-            if (s_Process == nullptr)
-                return nullptr;
-            
-            struct thread* s_Thread = s_Process->p_singlethread;
-            if (s_Thread == nullptr)
-            {
-                s_Thread = FIRST_THREAD_IN_PROC(s_Process);
-                if (s_Thread == nullptr)
-                    return nullptr;
-            }
-
-            return s_Thread;
-        }
+        struct thread* GetMainThread();
+        
     private:
         static void OnMiraSuspend(void* __unused p_Reserved);
         static void OnMiraResume(void* __unused p_Reserved);

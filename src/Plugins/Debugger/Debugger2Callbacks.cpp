@@ -150,6 +150,7 @@ void Debugger2::OnThreadSinglestep(Messaging::Rpc::Connection* p_Connection, con
 
 void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const RpcTransport& p_Message)
 {
+    WriteLog(LL_Error, "here");
     auto s_PluginManager = Mira::Framework::GetFramework()->GetPluginManager();
     if (s_PluginManager == nullptr)
     {
@@ -158,6 +159,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         return;
     }
 
+    WriteLog(LL_Error, "here");
     auto s_Debugger = static_cast<Debugger2*>(s_PluginManager->GetDebugger());
     if (s_Debugger == nullptr)
     {
@@ -165,6 +167,7 @@ void Debugger2::OnGetProcList(Messaging::Rpc::Connection* p_Connection, const Rp
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__DEBUG, -ENOMEM);
         return;
     }
+    WriteLog(LL_Error, "here");
 
     // struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
     // struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);

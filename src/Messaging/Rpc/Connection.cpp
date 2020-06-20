@@ -33,19 +33,12 @@ Connection::Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Soc
     m_Running(false),
     m_Thread(nullptr),
     m_Address{0},
-    m_Server(p_Server),
-    m_MessageBuffer(new uint8_t[MaxBufferSize])
+    m_Server(p_Server)
 {
     memcpy(&m_Address, &p_Address, sizeof(m_Address));
 
-    if (m_MessageBuffer == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate message buffer.");
-        return;
-    }
-
-    // Zero out our buffer
-    memset(m_MessageBuffer, 0, MaxBufferSize);
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
+    mtx_init(&m_Mutex, "MiraRpcConMtx", nullptr, MTX_DEF);
 }
 
 Connection::~Connection()
@@ -53,35 +46,50 @@ Connection::~Connection()
     if (m_Running)
         Disconnect();
     
-    if (m_MessageBuffer)
-    {
-        delete [] m_MessageBuffer;
-        m_MessageBuffer = nullptr;
-    }
+    auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
+	mtx_destroy(&m_Mutex);
 }
 
 void Connection::Disconnect()
 {
-    // Even if something freakish happens try to free resources
-    if (m_Running)
-        m_Running = false;
-    
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get main thread");
-        return;
-    }
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
-    // If the socket is in use, kill it, should break out of the threaded loop
-    if (m_Socket > 0)
+    _mtx_lock_flags(&m_Mutex, 0);
+    do
     {
-        kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
-        kclose_t(m_Socket, s_MainThread);
-        m_Socket = -1;
-    }
+        // Even if something freakish happens try to free resources
+        if (m_Running)
+            m_Running = false;
+        
+        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        if (s_MainThread == nullptr)
+        {
+            WriteLog(LL_Error, "could not get main thread");
+            break;
+        }
 
-    WriteLog(LL_Debug, "client (%p) disconnecting.", this);
+        // If the socket is in use, kill it, should break out of the threaded loop
+        if (m_Socket > 0)
+        {
+            kshutdown_t(m_Socket, SHUT_RDWR, s_MainThread);
+            kclose_t(m_Socket, s_MainThread);
+            m_Socket = -1;
+        }
+
+        WriteLog(LL_Debug, "client (%p) disconnecting.", this);
+    } while (false);
+    _mtx_unlock_flags(&m_Mutex, 0);    
+}
+
+void Connection::SetRunning(bool p_Running)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    _mtx_lock_flags(&m_Mutex, 0);
+    m_Running = p_Running;
+    _mtx_unlock_flags(&m_Mutex, 0);
 }
 
 void Connection::ConnectionThread(void* p_Connection)
@@ -100,14 +108,6 @@ void Connection::ConnectionThread(void* p_Connection)
     if (s_Connection == nullptr)
     {
         WriteLog(LL_Error, "invalid connection instance");
-        kthread_exit();
-        return;
-    }
-
-    // Validate that we have a buffer
-    if (s_Connection->m_MessageBuffer == nullptr)
-    {
-        WriteLog(LL_Error, "there is no message buffer");
         kthread_exit();
         return;
     }
@@ -133,11 +133,14 @@ void Connection::ConnectionThread(void* p_Connection)
                     s_Connection->m_Address.sin_addr.s_addr, 
                     s_Connection->m_Thread);
 
-    s_Connection->m_Running = true;
+    // Update the running state, this takes a lock
+    s_Connection->SetRunning(true);
+
+    auto s_Socket = s_Connection->GetSocket();
 
     uint64_t s_IncomingMessageSize = 0;
     ssize_t s_Ret = -1;
-    while (((s_Ret = krecv_t(s_Connection->GetSocket(), &s_IncomingMessageSize, sizeof(s_IncomingMessageSize), 0, s_MainThread)) > 0) && s_Connection->m_Running)
+    while (((s_Ret = krecv_t(s_Socket, &s_IncomingMessageSize, sizeof(s_IncomingMessageSize), 0, s_MainThread)) > 0) && s_Connection->IsRunning())
     {
         // Make sure that we got all of the data
         if (s_Ret != sizeof(s_IncomingMessageSize))
@@ -169,7 +172,7 @@ void Connection::ConnectionThread(void* p_Connection)
         memset(s_IncomingMessageData, 0, s_IncomingMessageSize);
 
         // Get the message data from the wire
-        s_Ret = krecv_t(s_Connection->GetSocket(), s_IncomingMessageData, s_IncomingMessageSize, 0, s_MainThread);
+        s_Ret = krecv_t(s_Socket, s_IncomingMessageData, s_IncomingMessageSize, 0, s_MainThread);
         if (s_Ret != s_IncomingMessageSize)
         {
             WriteLog(LL_Error, "did not get correct amount of data (%llx) wanted (%llx)", s_Ret, s_IncomingMessageSize);
@@ -240,6 +243,8 @@ void Connection::ConnectionThread(void* p_Connection)
 
         s_MessageManager->OnRequest(s_Connection, *s_Transport);
 
+        WriteLog(LL_Error, "here");
+
         // Free the protobuf
         rpc_transport__free_unpacked(s_Transport, nullptr);
 
@@ -248,6 +253,8 @@ void Connection::ConnectionThread(void* p_Connection)
         s_IncomingMessageSize = 0;
         delete [] s_IncomingMessageData;
     }
+
+    WriteLog(LL_Error, "why did we get here (%d)", s_Connection->m_Running);
 
     // Cleans up resources
     s_Connection->Disconnect();
