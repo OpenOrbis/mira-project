@@ -106,7 +106,7 @@ bool Debugger2::OnUnload()
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetRegs, OnGetThreadRegisters);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_SetRegs, OnSetThreadRegisters);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetThreadInfo, OnGetThreadInfo);
-    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
+    //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ThreadSinglestep, OnThreadSinglestep);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_ReadKernelMem, OnReadKernelMemory);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_WriteKernelMem, OnWriteKernelMemory);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__DEBUG, DbgCmd_GetProcList, OnGetProcList);

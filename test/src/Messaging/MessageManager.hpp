@@ -12,7 +12,7 @@ extern "C"
 }
 #else
 #include <Messaging/MessageListener.hpp>
-#include <cstring>
+#include <string>
 #endif
 
 namespace Mira
