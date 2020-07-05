@@ -1,5 +1,4 @@
 *.bin
-.vscode*
 *.o
 *.elf
 *.a
@@ -7,7 +6,6 @@
 *SteamLink*
 *steam_link*
 build/*
-.code-workspace*
 reeee/*
 # PVS-Studio Ignores
 project.log
