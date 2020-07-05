@@ -12,13 +12,13 @@ MIRA_CHECKS :=
 endif
 
 # Project name
-PROJ_NAME := test
+PROJ_NAME := Mira
 
 # C++ compiler
 CPPC	:=	clang++
 
 # Linker
-LNK		:= clang++  # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
+LNK		:= ld # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
 
 # C compiler
 CC		:=	clang
@@ -45,27 +45,32 @@ ifeq ($(BSD_INC),)
 BSD_INC := ../external/freebsd-headers/include
 endif
 
+# Set up a path for the external directory
+ifeq ($(EXTERNAL_INC),)
+EXTERNAL_INC := ../external
+endif
+
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I../external/hde64 -I../external/protobuf-c
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC) -I$(EXTERNAL_INC)/protobuf-c
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib
 
 # Included libraries
-LIBS	:= -lasan -lc -lpthread
+LIBS	:= 
 
 # C Defines
-C_DEFS	:= 
+C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"MIRA_PLATFORM=${MIRA_PLATFORM}" -DMIRA_UNSUPPORTED_PLATFORMS -D__LP64__ -D_M_X64 -D__amd64__ -D__BSD_VISIBLE
 
 # C++ Flags, -02 Optimizations break shit badly
-CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpic -m64 -O0 -fno-exceptions -g -fsanitize=address
+CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpic -m64 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
 
 # Assembly flags
-SFLAGS	:= -pie -m64
+SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 
 # Linker flags
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
-LFLAGS	:= -v $(L_DIRS) -pie
+LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie
 
 # Calculate the listing of all file paths
 ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
@@ -103,12 +108,13 @@ post-build: main-build
 
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
+	@echo $(I_DIRS)
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 else
-	$(MAKE) --no-print-directory $(ALL_OBJ)
+	@$(MAKE) --no-print-directory $(ALL_OBJ)
 endif
-
+	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $< ..."
 ifneq ($(strip $(MIRA_CHECKS)),)
@@ -121,7 +127,7 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 endif
-	@$(CPPC) $(CFLAGS) -std=c++17 -stdlib=libc++ -fno-rtti $(I_DIRS) -c $< -o $@
+	@$(CPPC) $(CFLAGS) -std=c++17 -fno-rtti $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."

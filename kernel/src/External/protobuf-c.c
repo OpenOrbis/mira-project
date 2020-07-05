@@ -49,7 +49,7 @@
 //#include <string.h>	/* for strcmp, strlen, memcpy, memmove, memset */
 #include <sys/malloc.h>
 
-#include <external/protobuf-c/protobuf-c/protobuf-c.h>
+#include <protobuf-c/protobuf-c.h>
 
 #include <Utils/Kernel.hpp>
 #include <Utils/Kdlsym.hpp>

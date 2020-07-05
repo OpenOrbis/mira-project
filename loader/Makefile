@@ -45,7 +45,7 @@ ifeq ($(BSD_INC),)
 BSD_INC := ../external/freebsd-headers/include
 endif
 
-MIRACPP_DIR = $(abspath ${CURDIR}/../src)
+MIRACPP_DIR = $(abspath ${CURDIR}/../kernel/src)
 
 # Include directory paths
 I_DIRS	:=	-I. -I$(SRC_DIR) -I$(MIRACPP_DIR) -I"$(BSD_INC)"
