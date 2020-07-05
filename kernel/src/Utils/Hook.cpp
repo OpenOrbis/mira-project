@@ -9,7 +9,7 @@
 extern "C"
 {
     #include <sys/mman.h>
-    #include <external/hde64/hde64.h>
+    #include <hde64/hde64.h>
 };
 
 using namespace Mira::Utils;
