@@ -1,32 +1,22 @@
 #include "Daemon.hpp"
 
-#include <memory>
-#include <cstdio>
-
 using namespace Mira;
 
-int main(void)
+Daemon::Daemon()
 {
-    // Create a new instance of our daemon
-    auto s_Daemon = std::make_unique<Daemon>();
-    if (s_Daemon == nullptr)
-    {
-        printf("err: could not initialize daemon.\n");
-        return -1;
-    }
 
-    // Try and load the daemon
-    if (!s_Daemon->OnLoad())
-    {
-        printf("err: could not load daemon.\n");
-        return -2;
-    }
+}
 
-    // We never want to return from main
-    for (;;)
-        __asm__("nop");
+Daemon::~Daemon()
+{
+    if (m_RpcServer)
+        m_RpcServer.reset();
     
-    return 0;
+    if (m_Debugger)
+        m_Debugger.reset();
+    
+    if (m_FtpServer)
+        m_FtpServer.reset();
 }
 
 bool Daemon::OnLoad()

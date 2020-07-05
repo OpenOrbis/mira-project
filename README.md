@@ -208,19 +208,20 @@ The current mira-project repository is self-contained, meaning everything the pr
 | `loader` | This is the MiraLoader which is required to *properly* relocate the main ELF in kernel memory and execute in a new kernel thread |
 | (Optional/Missing) `protobuf-test` | Test project for protobuf serialization on Linux |
 | `scripts` | Build/Helper scripts |
-| `src` | Main source code |
-| `src/Boot` | Contains everything needed for booting Mira/patching consoles (firmware specific implementations) |
-| `src/Driver` | The device driver code (used for user process ioctl, thanks TW for implementing) |
-| `src/External` | Source files for those headers in `external` |
-| `src/Messaging` | Message manager (protobuf handling and RPC) |
-| `src/OrbisOS` | PlayStation 4 specific code and utilities |
-| `src/Plugins` | All kernel mode plugins + RPC handlers |
-| (Deprecated) `src/Trainers` | Trainer launcher source |
-| `src/Utils` | General *Mira* based utilities for working in kernel (kernel function resolving, syscall wrappers, etc) |
+| `kernel` | The kernel component of Mira |
+| `kernel/src` | Main source code |
+| `kernel/src/Boot` | Contains everything needed for booting Mira/patching consoles (firmware specific implementations) |
+| `kernel/src/Driver` | The device driver code (used for user process ioctl, thanks TW for implementing) |
+| `kernel/src/External` | Source files for those headers in `external` |
+| `kernel/src/Messaging` | Message manager (protobuf handling and RPC) |
+| `kernel/src/OrbisOS` | PlayStation 4 specific code and utilities |
+| `kernel/src/Plugins` | All kernel mode plugins + RPC handlers |
+| (Deprecated) `kernel/src/Trainers` | Trainer launcher source |
+| `kernel/src/Utils` | General *Mira* based utilities for working in kernel (kernel function resolving, syscall wrappers, etc) |
 
 ### Plugins
 
-Mira provides a plugin framework that can run in kernel mode (userland is soon, thanks to TW!), it provides a stable framework for startup, shutdown, suspend, resume in order to ensure clean operation of Mira.
+Mira provides a plugin framework that can run in kernel mode (userland is soon, thanks to TW!), it provides a stable framework for startup, shutdown, suspend, resume in order to ensure clean operation of Mira. These paths are within the `<miraroot>/kernel` directory
 
 | Plugin | Directory |
 | ------ | ------ |
@@ -294,7 +295,7 @@ Provided are some VSCode `tasks.json` formats:
         {
             "label": "Build Mira",
             "type": "shell",
-            "command": "make clean;make create;make",
+            "command": "cd kernel;make clean;make create;make",
             "group": "build",
             "problemMatcher": [
                 "$gcc"
@@ -304,15 +305,6 @@ Provided are some VSCode `tasks.json` formats:
             "label": "Build MiraLoader",
             "type": "shell",
             "command": "cd loader;make clean;make create;make",
-            "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "label": "Build protobuf-tests",
-            "type": "shell",
-            "command": "clang protobuf-c.c rpc.pb-c.c filemanager.pb-c.c main.c -o test.elf",
             "group": "build",
             "problemMatcher": [
                 "$gcc"

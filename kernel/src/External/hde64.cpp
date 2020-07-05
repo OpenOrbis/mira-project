@@ -8,8 +8,8 @@
 //#include <stdint.h>
 //#include <string.h>
 
-#include "hde64.h"
-#include "table64.h"
+#include <hde64/hde64.h>
+#include <hde64/table64.h>
 
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
