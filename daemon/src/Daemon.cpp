@@ -1,4 +1,5 @@
 #include "Daemon.hpp"
+#include <mutex>
 
 using namespace Mira;
 
@@ -21,6 +22,22 @@ Daemon::~Daemon()
 
 bool Daemon::OnLoad()
 {
+    if (m_Debugger)
+    {
+        if (!m_Debugger->OnLoad())
+        {
+            fprintf(stderr, "err: could not load debugger.\n");
+            return false;
+        }
+    }
+    if (m_RpcServer)
+    {
+        if (!m_RpcServer->OnLoad())
+        {
+            fprintf(stderr, "err: could not load rpc server.\n");
+            return false;
+        }
+    }
 
     return true;
 }

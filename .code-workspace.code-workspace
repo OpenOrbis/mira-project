@@ -31,7 +31,8 @@
 			"ostream": "cpp",
 			"typeinfo": "cpp",
 			"vector": "cpp",
-			"protobuf-c.h": "c"
+			"protobuf-c.h": "c",
+			"mutex": "cpp"
 		}
 	}
 }
