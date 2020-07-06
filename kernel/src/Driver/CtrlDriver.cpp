@@ -163,8 +163,26 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
 
     switch (IOCGROUP(p_Command)) {
-        case SUBSTITUTE_IOCTL_BASE: {
+        case SUBSTITUTE_IOCTL_BASE:
             return Mira::Plugins::Substitute::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+        case MIRA_IOCTL_BASE:
+        {
+            // If we are handling Mira specific ioctl's
+            switch (p_Command)
+            {
+                // Get the requested process information
+                case MIRA_GET_PROC_INFORMATION:
+                    break;
+                case MIRA_SET_PROC_INFORMATION:
+                    break;
+
+                // Get/set the thread credentials
+                case MIRA_GET_PROC_THREAD_CREDENTIALS:
+                    break;
+                
+                case MIRA_SET_PROC_THREAD_CREDENTIALS:
+                    break;
+            }
         }
 
         default: {
