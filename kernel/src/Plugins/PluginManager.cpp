@@ -9,7 +9,6 @@
 #include <Plugins/FileManager/FileManager.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
-#include <Plugins/EmuRegistry/EmuRegistryPlugin.hpp>
 #include <Plugins/Substitute/Substitute.hpp>
 #include <Plugins/BrowserActivator/BrowserActivator.hpp>
 #include <Plugins/MorpheusEnabler/MorpheusEnabler.hpp>
@@ -120,15 +119,6 @@ bool PluginManager::OnLoad()
         if (m_FakePkgManager == nullptr)
         {
             WriteLog(LL_Error, "could not allocate fake pkg manager.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize emu-registry
-        m_EmuRegistry = new Mira::Plugins::EmuRegistryPlugin();
-        if (m_EmuRegistry == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate emulated registry.");
             s_Success = false;
             break;
         }
