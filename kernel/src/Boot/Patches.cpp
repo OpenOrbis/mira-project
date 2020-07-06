@@ -39,6 +39,9 @@ void Patches::install_prePatches()
 		case MIRA_PLATFORM_ORBIS_BSD_650:
 			install_prerunPatches_650();
 			break;
+		case MIRA_PLATFORM_ORBIS_BSD_672:
+			install_prerunPatches_672();
+			break;
 		case MIRA_PLATFORM_STEAM_LINK:
 		case MIRA_PLATFORM_STEAM_LINK2:
 			install_prerunPatches_SteamLink2();
