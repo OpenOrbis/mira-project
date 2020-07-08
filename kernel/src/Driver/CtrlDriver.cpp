@@ -168,8 +168,8 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
 
 int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
@@ -305,12 +305,12 @@ int32_t CtrlDriver::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, c
 
 int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+    //auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
 
 
     if (p_Device == nullptr)
