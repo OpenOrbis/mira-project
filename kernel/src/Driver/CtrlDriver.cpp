@@ -8,8 +8,11 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/_Syscall.hpp>
 #include <Utils/Vector.hpp>
+#include <OrbisOS/Utilities.hpp>
 
 #include <Plugins/Substitute/Substitute.hpp>
+
+#include <Mira.hpp>
 
 extern "C"
 {
@@ -25,6 +28,8 @@ extern "C"
     #include <sys/sysent.h>
     #include <sys/ioccom.h>
     #include <sys/proc.h>
+    #include <sys/filedesc.h>
+    #include <sys/mount.h>
 
     struct intstr {
         const char *s;
@@ -89,7 +94,7 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
     memset(&s_Dr, 0, sizeof(struct devfs_rule));
     s_Dr.dr_id = 0;
     s_Dr.dr_magic = DEVFS_MAGIC;
-    
+
     snprintf(s_Dr.dr_pathptrn, DEVFS_MAXPTRNLEN, "mira");
     s_Dr.dr_icond |= DRC_PATHPTRN;
     s_Dr.dr_iacts |= DRA_BACTS;
@@ -115,7 +120,9 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
         0xC0EC4404 (DEVFSIO_RGETNEXT)
     */
 
-    int32_t s_ErrorIoctl = kioctl_t(s_DevFS, 0x80EC4402, (char*)&s_Dr, s_ProcessThread);
+    static_assert(DEVFSIO_RAPPLY == 0x80EC4402);
+
+    int32_t s_ErrorIoctl = kioctl_t(s_DevFS, DEVFSIO_RAPPLY, (char*)&s_Dr, s_ProcessThread);
     if (s_ErrorIoctl < 0) {
         WriteLog(LL_Error, "unable to apply devfs rule add request (%d).", s_ErrorIoctl);
         return;
@@ -177,93 +184,13 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
             {
                 // Get the requested process information
                 case MIRA_GET_PROC_INFORMATION:
-                {
-                    MiraProcessInformation s_Input;
-                    auto s_Result = copyin(p_Data, &s_Input, sizeof(MiraProcessInformation));
-                    if (s_Result != 0)
-                    {
-                        WriteLog(LL_Error, "could not copyin enough data.");
-                        return -EFAULT;
-                    }
-
-                    // Get the process ID
-                    auto s_ProcessId = s_Input.ProcessId;
-
-                    // GetProcessInfo allocates
-                    MiraProcessInformation* s_Output = nullptr;
-                    if (!GetProcessInfo(s_ProcessId, s_Output))
-                    {
-                        WriteLog(LL_Error, "could not get process information.");
-                        return -ENOMEM;
-                    }
-
-                    if (s_Output == nullptr)
-                    {
-                        WriteLog(LL_Error, "invalid process information.");
-                        return -ENOMEM;
-                    }
-
-                    // Check the output size
-                    if (s_Input.Size < s_Output->Size)
-                    {
-                        WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.Size, s_Output->Size);
-                        delete s_Output;
-                        return -EMSGSIZE;
-                    }
-                    
-                    // Copy out the data if the size is large enough
-                    s_Result = copyout(s_Output, p_Data, s_Output->Size);
-                    if (s_Result != 0)
-                    {
-                        WriteLog(LL_Error, "could not copyout (%d).", s_Result);
-                        delete s_Output;
-                        return (s_Result < 0 ? s_Result : -s_Result);
-                    }
-
-                    delete s_Output;
-                    return 0;
-                }
+                    return OnMiraGetProcInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                
                 case MIRA_GET_PID_LIST:
-                {
-                    MiraProcessList s_Input;
-                    auto s_Result = copyin(p_Data, &s_Input, sizeof(MiraProcessList));
-                    if (s_Result != 0)
-                    {
-                        WriteLog(LL_Error, "could not copyin process list.");
-                        return (s_Result < 0 ? s_Result : -s_Result);
-                    }
-
-                    MiraProcessList* s_Output = nullptr;
-                    if (!GetProcessList(s_Output))
-                    {
-                        WriteLog(LL_Error, "could not get the process list.");
-                        return -ENOMEM;
-                    }
-
-                    if (s_Output == nullptr)
-                    {
-                        WriteLog(LL_Error, "could not allocate the output.");
-                        return -ENOMEM;
-                    }
-
-                    if (s_Input.Size < s_Output->Size)
-                    {
-                        WriteLog(LL_Error, "input size (%d) < output size (%d).", s_Input.Size, s_Output->Size);
-                        delete s_Output;
-                        return -EMSGSIZE;
-                    }
-
-                    s_Result = copyout(s_Output, p_Data, s_Output->Size);
-                    if (s_Result != 0)
-                    {
-                        WriteLog(LL_Error, "could not copyuout data (%d).", s_Result);
-                        delete s_Output;
-                        return (s_Result < 0 ? s_Result : -s_Result);
-                    }
-
-                    delete s_Output;
-                    return 0;
-                }
+                    return OnMiraGetProcList(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                
+                case MIRA_MOUNT_IN_SANDBOX:
+                    return OnMiraMountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
 
                 // Get/set the thread credentials
                 case MIRA_GET_PROC_THREAD_CREDENTIALS:
@@ -280,6 +207,268 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     return -1;
 }
 
+int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+
+    MiraProcessInformation s_Input = { 0 };
+    auto s_Result = copyin(p_Data, &s_Input, sizeof(MiraProcessInformation));
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyin enough data.");
+        return -EFAULT;
+    }
+
+    // Get the process ID
+    auto s_ProcessId = s_Input.ProcessId;
+
+    // GetProcessInfo allocates
+    MiraProcessInformation* s_Output = nullptr;
+    if (!GetProcessInfo(s_ProcessId, s_Output))
+    {
+        WriteLog(LL_Error, "could not get process information.");
+        return -ENOMEM;
+    }
+
+    if (s_Output == nullptr)
+    {
+        WriteLog(LL_Error, "invalid process information.");
+        return -ENOMEM;
+    }
+
+    // Check the output size
+    if (s_Input.Size < s_Output->Size)
+    {
+        WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.Size, s_Output->Size);
+        delete s_Output;
+        return -EMSGSIZE;
+    }
+    
+    // Copy out the data if the size is large enough
+    s_Result = copyout(s_Output, p_Data, s_Output->Size);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyout (%d).", s_Result);
+        delete s_Output;
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    delete s_Output;
+    return 0;
+}
+
+int32_t CtrlDriver::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+
+    MiraProcessList s_Input;
+    auto s_Result = copyin(p_Data, &s_Input, sizeof(MiraProcessList));
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyin process list.");
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    MiraProcessList* s_Output = nullptr;
+    if (!GetProcessList(s_Output))
+    {
+        WriteLog(LL_Error, "could not get the process list.");
+        return -ENOMEM;
+    }
+
+    if (s_Output == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate the output.");
+        return -ENOMEM;
+    }
+
+    if (s_Input.Size < s_Output->Size)
+    {
+        WriteLog(LL_Error, "input size (%d) < output size (%d).", s_Input.Size, s_Output->Size);
+        delete s_Output;
+        return -EMSGSIZE;
+    }
+
+    s_Result = copyout(s_Output, p_Data, s_Output->Size);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyuout data (%d).", s_Result);
+        delete s_Output;
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    delete s_Output;
+    return 0;
+}
+
+int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+
+
+    if (p_Device == nullptr)
+    {
+        WriteLog(LL_Error, "invalid device.");
+        return -1;
+    }
+
+    if (p_Thread == nullptr)
+    {
+        WriteLog(LL_Error, "invalid thread.");
+        return -1;
+    }
+
+    auto s_TargetProc = p_Thread->td_proc;
+    if (s_TargetProc == nullptr)
+    {
+        WriteLog(LL_Error, "thread does not have a parent process wtf?");
+        return -1;
+    }
+
+    auto s_Descriptor = s_TargetProc->p_fd;
+    if (s_Descriptor == nullptr)
+    {
+        WriteLog(LL_Error, "could not get the file descriptor for proc.");
+        return -1;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira main thread.");
+        return -1;
+    }
+
+    // Read in the mount point and the flags
+    MiraMountInSandbox s_Input = { 0 };
+    auto s_Result = copyin(p_Data, &s_Input, sizeof(s_Input));
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyin all data (%d).", s_Result);
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    // Check to make sure that there's some kind of path
+    if (s_Input.Path[0] == '\0')
+    {
+        WriteLog(LL_Error, "invalid input path.");
+        return -EACCES;
+    }
+    
+    // Get the jailed path
+    char* s_SandboxPath = nullptr;
+    char* s_FreePath = nullptr;
+    s_Result = vn_fullpath(s_MainThread, s_Descriptor->fd_jdir, &s_SandboxPath, &s_FreePath);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not get the full path (%d).", s_Result);
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    // Validate that we got something back
+    if (s_SandboxPath == nullptr)
+    {
+        WriteLog(LL_Error, "could not get the sandbox path.");
+
+        if (s_FreePath != nullptr)
+            delete s_FreePath;
+        
+        return -1;
+    }
+
+    char s_InSandboxPath[PATH_MAX] = { 0 };
+    char s_RealPath[PATH_MAX] = { 0 };
+
+    do
+    {
+        // TODO: we want to get the name of the folder so we can mount it within
+        // under the same name
+        s_Result = snprintf(s_InSandboxPath, sizeof(s_InSandboxPath), "%s/%s", s_SandboxPath, "myFolderName");
+        if (s_Result <= 0)
+            break;
+        
+        s_Result = snprintf(s_RealPath, sizeof(s_RealPath), s_Input.Path);
+        if (s_Result <= 0)
+            break;
+
+        // Check to see if the real path directory actually exists
+        auto s_DirectoryHandle = kopen_t(s_RealPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
+        if (s_DirectoryHandle < 0)
+        {
+            WriteLog(LL_Error, "could not open directory (%s) (%d).", s_RealPath, s_DirectoryHandle);
+            break;
+        }
+
+        // Close the directory once we know it exists
+        kclose_t(s_DirectoryHandle, s_MainThread);
+
+        // Create the new folder inside of the sandbox
+        s_Result = kmkdir_t(s_InSandboxPath, 0511, s_MainThread);
+        if (s_Result < 0)
+        {
+            WriteLog(LL_Error, "could not create the directory for mount (%s) (%d).", s_InSandboxPath, s_Result);
+            break;
+        }
+        
+        // In order for the mount call, it uses the calling thread to see if it has permissions
+        auto s_CurrentThreadCred = curthread->td_proc->p_ucred;
+        auto s_CurrentThreadFd = curthread->td_proc->p_fd;
+
+        // Validate that our cred and descriptor are valid
+        if (s_CurrentThreadCred == nullptr || s_CurrentThreadFd == nullptr)
+        {
+            WriteLog(LL_Error, "the cred and/or fd are nullptr.");
+            s_Result = -EACCES;
+            break;
+        }
+
+        // Save backups of the original fd and credentials
+        auto s_OriginalThreadCred = *s_CurrentThreadCred;
+        auto s_OriginalThreadFd = *s_CurrentThreadFd;
+
+        // Set maximum permissions
+        s_CurrentThreadCred->cr_uid = 0;
+        s_CurrentThreadCred->cr_ruid = 0;
+        s_CurrentThreadCred->cr_rgid = 0;
+        s_CurrentThreadCred->cr_groups[0] = 0;
+
+        s_CurrentThreadCred->cr_prison = *(struct prison**)kdlsym(prison0);
+        s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+
+        // Try and mount using the current credentials
+        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SandboxPath, s_RealPath, MNT_RDONLY);
+        if (s_Result < 0)
+        {
+            WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SandboxPath, s_Result);
+            krmdir_t(s_SandboxPath, s_MainThread);
+
+            // Restore credentials and fd
+            *s_CurrentThreadCred = s_OriginalThreadCred;
+            *s_CurrentThreadFd = s_OriginalThreadFd;
+            
+            break;
+        }
+
+        // Restore credentials and fd
+        *s_CurrentThreadCred = s_OriginalThreadCred;
+        *s_CurrentThreadFd = s_OriginalThreadFd;
+
+        s_Result = 0;
+    } while (false);
+
+    // Cleanup the freepath
+    if (s_FreePath != nullptr)
+        delete s_FreePath;
+
+    return s_Result;
+}
 
 bool CtrlDriver::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result)
 {

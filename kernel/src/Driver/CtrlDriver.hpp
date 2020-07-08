@@ -142,6 +142,12 @@ typedef struct _MiraProcessList
     int32_t Pids[];
 } MiraProcessList;
 
+typedef struct _MiraMountInSandbox
+{
+    int32_t Permissions;
+    char Path[_MAX_PATH];
+} MiraMountInSandbox;
+
 #define MIRA_IOCTL_BASE 'M'
 
 #define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 1, sizeof(MiraThreadCredentials))
@@ -149,8 +155,8 @@ typedef struct _MiraProcessList
 #define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 2, sizeof(MiraProcessList))
 
 #define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 3, sizeof(MiraProcessInformation))
-//#define MIRA_SET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 4, sizeof(MiraProcessInformation))
 
+#define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, 4, sizeof(MiraMountInSandbox))
 
 namespace Mira
 {
@@ -173,6 +179,13 @@ namespace Mira
         
         protected:
             static void OnProcessStart(void *arg, struct proc *p);
+
+            // Callback functions
+            static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+
+            // Helper functions
             static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
             static bool GetProcessList(MiraProcessList*& p_List);
         };
