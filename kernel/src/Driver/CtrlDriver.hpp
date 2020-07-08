@@ -12,6 +12,8 @@ extern "C"
 {
     #include <sys/eventhandler.h>
     #include <sys/module.h>
+    #include <sys/proc.h>
+    #include <sys/ioccom.h>
 };
 
 #if !defined(_MAX_PATH)
@@ -106,50 +108,48 @@ typedef enum class _MiraProcessInformationType : uint8_t
 
 typedef struct _MiraProcessInformation
 {
-    // Based on the process type we access one of the variables below
-    MiraProcessInformationType Type;
-    union
+    typedef struct _ThreadResult
     {
-        // Name of the process
-        char Name[_MAX_PATH];
+        int32_t ThreadId;
+        int32_t ErrNo;
+        int64_t RetVal;
+        char Name[sizeof(((struct thread*)0)->td_name)];
+    } ThreadResult;
 
-        // Address of the process
-        uint64_t Address;
-
-        // Process ID
-        uint32_t ProcessId;
-    };
-} MiraProcessInformation;
-
-typedef struct _MiraProcessInformationResult
-{
-    typedef struct _MiraProcessInformationThreadResult
-    {
-
-    } MiraGetProcessInformationThreadResult;
-
-    uint32_t ProcessId;
-    uint32_t OpPid;
-    uint32_t DebugChild;
-    uint32_t ExitThreads;
-    uint32_t SigParent;
-    uint32_t Signal;
+    // Structure size
+    uint32_t Size;
+    int32_t ProcessId;
+    int32_t OpPid;
+    int32_t DebugChild;
+    int32_t ExitThreads;
+    int32_t SigParent;
+    int32_t Signal;
     uint32_t Code;
     uint32_t Stops;
     uint32_t SType;
-    char Name[32];
-    char ElfPath[1024];
-    char RandomizedPath[256];
+    char Name[sizeof(((struct proc*)0)->p_comm)];
+    char ElfPath[sizeof(((struct proc*)0)->p_elfpath)];
+    char RandomizedPath[sizeof(((struct proc*)0)->p_randomized_path)];
+    ThreadResult Threads[];
+} MiraProcessInformation;
 
-} MiraProcessInformationResult;
+typedef struct _MiraProcessList
+{
+    // Structure size
+    uint32_t Size;
+
+    // Pid array
+    int32_t Pids[];
+} MiraProcessList;
 
 #define MIRA_IOCTL_BASE 'M'
 
 #define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 1, sizeof(MiraThreadCredentials))
-#define MIRA_SET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 2, sizeof(MiraThreadCredentials))
+
+#define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 2, sizeof(MiraProcessList))
 
 #define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 3, sizeof(MiraProcessInformation))
-#define MIRA_SET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 4, sizeof(MiraProcessInformation))
+//#define MIRA_SET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 4, sizeof(MiraProcessInformation))
 
 
 namespace Mira
@@ -173,6 +173,8 @@ namespace Mira
         
         protected:
             static void OnProcessStart(void *arg, struct proc *p);
+            static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
+            static bool GetProcessList(MiraProcessList*& p_List);
         };
     }
 }
