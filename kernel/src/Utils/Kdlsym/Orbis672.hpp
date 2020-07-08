@@ -238,7 +238,7 @@
 #define kdlsym_addr_map_chunk_table                                    (0x0064BB50)
 #define kdlsym_addr_make_chunk_table_system                            (0x0064BD20)
 #define kdlsym_addr_sbl_drv_msg_mtx                                    (0x0266AC70)
-
+#define kdlsym_addr__thread_lock_flags                                 (0x00496C90)
 // user land offsets
 #define	SceSysCore_addr_ptrace_patch                                   (0x00018D6B)
 
