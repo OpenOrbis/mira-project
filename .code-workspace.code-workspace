@@ -32,7 +32,8 @@
 			"typeinfo": "cpp",
 			"vector": "cpp",
 			"protobuf-c.h": "c",
-			"mutex": "cpp"
+			"mutex": "cpp",
+			"__config": "cpp"
 		}
 	}
 }
