@@ -40,7 +40,7 @@ typedef struct _TrainerEntry
         double AsDouble;
     };
 } TrainerEntry;
-static_assert(sizeof(TrainerEntry) == 32);
+static_assert(sizeof(TrainerEntry) == 48);
 
 typedef struct _TrainerTitleId
 {
