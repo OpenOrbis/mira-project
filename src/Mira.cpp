@@ -331,29 +331,6 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-	////////////
-	// TEST
-	////////////
-	auto g_obi_create       = (void* (*) (const char* name, int flags)                           )kdlsym(g_obi_create);
-	auto g_obi_destroy      = (int   (*) (void* obj)                                             )kdlsym(g_obi_destroy);
-	auto g_obi_read         = (int   (*) (void* obj, void* buffer, uint64_t unk1, uint64_t unk2) )kdlsym(g_obi_read);
-	auto g_part_ox_get_bank = (int   (*) (void)                                                  )kdlsym(g_part_ox_get_bank);
-	auto hexdump            = (int   (*) (void* buffer, uint64_t size, int unk1, int unk2)       )kdlsym(hexdump);
-
-	void* sflash_obj = g_obi_create("sflash0s1.crypt", 0);
-	WriteLog(LL_Warn, "g_obi_create(sflash0s1.crypt): %p", sflash_obj);
-
-	char buffer[0x1000];
-	int read_ret = g_obi_read(sflash_obj, buffer, 0x200, 0x1000);
-	WriteLog(LL_Warn, "g_obi_read(sflash0s1.crypt): %d", read_ret);
-
-	int destroy_ret = g_obi_destroy(sflash_obj);
-	WriteLog(LL_Warn, "g_obi_destroy(sflash0s1.crypt): %d", destroy_ret);
-
-	WriteLog(LL_Warn, "Current bank used: %d", g_part_ox_get_bank());
-	WriteLog(LL_Warn, "Hexdump:");
-	hexdump((void*)buffer, 0x1000, 0, 0);
-
 	/*
     // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
     struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");

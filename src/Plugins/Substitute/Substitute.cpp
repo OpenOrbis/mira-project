@@ -320,6 +320,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (!hook) {
             WriteLog(LL_Error, "Unable to get the hook !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -343,6 +344,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if ( (last_chain_position + 1) > SUBSTITUTE_MAX_CHAINS ) {
             WriteLog(LL_Error, "SUBSTITUTE_MAX_CHAINS reached !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -351,6 +353,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (r_error != 0) {
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -360,6 +363,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (r_error != 0) {
             WriteLog(LL_Error, "Unable to read the last chain: (%d)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -371,6 +375,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (r_error != 0) {
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -385,6 +390,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (!original_function) {
             WriteLog(LL_Error, "Unable to get the original value from the jmpslot !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -393,6 +399,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (!new_hook || hook_id < 0) {
             WriteLog(LL_Error, "Unable to allocate new hook (%p => %d) !", new_hook, hook_id);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -412,6 +419,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (r_error != 0) {
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -1;
         }
 
@@ -431,6 +439,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (r_error != 0) {
             WriteLog(LL_Error, "Unable to write to the jmpslot address: (%d)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -5;
         }
     }
@@ -438,6 +447,9 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     WriteLog(LL_Info, "New hook is created (IAT) :  %i", hook_id);
+
+    // Unlock the process
+    
 
     return hook_id;
 }
@@ -449,6 +461,9 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 
     if (!p || !original_address || !hook_function)
         return -1;
+
+    // Lock the process
+    
 
     // Get buffer from original function for calculate size
     char buffer[500];
@@ -506,6 +521,9 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
 
     WriteLog(LL_Info, "New hook is created (JMP) :  %i", hook_id);
 
+    // Unlock the process
+    
+
     return hook_id;
 }
 
@@ -514,18 +532,22 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
+    // Lock the process
+    
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     SubstituteHook* hook = GetHookByID(hook_id);
     if (!hook) {
         WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        
         return -1;
     }
 
     if (hook->process != p) {
         WriteLog(LL_Error, "Invalid handle : Another process trying to disable hook.");
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+        
         return -2;
     }
 
@@ -541,6 +563,7 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
                 if (r_error != 0) {
                     WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+                    
                     return -5;
                 }
 
@@ -555,11 +578,13 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
         default: {
             WriteLog(LL_Error, "Invalid type of hook was detected.");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+            
             return -6;
             break;
         }
     }
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
+    
 
     return 0;
 }
@@ -1184,6 +1209,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
     //auto copyin = (int(*)(const void *uaddr, void * kaddr, size_t len))kdlsym(copyin);
     auto copyout = (int(*)(const void *kaddr, void *uaddr, size_t len))kdlsym(copyout);
+    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
     auto sys_dynlib_dlsym = (int(*)(struct thread*, void*))substitute->sys_dynlib_dlsym_p;
     if (!sys_dynlib_dlsym)
         return 1;
@@ -1197,13 +1223,48 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
         return ret;
     }
 
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (!s_MainThread)
+    {
+        WriteLog(LL_Error, "Unable to got Mira thread");
+        return ret;
+    }
+
     char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
 
     // Check if it's a valid process
-    if ( !s_TitleId || s_TitleId[0] == 0 ) {
+    if ( !s_TitleId || s_TitleId[0] == 0 || strncmp(s_TitleId, "NPXS20001", 9) == 0) {
         td->td_retval[0] = original_td_value;
         return ret;
     }
+
+    // Check if substitute folder exist on this process
+    struct filedesc* fd = td->td_proc->p_fd;
+
+    char* s_SandboxPath = nullptr;
+    char* s_Freepath = nullptr;
+    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+
+    if (s_SandboxPath == nullptr) {
+        if (s_Freepath)
+            delete (s_Freepath);
+
+        td->td_retval[0] = original_td_value;
+        return ret;
+    }
+
+    // Finding substitute folder, if not exist simply doesn't continue the execution flow
+    char s_substituteFullMountPath[PATH_MAX];
+    snprintf(s_substituteFullMountPath, PATH_MAX, "%s/substitute", s_SandboxPath);
+
+    auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, 0x0000 | 0x00020000, 0777, s_MainThread);
+    if (s_DirectoryHandle < 0)
+    {
+        kclose_t(s_DirectoryHandle, s_MainThread);
+        td->td_retval[0] = original_td_value;
+        return ret;
+    }
+    kclose_t(s_DirectoryHandle, s_MainThread);
 
     char name[50]; // Todo: Find max name character !
     size_t done;
