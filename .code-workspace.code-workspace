@@ -1,0 +1,39 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"cmath": "cpp",
+			"array": "cpp",
+			"hash_map": "cpp",
+			"hash_set": "cpp",
+			"rope": "cpp",
+			"slist": "cpp",
+			"initializer_list": "cpp",
+			"string_view": "cpp",
+			"utility": "cpp",
+			"*.tcc": "cpp",
+			"type_traits": "cpp",
+			"fstream": "cpp",
+			"string": "cpp",
+			"hashtable": "cpp",
+			"system_error": "cpp",
+			"random": "cpp",
+			"optional": "cpp",
+			"set": "cpp",
+			"map": "cpp",
+			"functional": "cpp",
+			"tuple": "cpp",
+			"istream": "cpp",
+			"ostream": "cpp",
+			"typeinfo": "cpp",
+			"vector": "cpp",
+			"protobuf-c.h": "c",
+			"mutex": "cpp",
+			"__config": "cpp"
+		}
+	}
+}
