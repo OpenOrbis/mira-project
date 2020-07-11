@@ -120,7 +120,7 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
         0xC0EC4404 (DEVFSIO_RGETNEXT)
     */
 
-    static_assert(DEVFSIO_RAPPLY == 0x80EC4402);
+    static_assert(DEVFSIO_RAPPLY == 0x80EC4402, "incorrect ioctl code.");
 
     int32_t s_ErrorIoctl = kioctl_t(s_DevFS, DEVFSIO_RAPPLY, (char*)&s_Dr, s_ProcessThread);
     if (s_ErrorIoctl < 0) {
@@ -241,7 +241,7 @@ int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Com
     if (s_Input.Size < s_Output->Size)
     {
         WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.Size, s_Output->Size);
-        delete s_Output;
+        delete [] s_Output;
         return -EMSGSIZE;
     }
     
@@ -250,11 +250,11 @@ int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Com
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyout (%d).", s_Result);
-        delete s_Output;
+        delete [] s_Output;
         return (s_Result < 0 ? s_Result : -s_Result);
     }
 
-    delete s_Output;
+    delete [] s_Output;
     return 0;
 }
 
@@ -287,7 +287,7 @@ int32_t CtrlDriver::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, c
     if (s_Input.Size < s_Output->Size)
     {
         WriteLog(LL_Error, "input size (%d) < output size (%d).", s_Input.Size, s_Output->Size);
-        delete s_Output;
+        delete [] s_Output;
         return -EMSGSIZE;
     }
 
@@ -295,11 +295,11 @@ int32_t CtrlDriver::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, c
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyuout data (%d).", s_Result);
-        delete s_Output;
+        delete [] s_Output;
         return (s_Result < 0 ? s_Result : -s_Result);
     }
 
-    delete s_Output;
+    delete [] s_Output;
     return 0;
 }
 
@@ -615,7 +615,7 @@ bool CtrlDriver::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_
         s_Threads[i] = nullptr;
     }
 
-    return true;
+    return s_Success;
 }
 
 bool CtrlDriver::GetProcessList(MiraProcessList*& p_List)
