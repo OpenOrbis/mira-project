@@ -254,6 +254,9 @@
 #define ssc_nidf_libSceDipsw_patchC                        0x835670
 #define ssc_nidf_libSceDipsw_patchD                        0xA12BC0
 
+// SceShellCore patches - enable VR without spoof
+#define ssc_enable_vr                                      0x00DDDD70
+
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0xFD2BF1
 
