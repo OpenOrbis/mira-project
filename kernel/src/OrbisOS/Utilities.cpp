@@ -283,6 +283,7 @@ int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entr
 		info[i].start = entry->start;
 		info[i].end = entry->end;
 		info[i].offset = entry->offset;
+		memcpy(info[i].name, entry->name, sizeof(info[i].name));
 
 		info[i].prot = 0;
 		if (entry->protection & VM_PROT_READ)

@@ -27,7 +27,6 @@ namespace Mira
             virtual bool OnResume() override;
         private:
             Mira::Utils::IModule* m_Logger;
-            Mira::Utils::IModule* m_LoggerConsole;
             Mira::Utils::IModule* m_Debugger;
             Mira::Utils::IModule* m_FileManager;
             Mira::Utils::IModule* m_FakeSelfManager;
@@ -37,6 +36,7 @@ namespace Mira
             Mira::Utils::IModule* m_BrowserActivator;
             Mira::Utils::IModule* m_MorpheusEnabler;
             Mira::Utils::IModule* m_SyscallGuard;
+            Mira::Utils::IModule* m_TTYRedirector;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }
