@@ -15,6 +15,8 @@ If you would like to contribute join us on [Open Orbis Discord], it is the only 
 |5.01|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis501/badge.svg)|
 |5.03|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis503/badge.svg)|
 |5.05|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis505/badge.svg)|
+|6.20|WIP|
+|6.72|![](https://github.com/OpenOrbis/mira-project/workflows/Orbis672/badge.svg)|
 
 # New Features!
 
