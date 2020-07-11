@@ -1,0 +1,83 @@
+{
+    "configurations": [
+        {
+            "name": "Mira",
+            "includePath": [
+                "${workspaceFolder}/kernel/**",
+                "${workspaceFolder}/kernel/src",
+                "${workspaceFolder}/external/freebsd-headers/include",
+                "${workspaceFolder}/external"
+            ],
+            "defines": [
+                "_KERNEL",
+                "MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672",
+                "__LP64__=1",
+                "_M_X64",
+                "__amd64__",
+                "_DEBUG",
+                "__BSD_VISIBLE",
+                "__FreeBSD__",
+                "FLATCC_USE_GENERIC_ALIGNED_ALLOC",
+                "MIRA_UNSUPPORTED_PLATFORMS"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "clang-x64"
+        },
+        {
+            "name": "MiraLoader",
+            "includePath": [
+                "${workspaceFolder}/kernel/**",
+                "${workspaceFolder}/loader",
+                "${workspaceFolder}/external/freebsd-headers/include"
+            ],
+            "defines": [
+                "_KERNEL",
+                "MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672",
+                "__LP64__=1",
+                "_M_X64",
+                "__amd64__",
+                "_DEBUG",
+                "__BSD_VISIBLE",
+                "__FreeBSD__",
+                "MIRA_UNSUPPORTED_PLATFORMS"
+            ],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "clang-x64"
+        },
+        {
+            "name": "Daemon",
+            "includePath": [
+                "${workspaceFolder}/daemon/src",
+                "${env:OO_PS4_TOOLCHAIN}/include",
+                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1"
+            ],
+            "defines": [
+                "_DEBUG"
+            ],
+            "compilerPath": "/usr/bin/clang++",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "clang-x64"
+        },
+        {
+            "name": "Maneja",
+            "includePath": [
+                "${workspaceFolder}/maneja/Source/**",
+                "${env:OO_PS4_TOOLCHAIN}/include",
+                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1"
+            ],
+            "defines": [
+                "_DEBUG"
+            ],
+            "compilerPath": "/usr/bin/clang++",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}

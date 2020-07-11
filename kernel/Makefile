@@ -12,10 +12,10 @@ MIRA_CHECKS :=
 endif
 
 # Project name
-PROJ_NAME := MiraLoader
+PROJ_NAME := Mira
 
 # C++ compiler
-CPPC	:=	clang
+CPPC	:=	clang++
 
 # Linker
 LNK		:= ld # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
@@ -45,10 +45,13 @@ ifeq ($(BSD_INC),)
 BSD_INC := ../external/freebsd-headers/include
 endif
 
-MIRACPP_DIR = $(abspath ${CURDIR}/../kernel/src)
+# Set up a path for the external directory
+ifeq ($(EXTERNAL_INC),)
+EXTERNAL_INC := ../external
+endif
 
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I$(MIRACPP_DIR) -I"$(BSD_INC)"
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC) -I$(EXTERNAL_INC)/protobuf-c
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib
@@ -60,26 +63,26 @@ LIBS	:=
 C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"MIRA_PLATFORM=${MIRA_PLATFORM}" -DMIRA_UNSUPPORTED_PLATFORMS -D__LP64__ -D_M_X64 -D__amd64__ -D__BSD_VISIBLE
 
 # C++ Flags, -02 Optimizations break shit badly
-CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpie -fPIC -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
+CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpic -m64 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
 
 # Assembly flags
-SFLAGS	:= -fPIE -m64 -nodefaultlibs -nostdlib
+SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 
 # Linker flags
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
-LFLAGS	:= -v $(L_DIRS) -nostdlib -T $(SRC_DIR)/link.x -gc-sections -nmagic
+LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie
 
 # Calculate the listing of all file paths
 ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
 ALL_C	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
 ALL_S	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
 
-
 ALL_SOURCES :=  $(ALL_S) $(ALL_C) $(ALL_CPP)
 TO_BUILD := $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)
 ALL_OBJ_CPP := $(TO_BUILD:.cpp=.o)
 ALL_OBJ_C := $(ALL_OBJ_CPP:.c=.o)
 ALL_OBJ := $(ALL_OBJ_C:.s=.o)
+
 # Target elf name
 TARGET = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.elf"
 
@@ -95,21 +98,21 @@ pre-build:
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@cppcheck $(SRC_DIR) $(I_DIRS) $(C_DEFS) --enable=information --check-config
 endif
+	@$(MAKE) --no-print-directory create
 	@$(MAKE) --no-print-directory clean
 
 post-build: main-build
 	@echo "Post-Build"
 	@echo "Linking $(PROJ_NAME)..."
 	@$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(TARGET) $(LFLAGS) $(LIBS)
-	@echo "Creating Payload..."
-	@$(OBJCOPY) -O binary $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD)
 
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
+	@echo $(I_DIRS)
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 else
-	$(MAKE) --no-print-directory $(ALL_OBJ)
+	@$(MAKE) --no-print-directory $(ALL_OBJ)
 endif
 	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
@@ -124,21 +127,9 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 endif
-	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
+	@$(CPPC) $(CFLAGS) -std=c++17 -fno-rtti $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
-	@echo "Assembling $< ..."
-	@$(CC) $(SFLAGS) -c -o $@ $< 
-
-$(OUT_DIR)/$(MIRACPP_DIR)/%.o: $(MIRACPP_DIR)/%.c
-	@echo "Compiling $< ..."
-	@$(CC) $(CFLAGS) $(I_DIRS) -c $< -o $@
-
-$(OUT_DIR)/$(MIRACPP_DIR)/%.o: $(MIRACPP_DIR)/%.cpp
-	@echo "Compiling $< ..."
-	$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
-
-$(OUT_DIR)/$(MIRACPP_DIR)/%.o: $(MIRACPP_DIR)/%.s
 	@echo "Assembling $< ..."
 	@$(CC) $(SFLAGS) -c -o $@ $< 
 
@@ -149,3 +140,15 @@ clean:
 create:
 	@echo "Creating directories..."
 	@mkdir -p $(shell find '$(SRC_DIR)/' -type d -printf '$(OUT_DIR)/%p\n')
+
+pushLoader:
+	@nc -q 0 192.168.1.2 9020 < loader/build/MiraLoader_Orbis_${MIRA_PLATFORM}.bin
+
+pushLoader2:
+	@nc -q 0 192.168.1.2 9022 < loader/build/MiraLoader_Orbis_${MIRA_PLATFORM}.bin
+
+pushMira:
+	@nc -q 0 192.168.1.2 9020 < $(OUT_DIR)/$(TARGET)
+
+pushMira2:
+	@nc -q 0 192.168.1.2 9023 < $(OUT_DIR)/$(TARGET)

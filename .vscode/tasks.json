@@ -1,0 +1,75 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Mira",
+            "type": "shell",
+            "command": "make clean;make create;MIRA_CHECKS= pvs-studio-analyzer trace -- make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/kernel"
+            },
+            "dependsOn": [ "Build MiraLoader" ]
+        },
+        {
+            "label": "Build MiraLoader",
+            "type": "shell",
+            "command": "make clean;make create;MIRA_CHECKS= make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/loader"
+            }
+        },
+        {
+            "label": "Build protobuf files",
+            "type": "shell",
+            "command": "python3 ./scripts/build_proto.py --inputDir=./external",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ]
+        },
+        {
+            "label": "Build Daemon",
+            "type": "shell",
+            "command": "make clean; make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/daemon"
+            }
+        },
+        {
+            "label": "Build Maneja (PC)",
+            "type": "shell",
+            "command": "make pc",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/maneja"
+            }
+        },
+        {
+            "label": "Build Maneja (PS4)",
+            "type": "shell",
+            "command": "make ps4",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/maneja"
+            }
+        }
+    ]
+}

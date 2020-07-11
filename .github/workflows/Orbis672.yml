@@ -1,4 +1,4 @@
-name: Orbis503
+name: Orbis672
 
 on:
   push:
@@ -26,18 +26,18 @@ jobs:
         run: cd kernel; make create
       - name: clean mira
         run: cd kernel; make clean
-        # 5.03 Support
-      - name: make 5.03 loader
-        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 MIRA_CHECKS=TRUE make
-      - name: make 5.03 elf
-        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 MIRA_CHECKS=TRUE make
-      - name: Upload 5.03 loader
+        # 6.72 Support
+      - name: make 6.72 loader
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 MIRA_CHECKS=TRUE make
+      - name: make 6.72 elf
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 MIRA_CHECKS=TRUE make
+      - name: Upload 6.72 loader
         uses: actions/upload-artifact@v2
         with:
-          name: MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.bin
-          path: loader/build/MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.bin
-      - name: Upload 5.03 elf
+          name: MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
+          path: loader/build/MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
+      - name: Upload 6.72 elf
         uses: actions/upload-artifact@v2
         with:
-          name: Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.elf
-          path: kernel/build/Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.elf
+          name: Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.elf
+          path: kernel/build/Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.elf
