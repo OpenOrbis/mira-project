@@ -64,7 +64,7 @@ bool Substitute::OnLoad()
 {
     auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
     struct sysent* sysents = sv->sv_table;
-    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
+    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);   
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     WriteLog(LL_Info, "Loading Substitute ...");
  
@@ -1080,15 +1080,24 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     auto s_DirectoryHandle = kopen_t(s_SprxDirPath, 0x0000 | 0x00020000, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
+        // Restore fd and cred
+        *curthread_fd = orig_curthread_fd;
+        *curthread_cred = orig_curthread_cred;
         return;
     }
 
     WriteLog(LL_Info, "[%s] Substitute start ...", s_TitleId);
+    WriteLog(LL_Info, "[%s] Mount path: %s", s_TitleId, s_substituteFullMountPath);
+    WriteLog(LL_Info, "[%s] Real path: %s", s_TitleId, s_RealSprxFolderPath);
 
     // Create folder
     int ret = kmkdir_t(s_substituteFullMountPath, 0511, s_MainThread);
     if (ret < 0) {
         WriteLog(LL_Error, "[%s] could not create the directory for mount (%s) (%d).", s_TitleId, s_substituteFullMountPath, ret);
+        
+        // Restore fd and cred
+        *curthread_fd = orig_curthread_fd;
+        *curthread_cred = orig_curthread_cred;
         return;
     }
 
