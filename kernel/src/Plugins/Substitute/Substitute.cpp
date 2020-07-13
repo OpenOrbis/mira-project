@@ -1241,7 +1241,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
 
     // Check if it's a valid process
-    if ( !s_TitleId || s_TitleId[0] == 0 || strncmp(s_TitleId, "NPXS20001", 9) == 0) {
+    if ( !s_TitleId || s_TitleId[0] == 0) {
         td->td_retval[0] = original_td_value;
         return ret;
     }
@@ -1366,7 +1366,6 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
                     Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
 
                     WriteLog(LL_Info, "Loading PRX Done !");
-                    break;
                 }
 
                 l_Pos += l_Dent->d_reclen;
