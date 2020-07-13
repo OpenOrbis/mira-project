@@ -19,7 +19,7 @@ ifeq ($(UNAME_S),Darwin)
 endif
 ODIR        := $(INTDIR)
 SDIR        := $(PROJDIR)
-IDIRS       := -I$(TOOLCHAIN)/include -I$(TOOLCHAIN)/include/c++/v1 -I$(PROJDIR)
+IDIRS       := -I$(TOOLCHAIN)/include -I$(TOOLCHAIN)/include/c++/v1 -I$(PROJDIR) -I$(PROJDIR)/External/include
 LDIRS       := -L$(TOOLCHAIN)/lib
 CFLAGS      := -cc1 -triple x86_64-pc-freebsd-elf -munwind-tables $(IDIRS) -fuse-init-array -emit-obj
 LFLAGS      := -m elf_x86_64 -pie --script $(TOOLCHAIN)/link.x --eh-frame-hdr $(LDIRS) $(LIBS) $(TOOLCHAIN)/lib/crt1.o

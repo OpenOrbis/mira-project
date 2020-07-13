@@ -53,7 +53,8 @@
             "includePath": [
                 "${workspaceFolder}/daemon/src",
                 "${env:OO_PS4_TOOLCHAIN}/include",
-                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1"
+                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1",
+                "${workspaceFolder}/daemon/src/External/include"
             ],
             "defines": [
                 "_DEBUG"
