@@ -296,14 +296,14 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         WriteLog(LL_Error, "name: %p", name);
         WriteLog(LL_Error, "hook_function: %p", hook_function);
         WriteLog(LL_Error, "One of the parameter is incorrect !");
-        return -1;
+        return SUBSTITUTE_BAD_ARGS;
     }
 
     // Get the jmpslot offset for this nids (Work like an id for detect if hook already present)
     void* jmpslot_address = (void*)FindJmpslotAddress(p, module_name, name, flags);
     if (!jmpslot_address) {
         WriteLog(LL_Error, "Unable to find the jmpslot address !");
-        return -2;
+        return SUBSTITUTE_INVALID;
     }
 
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
@@ -320,7 +320,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to get the hook !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         // Build the current chain
@@ -336,7 +336,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (!last_chain_addr || last_chain_position < 0) {
             WriteLog(LL_Error, "Unable to get the lasted chain address.");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         // Determinate if we have space for write
@@ -344,7 +344,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "SUBSTITUTE_MAX_CHAINS reached !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_NOMEM;
         }
 
         // Write current chain in the process
@@ -353,7 +353,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         // Got the last chains struct into kernel
@@ -363,7 +363,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to read the last chain: (%d)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         // The next chain of last chain is the current chain
@@ -375,7 +375,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         // Write the new chain address into the chain structure
@@ -390,7 +390,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to get the original value from the jmpslot !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         hook_id = -1;
@@ -398,8 +398,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (!new_hook || hook_id < 0) {
             WriteLog(LL_Error, "Unable to allocate new hook (%p => %d) !", new_hook, hook_id);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            
-            return -1;
+            return SUBSTITUTE_NOMEM;
         }
 
         // Initialize chains
@@ -419,7 +418,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -1;
+            return SUBSTITUTE_INVALID;
         }
 
         // Write the first chains address
@@ -439,17 +438,13 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to write to the jmpslot address: (%d)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -5;
+            return SUBSTITUTE_INVALID;
         }
     }
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     WriteLog(LL_Info, "New hook is created (IAT) :  %i", hook_id);
-
-    // Unlock the process
-    
-
     return hook_id;
 }
 
@@ -459,10 +454,7 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     if (!p || !original_address || !hook_function)
-        return -1;
-
-    // Lock the process
-    
+        return SUBSTITUTE_BAD_ARGS;    
 
     // Get buffer from original function for calculate size
     char buffer[500];
@@ -470,21 +462,21 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     int r_error = proc_rw_mem(p, (void*)original_address, sizeof(buffer), (void*)buffer, &read_size, 0);
     if (r_error) {
         WriteLog(LL_Error, "Unable to get the buffer !");
-        return -2;
+        return SUBSTITUTE_INVALID;
     }
 
     // Set the original address
     int backupSize = Utils::Hook::GetMinimumHookSize(buffer);
     if (backupSize <= 0) {
         WriteLog(LL_Error, "Unable to get the minimum hook size.");
-        return -3;
+        return SUBSTITUTE_INVALID;
     }
 
     // Malloc data for the backup data
     char* backupData = new char[backupSize];
     if (!backupData) {
         WriteLog(LL_Error, "Unable to allocate memory for backup");
-        return -4;
+        return SUBSTITUTE_NOMEM;
     }
 
     // Get the backup data
@@ -493,18 +485,17 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     if (r_error) {
         WriteLog(LL_Info, "Unable to get backupData (%d)", r_error);
         delete[] (backupData);
-        return -5;
+        return SUBSTITUTE_INVALID;
     }
 
     _mtx_lock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     int hook_id = -7;
     SubstituteHook* new_hook = AllocateHook(&hook_id);
-    if (!new_hook) {
-        WriteLog(LL_Error, "Unable to allocate new hook !", new_hook);
-        delete[] (backupData);
+    if (!new_hook || hook_id < 0) {
+        WriteLog(LL_Error, "Unable to allocate new hook (%p => %d) !", new_hook, hook_id);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-        return -6;
+        return SUBSTITUTE_NOMEM;
     }
 
     // Set default value
@@ -519,10 +510,6 @@ int Substitute::HookJmp(struct proc* p, void* original_address, void* hook_funct
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
     WriteLog(LL_Info, "New hook is created (JMP) :  %i", hook_id);
-
-    // Unlock the process
-    
-
     return hook_id;
 }
 
@@ -540,14 +527,14 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
         WriteLog(LL_Error, "The hook %i is not found !.", hook_id);
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         
-        return -1;
+        return SUBSTITUTE_NOTFOUND;
     }
 
     if (hook->process != p) {
         WriteLog(LL_Error, "Invalid handle : Another process trying to disable hook.");
         _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
         
-        return -2;
+        return SUBSTITUTE_INVALID;
     }
 
     switch (hook->hook_type) {
@@ -563,7 +550,7 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
                     WriteLog(LL_Error, "Unable to write original address: (%i)", r_error);
                     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
                     
-                    return -5;
+                    return SUBSTITUTE_BADLOGIC;
                 }
 
                 hook->jmp.enable = false;
@@ -578,14 +565,14 @@ int Substitute::DisableHook(struct proc* p, int hook_id) {
             WriteLog(LL_Error, "Invalid type of hook was detected.");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
-            return -6;
+            return SUBSTITUTE_INVALID;
             break;
         }
     }
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
     
 
-    return 0;
+    return SUBSTITUTE_OK;
 }
 
 // Substitute : Enable the hook
@@ -654,7 +641,7 @@ int Substitute::EnableHook(struct proc* p, int hook_id) {
 
     _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
 
-    return 0;
+    return SUBSTITUTE_OK;
 }
 
 // Substitute : Unhook the function
@@ -769,7 +756,7 @@ int Substitute::Unhook(struct proc* p, int hook_id, struct substitute_hook_uat* 
 
     WriteLog(LL_Info, "%i is now unhooked.", hook_id);
 
-    return 0;
+    return SUBSTITUTE_OK;
 }
 
 // Substitute : Cleanup all hook
@@ -1201,6 +1188,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
         delete (s_Freepath);
 
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
+    return;
 }
 
 // Substitute : Load PRX from Substitute folder

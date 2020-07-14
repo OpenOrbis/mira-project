@@ -61,6 +61,15 @@ enum {
     SUBSTITUTE_STATE_UNHOOK = 2
 };
 
+enum SubstituteError {
+    SUBSTITUTE_OK       =  0,
+    SUBSTITUTE_BAD_ARGS = -1,
+    SUBSTITUTE_INVALID  = -2,
+    SUBSTITUTE_BADLOGIC = -3,
+    SUBSTITUTE_NOTFOUND = -4,
+    SUBSTITUTE_NOMEM    = -5
+};
+
 /////////////////////////////////////////
 // Kernel structure
 /////////////////////////////////////////

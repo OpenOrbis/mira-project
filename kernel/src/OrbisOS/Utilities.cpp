@@ -619,7 +619,20 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 
 	// Create a POSIX Thread
 	CreatePOSIXThread(p, s_Entrypoint);
-	
+
+	// Wait until it's done
+	uint32_t result = 0;
+	while (!result) {
+		s_Size = sizeof(uint32_t);
+		s_Ret = proc_rw_mem(p, (void*)(s_PayloadSpace + sizeof(uint32_t) + sizeof(uint64_t)), s_Size, &result, &s_Size, false);
+		if (s_Ret) {
+			WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_PayloadSpace);
+		}
+	}
+
+	// Cleanup remote memory
+	kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
+
 	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX: Done.", s_TitleId, prx_path);
 
 	return 0;
