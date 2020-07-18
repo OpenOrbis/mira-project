@@ -14,6 +14,7 @@
 
 extern "C"
 {
+    #include <fcntl.h>
     #include <sys/dirent.h>
     #include <sys/stat.h>
     #include <sys/sx.h>
@@ -319,7 +320,6 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
         if (!hook) {
             WriteLog(LL_Error, "Unable to get the hook !");
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
-            
             return SUBSTITUTE_INVALID;
         }
 
@@ -1064,7 +1064,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     snprintf(s_RealSprxFolderPath, PATH_MAX, "/data/mira/substitute/%s", s_TitleId);
 
     // Opening substitute folder
-    auto s_DirectoryHandle = kopen_t(s_SprxDirPath, 0x0000 | 0x00020000, 0777, s_MainThread);
+    auto s_DirectoryHandle = kopen_t(s_SprxDirPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
         // Restore fd and cred
@@ -1162,7 +1162,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     char s_substituteFullMountPath[PATH_MAX];
     snprintf(s_substituteFullMountPath, PATH_MAX, "%s/substitute", s_SandboxPath);
 
-    auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, 0x0000 | 0x00020000, 0777, s_MainThread);
+    auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
         return;
@@ -1253,7 +1253,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     char s_substituteFullMountPath[PATH_MAX];
     snprintf(s_substituteFullMountPath, PATH_MAX, "%s/substitute", s_SandboxPath);
 
-    auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, 0x0000 | 0x00020000, 0777, s_MainThread);
+    auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
         kclose_t(s_DirectoryHandle, s_MainThread);
@@ -1269,6 +1269,19 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     // Process search for sysmodule preload symbol, give him a custom function instead
     if (strncmp("sceSysmodulePreloadModuleForLibkernel", name, sizeof(name)) == 0) {
         WriteLog(LL_Info, "[%s] sceSysmodulePreloadModuleForLibkernel trigerred (ret: %d td_retval[0]: %d) !", s_TitleId, ret, td->td_retval[0]);
+
+        // Get ucred and filedesc of current thread
+        struct ucred* curthread_cred = td->td_proc->p_ucred;
+
+        // Set max to current thread cred and fd
+        curthread_cred->cr_uid = 0;
+        curthread_cred->cr_ruid = 0;
+        curthread_cred->cr_rgid = 0;
+        curthread_cred->cr_groups[0] = 0;
+
+        curthread_cred->cr_prison = *(struct prison**)kdlsym(prison0);
+
+        WriteLog(LL_Info, "Max Perm given !");
 
         // Get the original value
         void* sysmodule_preload_original = substitute->FindOriginalAddress(td->td_proc, "sceSysmodulePreloadModuleForLibkernel", 0);
@@ -1317,7 +1330,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
         WriteLog(LL_Info, "[%s] doSubstituteLoadPRX trigerred, load prx ...", s_TitleId);
 
         // Opening substitute folder
-        auto s_DirectoryHandle = kopen_t("/substitute/", 0x0000 | 0x00020000, 0777, td);
+        auto s_DirectoryHandle = kopen_t("/substitute/", O_RDONLY | O_DIRECTORY, 0777, td);
         if (s_DirectoryHandle < 0)
         {
             // Restore td ret value

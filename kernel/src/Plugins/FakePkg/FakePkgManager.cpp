@@ -265,15 +265,6 @@ bool FakePkgManager::ShellCorePatch()
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
 	}
-
-
-    // Delete it after the live, we don't want to use this
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + 0x00319A53), 5, (void*)"\x31\xC0\xFF\xC0\x90", nullptr, true);
-    if (s_Ret < 0)
-    {
-        WriteLog(LL_Error, "ssc_enable_data_mount_patch");
-        return false;
-    }
 #endif
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_fake_to_free_patch), 4, (void*)"free", nullptr, true);
