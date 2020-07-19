@@ -3,13 +3,12 @@
 ; Edited for Mira
 ; Use NASM for compile and edit Utilities
 
-rpcldr_payload_start:
 BITS 64
 DEFAULT REL
 
 magic: db 'MIRA'
 entrypoint: dq rpcldr
-ldrdone: db 0
+ldrdone: dd 0
 stubentry: dq 0
 scePthreadAttrInit: dq 0
 scePthreadAttrSetstacksize: dq 0
@@ -47,7 +46,7 @@ rpcldr:
 	mov r12, qword [scePthreadCreate]
 	call r12
 
-	mov byte [ldrdone], 1
+	mov dword [ldrdone], 1
 
 	mov rdi, 0
 	call sys_thr_exit
@@ -81,4 +80,3 @@ amd64_set_fsbase:
 	pop rbx
 	pop rbp
 	retn
-rpcldr_payload_end:

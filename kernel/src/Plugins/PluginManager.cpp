@@ -13,6 +13,7 @@
 #include <Plugins/BrowserActivator/BrowserActivator.hpp>
 #include <Plugins/MorpheusEnabler/MorpheusEnabler.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
+#include <Plugins/TTYRedirector/TTYRedirector.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -27,7 +28,6 @@ using namespace Mira::Plugins;
 
 PluginManager::PluginManager() :
 	m_Logger(nullptr),
-    m_LoggerConsole(nullptr),
     m_Debugger(nullptr),
     m_FileManager(nullptr),
     m_FakeSelfManager(nullptr),
@@ -40,7 +40,6 @@ PluginManager::PluginManager() :
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
-    m_LoggerConsole = nullptr;
     m_FileManager = nullptr;
 }
 
@@ -84,17 +83,6 @@ bool PluginManager::OnLoad()
         }
         if (!m_Logger->OnLoad())
             WriteLog(LL_Error, "could not load logmanager");
-
-        // Initialize Logger (Console)
-        char consolePath[] = "/dev/console";
-        m_LoggerConsole = new Mira::Plugins::LogManagerExtent::LogManager(9997, consolePath);
-        if (m_LoggerConsole == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate log manager.(Console)");
-            return false;
-        }
-        if (!m_LoggerConsole->OnLoad())
-            WriteLog(LL_Error, "could not load logmanager (Console)");
 
         // Initialize file manager
         m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
@@ -150,6 +138,14 @@ bool PluginManager::OnLoad()
             break;
         }
 
+        // Initialize TTYRedirector
+        m_TTYRedirector = new Mira::Plugins::TTYRedirector();
+        if (m_TTYRedirector == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate tty redirector.");
+            s_Success = false;
+            break;
+        }
     } while (false);
 
     if (m_Debugger)
@@ -198,6 +194,12 @@ bool PluginManager::OnLoad()
     {
         if (!m_MorpheusEnabler->OnLoad())
             WriteLog(LL_Error, "could not load morpheus enabler.");
+    }
+
+    if (m_TTYRedirector)
+    {
+        if (!m_TTYRedirector->OnLoad())
+            WriteLog(LL_Error, "could not load tty redirector.");
     }
 
     return s_Success;
@@ -308,19 +310,6 @@ bool PluginManager::OnUnload()
         m_Logger = nullptr;
     }
 
-    // Delete the log server (Console)
-    if (m_LoggerConsole)
-    {
-        WriteLog(LL_Debug, "unloading log manager (Console)");
-
-        if (!m_LoggerConsole->OnUnload())
-            WriteLog(LL_Error, "logmanager could not unload (Console)");
-
-        // Free the file manager
-        delete m_LoggerConsole;
-        m_LoggerConsole = nullptr;
-    }
-
     // Delete Substitute
     if (m_Substitute)
     {
@@ -368,6 +357,18 @@ bool PluginManager::OnUnload()
         // Free the debugger
         delete m_Debugger;
         m_Debugger = nullptr;
+    }
+
+    // Unload TTY Redirector
+    if (m_TTYRedirector)
+    {
+        WriteLog(LL_Debug, "unloading tty redirector");
+        if (!m_TTYRedirector->OnUnload())
+            WriteLog(LL_Error, "tty redirector could not unload");
+
+        // Free TTYRedirector
+        delete m_TTYRedirector;
+        m_TTYRedirector = nullptr;
     }
 
     WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");
@@ -424,12 +425,6 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "log manager suspend failed");
     }
 
-    if (m_LoggerConsole)
-    {
-        if (!m_LoggerConsole->OnSuspend())
-            WriteLog(LL_Error, "log manager suspend failed (Console)");
-    }
-
     // Suspend substitute (currently does nothing)
     if (m_Substitute)
     {
@@ -458,6 +453,13 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "debugger suspend failed");
     }
 
+    // Suspend TTYRedirector (does nothing)
+    if (m_TTYRedirector)
+    {
+        if (!m_TTYRedirector->OnSuspend())
+            WriteLog(LL_Error, "tty redirector suspend failed");
+    }
+
     // Return final status
     return s_AllSuccess;
 }
@@ -481,13 +483,6 @@ bool PluginManager::OnResume()
     {
         if (!m_Logger->OnResume())
             WriteLog(LL_Error, "log manager resume failed");
-    }
-
-    WriteLog(LL_Debug, "resuming log manager (Console)");
-    if (m_LoggerConsole)
-    {
-        if (!m_LoggerConsole->OnResume())
-            WriteLog(LL_Error, "log manager resume failed (Console)");
     }
 
     WriteLog(LL_Debug, "resuming emuRegistry");
@@ -516,6 +511,13 @@ bool PluginManager::OnResume()
     {
         if (!m_MorpheusEnabler->OnResume())
             WriteLog(LL_Error, "morpheus enabler resume failed");
+    }
+
+    WriteLog(LL_Debug, "resuming tty redirector");
+    if (m_TTYRedirector)
+    {
+        if (!m_TTYRedirector->OnResume())
+            WriteLog(LL_Error, "tty redirector resume failed");
     }
 
     // Iterate through all of the plugins
