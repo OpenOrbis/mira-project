@@ -256,6 +256,12 @@
 #define ssc_sceKernelIsGenuineCEX_patchC                   0x880492
 #define ssc_sceKernelIsGenuineCEX_patchD                   0xA12B92
 
+
+// SceShellCore patches - call sceKernelIsAssistMode for Testkits
+#define ssc_sceKernelIsAssistMode_patchA                  0x189630 
+
+
+
 // SceShellCore patches - call nidf_libSceDipsw
 #define ssc_nidf_libSceDipsw_patchA                        0x189630
 #define ssc_nidf_libSceDipsw_patchB                        0x254107
