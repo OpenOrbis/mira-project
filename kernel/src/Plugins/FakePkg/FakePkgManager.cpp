@@ -209,12 +209,14 @@ bool FakePkgManager::ShellCorePatch()
         return false;
     }
 	
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsAssistMode_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsAssistMode_patchA");
         return false;
     }
+#endif
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
