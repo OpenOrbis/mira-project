@@ -287,6 +287,7 @@ There is a list of available platforms that Mira can be configured with located 
 |`MIRA_PLATFORM_ORBIS_BSD_600`| (No Support) 6.00 |
 |`MIRA_PLATFORM_ORBIS_BSD_620`| (Unsupported) 6.20 |
 |`MIRA_PLATFORM_ORBIS_BSD_650`| (Unsupported) 6.50 |
+|`MIRA_PLATFORM_ORBIS_BSD_672`| (Supported) 6.72 |
 
 Provided are some VSCode `tasks.json` formats:
 
