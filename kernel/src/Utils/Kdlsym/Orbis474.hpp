@@ -201,6 +201,14 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0x0069AFE4
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0069B214
 
+// sceRegMgr
+#define kdlsym_addr_sceRegMgrGetInt                        0x004D9430
+#define kdlsym_addr_sceRegMgrSetInt                        0x004D8580
+#define kdlsym_addr_sceRegMgrGetBin                        0x004D9D90
+#define kdlsym_addr_sceRegMgrSetBin                        0x004D9CC0
+#define kdlsym_addr_sceRegMgrGetStr                        0x004D9BA0
+#define kdlsym_addr_sceRegMgrSetStr                        0x004D97F0
+
 // SceShellCore patches - call sceKernelIsGenuineCEX
 #define ssc_sceKernelIsGenuineCEX_patchA                   0x0014BC6B
 #define ssc_sceKernelIsGenuineCEX_patchB                   0x006F3C5B
@@ -219,18 +227,22 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_fake_to_free_patch                             0x00D50208
 
 // SceShellCore patches - enable VR without spoof
-#define ssc_enable_vr                                      0x00B3CDC0
+#define ssc_enable_vr_patch                                0x00B3CDC0
+
+// SceShellCore patches - enable official external HDD support (Support added in 4.50)
+#define ssc_external_hdd_pkg_installer_patch               0x00853241
+#define ssc_external_hdd_7xx_patch                         0x0050951D
 
 // SceShellUI patches - debug patches
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001A130
 #define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001A430
 
-// sceRegMgr
-#define kdlsym_addr_sceRegMgrGetInt                        0x004D9430
-#define kdlsym_addr_sceRegMgrSetInt                        0x004D8580
-#define kdlsym_addr_sceRegMgrGetBin                        0x004D9D90
-#define kdlsym_addr_sceRegMgrSetBin                        0x004D9CC0
-#define kdlsym_addr_sceRegMgrGetStr                        0x004D9BA0
-#define kdlsym_addr_sceRegMgrSetStr                        0x004D97F0
+// SceShellUI - remote play related patching
+#define ssu_CreateUserForIDU_patch                         0x00197030
+#define ssu_remote_play_menu_patch                         0x01299AF7
+
+// SceRemotePlay - enabler patches
+#define srp_enabler_patchA                                 0x0003C882
+#define srp_enabler_patchB                                 0x0003C89D
 
 #endif
