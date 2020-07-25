@@ -3,16 +3,15 @@
 
 #include <Boot/Patches.hpp>
 
-using namespace Mira::Boot;
-
 // Patches done by SiSTRo & Joonie
 
 /*
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
 */
-void Patches::install_prerunPatches_405() {
-
+void Mira::Boot::Patches::install_prerunPatches_405()
+{
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
 		return;
@@ -32,14 +31,39 @@ void Patches::install_prerunPatches_405() {
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
+	// sceSblACMgrIsAllowedSystemLevelDebugging
+	kmem = (uint8_t *)&gKernelBase[0x0035FE40];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	kmem = (uint8_t *)&gKernelBase[0x00360570];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	kmem = (uint8_t *)&gKernelBase[0x00360590];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
 	// Enable rwx mapping
-	kmem = (uint8_t*)&gKernelBase[0x0036958D];
+	kmem = (uint8_t *)&gKernelBase[0x0036958D];
 	kmem[0] = 0x07;
 
-	kmem = (uint8_t*)&gKernelBase[0x003695A5];
+	kmem = (uint8_t *)&gKernelBase[0x003695A5];
 	kmem[0] = 0x07;
 
-	// Patch copy(in/out)
+	// Patch copyin/copyout to allow userland + kernel addresses in both params
 	kmem = (uint8_t *)&gKernelBase[0x00286E21];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
@@ -49,13 +73,28 @@ void Patches::install_prerunPatches_405() {
 	kmem[1] = 0x90;
 
 	// Enable MAP_SELF
-	kmem = (uint8_t *)&gKernelBase[0x0031EE40];
-	kmem[0] = 0x90;
-	kmem[1] = 0xE9;
+	kmem = (uint8_t *)&gKernelBase[0x003605F0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
 
-	kmem = (uint8_t *)&gKernelBase[0x0031EF98];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x00360600];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	kmem = (uint8_t *)&gKernelBase[0x0031EE37];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
 
 	// Patch copyinstr
 	kmem = (uint8_t *)&gKernelBase[0x0028718D];
@@ -82,4 +121,23 @@ void Patches::install_prerunPatches_405() {
 	kmem[2] = 0xC0;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
+
+	// Patch to remove vm_fault: fault on nofault entry, addr %llx
+	kmem = (uint8_t *)&gKernelBase[0x000C6991];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch mprotect to allow RWX (mprotect) mapping 4.05
+	kmem = (uint8_t *)&gKernelBase[0x004423E9];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+#endif
 }

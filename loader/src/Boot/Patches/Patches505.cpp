@@ -9,6 +9,7 @@
 */
 void Mira::Boot::Patches::install_prerunPatches_505()
 {
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
 		return;
@@ -27,9 +28,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
-	kmem[5] = 0x65;
-	kmem[6] = 0x8B;
-	kmem[7] = 0x34;
 
 	// sceSblACMgrIsAllowedSystemLevelDebugging
 	kmem = (uint8_t *)&gKernelBase[0x00010FC0];
@@ -39,8 +37,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00011730];
 	kmem[0] = 0xB8;
@@ -49,8 +45,6 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
 
 	kmem = (uint8_t *)&gKernelBase[0x00011750];
 	kmem[0] = 0xB8;
@@ -59,13 +53,11 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	kmem[6] = 0x90;
-	kmem[7] = 0x90;
-	
+
 	// Enable rwx mapping
 	kmem = (uint8_t *)&gKernelBase[0x000FCD48];
 	kmem[0] = 0x07;
-	
+
 	kmem = (uint8_t *)&gKernelBase[0x000FCD56];
 	kmem[0] = 0x07;
 
@@ -73,28 +65,28 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem = (uint8_t *)&gKernelBase[0x001EA767];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
-	
+
 	kmem = (uint8_t *)&gKernelBase[0x001EA682];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 
 	// Enable MAP_SELF
-	kmem = (uint8_t*)&gKernelBase[0x000117b0];
+	kmem = (uint8_t *)&gKernelBase[0x000117B0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	
-	kmem = (uint8_t *)&gKernelBase[0x000117c0];
+
+	kmem = (uint8_t *)&gKernelBase[0x000117C0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
-	
+
 	kmem = (uint8_t *)&gKernelBase[0x0013F03F];
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
@@ -116,13 +108,16 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[0] = 0xEB;
 
 	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0030D9C3];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x0030D9AA];
+	kmem[0] = 0xEB;
+
+	// second ptrace patch
+	kmem = (uint8_t *)&gKernelBase[0x0030DE01];
+	kmem[0] = 0xE9;
+	kmem[1] = 0xD0;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0005775C];
@@ -131,4 +126,23 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[2] = 0xC0;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
+
+	// Patch to remove vm_fault: fault on nofault entry, addr %llx
+	kmem = (uint8_t *)&gKernelBase[0x002A4EB3];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+
+	// patch mprotect to allow RWX (mprotect) mapping 5.05
+	kmem = (uint8_t *)&gKernelBase[0x001A3C08];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+#endif
 }
