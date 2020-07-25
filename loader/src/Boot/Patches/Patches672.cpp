@@ -3,6 +3,10 @@
 
 #include <Boot/Patches.hpp>
 
+/*
+	Please, please, please!
+	Keep patches consistent with the used patch style for readability.
+*/
 void Mira::Boot::Patches::install_prerunPatches_672()
 {
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
@@ -14,7 +18,7 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	uint8_t *kmem;
 
 	// Patch dynlib_dlsym
-	kmem = (uint8_t*)&gKernelBase[0x1D895A];
+	kmem = (uint8_t *)&gKernelBase[0x1D895A];
 	kmem[0] = 0xE9;
 	kmem[1] = 0xC7;
 	kmem[2] = 0x01;
@@ -22,18 +26,18 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x00;
 
 	// Patch a function called by dynlib_dlsym
-	kmem = (uint8_t*)&gKernelBase[0x0041A2D0];
+	kmem = (uint8_t *)&gKernelBase[0x0041A2D0];
 	kmem[0] = 0x31; // xor eax, eax
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;	// ret
 
 	// Patch sys_mmap
-	kmem = (uint8_t*)&gKernelBase[0x000AB57A];
+	kmem = (uint8_t *)&gKernelBase[0x000AB57A];
 	kmem[0] = 0x37; // mov     [rbp+var_61], 33h ; '3'
 	kmem[3] = 0x37; // mov     sil, 33h ; '3'
 
 	// patch sys_setuid
-	kmem = (uint8_t*)&gKernelBase[0x0010BED0]; // call    priv_check_cred; overwrite with mov eax, 0
+	kmem = (uint8_t *)&gKernelBase[0x0010BED0]; // call    priv_check_cred; overwrite with mov eax, 0
 	kmem[0] = 0xB8; // mov eax, 0
 	kmem[1] = 0x00;
 	kmem[2] = 0x00;
@@ -41,7 +45,7 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x00;
 
 	// patch sys_mprotect
-	kmem = (uint8_t*)&gKernelBase[0x00451DB8]; // jnz     loc_FFFFFFFF82652426; nop it out
+	kmem = (uint8_t *)&gKernelBase[0x00451DB8]; // jnz     loc_FFFFFFFF82652426; nop it out
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -115,50 +119,50 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
+	kmem = (uint8_t *)&gKernelBase[0x003C1857];
+	kmem[0] = 0x41;
+	kmem[1] = 0x41;
+
 	// Patch memcpy stack
 	kmem = (uint8_t *)&gKernelBase[0x003C15BD];
 	kmem[0] = 0xEB;
 
 	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0010F892];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem = (uint8_t *)&gKernelBase[0x0010F879];
+	kmem[0] = 0xEB;
 
-	kmem = (uint8_t*)&gKernelBase[0x003C1857];
-	kmem[0] = 0x41;
-	kmem[1] = 0x41;
+	// second ptrace patch
+	kmem = (uint8_t *)&gKernelBase[0x0010FD02];
+	kmem[0] = 0xEB;
+	kmem[1] = 0x98;
 
 	// disable delayed panics
-	kmem = (uint8_t*)&gKernelBase[0x0063C8CE];
+	kmem = (uint8_t *)&gKernelBase[0x0063C8CE];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 
 	// Disable this verif bullshit
 
 	// Disable sceSblSysVeriResume
-	kmem = (uint8_t*)&gKernelBase[0x0063CDB0];
+	kmem = (uint8_t *)&gKernelBase[0x0063CDB0];
 	kmem[0] = 0xC3;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
 	// Disable sceSblSysVeriSuspend
-	kmem = (uint8_t*)&gKernelBase[0x0063CC90];
+	kmem = (uint8_t *)&gKernelBase[0x0063CC90];
 	kmem[0] = 0xC3;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
 	// Disable sysvericheckstatus_maybe
-	/*kmem = (uint8_t*)&gKernelBase[0x0063BD90];
+	/*kmem = (uint8_t *)&gKernelBase[0x0063BD90];
 	kmem[0] = 0xC3;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
 	// Disable sysvericheckstatus_maybe callout_ call
-	kmem = (uint8_t*)&gKernelBase[0x0063BDE4];
+	kmem = (uint8_t *)&gKernelBase[0x0063BDE4];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
@@ -166,25 +170,25 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x90;*/
 
 	// Disable delayedPanicCb
-	kmem = (uint8_t*)&gKernelBase[0x0063C8C0];
+	kmem = (uint8_t *)&gKernelBase[0x0063C8C0];
 	kmem[0] = 0xC3;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
 	// Disable panic_fatal
-	/*kmem = (uint8_t*)&gKernelBase[0x0043BB0];
+	/*kmem = (uint8_t *)&gKernelBase[0x0043BB0];
 	kmem[0] = 0xC3;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;*/
 
 	// Disable sub_FFFFFFFF8283C8D1
-	/*kmem = (uint8_t*)&gKernelBase[0x0063C8D1];
+	/*kmem = (uint8_t *)&gKernelBase[0x0063C8D1];
 	kmem[0] = 0xC3;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
 	// NOP sled sceSblSysVeriThread
-	kmem = (uint8_t*)&gKernelBase[0x0063C950];
+	kmem = (uint8_t *)&gKernelBase[0x0063C950];
 	for (int i = 0; i < 0x327; ++i)
 		kmem[i] = 0x90; // NOP sled the entire shit, until the kthread_exit call*/
 #endif

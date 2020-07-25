@@ -116,6 +116,10 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
+	kmem = (uint8_t *)&gKernelBase[0x003C1857];
+	kmem[0] = 0x41;
+	kmem[1] = 0x41;
+
 	// Patch memcpy stack
 	kmem = (uint8_t *)&gKernelBase[0x003C15BD];
 	kmem[0] = 0xEB;
@@ -125,12 +129,9 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[0] = 0xEB;
 
 	// second ptrace patch
-	// TODO
-
-
-
-
-
+	kmem = (uint8_t *)&gKernelBase[0x0010FD02];
+	kmem[0] = 0xEB;
+	kmem[1] = 0x98;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0010EC1C];
@@ -141,13 +142,13 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x90;
 
 	// Patch to remove vm_fault: fault on nofault entry, addr %llx
-	// TODO: Near 0x0010FD22
-
-
-
-
-
-
+	kmem = (uint8_t *)&gKernelBase[0x000BC8F6];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 
 	// patch mprotect to allow RWX (mprotect) mapping 6.72
 	kmem = (uint8_t *)&gKernelBase[0x00451DB8];
@@ -159,15 +160,10 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[5] = 0x90;
 
 	// flatz disable pfs signature check
-	// TODO: Check these
 	kmem = (uint8_t *)&gKernelBase[0x006A8EB0];
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
-
-	kmem = (uint8_t *)&gKernelBase[0x003C1857];
-	kmem[0] = 0x41;
-	kmem[1] = 0x41;
 
 	// flatz enable debug RIFs
 	kmem = (uint8_t *)&gKernelBase[0x0066AEB0];
@@ -207,7 +203,6 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	// patch suword_lwpid
 	// has a check to see if child_tid/parent_tid is in kernel memory, and it in so patch it
 	// Patch by: JOGolden
-	// TODO: Check this the function is different
 	kmem = (uint8_t *)&gKernelBase[0x003C1AC2];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
@@ -320,6 +315,5 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem = (uint8_t *)&gKernelBase[0x0063C950];
 	for (int i = 0; i < 0x327; ++i)
 		kmem[i] = 0x90; // NOP sled the entire shit, until the kthread_exit call*/
-
 #endif
 }
