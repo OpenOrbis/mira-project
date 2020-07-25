@@ -15,9 +15,15 @@ fakeReturnAddress: dq 0
 doSubstitute: db 'doSubstituteLoadPRX', 0
 
 preload_prx_hook:
+	; Save R9
+	push r9
+
 	; Call the preload module function
-	mov rax, qword [sceSysmodulePreloadModuleForLibkernel]
-	call rax
+	mov r9, qword [sceSysmodulePreloadModuleForLibkernel]
+	call r9
+
+	; Restore R9
+	pop r9
 
 	; Save register
 	push rdi
