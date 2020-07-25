@@ -141,13 +141,13 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x90;
 
 	// Patch to remove vm_fault: fault on nofault entry, addr %llx
-	// TODO: Near 0x0010FD22
-
-
-
-
-
-
+	kmem = (uint8_t *)&gKernelBase[0x000BC8F6];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 
 	// patch mprotect to allow RWX (mprotect) mapping 6.72
 	kmem = (uint8_t *)&gKernelBase[0x00451DB8];
