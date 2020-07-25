@@ -38,3 +38,5 @@ table RpcHeader
     // Internal message data
     data:[ubyte];
 }
+
+root_type RpcHeader;

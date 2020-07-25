@@ -46,7 +46,7 @@
             "options": {
                 "cwd": "${workspaceFolder}/daemon/src/External/flatbuffers"
             }
-        }
+        },
         {
             "label": "Build Daemon",
             "type": "shell",

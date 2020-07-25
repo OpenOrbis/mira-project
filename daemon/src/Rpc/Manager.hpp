@@ -28,7 +28,7 @@ namespace Mira
 
         public:
             Manager();
-            ~Manager();
+            virtual ~Manager();
 
             bool Register(RpcCategory p_Category, uint32_t p_Type, std::function<void(std::shared_ptr<Rpc::Connection>, std::shared_ptr<Rpc::RpcHeader>)>);
             bool Unregister(RpcCategory p_Category, uint32_t p_Type, std::function<void(std::shared_ptr<Rpc::Connection>, std::shared_ptr<Rpc::RpcHeader>)>);

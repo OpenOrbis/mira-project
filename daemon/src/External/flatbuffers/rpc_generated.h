@@ -186,6 +186,36 @@ inline flatbuffers::Offset<RpcHeader> CreateRpcHeaderDirect(
       data__);
 }
 
+inline const Mira::Rpc::RpcHeader *GetRpcHeader(const void *buf) {
+  return flatbuffers::GetRoot<Mira::Rpc::RpcHeader>(buf);
+}
+
+inline const Mira::Rpc::RpcHeader *GetSizePrefixedRpcHeader(const void *buf) {
+  return flatbuffers::GetSizePrefixedRoot<Mira::Rpc::RpcHeader>(buf);
+}
+
+inline bool VerifyRpcHeaderBuffer(
+    flatbuffers::Verifier &verifier) {
+  return verifier.VerifyBuffer<Mira::Rpc::RpcHeader>(nullptr);
+}
+
+inline bool VerifySizePrefixedRpcHeaderBuffer(
+    flatbuffers::Verifier &verifier) {
+  return verifier.VerifySizePrefixedBuffer<Mira::Rpc::RpcHeader>(nullptr);
+}
+
+inline void FinishRpcHeaderBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    flatbuffers::Offset<Mira::Rpc::RpcHeader> root) {
+  fbb.Finish(root);
+}
+
+inline void FinishSizePrefixedRpcHeaderBuffer(
+    flatbuffers::FlatBufferBuilder &fbb,
+    flatbuffers::Offset<Mira::Rpc::RpcHeader> root) {
+  fbb.FinishSizePrefixed(root);
+}
+
 }  // namespace Rpc
 }  // namespace Mira
 
