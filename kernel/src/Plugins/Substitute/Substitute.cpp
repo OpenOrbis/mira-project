@@ -1288,13 +1288,23 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
         WriteLog(LL_Info, "sceSysmodulePreloadModuleForLibkernel: %p", sysmodule_preload_original);
 
         // Payload [entrypoint_trigger] (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
-        unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x34\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x6F\x53\x75\x62\x73\x74\x69\x74\x75\x74\x65\x4C\x6F\x61\x64\x50\x52\x58\x00\x48\x8B\x05\xD5\xFF\xFF\xFF\xFF\xD0\x57\x56\x52\x50\xBF\x00\x00\x00\x00\x48\x8D\x35\xD3\xFF\xFF\xFF\x48\x8D\x15\xC4\xFF\xFF\xFF\xB8\x4F\x02\x00\x00\x0F\x05\x58\x5A\x5E\x5F\xC3";
+        //unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x34\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x6F\x53\x75\x62\x73\x74\x69\x74\x75\x74\x65\x4C\x6F\x61\x64\x50\x52\x58\x00\x48\x8B\x05\xD5\xFF\xFF\xFF\xFF\xD0\x57\x56\x52\x50\xBF\x00\x00\x00\x00\x48\x8D\x35\xD3\xFF\xFF\xFF\x48\x8D\x15\xC4\xFF\xFF\xFF\xB8\x4F\x02\x00\x00\x0F\x05\x58\x5A\x5E\x5F\xC3";
+        unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x34\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x64\x6F\x53\x75\x62\x73\x74\x69\x74\x75\x74\x65\x4C\x6F\x61\x64\x50\x52\x58\x00\x41\x51\x4C\x8B\x0D\xD3\xFF\xFF\xFF\x41\xFF\xD1\x41\x59\x57\x56\x52\x50\xBF\x00\x00\x00\x00\x48\x8D\x35\xCE\xFF\xFF\xFF\x48\x8D\x15\xBF\xFF\xFF\xFF\xB8\x4F\x02\x00\x00\x0F\x05\x58\x5A\x5E\x5F\xC3";
 
         // Allocate memory on the remote process
         size_t s_PayloadSize = 0x8000; //sizeof(s_Payload) + PATH_MAX but need more for allow the allocation
         auto s_PayloadSpace = kmmap_t(nullptr, s_PayloadSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0, td);
         if (s_PayloadSpace == nullptr || s_PayloadSpace == MAP_FAILED || (uint64_t)s_PayloadSpace < 0) {
             WriteLog(LL_Error, "[%s] Unable to allocate remote process memory (%llx size) (ret: %llx)", s_TitleId, s_PayloadSize, s_PayloadSpace);
+            td->td_retval[0] = original_td_value;
+            return ret;
+        }
+
+        // Lock the memory page
+        int s_Ret = kmlock_t(s_PayloadSpace, s_PayloadSize, td);
+        if (s_Ret < 0) {
+            WriteLog(LL_Error, "[%s] Unable to lock the remote process memory (%llx size) (ret: %d)", s_TitleId, s_PayloadSize, s_Ret);
+            kmunmap_t(s_PayloadSpace, s_PayloadSize, td);
             td->td_retval[0] = original_td_value;
             return ret;
         }
@@ -1313,7 +1323,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
 
         // Copy payload to process
         size_t s_Size = sizeof(s_Payload);
-        int s_Ret = proc_rw_mem(td->td_proc, (void*)(s_PayloadSpace), s_Size, s_Payload, &s_Size, true);
+        s_Ret = proc_rw_mem(td->td_proc, (void*)(s_PayloadSpace), s_Size, s_Payload, &s_Size, true);
         if (s_Ret > 0) {
             WriteLog(LL_Error, "[%s] Unable to write process memory at %p !", s_TitleId, (void*)(s_PayloadSpace));
             kmunmap_t(s_PayloadSpace, s_PayloadSize, td);
