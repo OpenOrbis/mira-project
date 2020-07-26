@@ -36,6 +36,9 @@
 #define kdlsym_addr_proc_rwmem                                         (0x0010EE10)
 #define kdlsym_addr_kern_ptrace_patch1                                 (0x0010F892)
 #define kdlsym_addr_aslr_gen_pseudo_random_number                      (0x00118A00)
+#define kdlsym_addr_cloneuio                                           (0x002D3060)
+#define kdlsym_addr_console_cdev                                       (0x022C0CD8)
+#define kdlsym_addr_console_write                                      (0x003F8710)
 #define kdlsym_addr_disable_aslr_patch1                                (0x00119A20)
 #define kdlsym_addr_disable_aslr_patch2                                (0x00119ACA)
 #define kdlsym_addr_uprintf                                            (0x00122AC0)
@@ -63,6 +66,7 @@
 #define kdlsym_addr_kernel_sysctl                                      (0x00277DF0)
 #define kdlsym_addr_critical_enter                                     (0x002AA0A0)
 #define kdlsym_addr_critical_exit                                      (0x002AA0B0)
+#define kdlsym_addr_deci_tty_write                                     (0x004A97E0)
 #define kdlsym_addr_trap_fatal_return_patch1                           (0x002ED2DA)
 #define kdlsym_addr_trap_fatal                                         (0x002ED2E0)
 #define kdlsym_addr_trap_fatal_return_patch2                           (0x002ED57C)
@@ -139,6 +143,7 @@
 #define kdlsym_addr_kernel_max_text_size                               (0x0078BA90)
 #define kdlsym_addr_prison0                                            (0x0113E518)
 #define kdlsym_addr_M_TEMP                                             (0x01540EB0)
+#define kdlsym_addr_M_IOV                                              (0x01A87AD0)
 #define kdlsym_addr_self_orbis_sysvec                                  (0x01A8A398)
 #define kdlsym_addr_maxtsiz                                            (0x01BB6A60)
 #define kdlsym_addr_maxssiz                                            (0x01BB6A80)
@@ -200,6 +205,9 @@
 #define kdlsym_addr__mtx_unlock_flags                                  (0x00496810)
 #define kdlsym_addr__mtx_lock_flags                                    (0x00496540)
 #define kdlsym_addr_sched_prio                                         (0x004453C0)
+
+// Kernel Hooks
+#define kdlsym_addr_printf_hook                                        (0x01A9FE98)
 
 // self function patches
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                    0x659AC6
