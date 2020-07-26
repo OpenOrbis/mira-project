@@ -231,7 +231,12 @@
 
 // SceShellCore patches - enable official external HDD support (Support added in 4.50)
 #define ssc_external_hdd_pkg_installer_patch               0x009FB311
-#define ssc_external_hdd_7xx_patch                         0x00606A0D
+#define ssc_external_hdd_version_patch                     0x00606A0D
+
+// // SceShellCore patches - downgrade external HDD version (Not needed on <=5.07, unknown if needed on 5.50 though 6.71)
+#define ssc_external_hdd_downgrade_patchA                  0x00606A0B
+#define ssc_external_hdd_downgrade_patchB                  0x00606A30
+#define ssc_external_hdd_downgrade_patchC                  0x00606A4A
 
 // SceShellUI patches - debug patches
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001D670

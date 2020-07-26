@@ -230,7 +230,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 
 // SceShellCore patches - enable official external HDD support (Support added in 4.50)
 #define ssc_external_hdd_pkg_installer_patch               0x009312A1
-#define ssc_external_hdd_7xx_patch                         0x00593C7D
+#define ssc_external_hdd_version_patch                     0x00593C7D
 
 // SceShellUI patches - debug patches
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001BD90

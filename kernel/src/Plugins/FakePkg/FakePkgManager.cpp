@@ -258,21 +258,21 @@ bool FakePkgManager::ShellCorePatch()
         return false;
     }
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_455
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_455
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x90\x00\x00\x00", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
 	}
-#elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_405 || MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_474 || MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_503 || MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_505
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_474 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_501 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_503 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_505 || MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_507
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x96\x00\x00\x00", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
 	}
-#elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x98\x00\x00\x00", nullptr, true);
 	if (s_Ret < 0)
 	{
@@ -288,7 +288,7 @@ bool FakePkgManager::ShellCorePatch()
         return false;
     }
 
-#if MIRA_PLATFORM>MIRA_PLATFORM_ORBIS_BSD_407
+#if MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_407
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_pkg_installer_patch), 1, (void*)"\x00", nullptr, true);
     if (s_Ret < 0)
     {
@@ -296,20 +296,37 @@ bool FakePkgManager::ShellCorePatch()
         return false;
     }
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_7xx_patch), 2, (void*)"\xEB\x45", nullptr, true);
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_version_patch), 1, (void*)"\xEB", nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "ssc_external_hdd_7xx_patch");
+        WriteLog(LL_Error, "ssc_external_hdd_version_patch");
         return false;
     }
-#else
-    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_7xx_patch), 1, (void*)"\xEB", nullptr, true);
+
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
+    uint8_t four_five_zero[2] = { 0x50, 0x04 };
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_downgrade_patchA), sizeof(four_five_zero), four_five_zero, nullptr, true);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "ssc_external_hdd_7xx_patch");
+        WriteLog(LL_Error, "ssc_external_hdd_downgrade_patchA");
         return false;
     }
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_downgrade_patchB), sizeof(four_five_zero), four_five_zero, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_external_hdd_downgrade_patchB");
+        return false;
+    }
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_downgrade_patchC), sizeof(four_five_zero), four_five_zero, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_external_hdd_downgrade_patchC");
+        return false;
+    }
+
 #endif
 
 #endif
