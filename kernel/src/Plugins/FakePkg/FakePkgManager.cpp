@@ -258,7 +258,7 @@ bool FakePkgManager::ShellCorePatch()
 		return false;
 	}
 
-	if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405 || (MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_474 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_507)
+	if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405 || MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_474 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_507
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x96\x00\x00\x00", nullptr, true);
 	if (s_Ret < 0)
 	{
