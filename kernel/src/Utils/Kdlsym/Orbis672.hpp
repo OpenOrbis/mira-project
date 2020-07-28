@@ -243,8 +243,8 @@
 #define ssu_remote_play_menu_patch                         0x00EC8291
 
 // SceRemotePlay - enabler patches
-#define srp_enabler_patchA                                 0x001106D4
-#define srp_enabler_patchB                                 0x001106EF
+#define srp_enabler_patchA                                 0x0010C6D4
+#define srp_enabler_patchB                                 0x0010C6EF
 
 // Other offsets KD added in 6.72 /////////////////////////////////////////////
 #define kdlsym_addr_NDFREE                                             (0x004910D0)

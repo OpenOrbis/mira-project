@@ -306,7 +306,7 @@ bool FakePkgManager::ShellCorePatch()
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_version_patchB), 1, (void*)"\xEB", nullptr, true);
 	if (s_Ret < 0)
 	{
-		WriteLog(LL_Error, "ssc_external_hdd_version_patchA");
+		WriteLog(LL_Error, "ssc_external_hdd_version_patchB");
 		return false;
 	}
 

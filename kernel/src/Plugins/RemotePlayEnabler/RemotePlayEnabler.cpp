@@ -72,7 +72,7 @@ bool RemotePlayEnabler::ShellUIPatch()
 	uint8_t* s_ShellUIAppTextStart = nullptr;
 	for (auto i = 0; i < s_NumEntries; ++i)
 	{
-#if MIRA_PLATFORM<MIRA_PLATFORM_ORBIS_BSD_500
+#if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_500
 		if (!memcmp(s_Entries[i].name, "libSceVsh_aot.sprx", 18) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
 		{
 			s_ShellUIAppTextStart = (uint8_t*)s_Entries[i].start;
@@ -107,16 +107,16 @@ bool RemotePlayEnabler::ShellUIPatch()
 		return false;
 	}
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_405
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405
 	// `/system_ex/app/NPXS20001/libSceVsh_aot.sprx`
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\x64\x02\x00\x00", nullptr, true);
-#elif MIRA_PLATFORM>=MIRA_PLATFORM_ORBIS_BSD_455 && MIRA_PLATFORM<=MIRA_PLATFORM_ORBIS_BSD_474
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_474
 	// `/system_ex/app/NPXS20001/libSceVsh_aot.sprx`
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\x22\x02\x00\x00", nullptr, true);
-#elif MIRA_PLATFORM>=MIRA_PLATFORM_ORBIS_BSD_500 && MIRA_PLATFORM<=MIRA_PLATFORM_ORBIS_BSD_505
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_507
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\x82\x02\x00\x00", nullptr, true);
-#elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\xBA\x02\x00\x00", nullptr, true);
 #else
