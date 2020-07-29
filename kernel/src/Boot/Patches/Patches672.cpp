@@ -72,6 +72,10 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 
+	kmem = (uint8_t *)&gKernelBase[0x003C1857];
+	kmem[0] = 0x41;
+	kmem[1] = 0x41;
+
 	// copyout
 	kmem = (uint8_t *)&gKernelBase[0x003C1702];
 	kmem[0] = 0x90;
@@ -115,10 +119,6 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
-
-	kmem = (uint8_t *)&gKernelBase[0x003C1857];
-	kmem[0] = 0x41;
-	kmem[1] = 0x41;
 
 	// Patch memcpy stack
 	kmem = (uint8_t *)&gKernelBase[0x003C15BD];
