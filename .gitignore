@@ -5,6 +5,7 @@
 *.so
 *SteamLink*
 *steam_link*
+src/GitHash.hpp
 build/*
 reeee/*
 # PVS-Studio Ignores

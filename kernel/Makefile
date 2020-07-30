@@ -11,6 +11,11 @@ ifeq ($(MIRA_CHECKS),)
 MIRA_CHECKS :=
 endif
 
+# Should the Git hash be included in the build?
+ifeq ($(ADD_GIT_HASH),)
+ADD_GIT_HASH :=
+endif
+
 # Project name
 PROJ_NAME := Mira
 
@@ -57,7 +62,7 @@ I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC) -I$(EXTERNAL_INC)/pr
 L_DIRS	:=	-L.	-Llib
 
 # Included libraries
-LIBS	:= 
+LIBS	:=
 
 # C Defines
 C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"MIRA_PLATFORM=${MIRA_PLATFORM}" -DMIRA_UNSUPPORTED_PLATFORMS -D__LP64__ -D_M_X64 -D__amd64__ -D__BSD_VISIBLE
@@ -109,12 +114,17 @@ post-build: main-build
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
 	@echo $(I_DIRS)
+ifneq ($(strip $(ADD_GIT_HASH)),)
+	echo  -n '#ifndef GIT_HASH\n#define GIT_HASH "' > $(SRC_DIR)/GitHash.hpp && \
+	git rev-parse HEAD | tr -d "\n" >> $(SRC_DIR)/GitHash.hpp && \
+	echo  '"\n#endif' >> $(SRC_DIR)/GitHash.hpp
+endif
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 else
 	@$(MAKE) --no-print-directory $(ALL_OBJ)
 endif
-	
+
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "Compiling $< ..."
 ifneq ($(strip $(MIRA_CHECKS)),)
@@ -131,10 +141,11 @@ endif
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."
-	@$(CC) $(SFLAGS) -c -o $@ $< 
+	@$(CC) $(SFLAGS) -c -o $@ $<
 
 clean:
 	@echo "Cleaning project..."
+	@rm -f $(SRC_DIR)/GitHash.hpp
 	@rm -f $(OUT_DIR)/$(TARGET) $(OUT_DIR)/$(PAYLOAD) $(shell find $(OUT_DIR)/ -type f -name '*.o')
 
 create:
