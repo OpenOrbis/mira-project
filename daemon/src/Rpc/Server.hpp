@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <Utils/IModule.hpp>
+#include <orbis/libkernel.h>
 
 extern "C"
 {
@@ -35,7 +36,7 @@ namespace Mira
             uint16_t m_Port;
 
             // Thread
-            pthread_t m_Thread;
+            OrbisPthread m_Thread;
 
             // Running
             volatile bool m_Running;

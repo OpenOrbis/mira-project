@@ -108,7 +108,8 @@ bool Server::Startup()
         }
 
         // Create a new server processing thread
-        s_Ret = pthread_create(&m_Thread, nullptr, ServerThread, this);
+        
+        s_Ret = scePthreadCreate(&m_Thread, nullptr, (void*)ServerThread, this, "RpcServer"); //pthread_create(&m_Thread, nullptr, ServerThread, this);
         if (s_Ret != 0)
         {
             fprintf(stderr, "err: could not create new thread (%d).\n", s_Ret);
@@ -208,7 +209,23 @@ void* Server::ServerThread(void* p_ServerInstance)
             }
 
             // Create a new thread
-            s_Ret = pthread_create(l_Connection->GetThreadPointer(), nullptr, Connection::ConnectionThread, l_Connection.get());
+            s_Ret = scePthreadCreate(l_Connection->GetThreadPointer(), nullptr, (void*)Connection::ConnectionThread, l_Connection.get(), "RpcConn");
+            if (s_Ret != 0)
+            {
+                fprintf(stderr, "err: could not create new connection thread (%d).\n", s_Ret);
+                
+                // Shutdown socket
+                s_Ret = shutdown(s_ClientSocket, SHUT_RDWR);
+                if (s_Ret != 0)
+                    fprintf(stderr, "err: could not shutdown client socket (%d).\n", s_Ret);
+                
+                // Close socket
+                s_Ret = close(s_ClientSocket);
+                if (s_Ret != 0)
+                    fprintf(stderr, "err: could not close socket (%d).\n", s_Ret);
+
+                break;
+            }
 
             // Add the connection to the server list
             s_Server->m_Connections.push_back(std::move(l_Connection));

@@ -35,6 +35,16 @@ typedef struct _MiraThreadCredentials {
         COUNT
     } MiraGetThreadCredentialsPrison;
 
+    typedef enum class _State : uint32_t
+    {
+        Get,
+        Set,
+        COUNT
+    } GSState;
+
+    // Is this a get or set operation
+    GSState State;
+
     // Process ID to modify
     int32_t ProcessId;
 
@@ -184,6 +194,7 @@ namespace Mira
             static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Helper functions
             static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);

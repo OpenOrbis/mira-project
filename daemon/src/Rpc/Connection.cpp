@@ -60,7 +60,7 @@ Connection::~Connection()
             break;
 
         // Cancel the thread
-        s_Ret = pthread_cancel(m_Thread);
+        s_Ret = scePthreadCancel(m_Thread);
         if (s_Ret != 0)
         {
             fprintf(stderr, "err: cancel connection thread returned (%d).\n", s_Ret);
@@ -68,7 +68,7 @@ Connection::~Connection()
         }
 
         // Wait for the thread to exit
-        s_Ret = pthread_join(m_Thread, &s_RetVal);
+        s_Ret = scePthreadJoin(m_Thread, &s_RetVal);
         if (s_Ret != 0)
         {
             fprintf(stderr, "err: could not join thread (%lu) ret (%d).\n", m_Thread, s_Ret);

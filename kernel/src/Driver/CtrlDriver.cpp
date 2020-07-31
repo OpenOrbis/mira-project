@@ -194,7 +194,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 
                 // Get/set the thread credentials
                 case MIRA_GET_PROC_THREAD_CREDENTIALS:
-                    break;
+                    return OnMiraThreadCredentials(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
             }
         }
 
@@ -670,4 +670,29 @@ bool CtrlDriver::GetProcessList(MiraProcessList*& p_List)
 
     p_List = s_Output;
     return true;
+}
+
+int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    
+    MiraThreadCredentials s_Input;
+    auto s_Result = copyin(p_Data, &s_Input, sizeof(s_Input));
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyin all data (%d).", s_Result);
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    switch (s_Input.State)
+    {
+    case MiraThreadCredentials::GSState::Get:
+        break;
+    case MiraThreadCredentials::GSState::Set:
+        break;
+    default:
+        WriteLog(LL_Error, "undefined state (%d).", s_Input.State);
+        return -1;
+    }
 }

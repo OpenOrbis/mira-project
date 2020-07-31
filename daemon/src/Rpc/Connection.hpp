@@ -7,7 +7,7 @@ extern "C"
     #include <netinet/in.h>
 };
 
-#include <pthread.h>
+#include <orbis/libkernel.h>
 
 namespace Mira
 {
@@ -33,7 +33,7 @@ namespace Mira
             volatile bool m_Running;
 
             // Thread
-            pthread_t m_Thread;
+            OrbisPthread m_Thread;
 
             // Client address
             struct sockaddr_in m_Address;
@@ -55,7 +55,7 @@ namespace Mira
 
             struct sockaddr_in& GetAddress() { return m_Address; }
             
-            pthread_t* GetThreadPointer() { return &m_Thread; }
+            OrbisPthread* GetThreadPointer() { return &m_Thread; }
         
             static void* ConnectionThread(void* p_ConnectionInstance);
         };

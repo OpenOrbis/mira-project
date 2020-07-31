@@ -74,7 +74,9 @@ TARGET = eboot.bin
 #Make Rules
 
 $(TARGET): pre-run $(OUT_DIR) $(ALL_OBJ)
-	
+	$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(PROJ_NAME).elf $(LFLAGS)
+	$(OO_PS4_TOOLCHAIN)/bin/$(CDIR)/create-eboot -in=$(OUT_DIR)/$(PROJ_NAME).elf -out=$(OUT_DIR)/$(PROJ_NAME).oelf --paid 0x3800000000000011
+
 pre-run:
 	@mkdir -p $(shell find '$(SRC_DIR)/' -type d -printf '$(OUT_DIR)/%p\n')
 
