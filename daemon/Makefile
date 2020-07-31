@@ -45,7 +45,7 @@ L_DIRS	:=	-L"$(OO_PS4_TOOLCHAIN)/lib"
 LIBS	:= -lc -lkernel -lc++
 
 # C Defines
-C_DEFS	:= -D_DEBUG -DFLATBUFFERS_LOCALE_INDEPENDENT
+C_DEFS	:= -D_DEBUG -DPS4
 
 # C++ Flags
 CFLAGS	:= -cc1 -triple x86_64-pc-freebsd-elf -munwind-tables $(I_DIRS) $(C_DEFS) -fuse-init-array -emit-obj

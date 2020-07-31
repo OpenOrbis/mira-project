@@ -71,7 +71,7 @@ Connection::~Connection()
         s_Ret = pthread_join(m_Thread, &s_RetVal);
         if (s_Ret != 0)
         {
-            fprintf(stderr, "err: could not join thread (%d) ret (%d).\n", m_Thread, s_Ret);
+            fprintf(stderr, "err: could not join thread (%lu) ret (%d).\n", m_Thread, s_Ret);
             break;
         }
     } while (false);
@@ -105,7 +105,7 @@ void* Connection::ConnectionThread(void* p_ConnectionInstance)
 
         if (s_IncomingMessageSize > RpcConnection_MaxMessageSize)
         {
-            fprintf(stderr, "err: incoming message size (0x%llx) > max (0x%llx).\n", s_IncomingMessageSize, RpcConnection_MaxMessageSize);
+            fprintf(stderr, "err: incoming message size (0x%lx) > max (0x%x).\n", s_IncomingMessageSize, RpcConnection_MaxMessageSize);
             break;
         }
 
@@ -123,7 +123,7 @@ void* Connection::ConnectionThread(void* p_ConnectionInstance)
         s_Ret = recv(s_Socket, s_Data.data(), s_IncomingMessageSize, 0);
         if (s_Ret != s_IncomingMessageSize)
         {
-            fprintf(stderr, "err: wanted data (0x%llx) != (0x%llx).\n", s_Ret, s_IncomingMessageSize);
+            fprintf(stderr, "err: wanted data (0x%zx) != (0x%lx).\n", s_Ret, s_IncomingMessageSize);
             break;
         }
 
@@ -162,4 +162,6 @@ void* Connection::ConnectionThread(void* p_ConnectionInstance)
 
         
     }
+
+    return nullptr;
 }

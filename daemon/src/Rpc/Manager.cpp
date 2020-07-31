@@ -27,7 +27,7 @@ bool Manager::Register(RpcCategory p_Category, uint32_t p_Type, std::function<vo
     // Check if we have reached our max
     if (m_Listeners.size() >= Manager_MaxListeners)
     {
-        fprintf(stderr, "err: reached maximum listener count (%d)/(%d).\n", m_Listeners.size(), Manager_MaxListeners);
+        fprintf(stderr, "err: reached maximum listener count (%lu)/(%d).\n", m_Listeners.size(), Manager_MaxListeners);
         return false;
     }
 

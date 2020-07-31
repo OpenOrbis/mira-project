@@ -57,7 +57,9 @@
                 "${workspaceFolder}/daemon/src/External/include"
             ],
             "defines": [
-                "_DEBUG"
+                "_DEBUG",
+                "PS4",
+                "__FreeBSD__"
             ],
             "compilerPath": "/usr/bin/clang++",
             "cStandard": "c11",
@@ -72,7 +74,8 @@
                 "${env:OO_PS4_TOOLCHAIN}/include/c++/v1"
             ],
             "defines": [
-                "_DEBUG"
+                "_DEBUG",
+                "PS4"
             ],
             "compilerPath": "/usr/bin/clang++",
             "cStandard": "c11",

@@ -130,7 +130,7 @@ bool Server::Startup()
 
 bool Server::Teardown()
 {
-
+    return true;
 }
 
 void* Server::ServerThread(void* p_ServerInstance)
@@ -189,7 +189,7 @@ void* Server::ServerThread(void* p_ServerInstance)
                 (l_Address >> 24) & 0xFF);
             
             // Allocate a new connection
-            auto l_Connection = std::make_shared<Rpc::Connection>(s_Server, ++s_Server->m_NextConnectionId, s_ClientSocket, l_Address);
+            auto l_Connection = std::make_shared<Rpc::Connection>(s_Server, ++s_Server->m_NextConnectionId, s_ClientSocket, s_ClientAddress);
             if (l_Connection == nullptr)
             {
                 fprintf(stderr, "err: could not allocate connection.\n");
@@ -216,4 +216,5 @@ void* Server::ServerThread(void* p_ServerInstance)
 
     } while (false);
 
+    return nullptr;
 }

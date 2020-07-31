@@ -246,7 +246,7 @@ namespace flatbuffers {
   // Enable locale independent functions {strtof_l, strtod_l,strtoll_l, strtoull_l}.
   #if ((defined(_MSC_VER) && _MSC_VER >= 1800)            || \
        (defined(_XOPEN_VERSION) && (_XOPEN_VERSION>=700)) && (!defined(__ANDROID_API__) || (defined(__ANDROID_API__) && (__ANDROID_API__>=21))))
-    #define FLATBUFFERS_LOCALE_INDEPENDENT 1
+    #define FLATBUFFERS_LOCALE_INDEPENDENT 0
   #else
     #define FLATBUFFERS_LOCALE_INDEPENDENT 0
   #endif
