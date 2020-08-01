@@ -10,7 +10,7 @@ MIRA_CHECKS :=
 endif
 
 # Project name
-PROJ_NAME := Mira
+PROJ_NAME := MiraDaemon
 
 # C++ compiler
 CPPC	:=	clang++
@@ -57,6 +57,18 @@ SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
 LFLAGS	:= -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x --eh-frame-hdr $(L_DIRS) $(LIBS) $(OO_PS4_TOOLCHAIN)/lib/crt1.o
 
+# Compiler options. You likely won't need to touch these.
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+		OS_NAME    := linux
+endif
+ifeq ($(UNAME_S),Darwin)
+		CC 		:= /usr/local/opt/llvm/bin/clang
+		CPPC    := /usr/local/opt/llvm/bin/clang++
+		LD      := /usr/local/opt/llvm/bin/ld.lld
+		OS_NAME := macos
+endif
+
 # Calculate the listing of all file paths
 ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
 ALL_C	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
@@ -75,7 +87,7 @@ TARGET = eboot.bin
 
 $(TARGET): pre-run $(OUT_DIR) $(ALL_OBJ)
 	$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(PROJ_NAME).elf $(LFLAGS)
-	$(OO_PS4_TOOLCHAIN)/bin/$(CDIR)/create-eboot -in=$(OUT_DIR)/$(PROJ_NAME).elf -out=$(OUT_DIR)/$(PROJ_NAME).oelf --paid 0x3800000000000011
+	$(OO_PS4_TOOLCHAIN)/bin/$(OS_NAME)/create-eboot -in=$(OUT_DIR)/$(PROJ_NAME).elf -out=$(OUT_DIR)/$(PROJ_NAME).oelf --paid 0x3800000000000011
 
 pre-run:
 	@mkdir -p $(shell find '$(SRC_DIR)/' -type d -printf '$(OUT_DIR)/%p\n')

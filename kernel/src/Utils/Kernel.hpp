@@ -30,7 +30,7 @@ typedef struct _ProcVmMapEntry
 }ProcVmMapEntry;
 
 #ifdef __cplusplus
-typedef enum SceAuthenticationId_t
+typedef enum SceAuthenticationId_t : uint64_t
 {
 	SceVdecProxy = 0x3800000000000003ULL,
 	SceVencProxy = 0x3800000000000004ULL,

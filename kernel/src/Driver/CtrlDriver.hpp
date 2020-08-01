@@ -23,7 +23,7 @@ extern "C"
 
 // "safe" way in order to modify kernel ucred externally
 typedef struct _MiraThreadCredentials {
-    typedef enum class _MiraGetThreadCredentialsPrison : uint32_t
+    typedef enum class _MiraThreadCredentialsPrison : uint32_t
     {
         // Non-root prison
         Default,
@@ -33,7 +33,7 @@ typedef struct _MiraThreadCredentials {
 
         // Total options count
         COUNT
-    } MiraGetThreadCredentialsPrison;
+    } MiraThreadCredentialsPrison;
 
     typedef enum class _State : uint32_t
     {
@@ -58,7 +58,7 @@ typedef struct _MiraThreadCredentials {
     int32_t NumGroups;
     int32_t RealGroupId;
     int32_t SavedGroupId;
-    MiraGetThreadCredentialsPrison Prison;
+    MiraThreadCredentialsPrison Prison;
     SceAuthenticationId SceAuthId;
     SceCapabilites Capabilities[4];
     uint64_t Attributes[4];
@@ -199,6 +199,9 @@ namespace Mira
             // Helper functions
             static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
             static bool GetProcessList(MiraProcessList*& p_List);
+
+            static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);
+
         };
     }
 }

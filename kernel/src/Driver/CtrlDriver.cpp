@@ -615,6 +615,8 @@ bool CtrlDriver::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_
         s_Threads[i] = nullptr;
     }
 
+    s_Threads.clear();
+
     return s_Success;
 }
 
@@ -677,6 +679,7 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     
+    // Read the input structure
     MiraThreadCredentials s_Input;
     auto s_Result = copyin(p_Data, &s_Input, sizeof(s_Input));
     if (s_Result != 0)
@@ -685,14 +688,148 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         return (s_Result < 0 ? s_Result : -s_Result);
     }
 
+    MiraThreadCredentials* s_Output = nullptr;
+
     switch (s_Input.State)
     {
     case MiraThreadCredentials::GSState::Get:
-        break;
+    {
+        // Get the thread credentials
+        if (!GetThreadCredentials(s_Input.ProcessId, s_Input.ThreadId, s_Output))
+        {
+            WriteLog(LL_Error, "could not get thread credentials.");
+            return -1;
+        }
+
+        if (s_Output == nullptr)
+        {
+            WriteLog(LL_Error, "invalid output");
+            return -1;
+        }
+
+        // Copyout the data back to userland
+        s_Result = copyout(s_Output, p_Data, sizeof(*s_Output));
+
+        // Free the resource
+        delete s_Output;
+        s_Output = nullptr;
+
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
     case MiraThreadCredentials::GSState::Set:
         break;
     default:
         WriteLog(LL_Error, "undefined state (%d).", s_Input.State);
         return -1;
     }
+
+    return -1;
+}
+
+bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output)
+{
+    auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+    auto _thread_lock_flags = (void(*)(struct thread *, int, const char *, int))kdlsym(_thread_lock_flags);
+    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_Output != nullptr)
+        WriteLog(LL_Info, "output is filled in, is this a bug?");
+    
+    // Get the process
+    auto s_Process = pfind(p_ProcessId);
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
+        return false;
+    }
+
+    // On success this will be filled out
+    MiraThreadCredentials* s_Credentials = nullptr;
+
+    struct thread* l_Thread = nullptr;
+    FOREACH_THREAD_IN_PROC(s_Process, l_Thread)
+    {
+        bool s_TidFound = false;
+
+        if (l_Thread == nullptr)
+            continue;
+        
+        // Lock the thread
+        thread_lock(l_Thread);
+
+        // If the thread id's match then we need to copy this data out
+        if (l_Thread->td_tid == p_ThreadId)
+        {
+            // We always want to break out of this so we unlock the thread
+            do
+            {
+                // Check that we have a valid credential
+                auto l_ThreadCredential = l_Thread->td_ucred;
+                if (l_ThreadCredential == nullptr)
+                {
+                    WriteLog(LL_Error, "invalid ucred.");
+                    break;
+                }
+
+                // Allocate new credentials
+                s_Credentials = new MiraThreadCredentials;
+                if (s_Credentials == nullptr)
+                {
+                    WriteLog(LL_Error, "could not allocate new credentials.");
+                    break;
+                }
+
+                s_Credentials->State = MiraThreadCredentials::_State::Get;
+                s_Credentials->ProcessId = p_ProcessId;
+                s_Credentials->ThreadId = p_ThreadId;
+                
+                // ucred
+                s_Credentials->EffectiveUserId = l_ThreadCredential->cr_uid;
+                s_Credentials->RealUserId = l_ThreadCredential->cr_ruid;
+                s_Credentials->SavedUserId = l_ThreadCredential->cr_svuid;
+                s_Credentials->NumGroups = l_ThreadCredential->cr_ngroups;
+                s_Credentials->RealGroupId = l_ThreadCredential->cr_rgid;
+                s_Credentials->SavedGroupId = l_ThreadCredential->cr_svgid;
+
+                // Check if this prison is rooted
+                if (*(struct prison**)kdlsym(prison0) == l_ThreadCredential->cr_prison)
+                    s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Root;
+                else
+                    s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Default;
+                
+                s_Credentials->SceAuthId = (SceAuthenticationId)(l_ThreadCredential->cr_sceAuthID);
+
+                // Check that the sizes are the same and copy it as-is, idgaf
+                static_assert(sizeof(s_Credentials->Capabilities) == sizeof(l_ThreadCredential->cr_sceCaps), "caps sizes don't match");
+                memcpy(s_Credentials->Capabilities, l_ThreadCredential->cr_sceCaps, sizeof(s_Credentials->Capabilities));
+
+                static_assert(sizeof(s_Credentials->Attributes) == sizeof(l_ThreadCredential->cr_sceAttr), "attribute sizes don't match");
+                memcpy(s_Credentials->Attributes, l_ThreadCredential->cr_sceAttr, sizeof(s_Credentials->Attributes));
+
+                s_TidFound = true;
+            } while (false);
+        }
+
+        // Unlock the thread        
+        thread_unlock(l_Thread);
+
+        if (s_TidFound)
+            break;
+    }
+    
+    // Unlock the process
+    _mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+    // Check if we got any credentials
+    if (s_Credentials == nullptr)
+    {
+        WriteLog(LL_Error, "could not find thread credentials.");
+        return false;
+    }
+
+    // Assign
+    p_Output = s_Credentials;
+
+    return true;
 }
