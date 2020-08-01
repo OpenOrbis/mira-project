@@ -2,6 +2,9 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
 #include "Mira.hpp"
+#if __has_include("GitHash.hpp")
+#include "GitHash.hpp"
+#endif
 
 //
 // Boot
@@ -70,7 +73,7 @@ Mira::Framework* Mira::Framework::GetFramework()
 {
 	if (m_Instance == nullptr)
 		m_Instance = new Mira::Framework();
-	
+
 	return m_Instance;
 }
 
@@ -125,7 +128,7 @@ extern "C" void mira_entry(void* args)
 		printf("[-] no init params\n");
 		kthread_exit();
 		return;
-	}    
+	}
 
 	printf("[+] starting logging\n");
 	auto s_Logger = Mira::Utils::Logger::GetInstance();
@@ -146,7 +149,7 @@ extern "C" void mira_entry(void* args)
 
 		curthread->td_ucred->cr_rgid = 0;
 		curthread->td_ucred->cr_svgid = 0;
-		
+
 		curthread->td_ucred->cr_uid = 0;
 		curthread->td_ucred->cr_ruid = 0;
 
@@ -155,7 +158,7 @@ extern "C" void mira_entry(void* args)
 
 		if (curthread->td_proc->p_fd)
 			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
-		
+
 		// Set our auth id as debugger
 		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::Decid;
 
@@ -165,7 +168,9 @@ extern "C" void mira_entry(void* args)
 
 		WriteLog(LL_Debug, "credentials rooted for new proc");
 	}
-	
+#ifdef GIT_HASH
+	WriteLog(LL_Debug, "gitHash: %s", GIT_HASH);
+#endif
 	WriteLog(LL_Debug, "payloadBase: %p", initParams->payloadBase);
 	WriteLog(LL_Debug, "allocatedData: %p", initParams->allocatedBase);
 	WriteLog(LL_Debug, "entryPoint: %p", initParams->entrypoint);
@@ -234,7 +239,7 @@ bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
 {
 	if (p_Params == NULL)
 		return false;
-	
+
 	m_InitParams.elfLoader = p_Params->elfLoader;
 	m_InitParams.entrypoint = p_Params->entrypoint;
 	m_InitParams.isElf = p_Params->isElf;
@@ -404,7 +409,7 @@ int Mira::Framework::OnWorkaround8849(struct thread* p_Thread, uint32_t* p_Uap)
 {
 	if (p_Thread == nullptr || p_Uap == nullptr)
 		return ((int(*)(struct thread* td, void* uap))gWorkaround)(p_Thread, p_Uap);
-	
+
 	if (p_Uap[0] == 0x78028300)
 	{
 		p_Thread->td_retval[0] = 1;
@@ -435,7 +440,7 @@ bool Mira::Framework::Terminate()
 	// Free the rpc server
 	if (m_RpcServer && !m_RpcServer->OnUnload())
 		WriteLog(LL_Error, "could not unload rpc server");
-	
+
 	delete m_RpcServer;
 	m_RpcServer = nullptr;
 
@@ -460,19 +465,19 @@ bool Mira::Framework::Terminate()
 
 	// Update our running state, to allow the proc to terminate
 	m_InitParams.isRunning = false;
-	
+
 	return true;
 }
 
 struct thread* Mira::Framework::GetMainThread()
-{ 
+{
 	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
 	auto s_Process = m_InitParams.process;
 	if (s_Process == nullptr)
 		return nullptr;
-	
+
 	_mtx_lock_flags(&s_Process->p_mtx, 0);
 	struct thread* s_Thread = s_Process->p_singlethread;
 	if (s_Thread == nullptr)
@@ -507,7 +512,7 @@ bool Mira::Framework::RemoveEventHandlers()
 {
 	if (!m_EventHandlersInstalled)
 		return false;
-	
+
 	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr)
 		return false;
 
@@ -531,14 +536,14 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 {
 	if (GetFramework() == nullptr)
 		return;
-	
+
 	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
-	
+
 	// Handle suspend events
 	auto s_RpcServer = GetFramework()->GetRpcServer();
 	if (s_RpcServer)
 		s_RpcServer->OnSuspend();
-	
+
 	auto s_PluginManager = GetFramework()->m_PluginManager;
 	if (s_PluginManager)
 		s_PluginManager->OnSuspend();
@@ -548,7 +553,7 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 {
 	if (GetFramework() == nullptr)
 		return;
-	
+
 	WriteLog(LL_Warn, "RESUME RESUME RESUME");
 
 	// Handle resume events
@@ -570,7 +575,7 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 
 	if (GetFramework() == nullptr)
 		return;
-	
+
 	if (!GetFramework()->Terminate())
 	{
 		WriteLog(LL_Error, "could not terminate cleanly");
