@@ -220,7 +220,7 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 
-  // Other patches KD added in 6.72 ///////////////////////////////////////////
+  // Other patches KD added in 6.72, most of these should be in the exploit itself vs Mira ///////
 
 	// Patch dynlib_dlsym
 	kmem = (uint8_t *)&gKernelBase[0x1D895A];
@@ -249,67 +249,11 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 
-	// disable delayed panics
-	kmem = (uint8_t *)&gKernelBase[0x0063C8CE];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-
 	kmem = (uint8_t *)kdlsym(global_settings_base);
 	kmem[0x36] |= 0x14;
 	kmem[0x59] |= 0x01; // sceSblRcMgrIsAllowULDebugger
 	kmem[0x59] |= 0x02; // sceSblRcMgrIsAllowSLDebugger
 	kmem[0x5A] |= 0x01;
 	kmem[0x78] |= 0x01;
-
-	// Disable this verif bullshit
-
-	// Disable sceSblSysVeriResume
-	kmem = (uint8_t *)&gKernelBase[0x0063CDB0];
-	kmem[0] = 0xC3;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-
-	// Disable sceSblSysVeriSuspend
-	kmem = (uint8_t *)&gKernelBase[0x0063CC90];
-	kmem[0] = 0xC3;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-
-	// Disable sysvericheckstatus_maybe
-	/*kmem = (uint8_t *)&gKernelBase[0x0063BD90];
-	kmem[0] = 0xC3;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-
-	// Disable sysvericheckstatus_maybe callout_ call
-	kmem = (uint8_t *)&gKernelBase[0x0063BDE4];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;*/
-
-	// Disable delayedPanicCb
-	kmem = (uint8_t *)&gKernelBase[0x0063C8C0];
-	kmem[0] = 0xC3;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-
-	// Disable panic_fatal
-	/*kmem = (uint8_t *)&gKernelBase[0x0043BB0];
-	kmem[0] = 0xC3;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;*/
-
-	// Disable sub_FFFFFFFF8283C8D1
-	/*kmem = (uint8_t *)&gKernelBase[0x0063C8D1];
-	kmem[0] = 0xC3;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-
-	// NOP sled sceSblSysVeriThread
-	kmem = (uint8_t *)&gKernelBase[0x0063C950];
-	for (int i = 0; i < 0x327; ++i)
-		kmem[i] = 0x90; // NOP sled the entire shit, until the kthread_exit call*/
 #endif
 }
