@@ -201,7 +201,7 @@ namespace Mira
             static bool GetProcessList(MiraProcessList*& p_List);
 
             static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);
-
+            static bool SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input);
         };
     }
 }

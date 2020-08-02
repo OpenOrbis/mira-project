@@ -418,6 +418,8 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to write chains structure: (%i)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
+            // Free memory
+            delete [] chains;
             return SUBSTITUTE_INVALID;
         }
 
@@ -438,6 +440,7 @@ int Substitute::HookIAT(struct proc* p, struct substitute_hook_uat* chain, const
             WriteLog(LL_Error, "Unable to write to the jmpslot address: (%d)", r_error);
             _mtx_unlock_flags(&hook_mtx, 0, __FILE__, __LINE__);
             
+            delete[] chains;
             return SUBSTITUTE_INVALID;
         }
     }

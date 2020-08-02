@@ -33,5 +33,8 @@ namespace Mira
         virtual ~Daemon();
 
         virtual bool OnLoad() override;
+
+    protected:
+        
     };
 };

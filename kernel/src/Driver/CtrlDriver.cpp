@@ -717,7 +717,16 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         return (s_Result < 0 ? s_Result : -s_Result);
     }
     case MiraThreadCredentials::GSState::Set:
-        break;
+    {
+        // Set the thread credentials
+        if (!SetThreadCredentials(s_Input.ProcessId, s_Input.ThreadId, s_Input))
+        {
+            WriteLog(LL_Error, "could not set thread credentials.");
+            return -1;
+        }
+
+        return 0;
+    }
     default:
         WriteLog(LL_Error, "undefined state (%d).", s_Input.State);
         return -1;
@@ -726,6 +735,76 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
     return -1;
 }
 
+bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input)
+{
+    auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+    auto _thread_lock_flags = (void(*)(struct thread *, int, const char *, int))kdlsym(_thread_lock_flags);
+    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    // Make sure that we are setting threads
+    if (p_Input.State != MiraThreadCredentials::_State::Set)
+        return false;
+    
+    // Get the process, this returns locked
+    auto s_Process = pfind(p_ProcessId);
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
+        return false;
+    }
+
+    bool s_ThreadModified = false;
+    do
+    {
+        struct thread* l_Thread = nullptr;
+        FOREACH_THREAD_IN_PROC(s_Process, l_Thread)
+        {
+            thread_lock(l_Thread);
+
+            do
+            {
+                if (p_ThreadId == -1 || l_Thread->td_tid == p_ThreadId)
+                {
+                    auto l_ThreadCredential = l_Thread->td_ucred;
+                    if (l_ThreadCredential == nullptr)
+                    {
+                        WriteLog(LL_Error, "could not get thread ucred for tid (%d).", l_Thread->td_tid);
+                        break;
+                    }
+                
+                    // ucred
+                    l_ThreadCredential->cr_uid = p_Input.EffectiveUserId;
+                    l_ThreadCredential->cr_ruid = p_Input.RealUserId;
+                    l_ThreadCredential->cr_svuid  = p_Input.SavedUserId;
+                    l_ThreadCredential->cr_ngroups  = p_Input.NumGroups;
+                    l_ThreadCredential->cr_rgid  = p_Input.RealGroupId;
+                    l_ThreadCredential->cr_svgid  = p_Input.SavedGroupId;
+
+                    // prison
+                    if (p_Input.Prison == MiraThreadCredentials::_MiraThreadCredentialsPrison::Root)
+                        l_ThreadCredential->cr_prison = *(struct prison**)kdlsym(prison0);
+                    
+                    l_ThreadCredential->cr_sceAuthID = p_Input.SceAuthId;
+                    
+                    // TODO: Static assert that these are equal
+                    memcpy(l_ThreadCredential->cr_sceCaps, p_Input.Capabilities, sizeof(l_ThreadCredential->cr_sceCaps));
+
+                    // TODO: Static assert that sizeof are equal
+                    memcpy(l_ThreadCredential->cr_sceAttr, p_Input.Attributes, sizeof(l_ThreadCredential->cr_sceAttr));
+
+                    s_ThreadModified = true;
+                }
+
+            } while (false);
+            
+            thread_unlock(l_Thread);
+        }
+    } while (false);
+    _mtx_unlock_flags(&s_Process->p_mtx, 0);
+    
+    return s_ThreadModified;
+}
 bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output)
 {
     auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);

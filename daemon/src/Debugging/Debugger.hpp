@@ -1,5 +1,6 @@
 #pragma once
 #include <Utils/IModule.hpp>
+#include <vector>
 
 namespace Mira
 {
@@ -8,7 +9,13 @@ namespace Mira
         class Debugger :
             public Utils::IModule
         {
+        private:
+            
+        public:
+            Debugger();
+            virtual ~Debugger();
 
+            virtual bool OnLoad() override;
         };
     }
 }

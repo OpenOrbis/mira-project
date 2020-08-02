@@ -42,7 +42,7 @@ I_DIRS	:=	-I$(SRC_DIR) -I$(SRC_DIR)/External/include -I"$(OO_PS4_TOOLCHAIN)/incl
 L_DIRS	:=	-L"$(OO_PS4_TOOLCHAIN)/lib"
 
 # Included libraries
-LIBS	:= -lc -lkernel -lc++
+LIBS	:= -lc -lkernel -lc++ -lSceNet
 
 # C Defines
 C_DEFS	:= -D_DEBUG -DPS4

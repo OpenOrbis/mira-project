@@ -4,7 +4,7 @@
         {
             "label": "Build Mira",
             "type": "shell",
-            "command": "make clean;make create;MIRA_CHECKS= pvs-studio-analyzer trace -- make",
+            "command": "make clean;make create;MIRA_CHECKS=1 pvs-studio-analyzer trace -- make",
             "group": "build",
             "problemMatcher": [
                 "$gcc"

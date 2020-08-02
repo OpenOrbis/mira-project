@@ -2,6 +2,8 @@
 #include "Connection.hpp"
 
 #include <cstdio>
+#include <cstring>
+#include <cerrno>
 
 extern "C"
 {
@@ -54,7 +56,10 @@ bool Server::Startup()
     do
     {
         // Configure the address
+        printf("info: port (%d).\n", m_Port);
+
         memset(&m_Address, 0, sizeof(m_Address));
+        m_Address.sin_len = sizeof(m_Address);
         m_Address.sin_family = AF_INET;
         m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
         m_Address.sin_port = htons(m_Port);
@@ -72,6 +77,7 @@ bool Server::Startup()
         if (s_Ret < 0)
         {
             fprintf(stderr, "err: could not bind socket (%d).\n", s_Ret);
+            fprintf(stderr, "stderrstr: %s.\n", strerror(errno));
             
             // Shutdown socket
             s_Ret = shutdown(s_Socket, SHUT_RDWR);
@@ -89,7 +95,7 @@ bool Server::Startup()
         printf("info: socket (%d) bound to port (%d).\n", s_Socket, m_Port);
 
         // Listen for new connections
-        s_Ret = listen(m_Socket, RpcServer_MaxConnections);
+        s_Ret = listen(s_Socket, RpcServer_MaxConnections);
         if (s_Ret < 0)
         {
             fprintf(stderr, "err: could not listen on socket (%d).\n", s_Ret);
@@ -107,8 +113,10 @@ bool Server::Startup()
             break;
         }
 
-        // Create a new server processing thread
-        
+        // Update the socket
+        m_Socket = s_Socket;
+
+        // Create a new server processing thread        
         s_Ret = scePthreadCreate(&m_Thread, nullptr, (void*)ServerThread, this, "RpcServer"); //pthread_create(&m_Thread, nullptr, ServerThread, this);
         if (s_Ret != 0)
         {
@@ -120,8 +128,6 @@ bool Server::Startup()
             
             break;
         }
-
-        m_Socket = s_Socket;
         return true;
     } while (false);
     

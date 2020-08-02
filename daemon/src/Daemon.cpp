@@ -18,7 +18,8 @@ Daemon::Daemon() :
     m_MessageManager(nullptr),
     m_RpcServer(nullptr)
 {
-
+    // Initialize the networking
+    sceNetInit();
 }
 
 Daemon::~Daemon()

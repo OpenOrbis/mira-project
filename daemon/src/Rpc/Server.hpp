@@ -4,11 +4,12 @@
 
 #include <Utils/IModule.hpp>
 #include <orbis/libkernel.h>
+#include <orbis/Net.h>
 
 extern "C"
 {
-    #include <netinet/in.h>
     #include <sys/socket.h>
+    #include <netinet/in.h>
 
     #include <pthread.h>
 };
