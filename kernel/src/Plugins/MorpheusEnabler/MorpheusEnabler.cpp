@@ -5,15 +5,17 @@
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
 
+#include <Mira.hpp>
 #include <OrbisOS/Utilities.hpp>
-
-using namespace Mira::Plugins;
-using namespace Mira::OrbisOS;
 
 extern "C"
 {
 	#include <sys/mman.h>
+    #include <sys/eventhandler.h>
 };
+
+using namespace Mira::Plugins;
+using namespace Mira::OrbisOS;
 
 MorpheusEnabler::MorpheusEnabler()
 {
@@ -25,7 +27,29 @@ MorpheusEnabler::~MorpheusEnabler()
 
 }
 
-bool MorpheusEnabler::OnLoad()
+void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
+{
+    auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+
+    if (!p)
+        return;
+
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
+        DoPatch();
+    }
+
+    return;
+}
+
+void MorpheusEnabler::ResumeEvent()
+{
+    DoPatch();
+    WriteLog(LL_Debug, "InstallEventHandlers finished");
+    return;
+}
+
+bool MorpheusEnabler::DoPatch()
 {
 	WriteLog(LL_Debug, "patching SceShellCore");
 
@@ -83,8 +107,39 @@ bool MorpheusEnabler::OnLoad()
 	return true;
 }
 
+bool MorpheusEnabler::OnLoad()
+{
+	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main mira thread");
+        return false;
+    }
+
+    // Initialize the event handlers
+    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
+
+    m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+    m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
+
+	return DoPatch();
+}
+
 bool MorpheusEnabler::OnUnload()
 {
+    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
+    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
+
+    if (m_processStartEvent) {
+        EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartEvent);
+        m_processStartEvent = nullptr;
+    }
+
+    if (m_resumeEvent) {
+        EVENTHANDLER_DEREGISTER(process_exit, m_resumeEvent);
+        m_resumeEvent = nullptr;
+    }
+
 	return true;
 }
 
