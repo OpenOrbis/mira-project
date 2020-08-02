@@ -25,7 +25,7 @@ MorpheusEnabler::~MorpheusEnabler()
 
 }
 
-bool MorpheusEnabler::OnLoad()
+bool MorpheusEnabler::DoPatch()
 {
 	WriteLog(LL_Debug, "patching SceShellCore");
 
@@ -81,6 +81,11 @@ bool MorpheusEnabler::OnLoad()
 	}
 
 	return true;
+}
+
+bool MorpheusEnabler::OnLoad()
+{
+	return DoPatch();
 }
 
 bool MorpheusEnabler::OnUnload()

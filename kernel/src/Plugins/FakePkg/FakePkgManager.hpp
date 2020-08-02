@@ -12,6 +12,11 @@
 
 #include <OrbisOS/FakeStructs.hpp>
 
+extern "C"
+{
+    #include <sys/eventhandler.h>
+};
+
 namespace Mira
 {
     namespace Plugins
@@ -25,6 +30,9 @@ namespace Mira
             Utils::Hook* m_SceSblDriverSendMsgHook;
             Utils::Hook* m_SceSblKeymgrInvalidateKey;
             Utils::Hook* m_SceSblPfsSetKeysHook;
+
+            eventhandler_entry* m_processStartEvent;
+            eventhandler_entry* m_resumeEvent;
 
             static const uint8_t g_ypkg_p[0x80];
             static const uint8_t g_ypkg_q[0x80];
@@ -66,7 +74,8 @@ namespace Mira
 
             static bool ShellCorePatch();
             static bool ShellUIPatch();
-            static bool InstallEventHandlers();
+            static void ResumeEvent();
+            static void ProcessStartEvent(void *arg, struct ::proc *p);
 
             };
     }

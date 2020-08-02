@@ -8,6 +8,8 @@ namespace Mira
 		{
 				class MorpheusEnabler : public Mira::Utils::IModule
 				{
+				private:
+					bool DoPatch();
 				public:
 						MorpheusEnabler();
 						virtual ~MorpheusEnabler();
