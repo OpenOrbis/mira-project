@@ -24,6 +24,30 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 
 	kmem = (uint8_t *)&gKernelBase[0x002704F6];
 	kmem[0] = 0x07;
+	
+	//enable UART
+	*(char *)(kernel_base + 0x01570338) = 0;
+	
+	
+	// Patches: sceSblACMgrHasMmapSelfCapability
+	kmem = (uint8_t *)&gKernelBase[0x004594B0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	// Patches: sceSblACMgrIsAllowedToMmapSelf
+	kmem = (uint8_t *)&gKernelBase[0x004594C0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	
 
 	// Patch copyin/copyout to allow userland + kernel addresses in both params
 	// copyin
