@@ -26,8 +26,9 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 	kmem[0] = 0x07;
 	
 	//enable UART
-	*(char *)(kernel_base + 0x01570338) = 0;
-	
+	//*(char *)(kernel_base + 0x01570338) = 0;
+	kmem = (uint8_t *)&gKernelBase[0x01570338];
+	kmem[0] = 0x00;
 	
 	// Patches: sceSblACMgrHasMmapSelfCapability
 	kmem = (uint8_t *)&gKernelBase[0x004594B0];
