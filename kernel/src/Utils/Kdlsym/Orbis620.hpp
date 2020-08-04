@@ -166,7 +166,7 @@
 #define kdlsym_addr_uma_large_free                                      0x00202150
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA   0x186170 
+#define ssc_sceKernelIsGenuineCEX_patchA   0x09F7550
 #define ssc_sceKernelIsGenuineCEX_patchB  0x081ED20
 #define ssc_sceKernelIsGenuineCEX_patchC  0x0869BA3  
 #define ssc_sceKernelIsGenuineCEX_patchD  0x0186170
