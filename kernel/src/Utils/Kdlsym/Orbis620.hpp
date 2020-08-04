@@ -175,7 +175,7 @@
 #define ssc_nidf_libSceDipsw_patchA     0x081ED4A 
 #define ssc_nidf_libSceDipsw_patchB     0x025C923
 #define ssc_nidf_libSceDipsw_patchC     0x018619A  
-#define ssc_nidf_libSceDipsw_patchD     0x018619A 
+#define ssc_nidf_libSceDipsw_patchD     0x0186170
 
 #define ssc_enable_vr  0x0DBABD0 
 
