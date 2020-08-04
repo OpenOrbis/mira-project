@@ -93,14 +93,7 @@ void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -138,14 +131,7 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTra
         return;
     }
 
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -169,14 +155,7 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTra
 
 void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -264,14 +243,7 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -480,15 +452,8 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
 }
 
 uint64_t FileManager::GetDentCount(const char* p_Path)
-{
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return 0;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+{	
+    auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -530,14 +495,7 @@ uint64_t FileManager::GetDentCount(const char* p_Path)
 
 void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -668,14 +626,7 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
 void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -732,15 +683,7 @@ bool IsPhOverlapping(Elf64_Phdr* p_ProgramHeader, int p_ProgramHeaderIndex, Elf6
 
 void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    // Get main thread
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return;
-	}
-
-	auto s_SyscoreThread = s_ThreadManager->GetSyscoreMainThread();
+	auto s_SyscoreThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_SyscoreThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -937,14 +880,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
 
 uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return nullptr;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -986,14 +922,7 @@ uint8_t* FileManager::DecryptSelfFd(int p_SelfFd, size_t* p_OutElfSize)
 
 uint8_t* FileManager::DecryptSelf(uint8_t* p_SelfData, size_t p_SelfSize, int p_SelfFd, size_t* p_OutElfSize)
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return nullptr;
-	}
-
-	auto s_IoThread = s_ThreadManager->GetIoThread();
+	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");

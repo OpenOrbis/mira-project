@@ -21,7 +21,6 @@
 #include <Plugins/PluginManager.hpp>
 #include <Messaging/Rpc/Server.hpp>
 
-#include <OrbisOS/ThreadManager.hpp>
 #include <OrbisOS/Utilities.hpp>
 
 ///
@@ -33,6 +32,7 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Types.hpp>
 #include <Utils/Hook.hpp>
+#include <OrbisOS/Utilities.hpp>
 
 //
 //	Free-BSD Specifics
@@ -72,10 +72,8 @@ Mira::Framework::Framework() :
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
 	m_ShutdownTag(nullptr),
-	m_ThreadManager(nullptr),
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
-	m_RpcServer(nullptr),
 	m_CtrlDriver(nullptr)
 {
 
@@ -244,23 +242,6 @@ bool Mira::Framework::Initialize()
 	// TODO: Load settings
 	WriteLog(LL_Warn, "FIXME: loading settings not implemented!!!!");
 
-	// Initialize the thread manager
-	// NOTE: WE DO NOT WANT TO KILL THREAD MANAGER ON RELOAD
-	WriteLog(LL_Debug, "Initializing the thread manager.");
-	if (m_ThreadManager == nullptr)
-		m_ThreadManager = new Mira::OrbisOS::ThreadManager();
-	if (m_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not allocate thread manager.");
-		return false;
-	}
-
-	if (!m_ThreadManager->OnLoad())
-	{
-		WriteLog(LL_Error, "could not load the thread manager.");
-		return false;
-	}
-
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
 	m_MessageManager = new Mira::Messaging::MessageManager();
@@ -292,22 +273,6 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
-	// Initialize the rpc server
-	WriteLog(LL_Debug, "Initializing rpc server");
-	m_RpcServer = new Mira::Messaging::Rpc::Server();
-	if (m_RpcServer == nullptr)
-	{
-		WriteLog(LL_Error, "could not allocate rpc server.");
-		return false;
-	}
-
-	WriteLog(LL_Debug, "Loading rpc server");
-	if (!m_RpcServer->OnLoad())
-	{
-		WriteLog(LL_Error, "could not load rpc server.");
-		return false;
-	}
-
 	// TODO: Install needed hooks for Mira
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
 
@@ -336,13 +301,6 @@ bool Mira::Framework::Terminate()
 	delete m_PluginManager;
 	m_PluginManager = nullptr;
 
-	// Free the rpc server
-	if (m_RpcServer && !m_RpcServer->OnUnload())
-		WriteLog(LL_Error, "could not unload rpc server");
-	
-	delete m_RpcServer;
-	m_RpcServer = nullptr;
-
 	// Remove all eventhandlers
 	if (!RemoveEventHandlers())
 		WriteLog(LL_Error, "could not remove event handlers");
@@ -352,14 +310,6 @@ bool Mira::Framework::Terminate()
 	{
 		delete m_CtrlDriver;
 		m_CtrlDriver = nullptr;
-	}
-
-	// Unload the thread manager
-	if (!m_ThreadManager->OnUnload())
-	{
-		WriteLog(LL_Error, "could not unload thread manager.");
-		delete m_ThreadManager;
-		m_ThreadManager = nullptr;
 	}
 
 	// Update our running state, to allow the proc to terminate
@@ -384,6 +334,46 @@ struct thread* Mira::Framework::GetMainThread()
 	_mtx_unlock_flags(&s_Process->p_mtx, 0);
 
 	return s_Thread;
+}
+
+struct thread* Mira::Framework::GetSyscoreThread()
+{
+	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSyscore");
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not get syscore process.");
+		return nullptr;
+	}
+
+	struct thread* s_MainThread = nullptr;
+
+	_mtx_lock_flags(&s_Process->p_mtx, 0);
+	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
+	_mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+	return s_MainThread;
+}
+
+struct thread* Mira::Framework::GetShellcoreThread()
+{
+	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	struct ::proc* s_Process = OrbisOS::Utilities::FindProcessByName("SceShellCore");
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not get syscore process.");
+		return nullptr;
+	}
+
+	struct thread* s_MainThread = nullptr;
+
+	_mtx_lock_flags(&s_Process->p_mtx, 0);
+	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
+	_mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+	return s_MainThread;
 }
 
 bool Mira::Framework::InstallEventHandlers()
@@ -438,11 +428,6 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 	
 	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
 	
-	// Handle suspend events
-	auto s_RpcServer = GetFramework()->GetRpcServer();
-	if (s_RpcServer)
-		s_RpcServer->OnSuspend();
-	
 	auto s_PluginManager = GetFramework()->m_PluginManager;
 	if (s_PluginManager)
 		s_PluginManager->OnSuspend();
@@ -459,10 +444,6 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 	auto s_PluginManager = GetFramework()->GetPluginManager();
 	if (s_PluginManager)
 		s_PluginManager->OnResume();
-
-	auto s_RpcServer = GetFramework()->GetRpcServer();
-	if (s_RpcServer)
-		s_RpcServer->OnResume();
 }
 
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)

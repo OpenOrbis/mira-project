@@ -1,6 +1,5 @@
 #pragma once
 #include <Boot/InitParams.hpp>
-#include <OrbisOS/ThreadManager.hpp>
 
 struct eventhandler_entry;
 struct eventhandler_list;
@@ -60,10 +59,8 @@ namespace Mira
         struct eventhandler_entry* m_ResumeTag;
         struct eventhandler_entry* m_ShutdownTag;
 
-        Mira::OrbisOS::ThreadManager* m_ThreadManager;
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
-        Mira::Messaging::Rpc::Server* m_RpcServer;
 
         Mira::Driver::CtrlDriver* m_CtrlDriver;
 
@@ -84,12 +81,12 @@ namespace Mira
         bool Initialize();
         bool Terminate();
 
-        Mira::OrbisOS::ThreadManager* GetThreadManager() { return m_ThreadManager; }
         Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
-        Mira::Messaging::Rpc::Server* GetRpcServer() { return m_RpcServer; }
 
         struct thread* GetMainThread();
+        struct thread* GetSyscoreThread();
+        struct thread* GetShellcoreThread();
         
     private:
         static void OnMiraSuspend(void* __unused p_Reserved);

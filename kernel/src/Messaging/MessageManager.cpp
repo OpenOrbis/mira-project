@@ -197,13 +197,6 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
         return;
     }
 
-    auto s_RpcServer = s_Framework->GetRpcServer();
-    if (s_RpcServer == nullptr)
-    {
-        WriteLog(LL_Error, "could not get rpc server.");
-        return;
-    }
-
     // Get the socket for this thread
     auto s_Socket = p_Connection->GetSocket();
     if (s_Socket < 0)
