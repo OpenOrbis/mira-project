@@ -30,7 +30,7 @@ jobs:
       - name: make 6.72 loader
         run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 MIRA_CHECKS=TRUE make
       - name: make 6.72 elf
-        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 MIRA_CHECKS=TRUE make
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 ADD_GIT_HASH=TRUE MIRA_CHECKS=TRUE make
       - name: Upload 6.72 loader
         uses: actions/upload-artifact@v2
         with:

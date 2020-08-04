@@ -70,8 +70,8 @@ bool Substitute::OnLoad()
     WriteLog(LL_Info, "Loading Substitute ...");
  
     // Substitute mount / unmount
-    m_processStartHandler = nullptr; EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
-    m_processEndHandler = nullptr; EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
+    m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
+    m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
     // Substitute syscall hook (PRX Loader)
     sys_dynlib_dlsym_p = (void*)sysents[SYS_DYNLIB_DLSYM].sy_call;
@@ -999,6 +999,67 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
 // PROCESS MANAGEMENT (Mount & Load) //
 ///////////////////////////////////////
 
+// Substitute : Load SPRX over a folder (Thread selection)
+// Note: Relative path (from sandbox of the target app)
+void Substitute::LoadAllPrx(struct thread* td, const char* folder_path)
+{
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+
+    // Check for arguments
+    if (!td || !folder_path) {
+        WriteLog(LL_Error, "Invalid arguments.");
+        return;
+    }
+
+    char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
+
+    // Opening substitute folder
+    auto s_DirectoryHandle = kopen_t(folder_path, O_RDONLY | O_DIRECTORY, 0777, td);
+    if (s_DirectoryHandle > 0)
+    {
+        // Reading folder and search for sprx ...
+        uint64_t s_DentCount = 0;
+        char s_Buffer[0x1000] = { 0 };
+        memset(s_Buffer, 0, sizeof(s_Buffer));
+        int32_t s_ReadCount = 0;
+        for (;;)
+        {
+            memset(s_Buffer, 0, sizeof(s_Buffer));
+            s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), td);
+            if (s_ReadCount <= 0)
+                break;
+                        
+            for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+            {
+                auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+                s_DentCount++;
+
+                // Check if the sprx is legit
+                if (strstr(l_Dent->d_name, ".sprx")) {
+                    // Generating relative path
+                    char s_RelativeSprxPath[PATH_MAX];
+                    snprintf(s_RelativeSprxPath, PATH_MAX, "%s%s", folder_path, l_Dent->d_name);
+
+                    // Create relative path for the load
+                    WriteLog(LL_Info, "[%s] Loading  %s ...", s_TitleId, s_RelativeSprxPath);
+                    Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
+                    WriteLog(LL_Info, "Loading PRX Done !");
+                }
+
+                l_Pos += l_Dent->d_reclen;
+            }
+        }
+
+        // Closing substitute folder
+        kclose_t(s_DirectoryHandle, td);
+
+        // TODO: It's impossible to cleanup because page is needed after !
+        //WriteLog(LL_Info, "[%s] cleanup payload (fake result: %p)...", s_TitleId, (void*)uap->result);
+        //kmunmap_t(uap->result, 0x8000, td);
+    }
+}
+
 // Substitute : Mount Substitute folder and prepare prx for load
 void Substitute::OnProcessStart(void *arg, struct proc *p)
 {
@@ -1203,10 +1264,8 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     }
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
     auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
-    //auto copyin = (int(*)(const void *uaddr, void * kaddr, size_t len))kdlsym(copyin);
     auto copyout = (int(*)(const void *kaddr, void *uaddr, size_t len))kdlsym(copyout);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
     auto sys_dynlib_dlsym = (int(*)(struct thread*, void*))substitute->sys_dynlib_dlsym_p;
@@ -1273,19 +1332,6 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     if (strncmp("sceSysmodulePreloadModuleForLibkernel", name, sizeof(name)) == 0) {
         WriteLog(LL_Info, "[%s] sceSysmodulePreloadModuleForLibkernel trigerred (ret: %d td_retval[0]: %d) !", s_TitleId, ret, td->td_retval[0]);
 
-        // Get ucred and filedesc of current thread
-        struct ucred* curthread_cred = td->td_proc->p_ucred;
-
-        // Set max to current thread cred and fd
-        curthread_cred->cr_uid = 0;
-        curthread_cred->cr_ruid = 0;
-        curthread_cred->cr_rgid = 0;
-        curthread_cred->cr_groups[0] = 0;
-
-        curthread_cred->cr_prison = *(struct prison**)kdlsym(prison0);
-
-        WriteLog(LL_Info, "Max Perm given !");
-
         // Get the original value
         void* sysmodule_preload_original = substitute->FindOriginalAddress(td->td_proc, "sceSysmodulePreloadModuleForLibkernel", 0);
         WriteLog(LL_Info, "sceSysmodulePreloadModuleForLibkernel: %p", sysmodule_preload_original);
@@ -1341,57 +1387,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     // Load every custom library !
     if (strncmp("doSubstituteLoadPRX", name, sizeof(name)) == 0) {
         WriteLog(LL_Info, "[%s] doSubstituteLoadPRX trigerred, load prx ...", s_TitleId);
-
-        // Opening substitute folder
-        auto s_DirectoryHandle = kopen_t("/substitute/", O_RDONLY | O_DIRECTORY, 0777, td);
-        if (s_DirectoryHandle < 0)
-        {
-            // Restore td ret value
-            td->td_retval[0] = original_td_value;
-            return ret;
-        }
-
-        // Reading folder and search for sprx ...
-        uint64_t s_DentCount = 0;
-        char s_Buffer[0x1000] = { 0 };
-        memset(s_Buffer, 0, sizeof(s_Buffer));
-        int32_t s_ReadCount = 0;
-        for (;;)
-        {
-            memset(s_Buffer, 0, sizeof(s_Buffer));
-            s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), td);
-            if (s_ReadCount <= 0)
-                break;
-            
-            for (auto l_Pos = 0; l_Pos < s_ReadCount;)
-            {
-                auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
-                s_DentCount++;
-
-                // Check if the sprx is legit
-                if (strstr(l_Dent->d_name, ".sprx")) {
-                    // Generating relative path
-                    char s_RelativeSprxPath[PATH_MAX];
-                    snprintf(s_RelativeSprxPath, PATH_MAX, "/substitute/%s", l_Dent->d_name);
-
-                    // Create relative path for the load
-                    WriteLog(LL_Info, "[%s] Loading  %s ...", s_TitleId, s_RelativeSprxPath);
-
-                    Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
-
-                    WriteLog(LL_Info, "Loading PRX Done !");
-                }
-
-                l_Pos += l_Dent->d_reclen;
-            }
-        }
-
-        // Closing substitute folder
-        kclose_t(s_DirectoryHandle, td);
-
-        // TODO: It's impossible to cleanup because page is needed after !
-        //WriteLog(LL_Info, "[%s] cleanup payload (fake result: %p)...", s_TitleId, (void*)uap->result);
-        //kmunmap_t(uap->result, 0x8000, td);
+        substitute->LoadAllPrx(td, "/substitute/");
     }
     
     // Restore td ret value

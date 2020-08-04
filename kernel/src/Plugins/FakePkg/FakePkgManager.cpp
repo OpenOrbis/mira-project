@@ -369,14 +369,26 @@ bool FakePkgManager::ShellUIPatch()
     return true;
 }
 
-bool FakePkgManager::InstallEventHandlers()
+void FakePkgManager::ResumeEvent()
 {
-    bool s_Ret = false;
-
-    s_Ret = ShellUIPatch();
+    ShellUIPatch();
     WriteLog(LL_Debug, "InstallEventHandlers finished");
+    return;
+}
 
-    return s_Ret;
+void FakePkgManager::ProcessStartEvent(void *arg, struct ::proc *p)
+{
+    auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+
+    if (!p)
+        return;
+
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
+        ShellUIPatch();
+    }
+
+    return;
 }
 
 bool FakePkgManager::OnLoad()
@@ -394,14 +406,27 @@ bool FakePkgManager::OnLoad()
     // Initialize the event handlers
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
-    //eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(FakePkgManager::InstallEventHandlers), NULL, EVENTHANDLER_PRI_LAST);
-    eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(FakePkgManager::InstallEventHandlers), NULL, EVENTHANDLER_PRI_LAST);
+    m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(FakePkgManager::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+    m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(FakePkgManager::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
     return true;
 }
 
 bool FakePkgManager::OnUnload()
 {
+    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
+    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
+
+    if (m_processStartEvent) {
+        EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartEvent);
+        m_processStartEvent = nullptr;
+    }
+
+    if (m_resumeEvent) {
+        EVENTHANDLER_DEREGISTER(process_exit, m_resumeEvent);
+        m_resumeEvent = nullptr;
+    }
+
     return true;
 }
 
