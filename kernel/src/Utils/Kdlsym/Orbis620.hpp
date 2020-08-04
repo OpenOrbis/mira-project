@@ -166,16 +166,16 @@
 #define kdlsym_addr_uma_large_free                                      0x00202150
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA   0x09F7550
+#define ssc_sceKernelIsGenuineCEX_patchA  0x0186170
 #define ssc_sceKernelIsGenuineCEX_patchB  0x081ED20
-#define ssc_sceKernelIsGenuineCEX_patchC  0x0869BA3  
-#define ssc_sceKernelIsGenuineCEX_patchD  0x0186170
+#define ssc_sceKernelIsGenuineCEX_patchC  0x0869BA3
+#define ssc_sceKernelIsGenuineCEX_patchD  0x09F7550   
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA     0x081ED4A 
-#define ssc_nidf_libSceDipsw_patchB     0x025C923
-#define ssc_nidf_libSceDipsw_patchC     0x09F757A 
-#define ssc_nidf_libSceDipsw_patchD     0x018619A 
+#define ssc_nidf_libSceDipsw_patchA   0x018619A 
+#define ssc_nidf_libSceDipsw_patchB   0x025C923 
+#define ssc_nidf_libSceDipsw_patchC   0x081ED4A    
+#define ssc_nidf_libSceDipsw_patchD   0x09F757A 
 
 #define ssc_enable_vr  0x0DBABD0 
 
