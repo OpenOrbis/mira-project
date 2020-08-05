@@ -3,6 +3,7 @@
 
 #include <Boot/Patches.hpp>
 
+#define debug_patch 1
 /*
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
@@ -24,6 +25,72 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 
 	kmem = (uint8_t *)&gKernelBase[0x002704F6];
 	kmem[0] = 0x07;
+	
+	//enable UART
+	//*(char *)(kernel_base + 0x01570338) = 0;
+	kmem = (uint8_t *)&gKernelBase[0x01570338];
+	kmem[0] = 0x00;
+	
+	// Patches: sceSblACMgrHasMmapSelfCapability
+	kmem = (uint8_t *)&gKernelBase[0x004594B0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+	// Patches: sceSblACMgrIsAllowedToMmapSelf
+	kmem = (uint8_t *)&gKernelBase[0x004594C0];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x01;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0xC3;
+
+
+
+        // Patches: flatz ddebug_menu_error_patch2 6.20
+	kmem = (uint8_t *)&gKernelBase[0x50382c];
+	kmem[0] = 0x00;
+        kmem[1] = 0x00;
+        kmem[2] = 0x00;
+        kmem[3] = 0x00;
+
+        // Patches: flatz ddebug_menu_error_patch1 6.20
+	kmem = (uint8_t *)&gKernelBase[0x50256e];
+	kmem[0] = 0x00;
+        kmem[1] = 0x00;
+        kmem[2] = 0x00;
+        kmem[3] = 0x00;
+
+         /* Huge thanks to Chendo for the corrected offsets */
+
+        // Patches: flatz disable pfs signature check 6.20
+	kmem = (uint8_t *)&gKernelBase[0x6a3c10];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0xC3;
+        kmem[3] = 0x90;
+
+
+        // Patches: flatz enable debug RIFs pt1 6.20
+	kmem = (uint8_t *)&gKernelBase[0x667dc0];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+        kmem[3] = 0x90;
+
+
+
+        // Patches: flatz enable debug RIFs pt2 6.20
+	kmem = (uint8_t *)&gKernelBase[0x667df0];
+	kmem[0] = 0xB0;
+	kmem[1] = 0x01;
+	kmem[2] = 0xC3;
+        kmem[3] = 0x90;
+	
 
 	// Patch copyin/copyout to allow userland + kernel addresses in both params
 	// copyin

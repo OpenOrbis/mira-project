@@ -148,14 +148,14 @@
 #define kdlsym_addr_sceSblKeymgrSetKeyForPfs							0x00648EF0
 #define kdlsym_addr_AesCbcCfb128Encrypt									0x002D40F0
 #define kdlsym_addr__sceSblAuthMgrGetSelfInfo							0x006575B0
-#define kdlsym_addr_mini_syscore_self_binary							0x00D7F648
+#define kdlsym_addr_mini_syscore_self_binary							0x157F648
 #define kdlsym_addr_sceSblAuthMgrSmStart								0x0065B070
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader							0x0065CBD0
 #define kdlsym_addr_sceSblServiceMailbox								0x0064B480
 #define kdlsym_addr_sceSblKeymgrSmCallfunc								0x00648AC0
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader							0x00656D80
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2							0x00656D20
-#define kdlsym_addr_sceSblDriverSendMsg									0x006348E0
+#define kdlsym_addr_sceSblDriverSendMsg									0x06378E0//0x006348E0
 #define kdlsym_addr_proc0												0x021C6F90
 #define kdlsym_addr_kern_thr_create										0x00470D40
 #define kdlsym_addr_sscanf												0x000FEA40
@@ -185,7 +185,7 @@
 #define kdlsym_addr_fpu_kern_ctx                                        0x0263A6C0
 #define kdlsym_addr_sbl_drv_msg_mtx                                     0x02659E60
 #define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook            0x0064A11D
-#define kdlsym_addr_kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x00646EA5
+#define kdlsym_addr_kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x06460F5
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                    0x0069FCE6
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                    0x0069FABA
 #define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x006460F5
@@ -218,9 +218,16 @@
 #define ssc_nidf_libSceDipsw_patchC   0x081ED4A    
 #define ssc_nidf_libSceDipsw_patchD   0x09F757A 
 
+
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch 0x01D6D0
+#define ssu_sceSblRcMgrIsStoreMode_patch            0x01DA30
+
 #define ssc_enable_vr  0x0DBABD0 
 
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x0F9FB11
+
+
+
 
 #endif
