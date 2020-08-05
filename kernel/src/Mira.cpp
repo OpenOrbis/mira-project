@@ -24,7 +24,6 @@
 #include <Plugins/PluginManager.hpp>
 #include <Messaging/Rpc/Server.hpp>
 
-#include <OrbisOS/ThreadManager.hpp>
 #include <OrbisOS/Utilities.hpp>
 
 ///
@@ -36,6 +35,7 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Types.hpp>
 #include <Utils/Hook.hpp>
+#include <OrbisOS/Utilities.hpp>
 
 //
 //	Free-BSD Specifics
@@ -60,14 +60,6 @@ const char* gNull = "(null)";
 uint8_t* gKernelBase = nullptr;
 struct logger_t* gLogger = nullptr;
 
-// ++ LM Patches (eventually move this somewhere better)
-typedef int (*myIoctl_t)(struct thread* td, struct ioctl_args* uap);
-typedef int (*myWorkaround_t)(struct thread* td, void* uap);
-
-static myIoctl_t gIoctl = nullptr;
-static myWorkaround_t gWorkaround = nullptr;
-// -- LM Patches
-
 Mira::Framework* Mira::Framework::m_Instance = nullptr;
 Mira::Framework* Mira::Framework::GetFramework()
 {
@@ -83,10 +75,8 @@ Mira::Framework::Framework() :
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
 	m_ShutdownTag(nullptr),
-	m_ThreadManager(nullptr),
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
-	m_RpcServer(nullptr),
 	m_CtrlDriver(nullptr)
 {
 
@@ -257,23 +247,6 @@ bool Mira::Framework::Initialize()
 	// TODO: Load settings
 	WriteLog(LL_Warn, "FIXME: loading settings not implemented!!!!");
 
-	// Initialize the thread manager
-	// NOTE: WE DO NOT WANT TO KILL THREAD MANAGER ON RELOAD
-	WriteLog(LL_Debug, "Initializing the thread manager.");
-	if (m_ThreadManager == nullptr)
-		m_ThreadManager = new Mira::OrbisOS::ThreadManager();
-	if (m_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not allocate thread manager.");
-		return false;
-	}
-
-	if (!m_ThreadManager->OnLoad())
-	{
-		WriteLog(LL_Error, "could not load the thread manager.");
-		return false;
-	}
-
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
 	m_MessageManager = new Mira::Messaging::MessageManager();
@@ -305,22 +278,6 @@ bool Mira::Framework::Initialize()
 	if (!InstallEventHandlers())
 		WriteLog(LL_Error, "could not register event handlers");
 
-	// Initialize the rpc server
-	WriteLog(LL_Debug, "Initializing rpc server");
-	m_RpcServer = new Mira::Messaging::Rpc::Server();
-	if (m_RpcServer == nullptr)
-	{
-		WriteLog(LL_Error, "could not allocate rpc server.");
-		return false;
-	}
-
-	WriteLog(LL_Debug, "Loading rpc server");
-	if (!m_RpcServer->OnLoad())
-	{
-		WriteLog(LL_Error, "could not load rpc server.");
-		return false;
-	}
-
 	// TODO: Install needed hooks for Mira
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
 
@@ -336,95 +293,15 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-    // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
-    struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-    if (ui_proc) {
-        Mira::OrbisOS::Utilities::KillProcess(ui_proc);
-    } else {
-        WriteLog(LL_Error, "Unable to find SceShellUI Process !");
-    }
-
-    /*
-	auto kthread_suspend = (int (*)(struct thread *td, int timo))kdlsym(kthread_suspend);
-	struct proc* proc0 = static_cast<struct proc*>(kdlsym(proc0));
-	auto _thread_lock_flags = (void (*)(struct thread *td, int opts, const char *file, int line))kdlsym(_thread_lock_flags);
-	auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
-	struct thread* td = nullptr;
-	FOREACH_THREAD_IN_PROC(proc0, td)
-	{
-		bool veriThreadFound = false;
-		thread_lock(td);
-		if (strcmp(td->td_name, "SysVeri") == 0)
-			veriThreadFound = true;
-		thread_unlock(td);
-
-		if (!veriThreadFound)
-			continue;
-
-		WriteLog(LL_Debug, "found verification thread, suspending...");
-		kthread_suspend(td, 1000);
-		WriteLog(LL_Debug, "verification thread suspended...");
-	}
-
-	WriteLog(LL_Info, "mira initialized successfully!");*/
-
-	// Hook SceSblSysVeri (Fire fw only)
-	//m_SceSblSysVeriHook = new Mira::Utils::Hook::Hook(kdlsym(SceSblSysVeriThread), OnSceSblSysVeri);
-
-	// DBG: Intentionally fault
-	//*((uint64_t*)0x1337) = 0xBADBABE;
-
-	/*
-	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-    struct sysent* sysents = sv->sv_table;
-
-	gIoctl = (myIoctl_t)sysents[SYS_IOCTL].sy_call;
-	sysents[SYS_IOCTL].sy_call = (sy_call_t*)OnIoctl;
-
-	gWorkaround = (myWorkaround_t)sysents[SYS_WORKAROUND8849].sy_call;
-	sysents[SYS_WORKAROUND8849].sy_call = (sy_call_t*)OnWorkaround8849;
-	*/
-
+  // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
+  struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+  if (ui_proc) {
+      Mira::OrbisOS::Utilities::KillProcess(ui_proc);
+  } else {
+      WriteLog(LL_Error, "Unable to find SceShellUI Process !");
+  }
+  
 	return true;
-}
-
-// ++ LM Patches
-int Mira::Framework::OnIoctl(struct thread* p_Thread, struct ioctl_args* p_Uap)
-{
-	switch (p_Uap->com)
-	{
-		case 0xFFFFFFFF40048806:
-		case 0x40048806:
-		{
-			((int*)p_Uap->data)[0] = 1;
-			p_Thread->td_retval[0] = 0;
-			return 0;
-		}
-	}
-
-	return ((int(*)(struct thread* td, void* uap))gIoctl)(p_Thread, p_Uap);
-}
-
-int Mira::Framework::OnWorkaround8849(struct thread* p_Thread, uint32_t* p_Uap)
-{
-	if (p_Thread == nullptr || p_Uap == nullptr)
-		return ((int(*)(struct thread* td, void* uap))gWorkaround)(p_Thread, p_Uap);
-
-	if (p_Uap[0] == 0x78028300)
-	{
-		p_Thread->td_retval[0] = 1;
-		return 0;
-	}
-
-	return ((int(*)(struct thread* td, void* uap))gWorkaround)(p_Thread, p_Uap);
-}
-
-// -- LM Patches
-
-void Mira::Framework::OnSceSblSysVeri(void* p_Reserved)
-{
-	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-	kthread_exit();
 }
 
 bool Mira::Framework::Terminate()
@@ -437,13 +314,6 @@ bool Mira::Framework::Terminate()
 	delete m_PluginManager;
 	m_PluginManager = nullptr;
 
-	// Free the rpc server
-	if (m_RpcServer && !m_RpcServer->OnUnload())
-		WriteLog(LL_Error, "could not unload rpc server");
-
-	delete m_RpcServer;
-	m_RpcServer = nullptr;
-
 	// Remove all eventhandlers
 	if (!RemoveEventHandlers())
 		WriteLog(LL_Error, "could not remove event handlers");
@@ -453,14 +323,6 @@ bool Mira::Framework::Terminate()
 	{
 		delete m_CtrlDriver;
 		m_CtrlDriver = nullptr;
-	}
-
-	// Unload the thread manager
-	if (!m_ThreadManager->OnUnload())
-	{
-		WriteLog(LL_Error, "could not unload thread manager.");
-		delete m_ThreadManager;
-		m_ThreadManager = nullptr;
 	}
 
 	// Update our running state, to allow the proc to terminate
@@ -485,6 +347,46 @@ struct thread* Mira::Framework::GetMainThread()
 	_mtx_unlock_flags(&s_Process->p_mtx, 0);
 
 	return s_Thread;
+}
+
+struct thread* Mira::Framework::GetSyscoreThread()
+{
+	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSyscore");
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not get syscore process.");
+		return nullptr;
+	}
+
+	struct thread* s_MainThread = nullptr;
+
+	_mtx_lock_flags(&s_Process->p_mtx, 0);
+	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
+	_mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+	return s_MainThread;
+}
+
+struct thread* Mira::Framework::GetShellcoreThread()
+{
+	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	struct ::proc* s_Process = OrbisOS::Utilities::FindProcessByName("SceShellCore");
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not get syscore process.");
+		return nullptr;
+	}
+
+	struct thread* s_MainThread = nullptr;
+
+	_mtx_lock_flags(&s_Process->p_mtx, 0);
+	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
+	_mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+	return s_MainThread;
 }
 
 bool Mira::Framework::InstallEventHandlers()
@@ -539,11 +441,6 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 
 	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
 
-	// Handle suspend events
-	auto s_RpcServer = GetFramework()->GetRpcServer();
-	if (s_RpcServer)
-		s_RpcServer->OnSuspend();
-
 	auto s_PluginManager = GetFramework()->m_PluginManager;
 	if (s_PluginManager)
 		s_PluginManager->OnSuspend();
@@ -560,10 +457,6 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 	auto s_PluginManager = GetFramework()->GetPluginManager();
 	if (s_PluginManager)
 		s_PluginManager->OnResume();
-
-	auto s_RpcServer = GetFramework()->GetRpcServer();
-	if (s_RpcServer)
-		s_RpcServer->OnResume();
 }
 
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)

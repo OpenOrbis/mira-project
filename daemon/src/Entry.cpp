@@ -20,8 +20,7 @@ int main(void)
         printf("err: could not load daemon.\n");
         return -2;
     }
-
-    // We never want to return from main
+    
     for (;;)
         __asm__("nop");
     

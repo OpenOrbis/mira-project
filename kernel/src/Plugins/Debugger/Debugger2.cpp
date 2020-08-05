@@ -6,6 +6,8 @@
 
 using namespace Mira::Plugins;
 
+const char Debugger2::hexchars[] = "0123456789abcdef";
+
 Debugger2::Debugger2(uint16_t p_Port) :
     m_TrapFatalHook(nullptr),
     m_ServerAddress { 0 },

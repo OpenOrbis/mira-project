@@ -207,7 +207,6 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 
 		printf("##     messageManager: %p\n", s_Framework->GetMessageManager());
 		printf("##     pluginManager:  %p\n", s_Framework->GetPluginManager());
-		printf("##     rpcServer:      %p\n", s_Framework->GetRpcServer());
 	}
 
 	printf("##\n");

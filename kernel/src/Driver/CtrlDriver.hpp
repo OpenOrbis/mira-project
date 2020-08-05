@@ -23,7 +23,7 @@ extern "C"
 
 // "safe" way in order to modify kernel ucred externally
 typedef struct _MiraThreadCredentials {
-    typedef enum class _MiraGetThreadCredentialsPrison : uint32_t
+    typedef enum class _MiraThreadCredentialsPrison : uint32_t
     {
         // Non-root prison
         Default,
@@ -33,7 +33,17 @@ typedef struct _MiraThreadCredentials {
 
         // Total options count
         COUNT
-    } MiraGetThreadCredentialsPrison;
+    } MiraThreadCredentialsPrison;
+
+    typedef enum class _State : uint32_t
+    {
+        Get,
+        Set,
+        COUNT
+    } GSState;
+
+    // Is this a get or set operation
+    GSState State;
 
     // Process ID to modify
     int32_t ProcessId;
@@ -48,7 +58,7 @@ typedef struct _MiraThreadCredentials {
     int32_t NumGroups;
     int32_t RealGroupId;
     int32_t SavedGroupId;
-    MiraGetThreadCredentialsPrison Prison;
+    MiraThreadCredentialsPrison Prison;
     SceAuthenticationId SceAuthId;
     SceCapabilites Capabilities[4];
     uint64_t Attributes[4];
@@ -184,10 +194,14 @@ namespace Mira
             static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Helper functions
             static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
             static bool GetProcessList(MiraProcessList*& p_List);
+
+            static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);
+            static bool SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input);
         };
     }
 }

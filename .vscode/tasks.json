@@ -36,6 +36,18 @@
             ]
         },
         {
+            "label": "Build Flatbuffers",
+            "type": "shell",
+            "command": "flatc --cpp rpc.fbs; flatc --cpp filemanager.fbs",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/daemon/src/External/flatbuffers"
+            }
+        },
+        {
             "label": "Build Daemon",
             "type": "shell",
             "command": "make clean; make",

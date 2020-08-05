@@ -17,14 +17,7 @@ extern "C"
 
 int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write) 
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return -EIO;
-	}
-
-	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	auto s_DebuggerThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_DebuggerThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get debugger thread.");

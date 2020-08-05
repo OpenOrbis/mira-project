@@ -68,20 +68,8 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
 {
     if (p_ProcessId < 0)
         return -EIO;
-    
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return -EIO;
-	}
 
-	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
-	if (s_DebuggerThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get debugger thread.");
-		return -EIO;
-	}
+	struct thread* s_DebuggerThread = curthread;
 
     struct ptrace_io_desc s_Desc
     {
@@ -110,14 +98,7 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 	if (p_ToReadWriteAddress == nullptr)
 		return -EINVAL;
 
-	auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
-	if (s_ThreadManager == nullptr)
-	{
-		WriteLog(LL_Error, "could not get thread manager.");
-		return -EIO;
-	}
-
-	auto s_DebuggerThread = s_ThreadManager->GetDebuggerThread();
+	auto s_DebuggerThread = curthread;
 	if (s_DebuggerThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get debugger thread.");

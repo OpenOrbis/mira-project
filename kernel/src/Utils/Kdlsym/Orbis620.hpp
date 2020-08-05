@@ -164,20 +164,63 @@
 #define kdlsym_addr_eventhandler_deregister                             0x00181320
 #define kdlsym_addr_uma_large_malloc                                    0x00202090
 #define kdlsym_addr_uma_large_free                                      0x00202150
+#define kdlsym_addr__sx_init_flags                                      0x00083CA0
+#define kdlsym_addr_memmove                                             0x00032C50
+#define kdlsym_addr_destroy_dev                                         0x00207730
+#define kdlsym_addr_vn_fullpath                                         0x0024ABA0
+#define kdlsym_addr_make_dev_p                                          0x002071F0
+#define kdlsym_addr_mtx_destroy                                         0x00007FA0
+#define kdlsym_addr_killproc                                            0x00229AF0
+#define kdlsym_addr_kernel_mount                                        0x00011C80
+#define kdlsym_addr_mount_argf                                          0x00011AD0
+#define kdlsym_addr_vm_fault_disable_pagefaults                         0x003FEE40
+#define kdlsym_addr_vm_fault_enable_pagefaults                          0x003FEE70
+#define kdlsym_addr_gdt                                                 0x021425F0
+#define kdlsym_addr_sceSblKeymgrSetKeyStorage                           0x00646050
+#define kdlsym_addr_sbl_keymgr_key_slots                                0x02684A78
+#define kdlsym_addr_sbl_keymgr_buf_gva                                  0x02688808
+#define kdlsym_addr_sbl_keymgr_buf_va                                   0x02688000
+#define kdlsym_addr_sbl_keymgr_key_rbtree                               0x02684A88
+#define kdlsym_addr_fpu_kern_enter                                      0x001E3990
+#define kdlsym_addr_fpu_kern_ctx                                        0x0263A6C0
+#define kdlsym_addr_sbl_drv_msg_mtx                                     0x02659E60
+#define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook            0x0064A11D
+#define kdlsym_addr_kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x00646EA5
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                    0x0069FCE6
+#define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                    0x0069FABA
+#define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x006460F5
+#define kdlsym_addr_npdrm_decrypt_rif_new__sceSblKeymgrSmCallfunc_hook  0x006693D3
+#define kdlsym_addr_npdrm_decrypt_isolated_rif__sceSblKeymgrSmCallfunc_hook 0x006685C0
+#define kdlsym_addr__sceSblAuthMgrSmStart                                0x0065B070
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook 0x0065DEE1
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0065D29A
+#define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                       0x00658E7F
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                     0x0065A2D8
+#define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                     0x00659636
+#define kdlsym_addr_dynlib_do_dlsym                                     0x00017A20
+#define kdlsym_addr_name_to_nids                                        0x00017D00
+#define kdlsym_addr_console_cdev                                        0x021413E8
+#define kdlsym_addr_M_IOV                                               0x00302B33
+#define kdlsym_addr_console_write                                       0x0007F230
+#define kdlsym_addr_deci_tty_write                                      0x00185B00
+#define kdlsym_addr_cloneuio                                            0x00396310
+#define kdlsym_addr_printf_hook                                         0x01A9FD28
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchB                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchC                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchD                   0x0
+#define ssc_sceKernelIsGenuineCEX_patchA  0x0186170
+#define ssc_sceKernelIsGenuineCEX_patchB  0x081ED20
+#define ssc_sceKernelIsGenuineCEX_patchC  0x0869BA3
+#define ssc_sceKernelIsGenuineCEX_patchD  0x09F7550   
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA                        0x0
-#define ssc_nidf_libSceDipsw_patchB                        0x0
-#define ssc_nidf_libSceDipsw_patchC                        0x0
-#define ssc_nidf_libSceDipsw_patchD                        0x0
+#define ssc_nidf_libSceDipsw_patchA   0x018619A 
+#define ssc_nidf_libSceDipsw_patchB   0x025C923 
+#define ssc_nidf_libSceDipsw_patchC   0x081ED4A    
+#define ssc_nidf_libSceDipsw_patchD   0x09F757A 
+
+#define ssc_enable_vr  0x0DBABD0 
 
 // SceShellCore patches - use free prefix instead fake
-#define ssc_fake_to_free_patch                             0x0
+#define ssc_fake_to_free_patch                             0x0F9FB11
 
 #endif

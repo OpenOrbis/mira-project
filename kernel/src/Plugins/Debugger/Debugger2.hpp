@@ -42,6 +42,8 @@ extern "C"
 	#include <sys/eventhandler.h>
 };
 
+#define BREAKPOINT() asm("   int $3");
+
 namespace Mira
 {
     namespace Plugins
@@ -119,6 +121,73 @@ namespace Mira
         protected:
             static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
             static bool IsStackSpace(void* p_Address);
+
+            void putDebugChar(char p_Char);
+            unsigned char getDebugChar();
+
+            enum 
+            { 
+                BufMax = PAGE_SIZE * 4,
+                NumRegs = 14,
+                NumRegBytes = (NumRegs * sizeof(void*))
+            };
+            enum amd64_regnum
+            {
+                AMD64_RAX_REGNUM,
+                AMD64_RBX_REGNUM,
+                AMD64_RCX_REGNUM,
+                AMD64_RDX_REGNUM,
+                AMD64_RSI_REGNUM,
+                AMD64_RDI_REGNUM,
+                AMD64_RBP_REGNUM,
+                AMD64_RSP_REGNUM,
+                AMD64_R8_REGNUM,
+                AMD64_R9_REGNUM,
+                AMD64_R10_REGNUM,
+                AMD64_R11_REGNUM,
+                AMD64_R12_REGNUM,
+                AMD64_R13_REGNUM,
+                AMD64_R14_REGNUM,
+                AMD64_R15_REGNUM,
+                AMD64_RIP_REGNUM,
+                AMD64_EFLAGS_REGNUM,
+                AMD64_CS_REGNUM,
+                AMD64_SS_REGNUM,
+                AMD64_DS_REGNUM,
+                AMD64_ES_REGNUM,
+                AMD64_FS_REGNUM,
+                AMD64_GS_REGNUM,
+                AMD64_ST0_REGNUM = 24,
+                AMD64_ST1_REGNUM,
+                AMD64_FCTRL_REGNUM = AMD64_ST0_REGNUM + 8,
+                AMD64_FSTAT_REGNUM = AMD64_ST0_REGNUM + 9,
+                AMD64_FTAG_REGNUM = AMD64_ST0_REGNUM + 10,
+                AMD64_XMM0_REGNUM = 40,
+                AMD64_XMM1_REGNUM,
+                AMD64_MXCSR_REGNUM = AMD64_XMM0_REGNUM + 16,
+                AMD64_YMM0H_REGNUM,
+                AMD64_YMM15H_REGNUM = AMD64_YMM0H_REGNUM + 15,
+                AMD64_BND0R_REGNUM = AMD64_YMM15H_REGNUM + 1,
+                AMD64_BND3R_REGNUM = AMD64_BND0R_REGNUM + 3,
+                AMD64_BNDCFGU_REGNUM,
+                AMD64_BNDSTATUS_REGNUM,
+                AMD64_XMM16_REGNUM,
+                AMD64_XMM31_REGNUM = AMD64_XMM16_REGNUM + 15,
+                AMD64_YMM16H_REGNUM,
+                AMD64_YMM31H_REGNUM = AMD64_YMM16H_REGNUM + 15,
+                AMD64_K0_REGNUM,
+                AMD64_K7_REGNUM = AMD64_K0_REGNUM + 7,
+                AMD64_ZMM0H_REGNUM,
+                AMD64_ZMM31H_REGNUM = AMD64_ZMM0H_REGNUM + 31,
+                AMD64_PKRU_REGNUM,
+                AMD64_FSBASE_REGNUM,
+                AMD64_GSBASE_REGNUM
+            };
+
+
+            static const char hexchars[];
+
+            int hex (char ch);
         public:
         };
     }
