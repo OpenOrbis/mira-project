@@ -8,9 +8,6 @@
 #define kdlsym_addr__mtx_lock_flags                                    (0x00007470)
 #define kdlsym_addr__mtx_lock_sleep                                    (0x00007510)
 #define kdlsym_addr__mtx_unlock_flags                                  (0x00007740)
-
-
-#define kdlsym_addr__sx_init_flags (0x083CA0)
 #define kdlsym_addr_make_dev_p (0x02071F0)
 #define kdlsym_addr_destroy_dev (0x0207730)
 #define kdlsym_addr_vn_fullpath (0x024ABA0)
