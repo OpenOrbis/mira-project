@@ -148,14 +148,14 @@
 #define kdlsym_addr_sceSblKeymgrSetKeyForPfs							0x00648EF0
 #define kdlsym_addr_AesCbcCfb128Encrypt									0x002D40F0
 #define kdlsym_addr__sceSblAuthMgrGetSelfInfo							0x006575B0
-#define kdlsym_addr_mini_syscore_self_binary							0x00D7F648
+#define kdlsym_addr_mini_syscore_self_binary							0x00157F648
 #define kdlsym_addr_sceSblAuthMgrSmStart								0x0065B070
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader							0x0065CBD0
 #define kdlsym_addr_sceSblServiceMailbox								0x0064B480
 #define kdlsym_addr_sceSblKeymgrSmCallfunc								0x00648AC0
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader							0x00656D80
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2							0x00656D20
-#define kdlsym_addr_sceSblDriverSendMsg									0x006348E0
+#define kdlsym_addr_sceSblDriverSendMsg									0x06378E0//0x006348E0
 #define kdlsym_addr_proc0												0x021C6F90
 #define kdlsym_addr_kern_thr_create										0x00470D40
 #define kdlsym_addr_sscanf												0x000FEA40
@@ -185,7 +185,7 @@
 #define kdlsym_addr_fpu_kern_ctx                                        0x0263A6C0
 #define kdlsym_addr_sbl_drv_msg_mtx                                     0x02659E60
 #define kdlsym_addr_sceSblKeymgrInvalidateKey__sx_xlock_hook            0x0064A11D
-#define kdlsym_addr_kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x00646EA5
+#define kdlsym_addr_kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x006460F5
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                    0x0069FCE6
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                    0x0069FABA
 #define kdlsym_addr_sceSblKeymgrSetKeyStorage__sceSblDriverSendMsg_hook 0x006460F5
@@ -207,20 +207,27 @@
 #define kdlsym_addr_printf_hook                                         0x01A9FD28
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA  0x0186170
-#define ssc_sceKernelIsGenuineCEX_patchB  0x081ED20
-#define ssc_sceKernelIsGenuineCEX_patchC  0x0869BA3
-#define ssc_sceKernelIsGenuineCEX_patchD  0x09F7550   
+#define ssc_sceKernelIsGenuineCEX_patchA  0x00186170
+#define ssc_sceKernelIsGenuineCEX_patchB  0x0081ED20
+#define ssc_sceKernelIsGenuineCEX_patchC  0x00869BA3
+#define ssc_sceKernelIsGenuineCEX_patchD  0x009F7550   
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA   0x018619A 
-#define ssc_nidf_libSceDipsw_patchB   0x025C923 
-#define ssc_nidf_libSceDipsw_patchC   0x081ED4A    
-#define ssc_nidf_libSceDipsw_patchD   0x09F757A 
+#define ssc_nidf_libSceDipsw_patchA   0x0018619A 
+#define ssc_nidf_libSceDipsw_patchB   0x0025C923 
+#define ssc_nidf_libSceDipsw_patchC   0x0081ED4A    
+#define ssc_nidf_libSceDipsw_patchD   0x009F757A 
 
-#define ssc_enable_vr  0x0DBABD0 
+
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch 0x001D6D0
+#define ssu_sceSblRcMgrIsStoreMode_patch            0x001DA30
+
+#define ssc_enable_vr  0x00DBABD0 
 
 // SceShellCore patches - use free prefix instead fake
-#define ssc_fake_to_free_patch                             0x0F9FB11
+#define ssc_fake_to_free_patch                             0x00F9FB11
+
+
+
 
 #endif
