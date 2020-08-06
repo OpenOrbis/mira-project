@@ -52,14 +52,14 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 
 
         // Patches: flatz ddebug_menu_error_patch2 6.20
-	kmem = (uint8_t *)&gKernelBase[0x50382c];
+	kmem = (uint8_t *)&gKernelBase[0x0050382c];
 	kmem[0] = 0x00;
         kmem[1] = 0x00;
         kmem[2] = 0x00;
         kmem[3] = 0x00;
 
         // Patches: flatz ddebug_menu_error_patch1 6.20
-	kmem = (uint8_t *)&gKernelBase[0x50256e];
+	kmem = (uint8_t *)&gKernelBase[0x0050256e];
 	kmem[0] = 0x00;
         kmem[1] = 0x00;
         kmem[2] = 0x00;
@@ -68,7 +68,7 @@ void Mira::Boot::Patches::install_prerunPatches_620()
          /* Huge thanks to Chendo for the corrected offsets */
 
         // Patches: flatz disable pfs signature check 6.20
-	kmem = (uint8_t *)&gKernelBase[0x6a3c10];
+	kmem = (uint8_t *)&gKernelBase[0x006a3c10];
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;
@@ -76,7 +76,7 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 
 
         // Patches: flatz enable debug RIFs pt1 6.20
-	kmem = (uint8_t *)&gKernelBase[0x667dc0];
+	kmem = (uint8_t *)&gKernelBase[0x00667dc0];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
@@ -85,7 +85,7 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 
 
         // Patches: flatz enable debug RIFs pt2 6.20
-	kmem = (uint8_t *)&gKernelBase[0x667df0];
+	kmem = (uint8_t *)&gKernelBase[0x00667df0];
 	kmem[0] = 0xB0;
 	kmem[1] = 0x01;
 	kmem[2] = 0xC3;
