@@ -69,7 +69,7 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
     if (p_ProcessId < 0)
         return -EIO;
 
-	struct thread* s_DebuggerThread = curthread;
+    struct thread* s_DebuggerThread = curthread;
 
     struct ptrace_io_desc s_Desc
     {
