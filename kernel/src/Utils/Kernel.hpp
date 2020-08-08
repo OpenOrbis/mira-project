@@ -47,7 +47,7 @@ typedef enum SceAuthenticationId_t : uint64_t
 	Decid = 0x3800000000010003,
 } SceAuthenticationId;
 
-typedef enum SceCapabilities_t
+typedef enum SceCapabilities_t : uint64_t
 {
 	Max = 0xFFFFFFFFFFFFFFFFULL,
 } SceCapabilites;
