@@ -268,6 +268,14 @@
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0xFD2BF1
 
+// SceShellUI - remote play related patching
+#define ssu_CreateUserForIDU_patch                         0x001A0900
+#define ssu_remote_play_menu_patch                         0x00EC8291
+
+// SceRemotePlay - enabler patches
+#define srp_enabler_patchA                                 0x0010C6D4
+#define srp_enabler_patchB                                 0x0010C6EF
+
 #pragma clang diagnostic pop
 
 #endif

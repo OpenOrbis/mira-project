@@ -225,6 +225,14 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x00019EA0
 #define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001A1A0
 
+// SceShellUI - remote play related patching
+#define ssu_CreateUserForIDU_patch                         0x00195820
+#define ssu_remote_play_menu_patch                         0x01296867
+
+// SceRemotePlay - enabler patches
+#define srp_enabler_patchA                                 0x0003C882
+#define srp_enabler_patchB                                 0x0003C89D
+
 // sceRegMgr
 #define kdlsym_addr_sceRegMgrGetInt                        0x004D7DB0
 #define kdlsym_addr_sceRegMgrSetInt                        0x004D6F00

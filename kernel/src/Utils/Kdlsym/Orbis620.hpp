@@ -210,19 +210,26 @@
 #define ssc_sceKernelIsGenuineCEX_patchA  0x00186170
 #define ssc_sceKernelIsGenuineCEX_patchB  0x0081ED20
 #define ssc_sceKernelIsGenuineCEX_patchC  0x00869BA3
-#define ssc_sceKernelIsGenuineCEX_patchD  0x009F7550   
+#define ssc_sceKernelIsGenuineCEX_patchD  0x009F7550
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA   0x0018619A 
-#define ssc_nidf_libSceDipsw_patchB   0x0025C923 
-#define ssc_nidf_libSceDipsw_patchC   0x0081ED4A    
-#define ssc_nidf_libSceDipsw_patchD   0x009F757A 
-
+#define ssc_nidf_libSceDipsw_patchA   0x0018619A
+#define ssc_nidf_libSceDipsw_patchB   0x0025C923
+#define ssc_nidf_libSceDipsw_patchC   0x0081ED4A
+#define ssc_nidf_libSceDipsw_patchD   0x009F757A
 
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch 0x001D6D0
 #define ssu_sceSblRcMgrIsStoreMode_patch            0x001DA30
 
-#define ssc_enable_vr  0x00DBABD0 
+// SceShellUI - remote play related patching
+#define ssu_CreateUserForIDU_patch                         0x001A0510
+#define ssu_remote_play_menu_patch                         0x00E9F7B1
+
+// SceRemotePlay - enabler patches
+#define srp_enabler_patchA                                 0x0003CED6
+#define srp_enabler_patchB                                 0x0003CEF1
+
+#define ssc_enable_vr  0x00DBABD0
 
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x00F9FB11
