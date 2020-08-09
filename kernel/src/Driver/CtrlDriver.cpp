@@ -42,11 +42,9 @@ using namespace Mira::Driver;
 void* orig_ioctl;
 
 CtrlDriver::CtrlDriver() :
-    m_processStartHandler(nullptr),
     m_DeviceSw { 0 },
     m_Device(nullptr)
 {
-    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
     auto make_dev_p = (int(*)(int _flags, struct cdev **_cdev, struct cdevsw *_devsw, struct ucred *_cr, uid_t _uid, gid_t _gid, int _mode, const char *_fmt, ...))kdlsym(make_dev_p);
 
     // Set up our device driver information
@@ -79,11 +77,9 @@ CtrlDriver::CtrlDriver() :
         WriteLog(LL_Error, "could not create device driver (%d).", s_ErrorDev);
         return;
     }
-
-    m_processStartHandler = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
 }
 
-void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
+void CtrlDriver::OnProcessExec(void* __unused a1, struct proc *p)
 {
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
@@ -134,16 +130,7 @@ void CtrlDriver::OnProcessStart(void *arg, struct proc *p)
 
 CtrlDriver::~CtrlDriver()
 {
-    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
-
     WriteLog(LL_Debug, "destroying driver");
-
-    // Disable the eventhandler
-    if (m_processStartHandler) {
-        EVENTHANDLER_DEREGISTER(process_exec, m_processStartHandler);
-        m_processStartHandler = nullptr;
-    }
 
     // Destroy the device driver
     auto destroy_dev = (void(*)(struct cdev *_dev))kdlsym(destroy_dev);

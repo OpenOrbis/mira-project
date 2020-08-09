@@ -561,3 +561,57 @@ bool PluginManager::OnResume()
     // Return final status
     return s_AllSuccess;
 }
+
+bool PluginManager::OnProcessExec(struct proc* p_Process)
+{
+    if (p_Process == nullptr)
+        return false;
+    
+    if (m_Substitute)
+    {
+        if (!m_Substitute->OnProcessExec(p_Process))
+            WriteLog(LL_Error, "substitute process exec failed.");
+    }
+
+    if (m_Debugger)
+    {
+        if (!m_Debugger->OnProcessExec(p_Process))
+            WriteLog(LL_Error, "debugger process exec failed.");
+    }
+
+    return true;
+}
+
+bool PluginManager::OnProcessExecEnd(struct proc* p_Process)
+{
+    if (p_Process == nullptr)
+        return false;
+    
+    if (m_Substitute)
+    {
+        if (!m_Substitute->OnProcessExecEnd(p_Process))
+            WriteLog(LL_Error, "substitute process exec end failed.");
+    }
+
+    return true;
+}
+
+bool PluginManager::OnProcessExit(struct proc* p_Process)
+{
+    if (p_Process == nullptr)
+        return false;
+    
+    if (m_Substitute)
+    {
+        if (!m_Substitute->OnProcessExit(p_Process))
+            WriteLog(LL_Error, "substitute process exit failed.");
+    }
+
+    if (m_Debugger)
+    {
+        if (!m_Debugger->OnProcessExit(p_Process))
+            WriteLog(LL_Error, "debugger process exit failed.");
+    }
+
+    return true;
+}

@@ -25,6 +25,11 @@ namespace Mira
             virtual bool OnUnload() override;
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
+            
+            virtual bool OnProcessExec(struct proc* p_Process) override;
+            virtual bool OnProcessExecEnd(struct proc* p_Process) override;
+            virtual bool OnProcessExit(struct proc* p_Process) override;
+            
         private:
             Mira::Utils::IModule* m_Logger;
             Mira::Utils::IModule* m_Debugger;

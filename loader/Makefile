@@ -1,8 +1,6 @@
 # CHANGEME: Default Orbis Version
 ifeq ($(MIRA_PLATFORM),)
-MIRA_PLATFORM := MIRA_PLATFORM_ORBIS_BSD_672
-#MIRA_PLATFORM_STEAM_LINK2
-#MIRA_PLATFORM_ORBIS_BSD_505
+$(error No firmware version set for MIRA_PLATFORM)
 endif
 
 # Check to see if we are building in CI/Checking mode

@@ -175,7 +175,6 @@ namespace Mira
         class CtrlDriver
         {
         private:
-            eventhandler_entry* m_processStartHandler;
             struct cdevsw m_DeviceSw;
             struct cdev* m_Device;
 
@@ -187,9 +186,9 @@ namespace Mira
             static int32_t OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_DeviceType, struct thread* p_Thread);
             static int32_t OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
         
-        protected:
-            static void OnProcessStart(void *arg, struct proc *p);
 
+            static void OnProcessExec(void*, struct proc *p);
+        protected:
             // Callback functions
             static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);

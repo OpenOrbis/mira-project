@@ -2,6 +2,8 @@
 
 // Set our default definitions for each used version number
 
+#define MIRA_PLATFORM_ORBIS_BSD_162 162
+
 #define MIRA_PLATFORM_ORBIS_BSD_176	176
 
 #define MIRA_PLATFORM_ORBIS_BSD_355	355

@@ -56,6 +56,7 @@
 #include <sys/sigio.h>
 #include <sys/signal.h>
 #include <sys/signalvar.h>
+#include <sys/dynlib.h>
 #ifndef _KERNEL
 #include <sys/time.h>			/* For structs itimerval, timeval. */
 #else
@@ -566,30 +567,36 @@ struct proc {
 
 	
 	char		*p_patchpath;	/* patch file path */
-	int		p_unk338;
-	void		*p_dynlib;      /* Sony Dynlib info */
+	char		p_unk338[0x8];
 
 	// extra stuff
-	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
-	char            unk348[0x104];
+
+	// Everything below has been moved back 8 bytes, the pointer before it removed
+	// and the sizes adjusted for +8
+	// This is the "new" way to figure this shit out from now on
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_672
+	struct dynlib p_dynlib;
+	char p_unk440[0xC];
+	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
+	int		p_unk33C;
+	char            p_unk340[0x10C];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
-	char            unk348[0x100];
+	char            p_unk340[0x108];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
-	char            unk348[0x104];
+	char            p_unk340[0x10C];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
-	char            unk348[0x0FC];
+	char            p_unk340[0x104];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
-	char            unk348[0x0F4];
+	char            p_unk340[0x0FC];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
-	char            unk348[0x0A0];
+	char            p_unk340[0x0A8];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
-	char            unk348[0x090];
+	char            p_unk340[0x098];
 	#endif
 	
-
 /* The following fields are all copied upon creation in fork. */
 #define	p_startcopy	p_endzero
-	u_int		p_magic;	/* (b) Magic number. */
+	u_int		p_magic;	/* (b) Magic number. */	
 	int		p_osrel;	/* (x) osreldate for the
 					       binary (from ELF note, if any) */
 	char		p_comm[MAXCOMLEN + 13];	/* (b) Process name. */
@@ -636,14 +643,24 @@ struct proc {
 
 	
 	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
-	char            unkA08[0xB0];
+	char            p_unkA08[0xB0];
 	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
-	char            unkA08[0xA8];
+	char            p_unkA08[0xA8];
 	#else
-	char            unkA08[0x98];
+	char            p_unkA08[0x98];
 	#endif
 	
 };
+
+// Saftey measure so we don't fuck anything
+#if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_672
+static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect");
+static_assert(offsetof(struct proc, p_unk340) == 0x340, "dynlib start incorrect");
+#else
+static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect");
+static_assert(offsetof(struct proc, p_dynlib) == 0x340, "dynlib start incorrect");
+static_assert(offsetof(struct proc, p_magic) == 0x44C, "struct start incorrect");
+#endif
 
 #define	p_session	p_pgrp->pg_session
 #define	p_pgid		p_pgrp->pg_id
