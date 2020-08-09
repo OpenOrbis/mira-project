@@ -113,6 +113,7 @@
 #define kdlsym_addr_sbl_keymgr_key_rbtree                  0x02694580
 #define kdlsym_addr_sbl_keymgr_key_slots                   0x02694570
 #define kdlsym_addr_sbl_pfs_sx                             0x02679040
+#define kdlsym_addr_sbl_drv_msg_mtx                        0x0266AC70
 #define kdlsym_addr_sceSblACMgrGetPathId                   0x00233C70
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2               0x0065D7A0
 #define kdlsym_addr_sceSblAuthMgrSmVerifyHeader            0x00660260
