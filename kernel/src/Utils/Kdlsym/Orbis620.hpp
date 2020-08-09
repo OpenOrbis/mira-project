@@ -1,6 +1,14 @@
 #pragma once
+#include <Boot/Config.hpp>
 
 #if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_620
+/*
+These are the required functions in order for the Oni Framework to operate properly
+These are all offsets into the base of the kernel. They expect all standard FreeBSD 9 prototypes
+
+The reason we do not hardcode offsets here, is due to the different platforms that are supported, and
+for the platforms that do enable kernel ASLR (Address Space Layout Randomization?)
+*/
 
 #define kdlsym_addr_Xfast_syscall                                      (0x000001C0)
 #define kdlsym_addr__mtx_lock_flags                                    (0x00007470)
@@ -229,7 +237,7 @@
 #define srp_enabler_patchA                                 0x0003CED6
 #define srp_enabler_patchB                                 0x0003CEF1
 
-#define ssc_enable_vr  0x00DBABD0
+#define ssc_enable_vr_patch                                0x00DBABD0
 
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x00F9FB11
