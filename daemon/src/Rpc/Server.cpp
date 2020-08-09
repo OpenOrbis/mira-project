@@ -68,7 +68,7 @@ bool Server::Startup()
         m_Address.sin_port = htons(m_Port);
         
         // Create a new socket
-        auto s_Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+        auto s_Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (s_Socket <= 0)
         {
             fprintf(stderr, "err: could not create socket (%d).\n", s_Socket);

@@ -1,7 +1,11 @@
 #include "Connection.hpp"
 
+#include <Daemon.hpp>
+#include <Rpc/Manager.hpp>
+
 #include <cstdio>
 #include <vector>
+#include <array>
 
 #include <External/flatbuffers/rpc_generated.h>
 
@@ -128,7 +132,7 @@ void* Connection::ConnectionThread(void* p_ConnectionInstance)
         }
 
         // Create a new verifier
-        auto s_Verifier = flatbuffers::Verifier(s_Data.data(), s_Data.size());
+        auto s_Verifier = flatbuffers::Verifier(s_Data.data(), s_IncomingMessageSize);
 
         // Validate the header
         auto s_Valid = VerifyRpcHeaderBuffer(s_Verifier);
@@ -160,7 +164,14 @@ void* Connection::ConnectionThread(void* p_ConnectionInstance)
             break;
         }
 
-        
+        auto s_MessageManager = Daemon::GetInstance()->GetMessageManager();
+        if (s_MessageManager == nullptr)
+        {
+            fprintf(stderr, "err: no message manager.\n");
+            break;
+        }
+
+        s_MessageManager->OnRequest(s_Connection, s_Header);
     }
 
     return nullptr;
