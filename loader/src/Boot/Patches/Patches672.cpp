@@ -16,17 +16,16 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 
 	// Patch dynlib_dlsym
 	kmem = (uint8_t*)&gKernelBase[0x1D895A];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem[0] = 0xE9;
+	kmem[1] = 0xC7;
+	kmem[2] = 0x01;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
 
 	// Patch a function called by dynlib_dlsym
 	kmem = (uint8_t*)&gKernelBase[0x0041A2D0];
 	kmem[0] = 0x31; // xor eax, eax
-	kmem[1] = 0xC0; 
+	kmem[1] = 0xC0;
 	kmem[2] = 0xC3;	// ret
 
 	// Patch sys_mmap
