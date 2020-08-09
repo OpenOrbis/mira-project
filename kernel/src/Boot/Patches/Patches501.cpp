@@ -210,14 +210,5 @@ void Mira::Boot::Patches::install_prerunPatches_501()
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 
-	// prtinf hook patches
-	kmem = (uint8_t *)&gKernelBase[0x00435D66];
-	kmem[0] = 0xEB;
-	kmem[1] = 0x1E;
-
-	kmem = (uint8_t *)&gKernelBase[0x00435D84];
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-
 #endif
 }
