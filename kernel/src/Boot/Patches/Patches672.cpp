@@ -224,40 +224,5 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 
-  // Other patches KD added in 6.72, most of these have been in the exploit itself vs Mira ///////
-
-	// Patch dynlib_dlsym
-	kmem = (uint8_t *)&gKernelBase[0x1D895A];
-	kmem[0] = 0xE9;
-	kmem[1] = 0xC7;
-	kmem[2] = 0x01;
-	kmem[3] = 0x00;
-	kmem[4] = 0x00;
-
-	// Patch a function called by dynlib_dlsym
-	kmem = (uint8_t *)&gKernelBase[0x0041A2D0];
-	kmem[0] = 0x31; // xor eax, eax
-	kmem[1] = 0xC0;
-	kmem[2] = 0xC3;	// ret
-
-	// Patch sys_mmap
-	kmem = (uint8_t *)&gKernelBase[0x000AB57A];
-	kmem[0] = 0x37; // mov     [rbp+var_61], 33h ; '3'
-	kmem[3] = 0x37; // mov     sil, 33h ; '3'
-
-	// patch sys_setuid
-	kmem = (uint8_t *)&gKernelBase[0x0010BED0]; // call    priv_check_cred; overwrite with mov eax, 0
-	kmem[0] = 0xB8; // mov eax, 0
-	kmem[1] = 0x00;
-	kmem[2] = 0x00;
-	kmem[3] = 0x00;
-	kmem[4] = 0x00;
-
-	kmem = (uint8_t *)kdlsym(global_settings_base);
-	kmem[0x36] |= 0x14;
-	kmem[0x59] |= 0x01; // sceSblRcMgrIsAllowULDebugger
-	kmem[0x59] |= 0x02; // sceSblRcMgrIsAllowSLDebugger
-	kmem[0x5A] |= 0x01;
-	kmem[0x78] |= 0x01;
 #endif
 }
