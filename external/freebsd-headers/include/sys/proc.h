@@ -569,30 +569,24 @@ struct proc {
 	char		*p_patchpath;	/* patch file path */
 	char		p_unk338[0x8];
 
-	// extra stuff
+	struct dynlib	*p_dynlib;      /* Sony Dynlib info */
 
-	// Everything below has been moved back 8 bytes, the pointer before it removed
-	// and the sizes adjusted for +8
-	// This is the "new" way to figure this shit out from now on
-	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_672
-	struct dynlib p_dynlib;
-	char p_unk440[0xC];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
-	int		p_unk33C;
-	char            p_unk340[0x10C];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
-	char            p_unk340[0x108];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
-	char            p_unk340[0x10C];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
-	char            p_unk340[0x104];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
-	char            p_unk340[0x0FC];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
-	char            p_unk340[0x0A8];
-	#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
-	char            p_unk340[0x098];
-	#endif
+	// extra stuff
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
+	char            p_unk348[0x104];
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
+	char            p_unk348[0x100];
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
+	char            p_unk348[0x104];
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
+	char            p_unk348[0x0FC];
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
+	char            p_unk348[0x0F4];
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
+	char            p_unk348[0x0A0];
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
+	char            p_unk348[0x090];
+#endif
 	
 /* The following fields are all copied upon creation in fork. */
 #define	p_startcopy	p_endzero

@@ -807,10 +807,10 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 #if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_672
     if (p->p_dynlib) {
         // Lock dynlib object
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->unk340 + 0x70);
+        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_unk340 + 0x70);
         A_sx_xlock_hard(dynlib_bind_lock, 0);
 
-        uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
+        uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)*(uint64_t*)p->p_unk340 + 0x10);
 
         if (main_dylib_obj) {
             // Search in all library
