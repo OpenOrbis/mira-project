@@ -7,13 +7,14 @@
 
 #include <OrbisOS/Utilities.hpp>
 
-using namespace Mira::Plugins;
-using namespace Mira::OrbisOS;
-
 extern "C"
 {
 	#include <sys/mman.h>
+	#include <sys/eventhandler.h>
 };
+
+using namespace Mira::Plugins;
+using namespace Mira::OrbisOS;
 
 RemotePlayEnabler::RemotePlayEnabler()
 {
@@ -23,6 +24,32 @@ RemotePlayEnabler::RemotePlayEnabler()
 RemotePlayEnabler::~RemotePlayEnabler()
 {
 
+}
+
+void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
+{
+	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+
+	if (!p)
+		return;
+
+	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+
+	if (strncmp(s_TitleId, "NPXS20001", 9) == 0)
+		ShellUIPatch();
+
+	if (strncmp(s_TitleId, "NPXS21006", 9) == 0)
+		RemotePlayPatch();
+
+	return;
+}
+
+void RemotePlayEnabler::ResumeEvent()
+{
+	ShellUIPatch();
+	RemotePlayPatch();
+	WriteLog(LL_Debug, "InstallEventHandlers finished");
+	return;
 }
 
 bool RemotePlayEnabler::ShellUIPatch()
@@ -207,6 +234,19 @@ bool RemotePlayEnabler::RemotePlayPatch()
 
 bool RemotePlayEnabler::OnLoad()
 {
+	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+  if (s_MainThread == nullptr)
+  {
+    WriteLog(LL_Error, "could not get main mira thread");
+    return false;
+  }
+
+  // Initialize the event handlers
+  auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
+
+  m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+  m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
+
 	auto s_Ret = ShellUIPatch();
 	if (s_Ret == false) {
 		WriteLog(LL_Error, "could not patch SceShellUI");
