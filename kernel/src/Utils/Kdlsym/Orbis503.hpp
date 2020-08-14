@@ -224,6 +224,9 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x00EA9667
 
+// SceShellCore patches - enable remote pkg installer
+#define ssc_enable_data_mount_patch                        0x00319A53
+
 // SceShellCore patches - enable VR without spoof
 #define ssc_enable_vr_patch                                0x00C79170
 

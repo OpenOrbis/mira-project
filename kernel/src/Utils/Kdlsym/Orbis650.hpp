@@ -25,7 +25,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_AesCbcCfb128Encrypt                    0x003A2BD0 //	FFFFFFFF825BFF70
 #define kdlsym_addr_allproc                                0x02382FF8 //	FFFFFFFF844BBE80
 #define kdlsym_addr_allproc_lock                           0x02382F98 //	FFFFFFFF844BBE20
-#define kdlsym_addr_copyin                                 0x001EA710 
+#define kdlsym_addr_copyin                                 0x001EA710
 #define kdlsym_addr_copyinstr                              0x001EAB40 //	FFFFFFFF825C18A0
 #define kdlsym_addr_critical_enter                         0x0028E7A0 //	FFFFFFFF824A9CF0
 #define kdlsym_addr_critical_exit                          0x0028E7B0 //	FFFFFFFF824A9D00
@@ -58,8 +58,8 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_malloc                                 0x0010E250 //	FFFFFFFF8220D7A0
 #define kdlsym_addr_memcmp                                 0x00050AC0 //	FFFFFFFF82407A90
 #define kdlsym_addr_memcpy                                 0x001EA530 //	FFFFFFFF825C1200
-#define kdlsym_addr_memset                                 0x003205C0	
-#define kdlsym_addr_mini_syscore_self_binary               0x014C9D48	
+#define kdlsym_addr_memset                                 0x003205C0
+#define kdlsym_addr_mini_syscore_self_binary               0x014C9D48
 #define kdlsym_addr_mtx_init                               0x00402780 //	FFFFFFFF82696C30
 #define kdlsym_addr_mtx_lock_sleep                         0x00401D70 //	FFFFFFFF82696230
 #define kdlsym_addr_mtx_unlock_sleep                       0x004020A0 //	FFFFFFFF82696560
@@ -131,7 +131,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vmspace_alloc                          0x0019EB20 //	FFFFFFFF8264C360
 #define kdlsym_addr_vmspace_free                           0x0019EDC0 //	FFFFFFFF8264C610
 #define kdlsym_addr_vsnprintf                              0x004363F0 //	FFFFFFFF82323280
-#define kdlsym_addr_Xfast_syscall                          0x000001C0 //	FFFFFFFF822001C0	lol 
+#define kdlsym_addr_Xfast_syscall                          0x000001C0 //	FFFFFFFF822001C0	lol
 #define kdlsym_addr_wakeup                                 0x003FB940 //	FFFFFFFF82429CF0
 
 // FakeSelf hooks
@@ -165,4 +165,8 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x0
+
+// SceShellCore patches - enable remote pkg installer
+#define ssc_enable_data_mount_patch                        0x0
+
 #endif
