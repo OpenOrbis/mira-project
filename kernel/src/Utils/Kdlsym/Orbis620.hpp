@@ -200,11 +200,11 @@
 #define kdlsym_addr_dynlib_do_dlsym                                     0x00017A20
 #define kdlsym_addr_name_to_nids                                        0x00017D00
 #define kdlsym_addr_console_cdev                                        0x021413E8
-#define kdlsym_addr_M_IOV                                               0x00302B33
+#define kdlsym_addr_M_IOV                                               0x01A7C2F0
 #define kdlsym_addr_console_write                                       0x0007F230
-#define kdlsym_addr_deci_tty_write                                      0x00185B00
+#define kdlsym_addr_deci_tty_write                                      0x004A8DB0
 #define kdlsym_addr_cloneuio                                            0x00396310
-#define kdlsym_addr_printf_hook                                         0x01A9FD28
+#define kdlsym_addr_printf_hook                                         0x01A9FD58
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
 #define ssc_sceKernelIsGenuineCEX_patchA  0x00186170
