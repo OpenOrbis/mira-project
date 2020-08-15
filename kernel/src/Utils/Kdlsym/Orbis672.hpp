@@ -88,7 +88,7 @@
 #define kdlsym_addr_memmove                                0x003EBB00
 #define kdlsym_addr_memset                                 0x001687D0
 #define kdlsym_addr_mini_syscore_self_binary               0x0156A588
-#define kdlsym_addr_mount_arg                              0x00042CF0
+#define kdlsym_addr_mount_arg                              0x00442CF0
 #define kdlsym_addr_mount_argb                             0x004412B0
 #define kdlsym_addr_mount_argf                             0x00442DE0
 #define kdlsym_addr_mtx_destroy                            0x00497050
@@ -154,7 +154,7 @@
 #define kdlsym_addr_sys_mmap                               0x000AB1A0
 #define kdlsym_addr_sys_munmap                             0x000AB8F0
 #define kdlsym_addr_sys_nmount                             0x0043F9C0
-#define kdlsym_addr_sys_open                               0x0049E470
+#define kdlsym_addr_sys_open                               0x0049E970
 #define kdlsym_addr_sys_ptrace                             0x0010F4B0
 #define kdlsym_addr_sys_read                               0x0039B720
 #define kdlsym_addr_sys_recvfrom                           0x001C77E0
