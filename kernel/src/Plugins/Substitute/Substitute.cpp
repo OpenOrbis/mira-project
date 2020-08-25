@@ -799,23 +799,23 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
     if (p == nullptr)
         return nullptr;
 
-    char* s_TitleId = p->p_dynlib.title_id;
+    // TODO: Fix this structure within proc
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
     void* s_Address = nullptr;
 
     WriteLog(LL_Info, "TitleId: (%s).", s_TitleId);
 
-#if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_672
     if (p->p_dynlib) {
         // Lock dynlib object
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_unk340 + 0x70);
+        struct sx* dynlib_bind_lock = &p->p_dynlib->bind_lock;
         A_sx_xlock_hard(dynlib_bind_lock, 0);
 
-        uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)*(uint64_t*)p->p_unk340 + 0x10);
+        auto main_dylib_obj = p->p_dynlib->main_obj;
 
         if (main_dylib_obj) {
             // Search in all library
             int total = 0;
-            uint64_t dynlib_obj = main_dylib_obj;
+            auto dynlib_obj = main_dylib_obj;
             for (;;) {
                 total++;
 
@@ -838,7 +838,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
                     break;
                 }
 
-                dynlib_obj = *(uint64_t*)(dynlib_obj);
+                dynlib_obj = dynlib_obj->link.sle_next;
                 if (!dynlib_obj)
                     break;
             }
@@ -851,43 +851,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
     } else {
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }
-#else    
-    // TODO: Should we lock the process as well???
 
-    // Lock the bind_lock
-    A_sx_xlock_hard(&p->p_dynlib.bind_lock, 0);
-    do
-    {
-        // Get the main dynlib object pointer
-        auto s_MainObj = p->p_dynlib.main_obj;
-        if (s_MainObj == nullptr)
-            break;
-        
-        // Search in all library
-        uint32_t s_Total = 0;
-        auto s_DynlibObj = s_MainObj;
-        while (s_DynlibObj != nullptr)
-        {
-            s_Total++;
-            
-             // Doing a dlsym with nids or name
-            if ( (flags & SUBSTITUTE_IAT_NIDS) )
-                s_Address = dynlib_do_dlsym(p->p_dynlib.slh_first, (void*)s_DynlibObj, name, NULL, 0x1); // name = nids
-            else
-                s_Address = dynlib_do_dlsym(p->p_dynlib.slh_first, (void*)s_DynlibObj, name, NULL, 0x0); // use name (dynlib_do_dlsym will calculate later)
-
-            if (s_Address != nullptr) {
-                break;
-            }
-
-            s_DynlibObj = (struct dynlib_obj*)*(uint64_t*)(s_DynlibObj);
-            if (s_DynlibObj == nullptr)
-                break;
-        }
-    } while (false);
-    A_sx_xunlock_hard(&p->p_dynlib.bind_lock);
-    
-#endif
     return s_Address;
 }
 
@@ -905,7 +869,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
         return 0;   
     }
 
-    char* s_TitleId = p->p_dynlib.title_id;
+    char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
 
     // Get the nids of the function
@@ -918,12 +882,12 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
 
     uint64_t nids_offset_found = 0;
 
-    if (p->p_dynlib.slh_first) {
+    if (p->p_dynlib->objs.slh_first) {
         // Lock dynlib object (Note: Locking will panic kernel sometime)
-        struct sx* dynlib_bind_lock = &p->p_dynlib.bind_lock; //(struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        struct sx* dynlib_bind_lock = &p->p_dynlib->bind_lock; //(struct sx*)((uint64_t)p->p_dynlib + 0x70);
         A_sx_xlock_hard(dynlib_bind_lock, 0);
 
-        uint64_t main_dylib_obj = (uint64_t)p->p_dynlib.main_obj; //*(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
+        uint64_t main_dylib_obj = (uint64_t)p->p_dynlib->main_obj; //*(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
         if (main_dylib_obj) {
             // Search in all library

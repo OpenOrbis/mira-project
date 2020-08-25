@@ -13,7 +13,7 @@ struct dynlib_obj_dyn;
 struct dynlib;
 
 // Thank you flatz for 1.62
-// Thank you ChendoChap for fixing this mess
+// Thank you ChendoChap for fixing newer fw's
 struct dynlib
 {
 	SLIST_HEAD(, dynlib_obj) objs;
@@ -39,6 +39,7 @@ struct dynlib
 	void* unpatched_call_addr;
 
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620
+	void* __freeze_pointer;
     void* sysc_s00_pointer;
     void* sysc_e00_pointer;
     uint32_t restrict_flags; //flags of some kind, conditionally zeroes out some stuff in the dynlib  info_ex syscall and other places as well.
@@ -48,6 +49,7 @@ struct dynlib
 #endif
 } __attribute__((packed));
 
+// Credits: flatz
 struct dynlib_obj_dyn
 {
 	void* symtab_addr;
@@ -57,6 +59,13 @@ struct dynlib_obj_dyn
 	uint64_t strtab_size;
 };
 
+// Credits: flatz
+struct dynlib_obj
+{
+	SLIST_ENTRY(dynlib_obj) link; 	// 0x00
+	char* path;						// 0x08
+	// TODO: Finish the rest of the structure
+};
 
 const int s = sizeof(struct dynlib);
 // The maximum size is found by looking up function
@@ -70,7 +79,7 @@ const int s = sizeof(struct dynlib);
 	1.00 = 0xE0
 */
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_620
-static_assert(sizeof(struct dynlib) == 0x100, "invalid dynlib fw size");
+//static_assert(sizeof(struct dynlib) == 0x100, "invalid dynlib fw size");
 static_assert(offsetof(struct dynlib, objs) == 0x0, "invalid slh_first");
 static_assert(offsetof(struct dynlib, self) == 0x8, "invalid self");
 static_assert(offsetof(struct dynlib, main_obj) == 0x10, "invalid main_obj");
@@ -86,9 +95,10 @@ static_assert(offsetof(struct dynlib, unk90) == 0x90, "invalid bind_lock");
 static_assert(offsetof(struct dynlib, procparam_seg_addr) == 0xC8, "invalid procparam_seg_addr");
 static_assert(offsetof(struct dynlib, procparam_seg_filesz) == 0xD0, "invalid procparam_seg_filesz");
 static_assert(offsetof(struct dynlib, unpatched_call_addr) == 0xD8, "invalid unpatched_call_addr");
-static_assert(offsetof(struct dynlib, sysc_s00_pointer) == 0xE0, "invalid sysc_s00_pointer");
-static_assert(offsetof(struct dynlib, sysc_e00_pointer) == 0xE8, "invalid sysc_e00_pointer");
-static_assert(offsetof(struct dynlib, restrict_flags) == 0xF0, "invalid unpatched_call_addr");
+static_assert(offsetof(struct dynlib, __freeze_pointer) == 0xE0, "invalid freeze pointer");
+static_assert(offsetof(struct dynlib, sysc_s00_pointer) == 0xE8, "invalid sysc_s00_pointer");
+static_assert(offsetof(struct dynlib, sysc_e00_pointer) == 0xF0, "invalid sysc_e00_pointer");
+static_assert(offsetof(struct dynlib, restrict_flags) == 0xF8, "invalid unpatched_call_addr");
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
 static_assert(sizeof(struct dynlib) == 0x100, "invalid dynlib fw size");
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
