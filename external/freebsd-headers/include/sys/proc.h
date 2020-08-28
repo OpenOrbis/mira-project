@@ -649,7 +649,7 @@ struct proc {
 // Saftey measure so we don't fuck anything
 #if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_672
 static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect");
-static_assert(offsetof(struct proc, p_unk340) == 0x340, "dynlib start incorrect");
+static_assert(offsetof(struct proc, p_dynlib) == 0x340, "dynlib start incorrect");
 #else
 static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect");
 static_assert(offsetof(struct proc, p_dynlib) == 0x340, "dynlib start incorrect");

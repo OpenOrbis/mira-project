@@ -101,6 +101,9 @@ struct	sockbuf {
 	short	sb_flags;	/* (c/d) flags, see below */
 	int	(*sb_upcall)(struct socket *, void *, int); /* (c/d) */
 	void	*sb_upcallarg;	/* (c/d) */
+
+	// PlayStation 4 Specific (credits: ChendoChap)
+	char unkF0[0x8];
 };
 
 #ifdef _KERNEL

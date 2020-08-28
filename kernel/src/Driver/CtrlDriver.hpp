@@ -158,6 +158,13 @@ typedef struct _MiraMountInSandbox
     char Path[_MAX_PATH];
 } MiraMountInSandbox;
 
+typedef struct _MiraCreateTrainerShm
+{
+    struct thread* Thread;
+    void* TrainerHeader;
+    uint64_t TrainerHeaderMapSize; // 1MB default
+} MiraCreateTrainerShm;
+
 #define MIRA_IOCTL_BASE 'M'
 
 #define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 1, sizeof(MiraThreadCredentials))
