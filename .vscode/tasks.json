@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "options": {
         "env": {
-            "platform": "MIRA_PLATFORM_ORBIS_BSD_672",
+            "platform": "MIRA_PLATFORM_ORBIS_BSD_505",
             "checks": ""
         }
     },
