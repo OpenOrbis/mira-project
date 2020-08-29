@@ -17,17 +17,19 @@ endif
 # Project name
 PROJ_NAME := Mira
 
-# C++ compiler
-CPPC	:=	clang++
-
-# Linker
-LNK		:= ld # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
-
-# C compiler
-CC		:=	clang
-
-# Archiver
-AS		:=	llvm-ar
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+CPPC	:=	clang++	# C++ compiler
+LNK		:= 	ld		# Linker
+CC		:=	clang 	# C compiler
+AS		:=	llvm-ar # Archiver
+endif
+ifeq ($(UNAME_S),Darwin)
+CPPC	:=	/usr/local/opt/llvm/bin/clang++
+LNK		:= /usr/local/opt/llvm/bin/ld.lld
+CC		:=	/usr/local/opt/llvm/bin/clang
+AS		:=	/usr/local/opt/llvm/bin/llvm-ar
+endif
 
 # Objcopy
 OBJCOPY	:=	objcopy
