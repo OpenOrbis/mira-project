@@ -201,6 +201,14 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookA                          0x0
 #define kdlsym_addr_mountpfs__sceSblPfsSetKeys_hookB                          0x0
 
+// sceRegMgr
+#define kdlsym_addr_sceRegMgrGetInt                        0x004D7DB0
+#define kdlsym_addr_sceRegMgrSetInt                        0x004D6F00
+#define kdlsym_addr_sceRegMgrGetBin                        0x004D8710
+#define kdlsym_addr_sceRegMgrSetBin                        0x004D8640
+#define kdlsym_addr_sceRegMgrGetStr                        0x004D8520
+#define kdlsym_addr_sceRegMgrSetStr                        0x004D8170
+
 // SceShellCore patches - call sceKernelIsGenuineCEX
 #define ssc_sceKernelIsGenuineCEX_patchA                   0x001486BB
 #define ssc_sceKernelIsGenuineCEX_patchB                   0x006E523B
@@ -218,8 +226,16 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x00D40F28
 
+// SceShellCore patches - enable remote pkg installer
+#define ssc_enable_data_mount_patch                        0x002C575C
+
 // SceShellCore patches - enable VR without spoof
-#define ssc_enable_vr                                      0x00B2D9B0
+#define ssc_enable_vr_patch                                0x00B2D9B0
+
+// SceShellCore patches - enable official external HDD support (Support added in 4.50)
+#define ssc_external_hdd_pkg_installer_patch               0x00844821
+#define ssc_external_hdd_version_patchA                    0x004F9F5D
+#define ssc_external_hdd_version_patchB                    0x0011DDF1
 
 // SceShellUI patches - debug patches
 #define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x00019EA0
@@ -232,13 +248,5 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 // SceRemotePlay - enabler patches
 #define srp_enabler_patchA                                 0x0003C882
 #define srp_enabler_patchB                                 0x0003C89D
-
-// sceRegMgr
-#define kdlsym_addr_sceRegMgrGetInt                        0x004D7DB0
-#define kdlsym_addr_sceRegMgrSetInt                        0x004D6F00
-#define kdlsym_addr_sceRegMgrGetBin                        0x004D8710
-#define kdlsym_addr_sceRegMgrSetBin                        0x004D8640
-#define kdlsym_addr_sceRegMgrGetStr                        0x004D8520
-#define kdlsym_addr_sceRegMgrSetStr                        0x004D8170
 
 #endif
