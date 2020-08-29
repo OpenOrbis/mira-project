@@ -165,15 +165,43 @@ typedef struct _MiraCreateTrainerShm
     uint64_t TrainerHeaderMapSize; // 1MB default
 } MiraCreateTrainerShm;
 
+typedef struct _MiraTrainerShm
+{
+    // shm name
+    char ShmName[16];
+} MiraTrainerShm;
+
+typedef struct _MiraGetTrainersShm
+{
+    // Size of this structure including Shms[]
+    uint32_t StructureSize;
+
+    // Output ShmCount
+    uint32_t ShmCount;
+
+    // Array of shm names
+    MiraTrainerShm Shms[];
+} MiraGetTrainersShm;
+
 #define MIRA_IOCTL_BASE 'M'
 
+// Get/set the thread credentials
 #define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 1, sizeof(MiraThreadCredentials))
 
+// Get a process id list
 #define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 2, sizeof(MiraProcessList))
 
+// Get process information
 #define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 3, sizeof(MiraProcessInformation))
 
+// Mount a path within sandbox
 #define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, 4, sizeof(MiraMountInSandbox))
+
+// Create new Shm
+#define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, 5, sizeof(MiraCreateTrainerShm))
+
+// Get the currently loaded shm's
+#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm));
 
 namespace Mira
 {

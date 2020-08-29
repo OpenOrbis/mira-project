@@ -355,10 +355,10 @@ struct thread* Mira::Framework::GetSyscoreThread()
 {
 	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSyscore");
+	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSysCore");
 	if (s_Process == nullptr)
 	{
-		WriteLog(LL_Error, "could not get syscore process.");
+		WriteLog(LL_Error, "could not get SceSysCore process.");
 		return nullptr;
 	}
 
@@ -378,7 +378,7 @@ struct thread* Mira::Framework::GetShellcoreThread()
 	struct ::proc* s_Process = OrbisOS::Utilities::FindProcessByName("SceShellCore");
 	if (s_Process == nullptr)
 	{
-		WriteLog(LL_Error, "could not get syscore process.");
+		WriteLog(LL_Error, "could not get SceShellCore process.");
 		return nullptr;
 	}
 
