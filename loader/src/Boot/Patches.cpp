@@ -33,6 +33,9 @@ void Patches::install_prePatches()
 		case MIRA_PLATFORM_RASPI_ZERO:
 			// no patches needed for the raspi-z
 			break;
+		case MIRA_PLATFORM_ORBIS_BSD_555:
+			install_prerunPatches_555();
+			break;
 		case MIRA_PLATFORM_ORBIS_BSD_620:
 			install_prerunPatches_620();
 			break;
