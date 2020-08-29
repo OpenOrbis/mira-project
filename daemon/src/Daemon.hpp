@@ -1,6 +1,6 @@
 #pragma once
 #include <Utils/IModule.hpp>
-
+#include <cstdio>
 #include <mutex>
 
 namespace Mira
@@ -29,12 +29,14 @@ namespace Mira
         std::shared_ptr<Rpc::Server> m_RpcServer;
 
     public:
+        static std::shared_ptr<Daemon> GetInstance();
+
         Daemon();
         virtual ~Daemon();
 
         virtual bool OnLoad() override;
 
-    protected:
-        
+        std::shared_ptr<Rpc::Manager> GetMessageManager() const { return m_MessageManager; }
+        std::shared_ptr<Rpc::Server> GetRpcServer() const { return m_RpcServer; }
     };
 };

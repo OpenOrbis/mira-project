@@ -71,6 +71,7 @@ struct socket;
 struct socket {
 	int	so_count;		/* (b) reference count */
 	short	so_type;		/* (a) generic type, see socket.h */
+	char unk6[0x2];
 	short	so_options;		/* from socket call, see socket.h */
 	short	so_linger;		/* time to linger while closing */
 	short	so_state;		/* (b) internal state flags SS_* */
@@ -125,7 +126,43 @@ struct socket {
 	 */
 	int so_fibnum;		/* routing domain for this socket */
 	uint32_t so_user_cookie;
+
+	// PlayStation 4 Specific (creds: ChendoChap)
+	char unk2C0[0x110];
+
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_150
+    char unk3D0[0x8];
+#endif
+
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_170
+    char unk3D8[0x10];
+#endif
+
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_250
+    char unk3E8[0x10];
+#endif
+
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_350
+    char unk0x3F8[0x20];
+#endif
+
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
+    char unk0x3F8[0x60];
+#endif
 };
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
+static_assert(sizeof(struct socket) == 0x478, "invalid struct socket size");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_350
+static_assert(sizeof(struct socket) == 0x418, "invalid struct socket size");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_250
+static_assert(sizeof(struct socket) == 0x3F8, "invalid struct socket size");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_170
+static_assert(sizeof(struct socket) == 0x3E8, "invalid struct socket size");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_150
+static_assert(sizeof(struct socket) == 0x3D8, "invalid struct socket size");
+#else
+static_assert(sizeof(struct socket) == 0x3D0, "invalid struct socket size");
+#endif
 
 /*
  * Global accept mutex to serialize access to accept queues and

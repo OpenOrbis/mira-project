@@ -74,7 +74,9 @@ Mira::Framework::Framework() :
 	m_EventHandlersInstalled(false),
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
-	m_ShutdownTag(nullptr),
+	m_ProcessExec(nullptr),
+	m_ProcessExecEnd(nullptr),
+	m_ProcessExit(nullptr),
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
 	m_CtrlDriver(nullptr)
@@ -353,10 +355,10 @@ struct thread* Mira::Framework::GetSyscoreThread()
 {
 	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSyscore");
+	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSysCore");
 	if (s_Process == nullptr)
 	{
-		WriteLog(LL_Error, "could not get syscore process.");
+		WriteLog(LL_Error, "could not get SceSysCore process.");
 		return nullptr;
 	}
 
@@ -376,7 +378,7 @@ struct thread* Mira::Framework::GetShellcoreThread()
 	struct ::proc* s_Process = OrbisOS::Utilities::FindProcessByName("SceShellCore");
 	if (s_Process == nullptr)
 	{
-		WriteLog(LL_Error, "could not get syscore process.");
+		WriteLog(LL_Error, "could not get SceShellCore process.");
 		return nullptr;
 	}
 
@@ -402,7 +404,10 @@ bool Mira::Framework::InstallEventHandlers()
 	//const int32_t prio = 1337;
 	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
 	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
-	//m_ShutdownTag = EVENTHANDLER_REGISTER(shutdown_pre_sync, reinterpret_cast<void*>(Mira::Framework::OnMiraShutdown), GetFramework(), EVENTHANDLER_PRI_FIRST);
+
+	m_ProcessExec = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExec), GetFramework(), EVENTHANDLER_PRI_ANY);
+	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), GetFramework(), EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -423,11 +428,17 @@ bool Mira::Framework::RemoveEventHandlers()
 
 	EVENTHANDLER_DEREGISTER(system_suspend_phase1, m_SuspendTag);
 	EVENTHANDLER_DEREGISTER(system_resume_phase1, m_ResumeTag);
-	//EVENTHANDLER_DEREGISTER(shutdown_pre_sync, m_ShutdownTag);
+	
+	EVENTHANDLER_DEREGISTER(process_exec, m_ProcessExec);
+	EVENTHANDLER_DEREGISTER(process_exec_end, m_ProcessExecEnd);
+	EVENTHANDLER_DEREGISTER(process_exit, m_ProcessExit);
 
 	m_SuspendTag = nullptr;
 	m_ResumeTag = nullptr;
-	m_ShutdownTag = nullptr;
+
+	m_ProcessExec = nullptr;
+	m_ProcessExecEnd = nullptr;
+	m_ProcessExit = nullptr;
 
 	m_EventHandlersInstalled = false;
 
@@ -477,4 +488,52 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 
 	kproc_exit(0);
 	kthread_exit();
+}
+
+void Mira::Framework::OnMiraProcessExec(void* p_Framework, struct proc* p_Process)
+{
+	WriteLog(LL_Warn, "Process Executing: ");	
+	
+	auto s_Framework = GetFramework();
+	if (s_Framework == nullptr)
+		return;
+	
+	auto s_PluginManager = s_Framework->GetPluginManager();
+	if (s_PluginManager)
+	{
+		if (!s_PluginManager->OnProcessExec(p_Process))
+			WriteLog(LL_Error, "could not call exit process on plugin manager.");
+	}
+
+	if (s_Framework->m_CtrlDriver)
+		s_Framework->m_CtrlDriver->OnProcessExec(p_Framework, p_Process);
+}
+
+void Mira::Framework::OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Process)
+{
+	WriteLog(LL_Warn, "Process Ending: ");
+
+	auto s_Framework = GetFramework();
+	if (s_Framework == nullptr)
+		return;
+	
+	auto s_PluginManager = s_Framework->GetPluginManager();
+	if (s_PluginManager)
+	{
+		if (!s_PluginManager->OnProcessExecEnd(p_Process))
+			WriteLog(LL_Error, "could not call end process on plugin manager.");
+	}
+}
+
+void Mira::Framework::OnMiraProcessExit(void* p_Framework, struct proc* p_Process)
+{
+	WriteLog(LL_Warn, "Process Exiting: ");
+
+	if (GetFramework() == nullptr)
+		return;
+	
+	if (!GetFramework()->GetPluginManager()->OnProcessExit(p_Process))
+	{
+		WriteLog(LL_Error, "could not call exit process on plugin manager.");
+	}
 }

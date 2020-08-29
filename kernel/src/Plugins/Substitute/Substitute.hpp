@@ -151,10 +151,6 @@ namespace Mira
         class Substitute : public Utils::IModule
         {
         private:
-            // Start / Stop process
-            eventhandler_entry* m_processStartHandler;
-            eventhandler_entry* m_processEndHandler;
-
             // Hook management
             struct mtx hook_mtx;
             SubstituteHook hooks[SUBSTITUTE_MAX_HOOKS];
@@ -170,6 +166,9 @@ namespace Mira
             virtual bool OnUnload() override;
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
+
+            virtual bool OnProcessExecEnd(struct proc*) override;
+            virtual bool OnProcessExit(struct proc*) override;
 
             static Substitute* GetPlugin();
 
@@ -208,8 +207,6 @@ namespace Mira
         protected:
             // Event to trigger
             static int Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_args* uap);
-            static void OnProcessStart(void *arg, struct proc *p);
-            static void OnProcessExit(void *arg, struct proc *p);
         };
     }
 }

@@ -47,9 +47,7 @@ using namespace Mira::OrbisOS;
 //////////////////////////
 
 // Substitute : Constructor
-Substitute::Substitute() :
-    m_processStartHandler(nullptr),
-    m_processEndHandler(nullptr)
+Substitute::Substitute()
 {
     // Cleanup hooks memory space
     memset(hooks, 0, sizeof(SubstituteHook) * SUBSTITUTE_MAX_HOOKS);
@@ -65,13 +63,9 @@ bool Substitute::OnLoad()
 {
     auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
     struct sysent* sysents = sv->sv_table;
-    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);   
+    //auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);   
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     WriteLog(LL_Info, "Loading Substitute ...");
- 
-    // Substitute mount / unmount
-    m_processStartHandler = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(OnProcessStart), nullptr, EVENTHANDLER_PRI_ANY);
-    m_processEndHandler = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), nullptr, EVENTHANDLER_PRI_ANY);
 
     // Substitute syscall hook (PRX Loader)
     sys_dynlib_dlsym_p = (void*)sysents[SYS_DYNLIB_DLSYM].sy_call;
@@ -93,21 +87,10 @@ bool Substitute::OnUnload()
 {
     auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
     struct sysent* sysents = sv->sv_table;
-    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
+    //auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
+    //auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
     WriteLog(LL_Error, "Unloading Substitute ...");
-
-    // Cleanup substitute mount / unmount
-    if (m_processStartHandler) {
-        EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartHandler);
-        m_processStartHandler = nullptr;
-    }
-
-    if (m_processEndHandler) {
-        EVENTHANDLER_DEREGISTER(process_exit, m_processEndHandler);
-        m_processStartHandler = nullptr;
-    }
 
     // Cleanup substitute hook (PRX Loader)
     if (sys_dynlib_dlsym_p) {
@@ -811,23 +794,28 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 {
     auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
     auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
-
     auto dynlib_do_dlsym = (void*(*)(void* dl, void* obj, const char* name, const char* libname, unsigned int flags))kdlsym(dynlib_do_dlsym);
 
+    if (p == nullptr)
+        return nullptr;
+
+    // TODO: Fix this structure within proc
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
-    void* addr = nullptr;
+    void* s_Address = nullptr;
+
+    WriteLog(LL_Info, "TitleId: (%s).", s_TitleId);
 
     if (p->p_dynlib) {
         // Lock dynlib object
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        struct sx* dynlib_bind_lock = &p->p_dynlib->bind_lock;
         A_sx_xlock_hard(dynlib_bind_lock, 0);
 
-        uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
+        auto main_dylib_obj = p->p_dynlib->main_obj;
 
         if (main_dylib_obj) {
             // Search in all library
             int total = 0;
-            uint64_t dynlib_obj = main_dylib_obj;
+            auto dynlib_obj = main_dylib_obj;
             for (;;) {
                 total++;
 
@@ -841,16 +829,16 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
 
                 // Doing a dlsym with nids or name
                 if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
-                    addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x1); // name = nids
+                    s_Address = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x1); // name = nids
                 } else {
-                    addr = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x0); // use name (dynlib_do_dlsym will calculate later)
+                    s_Address = dynlib_do_dlsym((void*)p->p_dynlib, (void*)dynlib_obj, name, NULL, 0x0); // use name (dynlib_do_dlsym will calculate later)
                 }
 
-                if (addr) {
+                if (s_Address) {
                     break;
                 }
 
-                dynlib_obj = *(uint64_t*)(dynlib_obj);
+                dynlib_obj = dynlib_obj->link.sle_next;
                 if (!dynlib_obj)
                     break;
             }
@@ -864,7 +852,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
         WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
     }
 
-    return addr;
+    return s_Address;
 }
 
 // Substitute : Find pre-offset from the name or nids
@@ -876,7 +864,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto name_to_nids = (void(*)(const char *name, const char *nids_out))kdlsym(name_to_nids);
 
-    if (!name || !p) {
+    if (name == nullptr || p == nullptr) {
         WriteLog(LL_Error, "Invalid argument.");
         return 0;   
     }
@@ -894,12 +882,12 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
 
     uint64_t nids_offset_found = 0;
 
-    if (p->p_dynlib) {
+    if (p->p_dynlib->objs.slh_first) {
         // Lock dynlib object (Note: Locking will panic kernel sometime)
-        struct sx* dynlib_bind_lock = (struct sx*)((uint64_t)p->p_dynlib + 0x70);
+        struct sx* dynlib_bind_lock = &p->p_dynlib->bind_lock; //(struct sx*)((uint64_t)p->p_dynlib + 0x70);
         A_sx_xlock_hard(dynlib_bind_lock, 0);
 
-        uint64_t main_dylib_obj = *(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
+        uint64_t main_dylib_obj = (uint64_t)p->p_dynlib->main_obj; //*(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
 
         if (main_dylib_obj) {
             // Search in all library
@@ -1061,10 +1049,10 @@ void Substitute::LoadAllPrx(struct thread* td, const char* folder_path)
 }
 
 // Substitute : Mount Substitute folder and prepare prx for load
-void Substitute::OnProcessStart(void *arg, struct proc *p)
+bool Substitute::OnProcessExecEnd(struct proc *p)
 {
     if (!p)
-        return;
+        return false;
 
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
@@ -1074,7 +1062,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
 
     // Check if it's a valid process
     if ( !s_TitleId || s_TitleId[0] == 0 )
-        return;
+        return false;
 
     char s_SprxDirPath[PATH_MAX];
     snprintf(s_SprxDirPath, PATH_MAX, "/data/mira/substitute/%s/", s_TitleId);
@@ -1087,7 +1075,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         WriteLog(LL_Error, "[%s] Main thread: %p", s_TitleId, s_MainThread);
         WriteLog(LL_Error, "[%s] Process thread: %p", s_TitleId, s_ProcessThread);
 
-        return;
+        return false;
     }
 
     // Getting jailed path for the process
@@ -1100,7 +1088,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     if (s_SandboxPath == nullptr) {
         if (s_Freepath)
             delete (s_Freepath);
-        return;
+        return false;
     }
 
     // Get ucred and filedesc of current thread
@@ -1134,7 +1122,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         // Restore fd and cred
         *curthread_fd = orig_curthread_fd;
         *curthread_cred = orig_curthread_cred;
-        return;
+        return false;
     }
 
     WriteLog(LL_Info, "[%s] Substitute start ...", s_TitleId);
@@ -1149,7 +1137,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
         // Restore fd and cred
         *curthread_fd = orig_curthread_fd;
         *curthread_cred = orig_curthread_cred;
-        return;
+        return false;
     }
 
     // Mounting
@@ -1157,7 +1145,7 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     if (ret < 0) {
         krmdir_t(s_substituteFullMountPath, s_MainThread);
         WriteLog(LL_Error, "[%s] could not mount folder (%s => %s) (%d).", s_TitleId, s_RealSprxFolderPath, s_substituteFullMountPath, ret);
-        return;
+        return false;
     }
 
     // Cleanup
@@ -1172,13 +1160,13 @@ void Substitute::OnProcessStart(void *arg, struct proc *p)
     // Restore fd and cred
     *curthread_fd = orig_curthread_fd;
     *curthread_cred = orig_curthread_cred;
-    return;
+    return true;
 }
 
 // Substitute : Unmount Substitute folder
-void Substitute::OnProcessExit(void *arg, struct proc *p) {
+bool Substitute::OnProcessExit(struct proc *p) {
     if (!p)
-        return;
+        return false;
 
     int ret = 0;
 
@@ -1193,7 +1181,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
 
     // Check if it's a valid process
     if ( !s_TitleId || s_TitleId[0] == 0 )
-        return;
+        return false;
 
     // Getting needed thread
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
@@ -1202,7 +1190,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
         WriteLog(LL_Error, "[%s] Could not get main or process thread", s_TitleId);
         WriteLog(LL_Error, "[%s] Main thread: %p", s_TitleId, s_MainThread);
         WriteLog(LL_Error, "[%s] Process thread: %p", s_TitleId, s_ProcessThread);
-        return;
+        return false;
     }
 
     // Start by cleanup hook list
@@ -1219,7 +1207,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
         if (s_Freepath)
             delete (s_Freepath);
 
-        return;
+        return false;
     }
 
     // Finding substitute folder
@@ -1229,7 +1217,7 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     auto s_DirectoryHandle = kopen_t(s_substituteFullMountPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
     if (s_DirectoryHandle < 0)
     {
-        return;
+        return false;
     }
     kclose_t(s_DirectoryHandle, s_MainThread);
 
@@ -1245,14 +1233,14 @@ void Substitute::OnProcessExit(void *arg, struct proc *p) {
     ret = krmdir_t(s_substituteFullMountPath, s_MainThread);
     if (ret < 0) {
         WriteLog(LL_Error, "could not remove substitute folder (%s) (%d).", s_substituteFullMountPath, ret);
-        return;
+        return false;
     }
 
     if (s_Freepath)
         delete (s_Freepath);
 
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
-    return;
+    return true;
 }
 
 // Substitute : Load PRX from Substitute folder

@@ -55,9 +55,15 @@ namespace Mira
         Mira::Boot::InitParams m_InitParams;
 
         bool m_EventHandlersInstalled;
+
+        // System state events
         struct eventhandler_entry* m_SuspendTag;
         struct eventhandler_entry* m_ResumeTag;
-        struct eventhandler_entry* m_ShutdownTag;
+
+        // Process system events
+        struct eventhandler_entry* m_ProcessExec;
+        struct eventhandler_entry* m_ProcessExecEnd;
+        struct eventhandler_entry* m_ProcessExit;
 
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
@@ -92,5 +98,10 @@ namespace Mira
         static void OnMiraSuspend(void* __unused p_Reserved);
         static void OnMiraResume(void* __unused p_Reserved);
         static void OnMiraShutdown(void* __unused p_Reserved);
+
+        static void OnMiraProcessExec(void* p_Framework, struct proc* p_Process);
+        static void OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Process);
+        static void OnMiraProcessExit(void* p_Framework, struct proc* p_Process);
+
     };
 }

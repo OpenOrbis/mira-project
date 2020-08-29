@@ -121,8 +121,15 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[0] = 0xEB;
 
 	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0010F879];
-	kmem[0] = 0xEB;
+	/*kmem = (uint8_t *)&gKernelBase[0x0010F879];
+	kmem[0] = 0xEB;*/
+	kmem = (uint8_t*)&gKernelBase[0x0010F892];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 
 	// second ptrace patch
 	// via DeathRGH

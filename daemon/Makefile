@@ -36,7 +36,7 @@ endif
 SRC_DIR	:=	src
 
 # Include directory paths
-I_DIRS	:=	-I$(SRC_DIR) -I$(SRC_DIR)/External/include -I"$(OO_PS4_TOOLCHAIN)/include" -I$(OO_PS4_TOOLCHAIN)/include/c++/v1
+I_DIRS	:=	-I"$(OO_PS4_TOOLCHAIN)/include" -I$(OO_PS4_TOOLCHAIN)/include/c++/v1 -I$(SRC_DIR)/External/include -I$(SRC_DIR)
 
 # Library directory paths
 L_DIRS	:=	-L"$(OO_PS4_TOOLCHAIN)/lib"
@@ -45,7 +45,7 @@ L_DIRS	:=	-L"$(OO_PS4_TOOLCHAIN)/lib"
 LIBS	:= -lc -lkernel -lc++ -lSceNet
 
 # C Defines
-C_DEFS	:= -D_DEBUG -DPS4
+C_DEFS	:= -D_DEBUG -DPS4 -D__BSD_VISIBLE -D_BSD_SOURCE
 
 # C++ Flags
 CFLAGS	:= -cc1 -triple x86_64-pc-freebsd-elf -munwind-tables $(I_DIRS) $(C_DEFS) -fuse-init-array -emit-obj
