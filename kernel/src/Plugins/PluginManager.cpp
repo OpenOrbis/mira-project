@@ -113,14 +113,33 @@ bool PluginManager::OnLoad()
             break;
         }
 
-        // Initialize Substitute
-        m_Substitute = new Mira::Plugins::Substitute();
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if( OrbisOS::Utilities::isAssistMode() == IS_TESTKIT ||  OrbisOS::Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, no Substitute it breaks testkits\n");
+	  m_Substitute = nullptr;
+	  s_Success = true;
+	  }
+else{
+    m_Substitute = new Mira::Plugins::Substitute();
+	    if (m_Substitute == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate substitute.");
+            s_Success = false;
+            break;
+        }
+}
+#else
+ m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
         {
             WriteLog(LL_Error, "could not allocate substitute.");
             s_Success = false;
             break;
         }
+#endif
+
+
 
         // Initialize BrowserActivator
         m_BrowserActivator = new Mira::Plugins::BrowserActivator();

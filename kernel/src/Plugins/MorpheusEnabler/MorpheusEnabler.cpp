@@ -122,7 +122,19 @@ bool MorpheusEnabler::OnLoad()
     m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
     m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
-	return DoPatch();
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");
+return true;
+}
+else{
+    return DoPatch();
+}
+#else
+return DoPatch();
+#endif
+
 }
 
 bool MorpheusEnabler::OnUnload()

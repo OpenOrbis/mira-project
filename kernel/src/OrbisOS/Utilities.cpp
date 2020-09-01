@@ -86,6 +86,52 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         return (uint64_t)s_Desc.piod_len;
 }
 
+int Utilities::isAssistMode()
+{
+char out = -1;
+
+int descriptor = kopen_t(const_cast<char*>("/dev/dipsw"), 0, 0, curthread);
+if(descriptor >= 0)
+{
+WriteLog(LL_Debug, "/dev/dipsw: %d", descriptor);
+
+  if (int32_t s_ErrorIoctl = kioctl_t(descriptor, ASSIST_IOCTL, &out, curthread) < 0)
+   {
+        WriteLog(LL_Error, "unable to get DIPSW (%d).", s_ErrorIoctl);
+        kclose_t(descriptor, curthread);
+        return -1;
+    }
+else
+{
+kclose_t(descriptor, curthread);
+return out;
+}
+
+}
+else
+{
+WriteLog(LL_Debug, "/dev/dipsw failed: %d", descriptor);
+return -1;
+}
+
+return -1;
+
+}
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+int Utilities::isTestkit()
+{
+
+char target_id_addr = *(char *)kdlsym(target_id);
+int testkit_mem_block[] = {0x82};
+
+ if (memcmp(&target_id_addr, &testkit_mem_block, 1) == 0)
+   return IS_TESTKIT;
+ else
+  return IS_NOT_TESTKIT;
+}
+#endif
+
 // Credits: flatz (https://github.com/flatz)
 int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_BytesReadWrote, bool p_Write)
 {

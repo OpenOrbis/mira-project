@@ -400,8 +400,21 @@ bool FakePkgManager::OnLoad()
         return false;
     }
 
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");}
+else{
     ShellCorePatch();
     ShellUIPatch();
+}
+#else
+ShellCorePatch();
+ShellUIPatch();
+#endif
+
+    
+
 
     // Initialize the event handlers
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);

@@ -222,6 +222,7 @@ extern "C" void mira_entry(void* args)
 		return;
 	}
 
+
 	// At this point we don't need kernel context anymore
 	WriteLog(LL_Info, "Mira initialization complete");
 	kthread_exit();
@@ -295,8 +296,20 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-  // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
-  struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+struct proc* ui_proc = nullptr;
+// causes testkit IPC to kpanic the console on relaunch 
+//////////////////////////////////////////////////////////////
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if( OrbisOS::Utilities::isAssistMode() == IS_TESTKIT ||  OrbisOS::Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");
+}
+else{
+     ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+}
+#else
+  ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+#endif
+
   if (ui_proc) {
       Mira::OrbisOS::Utilities::KillProcess(ui_proc);
   } else {

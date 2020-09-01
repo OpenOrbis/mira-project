@@ -36,8 +36,20 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
-	if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No ShellUI patches well be applied\n");
+}
+else{
+   if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
 		ShellUIPatch();
+}
+#else
+if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
+		ShellUIPatch();
+#endif
+	
+	
 
 	if (strncmp(s_TitleId, "NPXS21006", 9) == 0 && strcmp(p->p_comm, "SceRemotePlay") == 0)
 		RemotePlayPatch();
@@ -47,7 +59,17 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 
 void RemotePlayEnabler::ResumeEvent()
 {
-	ShellUIPatch();
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No ShellUI patches well be applied\n");}
+else{
+    ShellUIPatch();
+}
+#else
+ShellUIPatch();
+#endif
+	
 	RemotePlayPatch();
 	WriteLog(LL_Debug, "InstallEventHandlers finished");
 	return;
@@ -248,17 +270,34 @@ bool RemotePlayEnabler::OnLoad()
 	m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(RemotePlayEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
 	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
-	auto s_Ret = ShellUIPatch();
-	if (s_Ret == false) {
-		WriteLog(LL_Error, "could not patch SceShellUI");
-		return false;
-	}
 
-	s_Ret = RemotePlayPatch();
+auto s_Ret = RemotePlayPatch();
 	if (s_Ret == false) {
 		WriteLog(LL_Error, "could not patch SceRemotePlay");
 		return false;
 	}
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No ShellUI patches well be applied\n");
+}
+else{
+  s_Ret = ShellUIPatch();
+	if (s_Ret == false) {
+		WriteLog(LL_Error, "could not patch SceShellUI");
+		return false;
+	}
+}
+#else
+ s_Ret = ShellUIPatch();
+	if (s_Ret == false) {
+		WriteLog(LL_Error, "could not patch SceShellUI");
+		return false;
+	}
+#endif
+
+
+	
 
 	return true;
 }
