@@ -11,6 +11,7 @@
 #include <OrbisOS/Utilities.hpp>
 
 #include <Plugins/Substitute/Substitute.hpp>
+#include <Trainers/TrainerManager.hpp>
 
 #include <Mira.hpp>
 
@@ -182,6 +183,10 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 // Get/set the thread credentials
                 case MIRA_GET_PROC_THREAD_CREDENTIALS:
                     return OnMiraThreadCredentials(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                case MIRA_LOAD_TRAINERS:
+                {
+                    return 0;
+                }
             }
         }
 
@@ -343,13 +348,25 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
     }
 
     // Check to make sure that there's some kind of path
-    if (s_Input.Path[0] == '\0')
+    if (s_Input.HostPath[0] == '\0')
     {
         WriteLog(LL_Error, "invalid input path.");
         return -EACCES;
     }
+
+    if (s_Input.SandboxPath[0] == '\0')
+    {
+        WriteLog(LL_Error, "invalid sandbox path.");
+        return -EACCES;
+    }
+
+    if (s_Input.SandboxPath[0] == '/')
+    {
+        WriteLog(LL_Error, "sandbox path does not need to start with '/'.");
+        return -EACCES;
+    }
     
-    return OrbisOS::Utilities::MountInSandbox(s_Input.Path, "_mira", p_Thread);
+    return OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, p_Thread);
 }
 
 bool CtrlDriver::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result)

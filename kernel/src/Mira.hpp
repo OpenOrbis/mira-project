@@ -95,6 +95,7 @@ namespace Mira
 
         Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
+        Mira::Trainers::TrainerManager* GetTrainerManager() { return m_TrainerManager; }
 
         struct thread* GetMainThread();
         struct thread* GetSyscoreThread();

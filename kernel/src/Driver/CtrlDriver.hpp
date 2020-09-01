@@ -155,7 +155,8 @@ typedef struct _MiraProcessList
 typedef struct _MiraMountInSandbox
 {
     int32_t Permissions;
-    char Path[_MAX_PATH];
+    char HostPath[_MAX_PATH];
+    char SandboxPath[_MAX_PATH];
 } MiraMountInSandbox;
 
 typedef struct _MiraCreateTrainerShm
@@ -202,6 +203,9 @@ typedef struct _MiraGetTrainersShm
 
 // Get the currently loaded shm's
 #define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm));
+
+// Debug load trainer
+#define MIRA_LOAD_TRAINERS _IOC(IOC_IN, MIRA_IOCTL_BASE, 7, 0)
 
 namespace Mira
 {

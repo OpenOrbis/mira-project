@@ -54,7 +54,7 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
     do
     {
         // Debug print
-        WriteLog(LL_Info, "process is exiting: (%d).", p_Process);
+        WriteLog(LL_Info, "process is exiting: (%s).", p_Process->p_comm);
 
     } while (false);
     
@@ -67,25 +67,28 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
 
 bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
 {
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
-	//auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
     // Validate process
     if (p_Process == nullptr)
         return false;
     
-    // Lock process before we touch it
-    PROC_LOCK(p_Process);
-
-    do
+    // Make sure that we have the eboot.bin
+    if (strncmp("eboot.bin", p_Process->p_comm, sizeof("eboot.bin")) == 0)
     {
-        /* code */
-    } while (false);
+        WriteLog(LL_Error, "skipping non eboot process (%s).", p_Process->p_comm);
+        return false;
+    }
     
-    // Unlock process
-    PROC_UNLOCK(p_Process);
+    // Check if the file exists
+    if (FileExists("/mnt/usb0/mira/trainers/test.prx"))
+    {
+        WriteLog(LL_Debug, "injecting /mira/usb0/mira/trainers/test.prx");
+        return ThreadInjection("/mnt/usb0/mira/trainers/test.prx", p_Process);
+    }
 
     return true;
 }
@@ -218,6 +221,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         return false;
     }
 
+    WriteLog(LL_Info, "injecting prx: (%s).", p_TrainerPrxPath);
+
     // Get the target thread
     auto s_TargetProcMainThread = p_TargetProc->p_threads.tqh_first;
     if (s_TargetProcMainThread == nullptr)
@@ -226,6 +231,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         return false;
     }
 
+    WriteLog(LL_Info, "got target proc main thread: (%p).", s_TargetProcMainThread);
+
     // Get path from the file name
     auto s_TrainerFileName = strrchr(p_TrainerPrxPath, '/'); // "/test.prx"
     if (s_TrainerFileName == nullptr)
@@ -233,6 +240,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         WriteLog(LL_Error, "could not find the filename in (%s).", p_TrainerPrxPath);
         return false;
     }
+
+    WriteLog(LL_Info, "trainer file name with slash: (%s).", s_TrainerFileName);
 
     // Calculate the host path length
     auto s_HostPathLength = (uint64_t)s_TrainerFileName - (uint64_t)p_TrainerPrxPath;
@@ -248,6 +257,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     // Copy the string to stack, "/mnt/usb0/_mira/trainers"
     memcpy(s_HostMountDirectory, p_TrainerPrxPath, s_HostPathLength);
 
+    WriteLog(LL_Info, "host mount directory: (%s).", s_HostMountDirectory);
+
     // Mount the host directory in the sandbox
     auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "_substitute", s_TargetProcMainThread);
     if (s_Result < 0)
@@ -255,6 +266,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
         return false;
     }
+
+    WriteLog(LL_Info, "host directory mounted to _substitute");
 
     auto s_Success = false;
 
@@ -265,6 +278,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     {
         char s_SandboxTrainerPath[PATH_MAX] = { 0 };
         snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "/_substitute%s", s_TrainerFileName); // Should print /_substitute/test.prx
+
+        WriteLog(LL_Info, "sandbox trainer path: (%s).", s_SandboxTrainerPath);
 
         /* code */
         // TODO: Iterate the trainer directory for prx files
