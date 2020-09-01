@@ -2,6 +2,15 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
 
+#include "MiraShm.hpp"
+
+extern "C"
+{
+    #include <sys/param.h>
+    #include <sys/lock.h>
+    #include <sys/mutex.h>
+}
+
 /*
     TrainerManager rundown
 
@@ -38,29 +47,76 @@ namespace Mira
     {
         class TrainerManager : public Utils::IModule
         {
+        public:
+            enum
+            {
+                MaxShmIdLength = 10,
+                MaxShms = 16
+            };
+
+            typedef struct TrainerShm_t
+            {
+                char Id[MaxShmIdLength];
+            } TrainerShm;
+
         private:
-            static const char* c_ShmPrefix;
+            // Total amount of proxied shm's
+            TrainerShm Shms[MaxShms];
+
+            // Sleep lock
+            struct mtx m_Mutex;
+
+            static const char* c_ShmPrefix; // _shm_
 
         public:
             TrainerManager();
             virtual ~TrainerManager();
 
+            // Load the module
             virtual bool OnLoad() override;
+
+            // Unload the module
             virtual bool OnUnload() override;
 
+            // Handle event for process exit
             virtual bool OnProcessExit(struct proc* p_Process) override;
+
+            // Handle event for process execution end
             virtual bool OnProcessExecEnd(struct proc* p_Process) override;
 
         protected:
-            // TODO: Get HDD Trainers Folder
-            // TODO: Get USB Trainers Folder
-            // TODO: Get Networked Trainers Folder
+            // Get HDD Trainers Folder (ex: /user/mira/trainers )
+            bool GetHddTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength);
+
+            // Get USB Trainers Folder (ex: /dev/usb/usb0/mira/trainers )
+            bool GetUsbTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength);
             
             // Generate a new randomized alphanumeric Shm Id (p_OutputStringLength must be > 5) strlen("_shm_")
             bool GenerateShmId(char* p_OutputString, uint32_t p_OutputStringLength);
-            // TODO: Create Shm
-            // TODO: Delete Shm
-            // TODO: Get Shm
+
+            // Create a shm
+            bool CreateShm(char*& p_OutId);
+            
+            // Delete a shm and unlink it
+            bool DeleteShm(const char* p_Id);
+
+            // Gets if a Shm exists with this id
+            bool GetShm(const char* p_Id);
+
+            // Inject a new thread per prx
+            bool ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_Proc);
+
+            // Load via payload
+            bool PayloadInjection();
+
+            // Checks if a file exists
+            bool FileExists(const char* p_Path);
+
+            // Checks if a directory exists
+            bool DirectoryExists(const char* p_Path);
+
+        private:
+            static void OnSomethingOrAnother();
         };
     }
 }

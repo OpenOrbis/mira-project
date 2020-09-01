@@ -2520,3 +2520,220 @@ int ksandbox_path_t(char* path, struct thread* td)
 
 	return ret;
 }
+
+int kshm_open_internal(const char * path, int flags, mode_t mode, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_shm_open = (int(*)(struct thread*, struct shm_open_args*))sysents[SYS_SHM_OPEN].sy_call;
+	if (!sys_shm_open)
+		return -1;
+
+	int error;
+	struct shm_open_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = path;
+	uap.flags = flags;
+	uap.mode = mode;
+
+	error = sys_shm_open(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kshm_open_t(const char * path, int flags, mode_t mode, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kshm_open_internal(path, flags, mode, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kshm_unlink_internal(const char * name, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_shm_unlink = (int(*)(struct thread*, struct shm_unlink_args*))sysents[SYS_SHM_UNLINK].sy_call;
+	if (!sys_shm_unlink)
+		return -1;
+
+	int error;
+	struct shm_unlink_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = name;
+
+	error = sys_shm_unlink(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kshm_unlink_t(const char * name, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kshm_unlink_internal(name, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kdynlib_dlsym_internal(int64_t p_PrxId, const char* p_FunctionName, void* p_DestinationFunctionOffset, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_dynlib_dlsym = (int(*)(struct thread*, struct dynlib_dlsym_args*))sysents[SYS_DYNLIB_DLSYM].sy_call;
+	if (!sys_dynlib_dlsym)
+		return -1;
+
+	int error;
+	struct dynlib_dlsym_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.handle = p_PrxId;
+	uap.symbol = p_FunctionName;
+	uap.address_out = (void**)p_DestinationFunctionOffset;
+
+	error = sys_dynlib_dlsym(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kdynlib_dlsym_t(int64_t p_PrxId, const char* p_FunctionName, void* p_DestinationFunctionOffset, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kdynlib_dlsym_internal(p_PrxId, p_FunctionName, p_DestinationFunctionOffset, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+// int kdynlib_load_prx_internal(const char* p_PrxPath, int* p_OutModuleId, struct thread* td)
+// {
+// 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+// 	struct sysent* sysents = sv->sv_table;
+// 	auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args*))sysents[SYS_DYNLIB_LOAD_PRX].sy_call;
+// 	if (!sys_dynlib_load_prx)
+// 		return -1;
+
+// 	int error;
+// 	struct dynlib_load_prx_args uap;
+
+// 	// clear errors
+// 	td->td_retval[0] = 0;
+
+// 	// call syscall
+// 	uap.path = const_cast<char*>(p_PrxPath);
+// 	uap.pRes = (uint64_t)p_OutModuleId;
+
+// 	error = sys_dynlib_load_prx(td, &uap);
+// 	if (error)
+// 		return -error;
+
+// 	// return socket
+// 	return td->td_retval[0];
+// }
+
+// int kdynlib_load_prx_t(const char* p_PrxPath, int* p_OutModuleId, struct thread* td)
+// {
+// 	int ret = -EIO;
+// 	int retry = 0;
+
+// 	for (;;)
+// 	{
+// 		ret = kdynlib_load_prx_internal(p_PrxPath, p_OutModuleId, td);
+// 		if (ret < 0)
+// 		{
+// 			if (ret == -EINTR)
+// 			{
+// 				if (retry > MaxInterruptRetries)
+// 					break;
+					
+// 				retry++;
+// 				continue;
+// 			}
+			
+// 			return ret;
+// 		}
+
+// 		break;
+// 	}
+
+// 	return ret;
+// }

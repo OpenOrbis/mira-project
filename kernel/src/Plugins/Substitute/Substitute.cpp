@@ -7,6 +7,7 @@
 #include <Utils/Kernel.hpp>
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Hook.hpp>
+
 #include <OrbisOS/Utilities.hpp>
 
 #include <Mira.hpp>
@@ -37,6 +38,7 @@ extern "C"
     #include <sys/syscall.h>
     #include <sys/syslimits.h>
     #include <sys/param.h>
+    #include <sys/dynlib.h>
 };
 
 using namespace Mira::Plugins;
@@ -1314,7 +1316,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
 
     char name[50]; // Todo: Find max name character !
     size_t done;
-    copyinstr(uap->name, name, sizeof(name), &done);
+    copyinstr(uap->symbol, name, sizeof(name), &done);
 
     // Process search for sysmodule preload symbol, give him a custom function instead
     if (strncmp("sceSysmodulePreloadModuleForLibkernel", name, sizeof(name)) == 0) {
@@ -1369,7 +1371,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
         }
 
         // Setup the new address instead of original
-        copyout(&s_PayloadEntrypoint, uap->result, sizeof(uint64_t));
+        copyout(&s_PayloadEntrypoint, uap->address_out, sizeof(uint64_t));
     }
 
     // Load every custom library !

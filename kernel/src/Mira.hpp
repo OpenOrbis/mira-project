@@ -33,6 +33,11 @@ namespace Mira
         class PluginManager;
     }
 
+    namespace Trainers
+    {
+        class TrainerManager;
+    }
+
     namespace Messaging
     {
         namespace Rpc
@@ -67,6 +72,7 @@ namespace Mira
 
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
+        Mira::Trainers::TrainerManager* m_TrainerManager;
 
         Mira::Driver::CtrlDriver* m_CtrlDriver;
 

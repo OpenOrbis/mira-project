@@ -23,6 +23,7 @@
 #include <Messaging/MessageManager.hpp>
 #include <Plugins/PluginManager.hpp>
 #include <Messaging/Rpc/Server.hpp>
+#include <Trainers/TrainerManager.hpp>
 
 #include <OrbisOS/Utilities.hpp>
 
@@ -79,6 +80,7 @@ Mira::Framework::Framework() :
 	m_ProcessExit(nullptr),
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
+	m_TrainerManager(nullptr),
 	m_CtrlDriver(nullptr)
 {
 
@@ -295,13 +297,27 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-  // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
-  struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-  if (ui_proc) {
-      Mira::OrbisOS::Utilities::KillProcess(ui_proc);
-  } else {
-      WriteLog(LL_Error, "Unable to find SceShellUI Process !");
-  }
+	// Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
+	struct proc* s_ShellUIProc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+	if (s_ShellUIProc)
+		Mira::OrbisOS::Utilities::KillProcess(s_ShellUIProc);
+	else
+		WriteLog(LL_Error, "Unable to find SceShellUI Process !");
+
+	// Initialize the trainer manager
+	m_TrainerManager = new Trainers::TrainerManager();
+	if (m_TrainerManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not initalize the trainer manager.");
+		return false;
+	}
+
+	// Load the trainer manager
+	if (!m_TrainerManager->OnLoad())
+	{
+		WriteLog(LL_Error, "could not load the trainer manager.");
+		return false;
+	}
   
 	return true;
 }
@@ -313,8 +329,20 @@ bool Mira::Framework::Terminate()
 		WriteLog(LL_Error, "could not unload plugin manager");
 
 	// Free the plugin manager
-	delete m_PluginManager;
-	m_PluginManager = nullptr;
+	if (m_PluginManager != nullptr)
+	{
+		delete m_PluginManager;
+		m_PluginManager = nullptr;
+	}
+
+	if (m_TrainerManager && !m_TrainerManager->OnUnload())
+		WriteLog(LL_Error, "could not unload trainer manager.");
+
+	if (m_TrainerManager != nullptr)
+	{
+		delete m_TrainerManager;
+		m_TrainerManager = nullptr;
+	}
 
 	// Remove all eventhandlers
 	if (!RemoveEventHandlers())

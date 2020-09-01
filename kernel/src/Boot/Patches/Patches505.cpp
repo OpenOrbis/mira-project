@@ -29,7 +29,7 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 
-	// sceSblACMgrIsAllowedSystemLevelDebugging
+	// sceSblACMgrIsDiagProcess
 	kmem = (uint8_t *)&gKernelBase[0x00010FC0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -38,6 +38,7 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
 
+	// sceSblACMgrIsAllowedSystemLevelDebugging
 	kmem = (uint8_t *)&gKernelBase[0x00011730];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -46,6 +47,7 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
 
+	// sceSblACMgrIsAllowedCoredump -> is this what it's meant to be?
 	kmem = (uint8_t *)&gKernelBase[0x00011750];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -71,6 +73,7 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[1] = 0x90;
 
 	// Enable MAP_SELF
+	// sceSblACMgrHasMmapSelfCapability
 	kmem = (uint8_t *)&gKernelBase[0x000117B0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -79,6 +82,7 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
 
+	// sceSblACMgrIsAllowedToMmapSelf
 	kmem = (uint8_t *)&gKernelBase[0x000117C0];
 	kmem[0] = 0xB8;
 	kmem[1] = 0x01;
@@ -87,6 +91,7 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[4] = 0x00;
 	kmem[5] = 0xC3;
 
+	// Patches call to sceSblAuthMgrIsLoadable in vm_mmap2
 	kmem = (uint8_t *)&gKernelBase[0x0013F03F];
 	kmem[0] = 0x31;
 	kmem[1] = 0xC0;

@@ -11,6 +11,31 @@ typedef STAILQ_HEAD(Struct_Objlist, Struct_Objlist_Entry) Objlist;
 struct dynlib_obj;
 struct dynlib_obj_dyn;
 struct dynlib;
+struct dynlib_load_prx_args;
+struct dynlib_dlsym_args;
+struct dynlib_get_obj_member;
+
+// Syscall 594 : sys_dynlib_load_prx
+struct dynlib_load_prx_args {
+    char*    path;  // const char *
+    uint64_t args;   // size_t
+    uint64_t argp;   // const void *
+    uint32_t flags;  // uint32_t
+    uint64_t pOpt;   // const SceKernelLoadModuleOpt *
+    uint64_t pRes;   // int *
+};
+
+struct dynlib_dlsym_args {
+    int32_t handle;
+    const char* symbol;
+    void** address_out;
+};
+
+struct dynlib_get_obj_member {
+    uint32_t handle;
+    uint32_t index;
+    uint64_t value;
+};
 
 // Thank you flatz for 1.62
 // Thank you ChendoChap for fixing newer fw's

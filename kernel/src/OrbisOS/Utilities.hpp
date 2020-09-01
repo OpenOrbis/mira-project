@@ -51,6 +51,8 @@ namespace Mira
             static int CreatePOSIXThread(struct proc* p, void* entrypoint);
             static int LoadPRXModule(struct proc* p, const char* prx_path);
             static int KillProcess(struct proc* p);
+
+            static int MountInSandbox(const char* p_RealPath, const char* p_SandboxPath, struct thread* p_Thread);
         };
     }
 }

@@ -1,13 +1,19 @@
 #pragma once
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+#include <Utils/Types.hpp>
 
-#include <cstdint>
-#include <cstdio>
-#include <errno.h>
-#include <string.h>
-#include <unistd.h>
+extern "C"
+{
+//#include <sys/mman.h>
+//#include <sys/stat.h>
+//#include <fcntl.h>
+
+//#include <cstdint>
+//#include <cstdio>
+//#include <errno.h>
+//#include <string.h>
+//#include <unistd.h>
+};
+
 
 #define TRAINER_SHARED_MEM_NAME    "_shm_mira"
 #define TRAINER_HEADER_BLOCK_SIZE   0x100000 // 1MB
@@ -122,7 +128,7 @@ typedef struct TrainerHeader_t
 } TrainerHeader;
 
 static_assert(sizeof(TrainerHeader) < TRAINER_HEADER_BLOCK_SIZE, "trainer too large to fit in page size");
-
+/*
 static inline void PrintVersion1Trainer(const TrainerUber& p_Uber)
 {
     // Print out all of the title id's
@@ -207,4 +213,4 @@ static inline void PrintTrainerOptions(const TrainerHeader& p_Trainer)
         fprintf(stderr, "err: unsupported trainer version.\n");
         break;
     }
-}
+}*/

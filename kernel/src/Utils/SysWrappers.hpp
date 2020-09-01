@@ -15,22 +15,6 @@ struct rusage;
 // Sony specific definition
 ///////////////////////////
 
-// Syscall 594 : sys_dynlib_load_prx
-struct dynlib_load_prx_args {
-    char*    path;  // const char *
-    uint64_t args;   // size_t
-    uint64_t argp;   // const void *
-    uint32_t flags;  // uint32_t
-    uint64_t pOpt;   // const SceKernelLoadModuleOpt *
-    uint64_t pRes;   // int *
-};
-
-struct dynlib_get_obj_member {
-    uint32_t handle;
-    uint32_t index;
-    uint64_t value;
-};
-
 struct sandbox_path_args {
     char* path;
 };
@@ -159,4 +143,12 @@ extern "C"
     extern int klinkat_t(int fd1, const char *path1, int fd2, const char *path2, int flag, struct thread* td);
 
     extern int ksandbox_path_t(char* path, struct thread* td);
+
+    extern int kshm_open(const char *, int, mode_t, struct thread* td);
+
+    extern int kshm_unlink_t(const char *, struct thread* td);
+
+    extern int kdynlib_dlsym_t(int64_t p_PrxId, const char* p_FunctionName, void* p_DestinationFunctionOffset, struct thread* td);
+
+    //extern int kdynlib_load_prx_t(const char* p_PrxPath, int* p_OutModuleId, struct thread* td);
 };

@@ -16,11 +16,11 @@ extern "C"
 struct proc;
 struct mtx;
 
-struct dynlib_dlsym_args {
-    int id;
-    char* name;
-    uint64_t* result;
-};
+// struct dynlib_dlsym_args {
+//     int id;
+//     char* name;
+//     uint64_t* result;
+// };
 
 struct entrypointhook_header {
     uint32_t magic;
