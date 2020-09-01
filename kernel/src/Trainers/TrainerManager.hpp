@@ -50,6 +50,7 @@ namespace Mira
         public:
             enum
             {
+                MaxPrxPath = 256,
                 MaxShmIdLength = 10,
                 MaxShms = 16
             };
@@ -58,6 +59,14 @@ namespace Mira
             {
                 char Id[MaxShmIdLength];
             } TrainerShm;
+
+            typedef struct TrainerBoot_t
+            {
+                uint64_t OrigEntry;
+
+                // This is the folder that we will search for .prx files to load
+                char TrainerFolder[MaxPrxPath];
+            } TrainerBoot;
 
         private:
             // Total amount of proxied shm's

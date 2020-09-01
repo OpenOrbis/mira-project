@@ -288,14 +288,14 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
 
         // Get the address of the entrypoint
         void* s_ModuleStart = nullptr;
-        s_Ret = kdynlib_dlsym_t(s_PrxHandle, "module_start", &s_ModuleStart, s_TargetProcMainThread);
+        s_Ret = kdynlib_dlsym_t(s_PrxHandle, "module_load", &s_ModuleStart, s_TargetProcMainThread);
         if (s_Ret != 0)
         {
             WriteLog(LL_Error, "dynlib_dlsym returned (%d).", s_Ret);
             break;
         }
 
-        WriteLog(LL_Error, "module_start: (%p).", s_ModuleStart);
+        WriteLog(LL_Error, "module_load: (%p).", s_ModuleStart);
 
         // Validate the module starting address
         if (s_ModuleStart == nullptr)
@@ -323,6 +323,13 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
 
 bool TrainerManager::PayloadInjection()
 {
+    // This must be called from sv_fixup in the sysentvec
+
+    // TODO: Require the payload to inject
+
+    // dlsym the object (TrainerBoot)
+    
+
     return false;
 }
 
