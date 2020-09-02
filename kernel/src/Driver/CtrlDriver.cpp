@@ -668,7 +668,7 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
 
             do
             {
-                if (p_ThreadId == -1 || l_Thread->td_tid == p_ThreadId)
+                if (p_ThreadId <= 0 || l_Thread->td_tid == p_ThreadId)
                 {
                     auto l_ThreadCredential = l_Thread->td_ucred;
                     if (l_ThreadCredential == nullptr)
@@ -680,8 +680,11 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
                     // ucred
                     l_ThreadCredential->cr_uid = p_Input.EffectiveUserId;
                     l_ThreadCredential->cr_ruid = p_Input.RealUserId;
+
                     l_ThreadCredential->cr_svuid  = p_Input.SavedUserId;
+
                     l_ThreadCredential->cr_ngroups  = p_Input.NumGroups;
+
                     l_ThreadCredential->cr_rgid  = p_Input.RealGroupId;
                     l_ThreadCredential->cr_svgid  = p_Input.SavedGroupId;
 

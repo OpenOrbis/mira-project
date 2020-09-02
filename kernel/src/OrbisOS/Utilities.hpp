@@ -30,17 +30,7 @@ namespace Mira
     {
         class Utilities
         {
-        private:
-            static Utilities* m_Instance;
-
-            Utilities();
-
-        protected:
-            
-
         public:
-            static Utilities* GetInstance();
-
             static void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
             static uint64_t PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_DestAddress, void* p_ToReadWriteAddress, size_t p_ToReadWriteSize);
             static struct ::proc* FindProcessByName(const char* name);
