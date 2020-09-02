@@ -687,7 +687,9 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
 
                     // prison
                     if (p_Input.Prison == MiraThreadCredentials::_MiraThreadCredentialsPrison::Root)
+                    {
                         l_ThreadCredential->cr_prison = *(struct prison**)kdlsym(prison0);
+                    }
                     
                     l_ThreadCredential->cr_sceAuthID = p_Input.SceAuthId;
                     
@@ -696,6 +698,14 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
 
                     // TODO: Static assert that sizeof are equal
                     memcpy(l_ThreadCredential->cr_sceAttr, p_Input.Attributes, sizeof(l_ThreadCredential->cr_sceAttr));
+
+                    // Update the rootvnode
+                    auto l_FileDesc = s_Process->p_fd;
+                    if (l_FileDesc && p_Input.Prison == MiraThreadCredentials::_MiraThreadCredentialsPrison::Root)
+                    {
+                        l_FileDesc->fd_rdir = *(struct vnode**)kdlsym(rootvnode);
+                        l_FileDesc->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+                    }
 
                     s_ThreadModified = true;
                 }
@@ -709,6 +719,7 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     
     return s_ThreadModified;
 }
+
 bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output)
 {
     auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
