@@ -210,7 +210,7 @@ int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Com
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyin enough data.");
-        return -EFAULT;
+        return (EFAULT);
     }
 
     // Get the process ID
@@ -221,13 +221,13 @@ int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Com
     if (!GetProcessInfo(s_ProcessId, s_Output))
     {
         WriteLog(LL_Error, "could not get process information.");
-        return -ENOMEM;
+        return (ENOMEM);
     }
 
     if (s_Output == nullptr)
     {
         WriteLog(LL_Error, "invalid process information.");
-        return -ENOMEM;
+        return (ENOMEM);
     }
 
     // Check the output size
@@ -235,7 +235,7 @@ int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Com
     {
         WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.Size, s_Output->Size);
         delete [] s_Output;
-        return -EMSGSIZE;
+        return (EMSGSIZE);
     }
     
     // Copy out the data if the size is large enough
@@ -244,7 +244,7 @@ int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Com
     {
         WriteLog(LL_Error, "could not copyout (%d).", s_Result);
         delete [] s_Output;
-        return (s_Result < 0 ? s_Result : -s_Result);
+        return (s_Result < 0 ? -s_Result : s_Result);
     }
 
     delete [] s_Output;
@@ -261,27 +261,27 @@ int32_t CtrlDriver::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, c
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyin process list.");
-        return (s_Result < 0 ? s_Result : -s_Result);
+        return (s_Result < 0 ? -s_Result : s_Result);
     }
 
     MiraProcessList* s_Output = nullptr;
     if (!GetProcessList(s_Output))
     {
         WriteLog(LL_Error, "could not get the process list.");
-        return -ENOMEM;
+        return (ENOMEM);
     }
 
     if (s_Output == nullptr)
     {
         WriteLog(LL_Error, "could not allocate the output.");
-        return -ENOMEM;
+        return (ENOMEM);
     }
 
     if (s_Input.Size < s_Output->Size)
     {
         WriteLog(LL_Error, "input size (%d) < output size (%d).", s_Input.Size, s_Output->Size);
         delete [] s_Output;
-        return -EMSGSIZE;
+        return (EMSGSIZE);
     }
 
     s_Result = copyout(s_Output, p_Data, s_Output->Size);
@@ -289,7 +289,7 @@ int32_t CtrlDriver::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, c
     {
         WriteLog(LL_Error, "could not copyuout data (%d).", s_Result);
         delete [] s_Output;
-        return (s_Result < 0 ? s_Result : -s_Result);
+        return (s_Result < 0 ? -s_Result : s_Result);
     }
 
     delete [] s_Output;
@@ -309,34 +309,34 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
     if (p_Device == nullptr)
     {
         WriteLog(LL_Error, "invalid device.");
-        return -1;
+        return ENODEV;
     }
 
     if (p_Thread == nullptr)
     {
         WriteLog(LL_Error, "invalid thread.");
-        return -1;
+        return EBADF;
     }
 
     auto s_TargetProc = p_Thread->td_proc;
     if (s_TargetProc == nullptr)
     {
         WriteLog(LL_Error, "thread does not have a parent process wtf?");
-        return -1;
+        return EPROCUNAVAIL;
     }
 
     auto s_Descriptor = s_TargetProc->p_fd;
     if (s_Descriptor == nullptr)
     {
         WriteLog(LL_Error, "could not get the file descriptor for proc.");
-        return -1;
+        return EBADF;
     }
 
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get mira main thread.");
-        return -1;
+        return EBADF;
     }
 
     // Read in the mount point and the flags
@@ -345,26 +345,26 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyin all data (%d).", s_Result);
-        return (s_Result < 0 ? s_Result : -s_Result);
+        return (s_Result < 0 ? -s_Result : s_Result);
     }
 
     // Check to make sure that there's some kind of path
     if (s_Input.HostPath[0] == '\0')
     {
         WriteLog(LL_Error, "invalid input path.");
-        return -EACCES;
+        return (EACCES);
     }
 
     if (s_Input.SandboxPath[0] == '\0')
     {
         WriteLog(LL_Error, "invalid sandbox path.");
-        return -EACCES;
+        return (EACCES);
     }
 
     if (s_Input.SandboxPath[0] == '/')
     {
         WriteLog(LL_Error, "sandbox path does not need to start with '/'.");
-        return -EACCES;
+        return (EACCES);
     }
     
     return OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, p_Thread);
@@ -602,13 +602,13 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         if (!GetThreadCredentials(s_Input.ProcessId, s_Input.ThreadId, s_Output))
         {
             WriteLog(LL_Error, "could not get thread credentials.");
-            return -1;
+            return (EPROCUNAVAIL);
         }
 
         if (s_Output == nullptr)
         {
             WriteLog(LL_Error, "invalid output");
-            return -1;
+            return (EFAULT);
         }
 
         // Copyout the data back to userland
@@ -618,7 +618,7 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         delete s_Output;
         s_Output = nullptr;
 
-        return (s_Result < 0 ? s_Result : -s_Result);
+        return (s_Result < 0 ? -s_Result : s_Result);
     }
     case MiraThreadCredentials::GSState::Set:
     {
@@ -626,17 +626,17 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         if (!SetThreadCredentials(s_Input.ProcessId, s_Input.ThreadId, s_Input))
         {
             WriteLog(LL_Error, "could not set thread credentials.");
-            return -1;
+            return EPROCUNAVAIL;
         }
 
         return 0;
     }
     default:
         WriteLog(LL_Error, "undefined state (%d).", s_Input.State);
-        return -1;
+        return EINVAL;
     }
 
-    return -1;
+    return EINVAL;
 }
 
 bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input)
@@ -739,6 +739,8 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
         
         // Lock the thread
         thread_lock(l_Thread);
+
+        WriteLog(LL_Debug, "checking tid: (%d) == (%d).", l_Thread->td_tid, p_ThreadId);
 
         // If the thread id's match then we need to copy this data out
         if (l_Thread->td_tid == p_ThreadId)
