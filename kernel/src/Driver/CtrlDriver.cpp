@@ -158,6 +158,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 {
     //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    p_Command = p_Command & 0xFFFFFFFF; // Clear the upper32
 
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
@@ -587,6 +588,10 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         return (s_Result < 0 ? s_Result : -s_Result);
     }
 
+    // Failsafe in case that a provided number is 0 or negative
+    if (s_Input.ThreadId <= 0)
+        s_Input.ThreadId = p_Thread->td_tid;
+
     MiraThreadCredentials* s_Output = nullptr;
 
     switch (s_Input.State)
@@ -726,10 +731,9 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     MiraThreadCredentials* s_Credentials = nullptr;
 
     struct thread* l_Thread = nullptr;
+    bool s_TidFound = false;
     FOREACH_THREAD_IN_PROC(s_Process, l_Thread)
     {
-        bool s_TidFound = false;
-
         if (l_Thread == nullptr)
             continue;
         
@@ -798,6 +802,10 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     
     // Unlock the process
     _mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+    // Extra debugging output
+    if (s_TidFound == false)
+        WriteLog(LL_Error, "could not find thread id (%d).", p_ThreadId);
 
     // Check if we got any credentials
     if (s_Credentials == nullptr)
