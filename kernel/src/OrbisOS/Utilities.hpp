@@ -6,8 +6,8 @@ struct proc;
 struct thread;
 
 #define ASSIST_IOCTL 0x40048806
-#define IS_TESTKIT 1
-#define IS_NOT_TESTKIT 0
+#define IS_TESTKIT true
+#define IS_NOT_TESTKIT false
 
 struct posixldr_header {
     uint32_t magic;
@@ -45,10 +45,8 @@ namespace Mira
         public:
             static Utilities* GetInstance();
 
-            static int isAssistMode();
- #if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
-            static int isTestkit();
-#endif
+            static bool isAssistMode();
+            static bool isTestkit();
             static void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
             static uint64_t PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_DestAddress, void* p_ToReadWriteAddress, size_t p_ToReadWriteSize);
             static struct ::proc* FindProcessByName(const char* name);

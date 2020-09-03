@@ -86,51 +86,60 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         return (uint64_t)s_Desc.piod_len;
 }
 
-int Utilities::isAssistMode()
+bool Utilities::isAssistMode()
 {
 char out = -1;
 
-int descriptor = kopen_t(const_cast<char*>("/dev/dipsw"), 0, 0, curthread);
-if(descriptor >= 0)
+
+        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        if (s_MainThread == nullptr)
+        {
+            WriteLog(LL_Error, "could not get main thread");
+            return false;
+        }
+
+int descriptor = kopen_t(const_cast<char*>("/dev/dipsw"), 0, 0, s_MainThread);
+if(0 > descriptor)
 {
 WriteLog(LL_Debug, "/dev/dipsw: %d", descriptor);
 
-  if (int32_t s_ErrorIoctl = kioctl_t(descriptor, ASSIST_IOCTL, &out, curthread) < 0)
+  if (int32_t s_ErrorIoctl = kioctl_t(descriptor, ASSIST_IOCTL, &out, s_MainThread) < 0)
    {
         WriteLog(LL_Error, "unable to get DIPSW (%d).", s_ErrorIoctl);
         kclose_t(descriptor, curthread);
-        return -1;
+        return false;
     }
 else
 {
-kclose_t(descriptor, curthread);
-return out;
+kclose_t(descriptor, s_MainThread);
+if(out == 1)
+ return true;
 }
 
 }
 else
 {
 WriteLog(LL_Debug, "/dev/dipsw failed: %d", descriptor);
-return -1;
+return false;
 }
 
-return -1;
+return false;
 
 }
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
-int Utilities::isTestkit()
+
+bool Utilities::isTestkit()
 {
 
 char target_id_addr = *(char *)kdlsym(target_id);
 int testkit_mem_block[] = {0x82};
 
  if (memcmp(&target_id_addr, &testkit_mem_block, 1) == 0)
-   return IS_TESTKIT;
+   return true;
  else
-  return IS_NOT_TESTKIT;
+  return false;
 }
-#endif
+
 
 // Credits: flatz (https://github.com/flatz)
 int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_BytesReadWrote, bool p_Write)
@@ -252,7 +261,7 @@ int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entr
 	vm_map_entry_t entry = nullptr;
 	size_t n, i = 0;
 	int ret = 0;
-    size_t allocSize = 0;// n * sizeof(*info);
+        size_t allocSize = 0;// n * sizeof(*info);
 
 	if (!p_Process) {
 		ret = EINVAL;

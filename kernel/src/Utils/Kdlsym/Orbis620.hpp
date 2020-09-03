@@ -213,6 +213,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_deci_tty_write                                      0x00185B00
 #define kdlsym_addr_cloneuio                                            0x00396310
 #define kdlsym_addr_printf_hook                                         0x01A9FD28
+#define kdlsym_addr_target_id                                           0x0215DB8D
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
 #define ssc_sceKernelIsGenuineCEX_patchA  0x00186170

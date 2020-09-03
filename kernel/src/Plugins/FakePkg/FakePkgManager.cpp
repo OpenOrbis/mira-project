@@ -385,7 +385,11 @@ void FakePkgManager::ProcessStartEvent(void *arg, struct ::proc *p)
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
     if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
-        ShellUIPatch();
+        if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+     WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");}
+else{
+    ShellUIPatch();
+}
     }
 
     return;
@@ -401,17 +405,13 @@ bool FakePkgManager::OnLoad()
     }
 
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+
 if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
-     WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");}
+     WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");}
 else{
     ShellCorePatch();
     ShellUIPatch();
 }
-#else
-ShellCorePatch();
-ShellUIPatch();
-#endif
 
     
 

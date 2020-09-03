@@ -296,12 +296,11 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-
 // causes testkit IPC to kpanic the console on relaunch 
 //////////////////////////////////////////////////////////////
 
 if( OrbisOS::Utilities::isAssistMode() == IS_TESTKIT ||  OrbisOS::Utilities::isTestkit() == IS_TESTKIT){
-     WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");
+     WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");
 }
 else{
      struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
@@ -313,8 +312,6 @@ else{
   }
 }
 
-  
-  
 	return true;
 }
 

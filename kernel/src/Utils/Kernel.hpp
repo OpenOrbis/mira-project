@@ -32,7 +32,7 @@ typedef struct _ProcVmMapEntry
 #ifdef __cplusplus
 typedef enum SceAuthenticationId_t : uint64_t
 {
-    sceSblACMgrIsAllowedToUsePupUpdate0 = 0x3800100000000001ULL,
+   
     SceVdecProxy = 0x3800000000000003ULL, //same as SceSpkService 
     SceVencProxy = 0x3800000000000004ULL,
     Orbis_audiod = 0x3800000000000005ULL,
@@ -54,6 +54,7 @@ typedef enum SceAuthenticationId_t : uint64_t
     UNK_ICC = 0x3800800000000024ULL,
     SceCloudClientDaemon = 0x3800000000000028ULL,
     fs_cleaner = 0x380000000000001dULL,
+     sceSblACMgrIsAllowedToUsePupUpdate0 = 0x3800100000000001ULL,
     SceNKWebProcess = 0x3800000000010003ULL,
     SecureWebProcess = 0x3800000010000003ULL,
     SecureUIProcess = 0x3800000000000033ULL,

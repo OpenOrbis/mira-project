@@ -173,6 +173,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vsnprintf                              0xDEADCODE
 #define kdlsym_addr_wakeup                                 0xDEADCODE
 #define kdlsym_addr_Xfast_syscall                          0xDEADCODE
+#define kdlsym_addr_target_id                              0xDEADCODE
 
 // FakeSelf hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0xDEADCODE
