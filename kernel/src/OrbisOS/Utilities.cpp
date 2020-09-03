@@ -99,14 +99,14 @@ char out = -1;
         }
 
 int descriptor = kopen_t(const_cast<char*>("/dev/dipsw"), 0, 0, s_MainThread);
-if(0 > descriptor)
+if(0 < descriptor)
 {
 WriteLog(LL_Debug, "/dev/dipsw: %d", descriptor);
 
   if (int32_t s_ErrorIoctl = kioctl_t(descriptor, 0x40048806, &out, s_MainThread) < 0)
    {
         WriteLog(LL_Error, "unable to get DIPSW (%d).", s_ErrorIoctl);
-        kclose_t(descriptor, curthread);
+        kclose_t(descriptor, s_MainThread);
         return false;
     }
 else
@@ -114,6 +114,8 @@ else
 kclose_t(descriptor, s_MainThread);
 if(out == 1)
  return true;
+else
+return false;
 }
 
 }
@@ -131,10 +133,9 @@ return false;
 bool Utilities::isTestkit()
 {
 
-char target_id_addr = *(char *)kdlsym(target_id);
-int testkit_mem_block[] = {0x82};
+WriteLog(LL_Debug, "Target ID Reported as (%x)\n", *(uint8_t*)kdlsym(target_id));
 
- if (memcmp(&target_id_addr, &testkit_mem_block, 1) == 0)
+   if(*(uint8_t*)kdlsym(target_id) == 0x82)
    return true;
  else
   return false;
