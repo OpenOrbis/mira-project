@@ -296,25 +296,24 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-struct proc* ui_proc = nullptr;
+
 // causes testkit IPC to kpanic the console on relaunch 
 //////////////////////////////////////////////////////////////
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+
 if( OrbisOS::Utilities::isAssistMode() == IS_TESTKIT ||  OrbisOS::Utilities::isTestkit() == IS_TESTKIT){
      WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");
 }
 else{
-     ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-}
-#else
-  ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-#endif
-
-  if (ui_proc) {
+     struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+	
+     if (ui_proc) {
       Mira::OrbisOS::Utilities::KillProcess(ui_proc);
   } else {
       WriteLog(LL_Error, "Unable to find SceShellUI Process !");
   }
+}
+
+  
   
 	return true;
 }
