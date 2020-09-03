@@ -115,7 +115,7 @@ bool PluginManager::OnLoad()
 
 
 #if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
-if( OrbisOS::Utilities::isAssistMode() == IS_TESTKIT ||  OrbisOS::Utilities::isTestkit() == IS_TESTKIT){
+if( OrbisOS::Utilities::isAssistMode() == true ||  OrbisOS::Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, no Substitute it breaks testkits\n");
 	  m_Substitute = nullptr;
 	  s_Success = true;

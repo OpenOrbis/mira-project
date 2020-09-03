@@ -103,7 +103,7 @@ if(0 > descriptor)
 {
 WriteLog(LL_Debug, "/dev/dipsw: %d", descriptor);
 
-  if (int32_t s_ErrorIoctl = kioctl_t(descriptor, ASSIST_IOCTL, &out, s_MainThread) < 0)
+  if (int32_t s_ErrorIoctl = kioctl_t(descriptor, 0x40048806, &out, s_MainThread) < 0)
    {
         WriteLog(LL_Error, "unable to get DIPSW (%d).", s_ErrorIoctl);
         kclose_t(descriptor, curthread);

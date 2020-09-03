@@ -5,10 +5,6 @@
 struct proc;
 struct thread;
 
-#define ASSIST_IOCTL 0x40048806
-#define IS_TESTKIT true
-#define IS_NOT_TESTKIT false
-
 struct posixldr_header {
     uint32_t magic;
     uint64_t entrypoint;

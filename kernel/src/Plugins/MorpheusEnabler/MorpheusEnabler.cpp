@@ -37,7 +37,7 @@ void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
     if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
        
-if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
 }
 else
  DoPatch(); 
@@ -127,7 +127,7 @@ bool MorpheusEnabler::OnLoad()
     m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
 
-if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");
 return true;
 }

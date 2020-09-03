@@ -385,7 +385,7 @@ void FakePkgManager::ProcessStartEvent(void *arg, struct ::proc *p)
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
     if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
-        if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+        if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");}
 else{
     ShellUIPatch();
@@ -406,7 +406,7 @@ bool FakePkgManager::OnLoad()
 
 
 
-if(Utilities::isAssistMode() == IS_TESTKIT || Utilities::isTestkit() == IS_TESTKIT){
+if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");}
 else{
     ShellCorePatch();
