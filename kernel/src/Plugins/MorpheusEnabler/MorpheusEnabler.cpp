@@ -37,11 +37,11 @@ void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
     if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
        
-if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
+if(Utilities::isAssistMode() == false || Utilities::isTestkit() == false){
+ DoPatch();
 }
-else
- DoPatch(); 
-  }
+}
+
 
     return;
 }
@@ -134,6 +134,7 @@ return true;
 else{
     return DoPatch();
 }
+
 }
 
 bool MorpheusEnabler::OnUnload()

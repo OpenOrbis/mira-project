@@ -36,7 +36,7 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+
 if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, No ShellUI patches well be applied\n");
 }
@@ -44,10 +44,6 @@ else{
    if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
 		ShellUIPatch();
 }
-#else
-if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
-		ShellUIPatch();
-#endif
 	
 	
 
@@ -60,15 +56,12 @@ if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") =
 void RemotePlayEnabler::ResumeEvent()
 {
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
 if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, No ShellUI patches well be applied\n");}
 else{
     ShellUIPatch();
 }
-#else
-ShellUIPatch();
-#endif
+
 	
 	RemotePlayPatch();
 	WriteLog(LL_Debug, "InstallEventHandlers finished");
@@ -277,7 +270,7 @@ auto s_Ret = RemotePlayPatch();
 		return false;
 	}
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
+
 if(Utilities::isAssistMode() == true || Utilities::isTestkit() == true){
      WriteLog(LL_Debug, "Testkit Detected, No ShellUI patches well be applied\n");
 }
@@ -288,15 +281,6 @@ else{
 		return false;
 	}
 }
-#else
- s_Ret = ShellUIPatch();
-	if (s_Ret == false) {
-		WriteLog(LL_Error, "could not patch SceShellUI");
-		return false;
-	}
-#endif
-
-
 	
 
 	return true;

@@ -122,6 +122,7 @@ extern "C" void mira_entry(void* args)
 		return;
 	}
 
+
 	printf("[+] starting logging\n");
 	auto s_Logger = Mira::Utils::Logger::GetInstance();
 	if (!s_Logger)
@@ -130,6 +131,7 @@ extern "C" void mira_entry(void* args)
 		kthread_exit();
 		return;
 	}
+
 	// Create new credentials
 	WriteLog(LL_Debug, "Creating new thread credentials");
 	(void)ksetuid_t(0, curthread);
@@ -193,11 +195,13 @@ extern "C" void mira_entry(void* args)
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
+
 	WriteLog(LL_Debug, "Creating initial 3 file descriptors (0, 1, 2).");
 	int descriptor = kopen_t(const_cast<char*>("/dev/console"), 1, 0, curthread);
 	WriteLog(LL_Debug, "/dev/console descriptor: %d", descriptor);
 	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2_t(descriptor, 1, curthread));
 	WriteLog(LL_Info, "dup2(1, 2) result: %d", kdup2_t(1, 2, curthread));
+
 
 	// Show over UART that we are running in a new process
 	WriteLog(LL_Info, "oni_kernelInitialization in new process!\n");
@@ -300,7 +304,7 @@ bool Mira::Framework::Initialize()
 //////////////////////////////////////////////////////////////
 
 if( OrbisOS::Utilities::isAssistMode() == true ||  OrbisOS::Utilities::isTestkit() == true){
-     WriteLog(LL_Debug, "Testkit Detected, No patches well be applied\n");
+     WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");
 }
 else{
      struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");

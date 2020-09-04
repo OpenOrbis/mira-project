@@ -88,44 +88,31 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
 
 bool Utilities::isAssistMode()
 {
-char out = -1;
+        char rtv[32];
 
+        //I reversed the func params myself, thnx sony for the ez params
+        auto sceRegMgrGetBin = (uint32_t(*)(uint32_t p_Id, char* p_OutValue, size_t size))kdlsym(sceRegMgrGetBin);
 
-        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-        if (s_MainThread == nullptr)
+        // 0x78020300 is Release Check Mode  regkey ONLY KITS HAVE IT
+        auto s_Ret = sceRegMgrGetBin(0x78020300, (char*)&rtv, 32);
+
+	if (s_Ret != 0)
+	{ 
+                //retail will likely error out
+		WriteLog(LL_Debug, "IS_RETAIL with code (0x%lx)\n", s_Ret);
+		return false;
+	} else if (*rtv == 0x4) {
+		WriteLog(LL_Info, "Is in bootmode AssistMode");
+		return true;
+	}
+        else
         {
-            WriteLog(LL_Error, "could not get main thread");
-            return false;
+          WriteLog(LL_Debug, "Bootmode returned with key val (0x%x)\n", *rtv);
+           return false;
         }
 
-int descriptor = kopen_t(const_cast<char*>("/dev/dipsw"), 0, 0, s_MainThread);
-if(0 < descriptor)
-{
-WriteLog(LL_Debug, "/dev/dipsw: %d", descriptor);
 
-  if (int32_t s_ErrorIoctl = kioctl_t(descriptor, 0x40048806, &out, s_MainThread) < 0)
-   {
-        WriteLog(LL_Error, "unable to get DIPSW (%d).", s_ErrorIoctl);
-        kclose_t(descriptor, s_MainThread);
-        return false;
-    }
-else
-{
-kclose_t(descriptor, s_MainThread);
-if(out == 1)
- return true;
-else
-return false;
-}
-
-}
-else
-{
-WriteLog(LL_Debug, "/dev/dipsw failed: %d", descriptor);
-return false;
-}
-
-return false;
+       return false;
 
 }
 

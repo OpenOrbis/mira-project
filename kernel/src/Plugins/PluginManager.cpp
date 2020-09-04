@@ -76,6 +76,13 @@ bool PluginManager::OnLoad()
         if (!m_SyscallGuard->OnLoad())
             WriteLog(LL_Error, "could not load syscall guard.");*/
 
+if( OrbisOS::Utilities::isAssistMode() == true ||  OrbisOS::Utilities::isTestkit() == true){
+              WriteLog(LL_Debug, "Skipping Logmanager due to Testkit lock on klog.");
+
+}
+else
+{
+
         // Initialize Logger
         m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
         if (m_Logger == nullptr)
@@ -85,6 +92,8 @@ bool PluginManager::OnLoad()
         }
         if (!m_Logger->OnLoad())
             WriteLog(LL_Error, "could not load logmanager");
+}
+
 
         // Initialize file manager
         m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
@@ -114,14 +123,13 @@ bool PluginManager::OnLoad()
         }
 
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
 if( OrbisOS::Utilities::isAssistMode() == true ||  OrbisOS::Utilities::isTestkit() == true){
-     WriteLog(LL_Debug, "Testkit Detected, no Substitute it breaks testkits\n");
-	  m_Substitute = nullptr;
-	  s_Success = true;
-	  }
-else{
-    m_Substitute = new Mira::Plugins::Substitute();
+              m_Substitute = nullptr;
+              WriteLog(LL_Debug, "Skipping Substitute.");
+}
+else
+{
+            m_Substitute = new Mira::Plugins::Substitute();
 	    if (m_Substitute == nullptr)
         {
             WriteLog(LL_Error, "could not allocate substitute.");
@@ -129,15 +137,7 @@ else{
             break;
         }
 }
-#else
- m_Substitute = new Mira::Plugins::Substitute();
-        if (m_Substitute == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate substitute.");
-            s_Success = false;
-            break;
-        }
-#endif
+
 
 
 
@@ -169,6 +169,14 @@ else{
         }
 
         // Initialize TTYRedirector
+if( OrbisOS::Utilities::isAssistMode() == true ||  OrbisOS::Utilities::isTestkit() == true){
+        m_TTYRedirector = nullptr;
+ WriteLog(LL_Debug, "Skipping TTYRedirect as testkits already have it by default\n");
+
+}
+else
+{
+
         m_TTYRedirector = new Mira::Plugins::TTYRedirector();
         if (m_TTYRedirector == nullptr)
         {
@@ -176,6 +184,8 @@ else{
             s_Success = false;
             break;
         }
+}
+
     } while (false);
 
     if (m_Debugger)
