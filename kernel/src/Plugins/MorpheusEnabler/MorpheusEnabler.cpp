@@ -36,8 +36,9 @@ void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
     if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
-        DoPatch();
-    }
+       DoPatch();
+	}
+
 
     return;
 }
@@ -122,7 +123,10 @@ bool MorpheusEnabler::OnLoad()
     m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
     m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
-	return DoPatch();
+
+    return DoPatch();
+
+
 }
 
 bool MorpheusEnabler::OnUnload()

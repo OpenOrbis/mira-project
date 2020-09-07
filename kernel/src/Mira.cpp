@@ -42,26 +42,28 @@
 //
 extern "C"
 {
-	#include <sys/eventhandler.h>
-	#include <sys/sysent.h>					// sysent_t
-	#include <sys/proc.h>					// proc
-	#include <sys/filedesc.h>				// filedesc
-	#include <vm/vm.h>
-	#include <vm/pmap.h>
-	#include <machine/trap.h>
-	#include <machine/pmap.h>
-	#include <machine/psl.h>
-	#include <machine/segments.h>
-	#include <machine/trap.h>
+#include <sys/eventhandler.h>
+#include <sys/sysent.h>	  // sysent_t
+#include <sys/proc.h>	  // proc
+#include <sys/filedesc.h> // filedesc
+#include <vm/vm.h>
+#include <vm/pmap.h>
+#include <machine/trap.h>
+#include <machine/pmap.h>
+#include <machine/psl.h>
+#include <machine/segments.h>
+#include <machine/trap.h>
 }
 
+const char *gNull = "(null)";
+uint8_t *gKernelBase = nullptr;
+struct logger_t *gLogger = nullptr;
+using namespace Mira::OrbisOS;
 
-const char* gNull = "(null)";
-uint8_t* gKernelBase = nullptr;
-struct logger_t* gLogger = nullptr;
+bool is_Kit;
 
-Mira::Framework* Mira::Framework::m_Instance = nullptr;
-Mira::Framework* Mira::Framework::GetFramework()
+Mira::Framework *Mira::Framework::m_Instance = nullptr;
+Mira::Framework *Mira::Framework::GetFramework()
 {
 	if (m_Instance == nullptr)
 		m_Instance = new Mira::Framework();
@@ -69,19 +71,17 @@ Mira::Framework* Mira::Framework::GetFramework()
 	return m_Instance;
 }
 
-Mira::Framework::Framework() :
-	m_InitParams(),
-	m_EventHandlersInstalled(false),
-	m_SuspendTag(nullptr),
-	m_ResumeTag(nullptr),
-	m_ProcessExec(nullptr),
-	m_ProcessExecEnd(nullptr),
-	m_ProcessExit(nullptr),
-	m_PluginManager(nullptr),
-	m_MessageManager(nullptr),
-	m_CtrlDriver(nullptr)
+Mira::Framework::Framework() : m_InitParams(),
+							   m_EventHandlersInstalled(false),
+							   m_SuspendTag(nullptr),
+							   m_ResumeTag(nullptr),
+							   m_ProcessExec(nullptr),
+							   m_ProcessExecEnd(nullptr),
+							   m_ProcessExit(nullptr),
+							   m_PluginManager(nullptr),
+							   m_MessageManager(nullptr),
+							   m_CtrlDriver(nullptr)
 {
-
 }
 
 Mira::Framework::~Framework()
@@ -92,10 +92,10 @@ Mira::Framework::~Framework()
 		WriteLog(LL_Info, "terminated successfully");
 }
 
-extern "C" void mira_entry(void* args)
+extern "C" void mira_entry(void *args)
 {
 	// Fill the kernel base address
-	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
+	gKernelBase = (uint8_t *)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
 
 	cpu_disable_wp();
 
@@ -103,20 +103,20 @@ extern "C" void mira_entry(void* args)
 
 	cpu_enable_wp();
 
-    auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+	auto kthread_exit = (void (*)(void))kdlsym(kthread_exit);
 	//auto kproc_exit = (void(*)(int ecode))kdlsym(kproc_exit);
-	auto vmspace_alloc = (struct vmspace* (*)(vm_offset_t min, vm_offset_t max))kdlsym(vmspace_alloc);
-	auto pmap_activate = (void(*)(struct thread *td))kdlsym(pmap_activate);
-	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
+	auto vmspace_alloc = (struct vmspace * (*)(vm_offset_t min, vm_offset_t max)) kdlsym(vmspace_alloc);
+	auto pmap_activate = (void (*)(struct thread * td)) kdlsym(pmap_activate);
+	auto printf = (void (*)(const char *format, ...))kdlsym(printf);
 	//auto avcontrol_sleep = (void(*)(int milliseconds))kdlsym(avcontrol_sleep);
 
-    // Let'em know we made it
+	// Let'em know we made it
 	printf("[+] mira has reached stage 2\n");
 
-    // These are the initialization parameters from the loader
-    Mira::Boot::InitParams* initParams = static_cast<Mira::Boot::InitParams*>(args);
-    if (initParams == nullptr)
-    {
+	// These are the initialization parameters from the loader
+	Mira::Boot::InitParams *initParams = static_cast<Mira::Boot::InitParams *>(args);
+	if (initParams == nullptr)
+	{
 		printf("[-] no init params\n");
 		kthread_exit();
 		return;
@@ -130,6 +130,7 @@ extern "C" void mira_entry(void* args)
 		kthread_exit();
 		return;
 	}
+
 	// Create new credentials
 	WriteLog(LL_Debug, "Creating new thread credentials");
 	(void)ksetuid_t(0, curthread);
@@ -146,10 +147,10 @@ extern "C" void mira_entry(void* args)
 		curthread->td_ucred->cr_ruid = 0;
 
 		if (curthread->td_ucred->cr_prison)
-			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
+			curthread->td_ucred->cr_prison = *(struct prison **)kdlsym(prison0);
 
 		if (curthread->td_proc->p_fd)
-			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode **)kdlsym(rootvnode);
 
 		// Set our auth id as debugger
 		curthread->td_ucred->cr_sceAuthID = SceAuthenticationId::Decid;
@@ -174,7 +175,7 @@ extern "C" void mira_entry(void* args)
 
 	// Create new vm_space
 	WriteLog(LL_Debug, "Creating new vm space");
-	struct vmspace* vmspace = vmspace_alloc(0, PAGE_SIZE * 2048); // Allocate 8MiB
+	struct vmspace *vmspace = vmspace_alloc(0, PAGE_SIZE * 2048); // Allocate 8MiB
 	WriteLog(LL_Debug, "here");
 	if (!vmspace)
 	{
@@ -193,8 +194,9 @@ extern "C" void mira_entry(void* args)
 
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
+
 	WriteLog(LL_Debug, "Creating initial 3 file descriptors (0, 1, 2).");
-	int descriptor = kopen_t(const_cast<char*>("/dev/console"), 1, 0, curthread);
+	int descriptor = kopen_t(const_cast<char *>("/dev/console"), 1, 0, curthread);
 	WriteLog(LL_Debug, "/dev/console descriptor: %d", descriptor);
 	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2_t(descriptor, 1, curthread));
 	WriteLog(LL_Info, "dup2(1, 2) result: %d", kdup2_t(1, 2, curthread));
@@ -227,8 +229,9 @@ extern "C" void mira_entry(void* args)
 	kthread_exit();
 }
 
-bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
+bool Mira::Framework::SetInitParams(Mira::Boot::InitParams *p_Params)
 {
+
 	if (p_Params == NULL)
 		return false;
 
@@ -248,6 +251,11 @@ bool Mira::Framework::Initialize()
 {
 	// TODO: Load settings
 	WriteLog(LL_Warn, "FIXME: loading settings not implemented!!!!");
+
+	if (!Utilities::isAssistMode() || !Utilities::isTestkit())
+		is_Kit = false;
+	else
+		is_Kit = true;
 
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
@@ -295,14 +303,24 @@ bool Mira::Framework::Initialize()
 	// Set the running flag
 	m_InitParams.isRunning = true;
 
-  // Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
-  struct proc* ui_proc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-  if (ui_proc) {
-      Mira::OrbisOS::Utilities::KillProcess(ui_proc);
-  } else {
-      WriteLog(LL_Error, "Unable to find SceShellUI Process !");
-  }
-  
+	// causes testkit IPC to kpanic the console on relaunch
+	//////////////////////////////////////////////////////////////
+
+	if (is_Kit)
+		WriteLog(LL_Debug, "Testkit Detected, No patches will be applied\n");
+	else
+	{
+		struct proc *ui_proc = Utilities::FindProcessByName("SceShellUI");
+
+		if (ui_proc)
+		{
+			Utilities::KillProcess(ui_proc);
+		}
+		else
+		{
+			WriteLog(LL_Error, "Unable to find SceShellUI Process !");
+		}
+	}
 	return true;
 }
 
@@ -333,17 +351,17 @@ bool Mira::Framework::Terminate()
 	return true;
 }
 
-struct thread* Mira::Framework::GetMainThread()
+struct thread *Mira::Framework::GetMainThread()
 {
-	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void (*)(struct mtx * mutex, int flags)) kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void (*)(struct mtx * mutex, int flags)) kdlsym(_mtx_unlock_flags);
 
 	auto s_Process = m_InitParams.process;
 	if (s_Process == nullptr)
 		return nullptr;
 
 	_mtx_lock_flags(&s_Process->p_mtx, 0);
-	struct thread* s_Thread = s_Process->p_singlethread;
+	struct thread *s_Thread = s_Process->p_singlethread;
 	if (s_Thread == nullptr)
 		s_Thread = FIRST_THREAD_IN_PROC(s_Process);
 	_mtx_unlock_flags(&s_Process->p_mtx, 0);
@@ -351,10 +369,10 @@ struct thread* Mira::Framework::GetMainThread()
 	return s_Thread;
 }
 
-struct thread* Mira::Framework::GetSyscoreThread()
+struct thread *Mira::Framework::GetSyscoreThread()
 {
-	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void (*)(struct mtx * mutex, int flags)) kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void (*)(struct mtx * mutex, int flags)) kdlsym(_mtx_unlock_flags);
 	auto s_Process = OrbisOS::Utilities::FindProcessByName("SceSysCore");
 	if (s_Process == nullptr)
 	{
@@ -362,7 +380,7 @@ struct thread* Mira::Framework::GetSyscoreThread()
 		return nullptr;
 	}
 
-	struct thread* s_MainThread = nullptr;
+	struct thread *s_MainThread = nullptr;
 
 	_mtx_lock_flags(&s_Process->p_mtx, 0);
 	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
@@ -371,18 +389,18 @@ struct thread* Mira::Framework::GetSyscoreThread()
 	return s_MainThread;
 }
 
-struct thread* Mira::Framework::GetShellcoreThread()
+struct thread *Mira::Framework::GetShellcoreThread()
 {
-	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-	struct ::proc* s_Process = OrbisOS::Utilities::FindProcessByName("SceShellCore");
+	auto _mtx_lock_flags = (void (*)(struct mtx * mutex, int flags)) kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void (*)(struct mtx * mutex, int flags)) kdlsym(_mtx_unlock_flags);
+	struct ::proc *s_Process = OrbisOS::Utilities::FindProcessByName("SceShellCore");
 	if (s_Process == nullptr)
 	{
 		WriteLog(LL_Error, "could not get SceShellCore process.");
 		return nullptr;
 	}
 
-	struct thread* s_MainThread = nullptr;
+	struct thread *s_MainThread = nullptr;
 
 	_mtx_lock_flags(&s_Process->p_mtx, 0);
 	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
@@ -396,18 +414,17 @@ bool Mira::Framework::InstallEventHandlers()
 	if (m_EventHandlersInstalled)
 		return false;
 
-	auto eventhandler_register = (eventhandler_tag
-	(*)(struct eventhandler_list *list, const char *name,
-		void *func, void *arg, int priority))kdlsym(eventhandler_register);
+	auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list * list, const char *name,
+													  void *func, void *arg, int priority)) kdlsym(eventhandler_register);
 
 	// Register our event handlers
 	//const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
-	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void *>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase1, reinterpret_cast<void *>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
 
-	m_ProcessExec = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExec), GetFramework(), EVENTHANDLER_PRI_ANY);
-	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), GetFramework(), EVENTHANDLER_PRI_LAST);
-	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_ProcessExec = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void *>(Mira::Framework::OnMiraProcessExec), GetFramework(), EVENTHANDLER_PRI_ANY);
+	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void *>(Mira::Framework::OnMiraProcessExecEnd), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void *>(Mira::Framework::OnMiraProcessExit), GetFramework(), EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -423,12 +440,12 @@ bool Mira::Framework::RemoveEventHandlers()
 	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr)
 		return false;
 
-	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
+	auto eventhandler_deregister = (void (*)(struct eventhandler_list * a, struct eventhandler_entry * b)) kdlsym(eventhandler_deregister);
+	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name)) kdlsym(eventhandler_find_list);
 
 	EVENTHANDLER_DEREGISTER(system_suspend_phase1, m_SuspendTag);
 	EVENTHANDLER_DEREGISTER(system_resume_phase1, m_ResumeTag);
-	
+
 	EVENTHANDLER_DEREGISTER(process_exec, m_ProcessExec);
 	EVENTHANDLER_DEREGISTER(process_exec_end, m_ProcessExecEnd);
 	EVENTHANDLER_DEREGISTER(process_exit, m_ProcessExit);
@@ -445,7 +462,7 @@ bool Mira::Framework::RemoveEventHandlers()
 	return true;
 }
 
-void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
+void Mira::Framework::OnMiraSuspend(void *__unused p_Reserved)
 {
 	if (GetFramework() == nullptr)
 		return;
@@ -457,7 +474,7 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 		s_PluginManager->OnSuspend();
 }
 
-void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
+void Mira::Framework::OnMiraResume(void *__unused p_Reserved)
 {
 	if (GetFramework() == nullptr)
 		return;
@@ -470,10 +487,10 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 		s_PluginManager->OnResume();
 }
 
-void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
+void Mira::Framework::OnMiraShutdown(void *__unused p_Reserved)
 {
-	auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
-	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+	auto kproc_exit = (int (*)(int code))kdlsym(kproc_exit);
+	auto kthread_exit = (void (*)(void))kdlsym(kthread_exit);
 
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
@@ -490,14 +507,14 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 	kthread_exit();
 }
 
-void Mira::Framework::OnMiraProcessExec(void* p_Framework, struct proc* p_Process)
+void Mira::Framework::OnMiraProcessExec(void *p_Framework, struct proc *p_Process)
 {
-	WriteLog(LL_Warn, "Process Executing: ");	
-	
+	WriteLog(LL_Warn, "Process Executing: ");
+
 	auto s_Framework = GetFramework();
 	if (s_Framework == nullptr)
 		return;
-	
+
 	auto s_PluginManager = s_Framework->GetPluginManager();
 	if (s_PluginManager)
 	{
@@ -509,14 +526,14 @@ void Mira::Framework::OnMiraProcessExec(void* p_Framework, struct proc* p_Proces
 		s_Framework->m_CtrlDriver->OnProcessExec(p_Framework, p_Process);
 }
 
-void Mira::Framework::OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Process)
+void Mira::Framework::OnMiraProcessExecEnd(void *p_Framework, struct proc *p_Process)
 {
 	WriteLog(LL_Warn, "Process Ending: ");
 
 	auto s_Framework = GetFramework();
 	if (s_Framework == nullptr)
 		return;
-	
+
 	auto s_PluginManager = s_Framework->GetPluginManager();
 	if (s_PluginManager)
 	{
@@ -525,13 +542,13 @@ void Mira::Framework::OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Pro
 	}
 }
 
-void Mira::Framework::OnMiraProcessExit(void* p_Framework, struct proc* p_Process)
+void Mira::Framework::OnMiraProcessExit(void *p_Framework, struct proc *p_Process)
 {
 	WriteLog(LL_Warn, "Process Exiting: ");
 
 	if (GetFramework() == nullptr)
 		return;
-	
+
 	if (!GetFramework()->GetPluginManager()->OnProcessExit(p_Process))
 	{
 		WriteLog(LL_Error, "could not call exit process on plugin manager.");

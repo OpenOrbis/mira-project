@@ -158,6 +158,9 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 
+    p_Command = p_Command & 0xFFFFFFFF; // Clear the upper32
+
+
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
 
@@ -675,6 +678,12 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         return (s_Result < 0 ? s_Result : -s_Result);
     }
 
+// Failsafe in case that a provided number is 0 or negative
+    if (s_Input.ThreadId <= 0)
+        s_Input.ThreadId = p_Thread->td_tid;
+
+WriteLog(LL_Debug, "thread id (%d).\n", p_Thread->td_tid);
+
     MiraThreadCredentials* s_Output = nullptr;
 
     switch (s_Input.State)
@@ -724,10 +733,12 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
 
 bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input)
 {
-    auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+    
+
+   auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
     auto _thread_lock_flags = (void(*)(struct thread *, int, const char *, int))kdlsym(_thread_lock_flags);
     auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+   auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     // Make sure that we are setting threads
     if (p_Input.State != MiraThreadCredentials::_State::Set)
@@ -740,7 +751,7 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
         WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
         return false;
     }
-
+     
     bool s_ThreadModified = false;
     do
     {
@@ -749,10 +760,14 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
         {
             thread_lock(l_Thread);
 
+            WriteLog(LL_Debug, "checking tid: (%d) == (%d).", l_Thread->td_tid, p_ThreadId);
+
             do
             {
                 if (p_ThreadId == -1 || l_Thread->td_tid == p_ThreadId)
                 {
+
+                    
                     auto l_ThreadCredential = l_Thread->td_ucred;
                     if (l_ThreadCredential == nullptr)
                     {
@@ -761,24 +776,47 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
                     }
                 
                     // ucred
+ 
                     l_ThreadCredential->cr_uid = p_Input.EffectiveUserId;
                     l_ThreadCredential->cr_ruid = p_Input.RealUserId;
                     l_ThreadCredential->cr_svuid  = p_Input.SavedUserId;
                     l_ThreadCredential->cr_ngroups  = p_Input.NumGroups;
                     l_ThreadCredential->cr_rgid  = p_Input.RealGroupId;
+                    l_ThreadCredential->cr_groups[0] = 0;
                     l_ThreadCredential->cr_svgid  = p_Input.SavedGroupId;
-
-                    // prison
-                    if (p_Input.Prison == MiraThreadCredentials::_MiraThreadCredentialsPrison::Root)
-                        l_ThreadCredential->cr_prison = *(struct prison**)kdlsym(prison0);
-                    
-                    l_ThreadCredential->cr_sceAuthID = p_Input.SceAuthId;
-                    
+                     
+                     if( p_Input.SceAuthId)
+                     l_ThreadCredential->cr_sceAuthID = p_Input.SceAuthId;
+                      else
+                       WriteLog(LL_Debug, "no SceAuthId, skipping\n");
+                                        
+                   
                     // TODO: Static assert that these are equal
                     memcpy(l_ThreadCredential->cr_sceCaps, p_Input.Capabilities, sizeof(l_ThreadCredential->cr_sceCaps));
 
                     // TODO: Static assert that sizeof are equal
                     memcpy(l_ThreadCredential->cr_sceAttr, p_Input.Attributes, sizeof(l_ThreadCredential->cr_sceAttr));
+
+                      // Update the rootvnode
+                    auto l_FileDesc = s_Process->p_fd;
+                    if (l_FileDesc && p_Input.Prison == MiraThreadCredentials::_MiraThreadCredentialsPrison::Root)
+                    {
+                     
+                        l_ThreadCredential->cr_sceAuthID = SceAuthenticationId_t::MaxAccess;
+                        l_ThreadCredential->cr_sceAttr[0] = SceCapabilities_t::Max;
+                        l_ThreadCredential->cr_sceCaps[0] = SceCapabilities_t::Max;
+
+
+                        l_FileDesc->fd_rdir = *(struct vnode**)kdlsym(rootvnode);
+                        l_FileDesc->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+                         WriteLog(LL_Debug, "setting prison0");
+                       l_ThreadCredential->cr_prison = *(struct prison**)kdlsym(prison0);
+                   
+                    }
+
+                       
+                       
+          
 
                     s_ThreadModified = true;
                 }
@@ -823,6 +861,7 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
         
         // Lock the thread
         thread_lock(l_Thread);
+
 
         // If the thread id's match then we need to copy this data out
         if (l_Thread->td_tid == p_ThreadId)

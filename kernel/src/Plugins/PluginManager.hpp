@@ -8,6 +8,7 @@ extern "C"
     #include <sys/mutex.h>
 }
 
+extern bool is_Kit;
 namespace Mira
 {
     namespace Plugins

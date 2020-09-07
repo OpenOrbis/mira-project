@@ -10,8 +10,8 @@
 
 extern "C"
 {
-	#include <sys/mman.h>
-	#include <sys/eventhandler.h>
+#include <sys/mman.h>
+#include <sys/eventhandler.h>
 };
 
 using namespace Mira::Plugins;
@@ -19,22 +19,20 @@ using namespace Mira::OrbisOS;
 
 RemotePlayEnabler::RemotePlayEnabler()
 {
-
 }
 
 RemotePlayEnabler::~RemotePlayEnabler()
 {
-
 }
 
 void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 {
-	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+	auto strncmp = (int (*)(const char *, const char *, size_t))kdlsym(strncmp);
 
 	if (!p)
 		return;
 
-	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+	char *s_TitleId = (char *)((uint64_t)p + 0x390);
 
 	if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
 		ShellUIPatch();
@@ -47,7 +45,9 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 
 void RemotePlayEnabler::ResumeEvent()
 {
+
 	ShellUIPatch();
+
 	RemotePlayPatch();
 	WriteLog(LL_Debug, "InstallEventHandlers finished");
 	return;
@@ -57,14 +57,14 @@ bool RemotePlayEnabler::ShellUIPatch()
 {
 	WriteLog(LL_Debug, "patching SceShellUI");
 
-	struct ::proc* s_Process = Utilities::FindProcessByName("SceShellUI");
+	struct ::proc *s_Process = Utilities::FindProcessByName("SceShellUI");
 	if (s_Process == nullptr)
 	{
 		WriteLog(LL_Error, "could not find SceShellUI");
 		return false;
 	}
 
-	ProcVmMapEntry* s_Entries = nullptr;
+	ProcVmMapEntry *s_Entries = nullptr;
 	size_t s_NumEntries = 0;
 	auto s_Ret = Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
 	if (s_Ret < 0)
@@ -79,12 +79,12 @@ bool RemotePlayEnabler::ShellUIPatch()
 		return false;
 	}
 
-	uint8_t* s_ShellUITextStart = nullptr;
+	uint8_t *s_ShellUITextStart = nullptr;
 	for (auto i = 0; i < s_NumEntries; ++i)
 	{
 		if (!memcmp(s_Entries[i].name, "executable", 10) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
 		{
-			s_ShellUITextStart = (uint8_t*)s_Entries[i].start;
+			s_ShellUITextStart = (uint8_t *)s_Entries[i].start;
 			break;
 		}
 	}
@@ -97,19 +97,19 @@ bool RemotePlayEnabler::ShellUIPatch()
 
 	WriteLog(LL_Debug, "SceShellUI .text: (%p)", s_ShellUITextStart);
 
-	uint8_t* s_ShellUIAppTextStart = nullptr;
+	uint8_t *s_ShellUIAppTextStart = nullptr;
 	for (auto i = 0; i < s_NumEntries; ++i)
 	{
 #if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_500
 		if (!memcmp(s_Entries[i].name, "libSceVsh_aot.sprx", 18) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
 		{
-			s_ShellUIAppTextStart = (uint8_t*)s_Entries[i].start;
+			s_ShellUIAppTextStart = (uint8_t *)s_Entries[i].start;
 			break;
 		}
 #else
 		if (!memcmp(s_Entries[i].name, "app.exe.sprx", 10) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
 		{
-			s_ShellUIAppTextStart = (uint8_t*)s_Entries[i].start;
+			s_ShellUIAppTextStart = (uint8_t *)s_Entries[i].start;
 			break;
 		}
 #endif
@@ -124,11 +124,11 @@ bool RemotePlayEnabler::ShellUIPatch()
 	WriteLog(LL_Debug, "SceShellUI App .text: (%p)", s_ShellUIAppTextStart);
 
 	// Free the entries we got returned
-	delete [] s_Entries;
+	delete[] s_Entries;
 	s_Entries = nullptr;
 
 	// `/system_ex/app/NPXS20001/eboot.bin`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUITextStart + ssu_CreateUserForIDU_patch), 4, (void*)"\x48\x31\xC0\xC3", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_ShellUITextStart + ssu_CreateUserForIDU_patch), 4, (void *)"\x48\x31\xC0\xC3", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "ssu_CreateUserForIDU_patch");
@@ -137,19 +137,19 @@ bool RemotePlayEnabler::ShellUIPatch()
 
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405
 	// `/system_ex/app/NPXS20001/libSceVsh_aot.sprx`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\x64\x02\x00\x00", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void *)"\xE9\x64\x02\x00\x00", nullptr, true);
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_474
 	// `/system_ex/app/NPXS20001/libSceVsh_aot.sprx`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\x22\x02\x00\x00", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void *)"\xE9\x22\x02\x00\x00", nullptr, true);
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_507
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\x82\x02\x00\x00", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void *)"\xE9\x82\x02\x00\x00", nullptr, true);
 #elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_620
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\xB8\x02\x00\x00", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void *)"\xE9\xB8\x02\x00\x00", nullptr, true);
 #elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\xBA\x02\x00\x00", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void *)"\xE9\xBA\x02\x00\x00", nullptr, true);
 #else
 	s_Ret = -1;
 #endif
@@ -168,14 +168,14 @@ bool RemotePlayEnabler::RemotePlayPatch()
 {
 	WriteLog(LL_Debug, "patching SceRemotePlay");
 
-	struct ::proc* s_Process = Utilities::FindProcessByName("SceRemotePlay");
+	struct ::proc *s_Process = Utilities::FindProcessByName("SceRemotePlay");
 	if (s_Process == nullptr)
 	{
 		WriteLog(LL_Error, "could not find SceRemotePlay");
 		return false;
 	}
 
-	ProcVmMapEntry* s_Entries = nullptr;
+	ProcVmMapEntry *s_Entries = nullptr;
 	size_t s_NumEntries = 0;
 	auto s_Ret = Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
 	if (s_Ret < 0)
@@ -190,12 +190,12 @@ bool RemotePlayEnabler::RemotePlayPatch()
 		return false;
 	}
 
-	uint8_t* s_RemotePlayTextStart = nullptr;
+	uint8_t *s_RemotePlayTextStart = nullptr;
 	for (auto i = 0; i < s_NumEntries; ++i)
 	{
 		if (!memcmp(s_Entries[i].name, "executable", 10) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
 		{
-			s_RemotePlayTextStart = (uint8_t*)s_Entries[i].start;
+			s_RemotePlayTextStart = (uint8_t *)s_Entries[i].start;
 			break;
 		}
 	}
@@ -209,11 +209,11 @@ bool RemotePlayEnabler::RemotePlayPatch()
 	WriteLog(LL_Debug, "SceRemotePlay .text: (%p)", s_RemotePlayTextStart);
 
 	// Free the entries we got returned
-	delete [] s_Entries;
+	delete[] s_Entries;
 	s_Entries = nullptr;
 
 	// `/system/vsh/app/NPXS21006/eboot.bin`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_RemotePlayTextStart + srp_enabler_patchA), 1, (void*)"\x01", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_RemotePlayTextStart + srp_enabler_patchA), 1, (void *)"\x01", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "srp_enabler_patchA");
@@ -221,7 +221,7 @@ bool RemotePlayEnabler::RemotePlayPatch()
 	}
 
 	// `/system/vsh/app/NPXS21006/eboot.bin`
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_RemotePlayTextStart + srp_enabler_patchB), 2, (void*)"\xEB\x1E", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void *)(s_RemotePlayTextStart + srp_enabler_patchB), 2, (void *)"\xEB\x1E", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "srp_enabler_patchB");
@@ -240,23 +240,25 @@ bool RemotePlayEnabler::OnLoad()
 	{
 		WriteLog(LL_Error, "could not get main mira thread");
 		return false;
-  	}
+	}
 
 	// Initialize the event handlers
-	auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
+	auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list * list, const char *name, void *func, void *arg, int priority)) kdlsym(eventhandler_register);
 
-	m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(RemotePlayEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
-	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
+	m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void *>(RemotePlayEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void *>(RemotePlayEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
-	auto s_Ret = ShellUIPatch();
-	if (s_Ret == false) {
-		WriteLog(LL_Error, "could not patch SceShellUI");
+	auto s_Ret = RemotePlayPatch();
+	if (s_Ret == false)
+	{
+		WriteLog(LL_Error, "could not patch SceRemotePlay");
 		return false;
 	}
 
-	s_Ret = RemotePlayPatch();
-	if (s_Ret == false) {
-		WriteLog(LL_Error, "could not patch SceRemotePlay");
+	s_Ret = ShellUIPatch();
+	if (s_Ret == false)
+	{
+		WriteLog(LL_Error, "could not patch SceShellUI");
 		return false;
 	}
 

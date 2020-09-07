@@ -133,6 +133,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_vsnprintf                              0x004363F0 //	FFFFFFFF82323280
 #define kdlsym_addr_Xfast_syscall                          0x000001C0 //	FFFFFFFF822001C0	lol
 #define kdlsym_addr_wakeup                                 0x003FB940 //	FFFFFFFF82429CF0
+#define kdlsym_addr_target_id                              0x0
 
 // FakeSelf hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0
@@ -157,11 +158,14 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_sceKernelIsGenuineCEX_patchC                   0x0
 #define ssc_sceKernelIsGenuineCEX_patchD                   0x0
 
+
 // SceShellCore patches - call nidf_libSceDipsw
 #define ssc_nidf_libSceDipsw_patchA                        0x0
 #define ssc_nidf_libSceDipsw_patchB                        0x0
 #define ssc_nidf_libSceDipsw_patchC                        0x0
 #define ssc_nidf_libSceDipsw_patchD                        0x0
+
+
 
 // SceShellCore patches - use free prefix instead fake
 #define ssc_fake_to_free_patch                             0x0

@@ -22,26 +22,26 @@
 
 extern "C"
 {
-    #include <sys/syslimits.h>
+#include <sys/syslimits.h>
 };
 
 using namespace Mira::Plugins;
+using namespace Mira::OrbisOS;
 
-PluginManager::PluginManager() :
-	m_Logger(nullptr),
-    m_Debugger(nullptr),
-    m_FileManager(nullptr),
-    m_FakeSelfManager(nullptr),
-    m_FakePkgManager(nullptr),
-    m_EmuRegistry(nullptr),
-    m_Substitute(nullptr),
-    m_BrowserActivator(nullptr),
-    m_MorpheusEnabler(nullptr),
-    m_RemotePlayEnabler(nullptr),
-    m_SyscallGuard(nullptr)
+PluginManager::PluginManager() : m_Logger(nullptr),
+                                 m_Debugger(nullptr),
+                                 m_FileManager(nullptr),
+                                 m_FakeSelfManager(nullptr),
+                                 m_FakePkgManager(nullptr),
+                                 m_EmuRegistry(nullptr),
+                                 m_Substitute(nullptr),
+                                 m_BrowserActivator(nullptr),
+                                 m_MorpheusEnabler(nullptr),
+                                 m_RemotePlayEnabler(nullptr),
+                                 m_SyscallGuard(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
-	m_Logger = nullptr;
+    m_Logger = nullptr;
     m_FileManager = nullptr;
 }
 
@@ -74,17 +74,57 @@ bool PluginManager::OnLoad()
             break;
         }
         if (!m_SyscallGuard->OnLoad())
-            WriteLog(LL_Error, "could not load syscall guard.");*/
+            WriteLog(LL_Error
+            , "could not load syscall guard.");*/
 
-        // Initialize Logger
-        m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
-        if (m_Logger == nullptr)
+            	WriteLog(LL_Debug, " m_InitParams.is_Kit %i\n",  is_Kit);
+
+        if (is_Kit)
         {
-            WriteLog(LL_Error, "could not allocate log manager.");
-            return false;
+            WriteLog(LL_Debug, "Skipping Some Plugins due to Testkit lock on klog is_Kit(%i).\n", is_Kit);
+            m_TTYRedirector = nullptr;
         }
-        if (!m_Logger->OnLoad())
-            WriteLog(LL_Error, "could not load logmanager");
+        else
+        {
+
+            // Initialize Logger
+            m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
+            if (m_Logger == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate log manager.");
+                return false;
+            }
+            if (!m_Logger->OnLoad())
+                WriteLog(LL_Error, "could not load logmanager");
+
+            m_TTYRedirector = new Mira::Plugins::TTYRedirector();
+            if (m_TTYRedirector == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate tty redirector.");
+                s_Success = false;
+                break;
+            }
+
+            // skipping til can confirm it work on testkit
+            // Initialize RemotePlayEnabler
+            m_RemotePlayEnabler = new Mira::Plugins::RemotePlayEnabler();
+            if (m_RemotePlayEnabler == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate remote play enabler.");
+                s_Success = false;
+                break;
+            }
+
+            // skipping til can confirm it work on testkit
+            // Initialize MorpheusEnabler
+            m_MorpheusEnabler = new Mira::Plugins::MorpheusEnabler();
+            if (m_MorpheusEnabler == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate morpheus enabler.");
+                s_Success = false;
+                break;
+            }
+        }
 
         // Initialize file manager
         m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
@@ -113,13 +153,20 @@ bool PluginManager::OnLoad()
             break;
         }
 
-        // Initialize Substitute
-        m_Substitute = new Mira::Plugins::Substitute();
-        if (m_Substitute == nullptr)
+        if (is_Kit)
         {
-            WriteLog(LL_Error, "could not allocate substitute.");
-            s_Success = false;
-            break;
+            m_Substitute = nullptr;
+            WriteLog(LL_Debug, "Skipping Substitute.");
+        }
+        else
+        {
+            m_Substitute = new Mira::Plugins::Substitute();
+            if (m_Substitute == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate substitute.");
+                s_Success = false;
+                break;
+            }
         }
 
         // Initialize BrowserActivator
@@ -131,32 +178,6 @@ bool PluginManager::OnLoad()
             break;
         }
 
-        // Initialize MorpheusEnabler
-        m_MorpheusEnabler = new Mira::Plugins::MorpheusEnabler();
-        if (m_MorpheusEnabler == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate morpheus enabler.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize RemotePlayEnabler
-        m_RemotePlayEnabler = new Mira::Plugins::RemotePlayEnabler();
-        if (m_RemotePlayEnabler == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate remote play enabler.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize TTYRedirector
-        m_TTYRedirector = new Mira::Plugins::TTYRedirector();
-        if (m_TTYRedirector == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate tty redirector.");
-            s_Success = false;
-            break;
-        }
     } while (false);
 
     if (m_Debugger)
@@ -243,7 +264,7 @@ bool PluginManager::OnUnload()
             s_AllUnloadSuccess = false;
 
         WriteLog(LL_Info, "plugin (%s) unloaded %s",
-            l_Plugin->GetName(), s_UnloadResult ? "successfully" : "unsuccessfully");
+                 l_Plugin->GetName(), s_UnloadResult ? "successfully" : "unsuccessfully");
 
         WriteLog(LL_Debug, "freeing plugin");
         // Delete the plugin
@@ -424,8 +445,8 @@ bool PluginManager::OnSuspend()
 
         // Debugging status
         WriteLog(LL_Info, "plugin (%s) suspend %s",
-            l_Plugin->GetName(),
-            s_SuspendResult ? "success" : "failure");
+                 l_Plugin->GetName(),
+                 s_SuspendResult ? "success" : "failure");
     }
 
     // Suspend the built in plugins
@@ -580,8 +601,8 @@ bool PluginManager::OnResume()
 
         // Debugging status
         WriteLog(LL_Info, "plugin (%s) resume %s",
-            l_Plugin->GetName(),
-            s_ResumeResult ? "success" : "failure");
+                 l_Plugin->GetName(),
+                 s_ResumeResult ? "success" : "failure");
     }
 
     WriteLog(LL_Debug, "resuming file manager");
@@ -590,7 +611,6 @@ bool PluginManager::OnResume()
         if (!m_FileManager->OnResume())
             WriteLog(LL_Error, "file manager resume failed");
     }
-
 
     WriteLog(LL_Debug, "resuming fake self manager");
     if (m_FakeSelfManager)
@@ -605,11 +625,11 @@ bool PluginManager::OnResume()
     return s_AllSuccess;
 }
 
-bool PluginManager::OnProcessExec(struct proc* p_Process)
+bool PluginManager::OnProcessExec(struct proc *p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
+
     if (m_Substitute)
     {
         if (!m_Substitute->OnProcessExec(p_Process))
@@ -625,11 +645,11 @@ bool PluginManager::OnProcessExec(struct proc* p_Process)
     return true;
 }
 
-bool PluginManager::OnProcessExecEnd(struct proc* p_Process)
+bool PluginManager::OnProcessExecEnd(struct proc *p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
+
     if (m_Substitute)
     {
         if (!m_Substitute->OnProcessExecEnd(p_Process))
@@ -639,11 +659,11 @@ bool PluginManager::OnProcessExecEnd(struct proc* p_Process)
     return true;
 }
 
-bool PluginManager::OnProcessExit(struct proc* p_Process)
+bool PluginManager::OnProcessExit(struct proc *p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
+
     if (m_Substitute)
     {
         if (!m_Substitute->OnProcessExit(p_Process))
