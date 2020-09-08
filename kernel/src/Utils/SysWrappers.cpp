@@ -2145,7 +2145,7 @@ int kioctl_t(int fd, u_long com, caddr_t data, struct thread* td)
 }
 
 
-int kdynlib_load_prx_internal(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, uint64_t pRes, struct thread* td)
+int kdynlib_load_prx_internal(char* path, int32_t flags, int32_t* handle_out, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -2155,12 +2155,10 @@ int kdynlib_load_prx_internal(char* path, uint64_t args, uint64_t argp, uint32_t
 
 	int error;
 	struct dynlib_load_prx_args uap;
-	uap.path = path;
-	uap.args = args;
-	uap.argp = argp;
+	uap.prx_path = path;
 	uap.flags = flags;
-	uap.pOpt = pOpt;
-	uap.pRes = pRes;
+	uap.handle_out = handle_out;
+	uap.unk = 0;
 
 	error = sys_dynlib_load_prx(td, &uap);
 	if (error)
@@ -2170,14 +2168,14 @@ int kdynlib_load_prx_internal(char* path, uint64_t args, uint64_t argp, uint32_t
 	return td->td_retval[0];
 }
 
-int kdynlib_load_prx_t(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, int* pRes, struct thread* td)
+int kdynlib_load_prx_t(char* path, int32_t flags, int32_t* handle_out, struct thread* td)
 {
 	int ret = -EIO;
 	int retry = 0;
 
 	for (;;)
 	{
-		ret = kdynlib_load_prx_internal(path, args, argp, flags, pOpt, (uint64_t)pRes, td);
+		ret = kdynlib_load_prx_internal(path, flags, handle_out, td);
 		if (ret < 0)
 		{
 			if (ret == -EINTR)

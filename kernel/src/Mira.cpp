@@ -65,7 +65,13 @@ Mira::Framework* Mira::Framework::m_Instance = nullptr;
 Mira::Framework* Mira::Framework::GetFramework()
 {
 	if (m_Instance == nullptr)
+	{
+		// Debug logging to check for new framework
+		// TODO: Remove debug logging
+		WriteLog(LL_Warn, "creating new framework.");
+		
 		m_Instance = new Mira::Framework();
+	}
 
 	return m_Instance;
 }
@@ -335,9 +341,11 @@ bool Mira::Framework::Terminate()
 		m_PluginManager = nullptr;
 	}
 
+	// Unload the trainer manager
 	if (m_TrainerManager && !m_TrainerManager->OnUnload())
 		WriteLog(LL_Error, "could not unload trainer manager.");
 
+	// Free the trainer manager
 	if (m_TrainerManager != nullptr)
 	{
 		delete m_TrainerManager;
@@ -430,12 +438,12 @@ bool Mira::Framework::InstallEventHandlers()
 
 	// Register our event handlers
 	//const int32_t prio = 1337;
-	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), GetFramework(), EVENTHANDLER_PRI_FIRST);
-	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), GetFramework(), EVENTHANDLER_PRI_LAST);
+	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), nullptr, EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase3, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), nullptr, EVENTHANDLER_PRI_LAST);
 
-	m_ProcessExec = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExec), GetFramework(), EVENTHANDLER_PRI_ANY);
-	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), GetFramework(), EVENTHANDLER_PRI_LAST);
-	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), GetFramework(), EVENTHANDLER_PRI_FIRST);
+	m_ProcessExec = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExec), nullptr, EVENTHANDLER_PRI_ANY);
+	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), nullptr, EVENTHANDLER_PRI_LAST);
+	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), nullptr, EVENTHANDLER_PRI_FIRST);
 
 	// Set our event handlers as installed
 	m_EventHandlersInstalled = true;
@@ -455,7 +463,7 @@ bool Mira::Framework::RemoveEventHandlers()
 	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
 	EVENTHANDLER_DEREGISTER(system_suspend_phase1, m_SuspendTag);
-	EVENTHANDLER_DEREGISTER(system_resume_phase1, m_ResumeTag);
+	EVENTHANDLER_DEREGISTER(system_resume_phase3, m_ResumeTag);
 	
 	EVENTHANDLER_DEREGISTER(process_exec, m_ProcessExec);
 	EVENTHANDLER_DEREGISTER(process_exec_end, m_ProcessExecEnd);
@@ -501,7 +509,7 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
 	auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
-	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+	//auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
@@ -515,10 +523,9 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 	}
 
 	kproc_exit(0);
-	kthread_exit();
 }
 
-void Mira::Framework::OnMiraProcessExec(void* p_Framework, struct proc* p_Process)
+void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 {
 	WriteLog(LL_Warn, "Process Executing: ");	
 	
@@ -534,13 +541,14 @@ void Mira::Framework::OnMiraProcessExec(void* p_Framework, struct proc* p_Proces
 	}
 
 	if (s_Framework->m_CtrlDriver)
-		s_Framework->m_CtrlDriver->OnProcessExec(p_Framework, p_Process);
+		s_Framework->m_CtrlDriver->OnProcessExec(s_Framework, p_Process);
 }
 
-void Mira::Framework::OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Process)
+void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process)
 {
-	WriteLog(LL_Warn, "Process Ending: ");
-
+	WriteLog(LL_Warn, "ProcessExecEnd: (%p) (%p).", _unused, p_Process);
+	WriteLog(LL_Error, "(%s).", p_Process->p_comm);
+	
 	auto s_Framework = GetFramework();
 	if (s_Framework == nullptr)
 		return;
@@ -551,9 +559,12 @@ void Mira::Framework::OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Pro
 		if (!s_PluginManager->OnProcessExecEnd(p_Process))
 			WriteLog(LL_Error, "could not call end process on plugin manager.");
 	}
+
+	if (s_Framework->m_TrainerManager)
+		s_Framework->m_TrainerManager->OnProcessExecEnd(p_Process);
 }
 
-void Mira::Framework::OnMiraProcessExit(void* p_Framework, struct proc* p_Process)
+void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 {
 	WriteLog(LL_Warn, "Process Exiting: ");
 
@@ -564,4 +575,7 @@ void Mira::Framework::OnMiraProcessExit(void* p_Framework, struct proc* p_Proces
 	{
 		WriteLog(LL_Error, "could not call exit process on plugin manager.");
 	}
+
+	if (!GetFramework()->m_TrainerManager->OnProcessExit(p_Process))
+		WriteLog(LL_Error, "");
 }

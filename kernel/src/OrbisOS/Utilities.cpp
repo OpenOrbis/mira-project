@@ -624,8 +624,8 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 	return 0;
 }
 
-// /mnt/usb0/myFolder, _substitute, thread
-int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath, struct thread* p_Thread)
+// /mnt/usb0/myFolder, _substitute, (outPath | nullptr), thread
+int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath, char* p_OutPath, struct thread* p_TargetThread)
 {
 	auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
@@ -637,7 +637,13 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         return -1;
     }
 
-	auto s_TargetProc = p_Thread->td_proc;
+	if (p_TargetThread == nullptr)
+	{
+		WriteLog(LL_Error, "invalid target thread.");
+		return -1;
+	}
+
+	auto s_TargetProc = p_TargetThread->td_proc;
     if (s_TargetProc == nullptr)
     {
         WriteLog(LL_Error, "thread does not have a parent process wtf?");
@@ -654,7 +660,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
 	// Get the jailed path
     char* s_SandboxPath = nullptr;
     char* s_FreePath = nullptr;
-    auto s_Result = vn_fullpath(s_MainThread, s_Descriptor->fd_jdir, &s_SandboxPath, &s_FreePath);
+    auto s_Result = vn_fullpath(p_TargetThread, s_Descriptor->fd_jdir, &s_SandboxPath, &s_FreePath);
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not get the full path (%d).", s_Result);
@@ -672,8 +678,8 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         return -1;
     }
 
-    char s_InSandboxPath[PATH_MAX] = { 0 };
-    char s_RealPath[PATH_MAX] = { 0 };
+    char s_InSandboxPath[260] = { 0 };
+    char s_RealPath[260] = { 0 };
 
     do
     {
@@ -723,16 +729,20 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         }
 
         // Save backups of the original fd and credentials
-        auto s_OriginalThreadCred = *s_CurrentThreadCred;
-        auto s_OriginalThreadFd = *s_CurrentThreadFd;
+		struct ucred s_OriginalCreds = { 0 };
+		memcpy(&s_OriginalCreds, s_CurrentThreadCred, sizeof(s_OriginalCreds));
+		gid_t s_OriginalGroups = s_CurrentThreadCred->cr_groups[0];
+
+        struct filedesc s_OriginalDesc = { 0 };
+		memcpy(&s_OriginalDesc, s_CurrentThreadFd, sizeof(s_OriginalDesc));
 
         // Set maximum permissions
         s_CurrentThreadCred->cr_uid = 0;
         s_CurrentThreadCred->cr_ruid = 0;
         s_CurrentThreadCred->cr_rgid = 0;
         s_CurrentThreadCred->cr_groups[0] = 0;
-
         s_CurrentThreadCred->cr_prison = *(struct prison**)kdlsym(prison0);
+		
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
@@ -741,18 +751,22 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         {
             WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SandboxPath, s_Result);
             krmdir_t(s_SandboxPath, s_MainThread);
-
-            // Restore credentials and fd
-            *s_CurrentThreadCred = s_OriginalThreadCred;
-            *s_CurrentThreadFd = s_OriginalThreadFd;
-            
-            break;
         }
 
         // Restore credentials and fd
-        *s_CurrentThreadCred = s_OriginalThreadCred;
-        *s_CurrentThreadFd = s_OriginalThreadFd;
+		s_CurrentThreadCred->cr_uid = s_OriginalCreds.cr_uid;
+        s_CurrentThreadCred->cr_ruid = s_OriginalCreds.cr_ruid;
+        s_CurrentThreadCred->cr_rgid = s_OriginalCreds.cr_rgid;
+        s_CurrentThreadCred->cr_groups[0] = s_OriginalGroups;
+        s_CurrentThreadCred->cr_prison = s_OriginalCreds.cr_prison;
 
+        s_CurrentThreadFd->fd_rdir = s_OriginalDesc.fd_rdir;
+		s_CurrentThreadFd->fd_jdir = s_OriginalDesc.fd_jdir;
+
+		// Copy out the path
+		if (p_OutPath != nullptr)
+			memcpy(p_OutPath, s_InSandboxPath, sizeof(s_InSandboxPath));
+		
         s_Result = 0;
     } while (false);
 

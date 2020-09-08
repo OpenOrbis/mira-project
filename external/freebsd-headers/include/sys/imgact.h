@@ -78,7 +78,49 @@ struct image_params {
 	unsigned long pagesizes;
 	int pagesizeslen;
 	vm_prot_t stack_prot;
+
+	// PlayStation 4 Specific (Credits: ChendoChap)
+	uint64_t dynamic_addr;
+	uint64_t tls_mem_size;
+	uint64_t tls_align;
+	uint64_t tls_file_size;
+	uint64_t tls_addr;
+	uint64_t gnu_eh_frame_addr;
+	uint64_t gnu_eh_frame_mem_size;
+	uint8_t unkF0[0x88];
+	//SelfAuthInfo unkF0; //sce custom section of ucred
+	uint64_t unk178;
+	uint64_t sce_procparam_addr;
+	uint64_t sce_procparam_file_size;
+	uint64_t sce_moduleparam_addr;
+	uint64_t sce_moduleparam_file_size;
+
+	uint32_t dynamic_phdr_index;
+	uint64_t dynamic_file_offset;
+	uint64_t dynamic_file_size;
+
+	uint32_t sce_dynlibdata_phdr_index;
+	uint64_t sce_dynlibdata_file_offset;
+	uint64_t sce_dynlibdata_file_size;
+	uint32_t sce_comment_phdr_index;
+	uint64_t sce_comment_file_offset;
+	uint64_t sce_comment_file_size;
+	vm_object_t self_pager;
+	char* execpath2;
+	uint64_t load_start_address; //PT_LOAD min?
+	uint64_t load_end_address;  //PT_LOAD max?
+	uint32_t has_dynamic; //unsure if right term, set to 1 when it find PT_DYNAMIC
+	uint32_t unk20C;
+	uint32_t unk210;
+	uint64_t sce_relro_addr;
+	uint64_t sce_relro_size;
+	uint32_t budget_ptype;
+	uint16_t elf_type; //22C like the elf header type
+	//2 bytes implicit padding?
 };
+
+static_assert(offsetof(struct image_params, unkF0) == 0xF0, "unkF0 invalid offset");
+static_assert(offsetof(struct image_params, unk178) == 0x178, "unk178 invalid offset");
 
 #ifdef _KERNEL
 struct sysentvec;

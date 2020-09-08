@@ -367,7 +367,7 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         return (EACCES);
     }
     
-    return OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, p_Thread);
+    return OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, nullptr, p_Thread);
 }
 
 bool CtrlDriver::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result)

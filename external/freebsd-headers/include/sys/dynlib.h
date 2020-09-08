@@ -16,13 +16,20 @@ struct dynlib_dlsym_args;
 struct dynlib_get_obj_member;
 
 // Syscall 594 : sys_dynlib_load_prx
-struct dynlib_load_prx_args {
-    char*    path;  // const char *
-    uint64_t args;   // size_t
-    uint64_t argp;   // const void *
-    uint32_t flags;  // uint32_t
-    uint64_t pOpt;   // const SceKernelLoadModuleOpt *
-    uint64_t pRes;   // int *
+// struct dynlib_load_prx_args {
+//     char*    path;  // const char *
+//     uint64_t args;   // size_t
+//     uint64_t argp;   // const void *
+//     uint32_t flags;  // uint32_t
+//     uint64_t pOpt;   // const SceKernelLoadModuleOpt *
+//     uint64_t pRes;   // int *
+// };
+struct dynlib_load_prx_args
+{
+  const char *prx_path;
+  int flags;
+  int *handle_out;
+  uint64_t unk; //never used in (kernel 5.05) and always 0 (libkernel 7.00);
 };
 
 struct dynlib_dlsym_args {

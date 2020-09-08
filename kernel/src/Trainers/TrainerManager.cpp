@@ -11,6 +11,8 @@ extern "C"
     #include <sys/mman.h>
     #include <sys/proc.h>
     #include <sys/stat.h>
+    #include <sys/dirent.h>
+    #include <sys/fcntl.h>
 };
 
 using namespace Mira::Trainers;
@@ -77,7 +79,7 @@ bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
         return false;
     
     // Make sure that we have the eboot.bin
-    if (strncmp("eboot.bin", p_Process->p_comm, sizeof("eboot.bin")) == 0)
+    if (strncmp("eboot.bin", p_Process->p_comm, sizeof("eboot.bin")) != 0)
     {
         WriteLog(LL_Error, "skipping non eboot process (%s).", p_Process->p_comm);
         return false;
@@ -252,7 +254,7 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     }
 
     // "/mnt/usb0/_mira/trainers"
-    char s_HostMountDirectory[PATH_MAX] = { 0 };
+    char s_HostMountDirectory[260] = { 0 };
     
     // Copy the string to stack, "/mnt/usb0/_mira/trainers"
     memcpy(s_HostMountDirectory, p_TrainerPrxPath, s_HostPathLength);
@@ -260,14 +262,15 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     WriteLog(LL_Info, "host mount directory: (%s).", s_HostMountDirectory);
 
     // Mount the host directory in the sandbox
-    auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "_substitute", s_TargetProcMainThread);
+    char s_MountedSandboxDirectory[260] = { 0 };
+    auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "_substitute", s_MountedSandboxDirectory, s_TargetProcMainThread);
     if (s_Result < 0)
     {
         WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
         return false;
     }
 
-    WriteLog(LL_Info, "host directory mounted to _substitute");
+    WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
 
     auto s_Success = false;
 
@@ -276,16 +279,47 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
 
     do
     {
-        char s_SandboxTrainerPath[PATH_MAX] = { 0 };
-        snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "/_substitute%s", s_TrainerFileName); // Should print /_substitute/test.prx
+        char s_SandboxTrainerPath[260] = { 0 };
+        snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "%s%s", s_MountedSandboxDirectory, s_TrainerFileName); // Should print <sandboxpath>/_substitute/test.prx
 
         WriteLog(LL_Info, "sandbox trainer path: (%s).", s_SandboxTrainerPath);
+        
+        auto s_DirectoryHandle = kopen_t("/_substitute", O_RDONLY | O_DIRECTORY, 0777, s_TargetProcMainThread);
+        if (s_DirectoryHandle >= 0)
+        {
+            // Switch this to use stack
+            char s_Buffer[1024] = { 0 };
+            memset(s_Buffer, 0, sizeof(s_Buffer));
+            //WriteLog(LL_Debug, "here");
+
+            int32_t s_ReadCount = 0;
+            for (;;)
+            {
+                memset(s_Buffer, 0, sizeof(s_Buffer));
+                s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_TargetProcMainThread);
+                if (s_ReadCount <= 0)
+                    break;
+                
+                for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+                {
+                    auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+                    WriteLog(LL_Debug, "dent name2: (%s).", l_Dent->d_name);
+
+                    l_Pos += l_Dent->d_reclen;
+                }
+            }
+            kclose_t(s_DirectoryHandle, s_TargetProcMainThread);
+        }
+        else
+        {
+            WriteLog(LL_Error, "could not open directory (%s) err (%d).", "/_substitute", s_DirectoryHandle);
+        }
 
         /* code */
         // TODO: Iterate the trainer directory for prx files
         // TODO: Load all prx files
         int32_t s_PrxHandle = -1;
-        auto s_Ret = kdynlib_load_prx_t(s_SandboxTrainerPath, 0, 0, 0, 0, &s_PrxHandle, s_TargetProcMainThread);
+        auto s_Ret = kdynlib_load_prx_t((char*)"/_substitute/test.prx", 0, &s_PrxHandle, s_TargetProcMainThread);
         if (s_Ret != 0)
         {
             WriteLog(LL_Error, "dynlib_load_prx return (%d).", s_Ret);
@@ -319,6 +353,7 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
             break;
         }
 
+        // Create a new thread
         s_Ret = OrbisOS::Utilities::CreatePOSIXThread(p_TargetProc, s_ModuleStart);
         if (s_Ret != 0)
         {

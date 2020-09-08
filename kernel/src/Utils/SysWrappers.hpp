@@ -130,7 +130,7 @@ extern "C"
 
     extern int kioctl_t(int fd, u_long com, caddr_t data, struct thread* td);
 
-    extern int kdynlib_load_prx_t(char* path, uint64_t args, uint64_t argp, uint32_t flags, uint64_t pOpt, int* pRes, struct thread* td);
+    extern int kdynlib_load_prx_t(char* path, int32_t flags, int32_t* handle_out, struct thread* td);
 
     extern int kdynlib_get_obj_member_t(uint32_t handle, uint32_t index, void** value, struct thread* td);
 
