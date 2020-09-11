@@ -201,6 +201,50 @@ const char *strrchr(const char *s, int c)
     return ret;
 }
 
+void PrintDirectory(const char* p_Path, bool p_Recursive, struct thread* p_Thread, uint8_t p_Indent = 0)
+{
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+
+    auto s_DirectoryHandle = kopen_t(p_Path, O_RDONLY | O_DIRECTORY, 0777, p_Thread);
+    if (s_DirectoryHandle < 0)
+        return;        
+    
+    WriteLog(LL_Debug, "Dir: %s", p_Path);
+    // Switch this to use stack
+    char s_Buffer[PATH_MAX] = { 0 };
+    memset(s_Buffer, 0, sizeof(s_Buffer));
+
+    char s_CurrentFullPath[PATH_MAX] = { 0 };
+
+    char s_Indents[256] = { 0 };
+    memset(s_Indents, 0, sizeof(s_Indents));
+    memset(s_Indents, '\t', p_Indent);
+
+    int32_t s_ReadCount = 0;
+    for (;;)
+    {
+        memset(s_Buffer, 0, sizeof(s_Buffer));
+        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), p_Thread);
+        if (s_ReadCount <= 0)
+            break;
+        
+        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+        {
+            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+
+            snprintf(s_CurrentFullPath, sizeof(s_CurrentFullPath), "%s/%s", p_Path, l_Dent->d_name);
+            
+            WriteLog(LL_Debug, "%s[%s] (%s).",s_Indents, (l_Dent->d_type == DT_DIR ? "D" : "F"), s_CurrentFullPath);
+
+            if (l_Dent->d_type == DT_DIR && p_Recursive)
+                PrintDirectory(s_CurrentFullPath, p_Recursive, p_Thread, p_Indent + 1);
+            
+            l_Pos += l_Dent->d_reclen;
+        }
+    }
+    kclose_t(s_DirectoryHandle, p_Thread);
+}
+
 
 // "/mnt/usb0/mira/trainers/test.prx"
 bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_TargetProc)
@@ -263,13 +307,14 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
 
     // Mount the host directory in the sandbox
     char s_MountedSandboxDirectory[260] = { 0 };
-    auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "_substitute", s_MountedSandboxDirectory, s_TargetProcMainThread);
+    auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "/_substitute", s_MountedSandboxDirectory, s_TargetProcMainThread);
     if (s_Result < 0)
     {
         WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
         return false;
     }
 
+    // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
     WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
 
     auto s_Success = false;
@@ -282,9 +327,10 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         char s_SandboxTrainerPath[260] = { 0 };
         snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "%s%s", s_MountedSandboxDirectory, s_TrainerFileName); // Should print <sandboxpath>/_substitute/test.prx
 
+        // s_SandboxTrainerPath = "/mnt/sandbox/NPXS22010_000/_substitute/test.prx"
         WriteLog(LL_Info, "sandbox trainer path: (%s).", s_SandboxTrainerPath);
         
-        auto s_DirectoryHandle = kopen_t("/_substitute", O_RDONLY | O_DIRECTORY, 0777, s_TargetProcMainThread);
+        /*auto s_DirectoryHandle = kopen_t("/", O_RDONLY | O_DIRECTORY, 0777, s_TargetProcMainThread);
         if (s_DirectoryHandle >= 0)
         {
             // Switch this to use stack
@@ -313,7 +359,11 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         else
         {
             WriteLog(LL_Error, "could not open directory (%s) err (%d).", "/_substitute", s_DirectoryHandle);
-        }
+        }*/
+
+        PrintDirectory("/_substitute", false, s_TargetProcMainThread);
+        PrintDirectory("/mnt", false, s_TargetProcMainThread);
+        //PrintDirectory("/app0", false, s_TargetProcMainThread);
 
         /* code */
         // TODO: Iterate the trainer directory for prx files

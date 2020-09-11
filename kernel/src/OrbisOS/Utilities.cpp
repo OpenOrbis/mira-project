@@ -624,7 +624,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 	return 0;
 }
 
-// /mnt/usb0/myFolder, _substitute, (outPath | nullptr), thread
+// /mnt/usb0/myFolder, /_substitute, (outPath | nullptr), thread
 int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath, char* p_OutPath, struct thread* p_TargetThread)
 {
 	auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
@@ -660,13 +660,14 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
 	// Get the jailed path
     char* s_SandboxPath = nullptr;
     char* s_FreePath = nullptr;
-    auto s_Result = vn_fullpath(p_TargetThread, s_Descriptor->fd_jdir, &s_SandboxPath, &s_FreePath);
+    auto s_Result = vn_fullpath(s_MainThread, s_Descriptor->fd_jdir, &s_SandboxPath, &s_FreePath);
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not get the full path (%d).", s_Result);
         return (s_Result < 0 ? s_Result : -s_Result);
     }
 
+	// s_SandboxPath = "/mnt/sandbox/NPXS20001_000"
     // Validate that we got something back
     if (s_SandboxPath == nullptr)
     {
@@ -678,26 +679,38 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         return -1;
     }
 
-    char s_InSandboxPath[260] = { 0 };
-    char s_RealPath[260] = { 0 };
+	WriteLog(LL_Debug, "SandboxPath: (%s).", s_SandboxPath);
+	if (s_FreePath)
+		WriteLog(LL_Debug, "FreePath: (%s).", s_FreePath);
+
+	
+    char s_SubstituteFullMountPath[260] = { 0 };
+    char s_RealSprxFolderPath[260] = { 0 };
 
     do
     {
         // TODO: we want to get the name of the folder so we can mount it within
         // under the same name
-        s_Result = snprintf(s_InSandboxPath, sizeof(s_InSandboxPath), "%s/%s", s_SandboxPath, p_SandboxPath);
+
+		// s_SubstituteFullMountPath = "/mnt/sandbox/NPXS20001_000/_substitute"
+        s_Result = snprintf(s_SubstituteFullMountPath, sizeof(s_SubstituteFullMountPath), "%s/_substitute", s_SandboxPath);
         if (s_Result <= 0)
             break;
+		
+		WriteLog(LL_Debug, "RealSprxFolderPath: (%s).", s_SubstituteFullMountPath);
         
-        s_Result = snprintf(s_RealPath, sizeof(s_RealPath), p_RealPath);
+		// s_RealSprxFolderPath = "/mnt/usb0/_mira/trainers"
+        s_Result = snprintf(s_RealSprxFolderPath, sizeof(s_RealSprxFolderPath), p_RealPath);
         if (s_Result <= 0)
             break;
+		
+		WriteLog(LL_Debug, "RealPath: (%s).", s_RealSprxFolderPath);
 
         // Check to see if the real path directory actually exists
-        auto s_DirectoryHandle = kopen_t(s_RealPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
+        auto s_DirectoryHandle = kopen_t(s_RealSprxFolderPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
         if (s_DirectoryHandle < 0)
         {
-			WriteLog(LL_Error, "could not open directory (%s) (%d).", s_RealPath, s_DirectoryHandle);
+			WriteLog(LL_Error, "could not open directory (%s) (%d).", s_RealSprxFolderPath, s_DirectoryHandle);
 			break;
         }
 
@@ -705,13 +718,13 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         kclose_t(s_DirectoryHandle, s_MainThread);
 
         // Create the new folder inside of the sandbox
-        s_Result = kmkdir_t(s_InSandboxPath, 0511, s_MainThread);
+        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0511, s_MainThread);
         if (s_Result < 0)
         {
 			// Skip if the directory already exists
 			if (s_DirectoryHandle != EEXIST)
 			{
-				WriteLog(LL_Error, "could not create the directory for mount (%s) (%d).", s_InSandboxPath, s_Result);
+				WriteLog(LL_Error, "could not create the directory for mount (%s) (%d).", s_SubstituteFullMountPath, s_Result);
 				break;
 			}
         }
@@ -746,7 +759,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
-        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SandboxPath, s_RealPath, MNT_RDONLY);
+        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SandboxPath, s_RealSprxFolderPath, MNT_RDONLY);
         if (s_Result < 0)
         {
             WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SandboxPath, s_Result);
@@ -765,7 +778,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
 
 		// Copy out the path
 		if (p_OutPath != nullptr)
-			memcpy(p_OutPath, s_InSandboxPath, sizeof(s_InSandboxPath));
+			memcpy(p_OutPath, s_SubstituteFullMountPath, sizeof(s_SubstituteFullMountPath));
 		
         s_Result = 0;
     } while (false);
