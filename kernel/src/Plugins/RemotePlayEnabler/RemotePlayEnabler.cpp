@@ -107,7 +107,7 @@ bool RemotePlayEnabler::ShellUIPatch()
 			break;
 		}
 #else
-		if (!memcmp(s_Entries[i].name, "app.exe.sprx", 10) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
+		if (!memcmp(s_Entries[i].name, "app.exe.sprx", 12) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
 		{
 			s_ShellUIAppTextStart = (uint8_t*)s_Entries[i].start;
 			break;
