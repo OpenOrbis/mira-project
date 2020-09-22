@@ -12,6 +12,12 @@
 
 using namespace Mira;
 
+std::shared_ptr<Daemon> Daemon::GetInstance()
+{
+    static std::shared_ptr<Daemon> s_Instance = std::make_shared<Daemon>();
+    return s_Instance;
+}
+
 Daemon::Daemon() :
     m_Debugger(nullptr),
     m_FtpServer(nullptr),

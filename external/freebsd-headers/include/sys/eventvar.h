@@ -60,6 +60,11 @@ struct kqueue {
 	u_long		kq_knhashmask;		/* size of knhash */
 	struct		klist *kq_knhash;	/* hash table for knotes */
 	struct		task kq_task;
+
+	// PlayStation 4 specific (creds: ChendoChap) 1.00 - 7.00
+	char name[0x20];
+	int fd; //the backing filedescriptor created for this kqueue.
+	char unk104[4]; //padding most likely to align struct sz
 };
 
 #endif /* !_SYS_EVENTVAR_H_ */

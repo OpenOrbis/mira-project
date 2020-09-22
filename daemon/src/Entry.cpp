@@ -3,14 +3,16 @@
 #include <memory>
 #include <cstdio>
 
+#include <orbis/libkernel.h>
+
 // Entry point
 int main(void)
 {
     // Create a new instance of our daemon
-    auto s_Daemon = std::make_unique<Mira::Daemon>();
+    auto s_Daemon = Mira::Daemon::GetInstance();
     if (s_Daemon == nullptr)
     {
-        printf("err: could not initialize daemon.\n");
+        fprintf(stderr, "err: could not create daemon.\n");
         return -1;
     }
 

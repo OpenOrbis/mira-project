@@ -30,6 +30,9 @@ Server::~Server()
 
 bool Server::OnLoad()
 {
+    // Initialize the networking
+    sceNetInit();
+
     return Startup();
 }
 
