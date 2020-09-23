@@ -158,15 +158,50 @@ typedef struct _MiraMountInSandbox
     char Path[_MAX_PATH];
 } MiraMountInSandbox;
 
+typedef struct _MiraCreateTrainerShm
+{
+    struct thread* Thread;
+    void* TrainerHeader;
+    uint64_t TrainerHeaderMapSize; // 1MB default
+} MiraCreateTrainerShm;
+
+typedef struct _MiraTrainerShm
+{
+    // shm name
+    char ShmName[16];
+} MiraTrainerShm;
+
+typedef struct _MiraGetTrainersShm
+{
+    // Size of this structure including Shms[]
+    uint32_t StructureSize;
+
+    // Output ShmCount
+    uint32_t ShmCount;
+
+    // Array of shm names
+    MiraTrainerShm Shms[];
+} MiraGetTrainersShm;
+
 #define MIRA_IOCTL_BASE 'M'
 
+// Get/set the thread credentials
 #define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 1, sizeof(MiraThreadCredentials))
 
+// Get a process id list
 #define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 2, sizeof(MiraProcessList))
 
+// Get process information
 #define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 3, sizeof(MiraProcessInformation))
 
+// Mount a path within sandbox
 #define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, 4, sizeof(MiraMountInSandbox))
+
+// Create new Shm
+#define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, 5, sizeof(MiraCreateTrainerShm))
+
+// Get the currently loaded shm's
+#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm));
 
 namespace Mira
 {
@@ -175,7 +210,6 @@ namespace Mira
         class CtrlDriver
         {
         private:
-            eventhandler_entry* m_processStartHandler;
             struct cdevsw m_DeviceSw;
             struct cdev* m_Device;
 
@@ -187,9 +221,9 @@ namespace Mira
             static int32_t OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_DeviceType, struct thread* p_Thread);
             static int32_t OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
         
-        protected:
-            static void OnProcessStart(void *arg, struct proc *p);
 
+            static void OnProcessExec(void*, struct proc *p);
+        protected:
             // Callback functions
             static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);

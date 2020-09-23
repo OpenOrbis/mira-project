@@ -15,10 +15,10 @@ namespace Mira
         private:
             RpcCategory m_Category;
             uint32_t m_Type;
-            std::function<void(std::shared_ptr<Rpc::Connection>, std::shared_ptr<RpcHeader>)> m_Callback;
+            std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)> m_Callback;
 
         public:
-            Listener(RpcCategory p_Category, uint32_t p_Type, std::function<void(std::shared_ptr<Rpc::Connection>, std::shared_ptr<RpcHeader>)> p_Callback) :
+            Listener(RpcCategory p_Category, uint32_t p_Type, std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)> p_Callback) :
                 m_Category(p_Category),
                 m_Type(p_Type),
                 m_Callback(p_Callback)

@@ -122,6 +122,12 @@ struct fileops {
  * none	not locked
  */
 
+/*
+PlayStation 4 sizes
+sizeof(struct file)
+1.01 - 1.76 = 0x58
+2.00 - 7.00 = 0x68
+*/
 struct file {
 	void		*f_data;	/* file descriptor specific data */
 	struct fileops	*f_ops;		/* File operations */

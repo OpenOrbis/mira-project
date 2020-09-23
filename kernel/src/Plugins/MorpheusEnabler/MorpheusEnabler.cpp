@@ -97,7 +97,7 @@ bool MorpheusEnabler::DoPatch()
 	delete [] s_Entries;
 	s_Entries = nullptr;
 
-	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_vr), 3, (void*)"\x31\xC0\xC3", nullptr, true);
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_vr_patch), 3, (void*)"\x31\xC0\xC3", nullptr, true);
 	if (s_Ret < 0)
 	{
 			WriteLog(LL_Error, "ssc_enable_vr");

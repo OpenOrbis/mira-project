@@ -3,11 +3,13 @@
 #include <vector>
 #include <cstddef>
 #include <limits>
+#include <mutex>
 
 namespace Mira
 {
     namespace Rpc
     {
+        struct RpcHeader;
         class Connection;
         class Listener;
 
@@ -24,23 +26,22 @@ namespace Mira
             };
 
             std::vector<std::shared_ptr<Rpc::Listener>> m_Listeners;
-            // TODO: mutex
+            std::mutex m_Lock;
 
         public:
             Manager();
             virtual ~Manager();
 
-            bool Register(RpcCategory p_Category, uint32_t p_Type, std::function<void(std::shared_ptr<Rpc::Connection>, std::shared_ptr<Rpc::RpcHeader>)>);
-            bool Unregister(RpcCategory p_Category, uint32_t p_Type, std::function<void(std::shared_ptr<Rpc::Connection>, std::shared_ptr<Rpc::RpcHeader>)>);
+            bool Register(RpcCategory p_Category, uint32_t p_Type, std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)>);
+            bool Unregister(RpcCategory p_Category, uint32_t p_Type, std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)>);
 
             void Clear();
 
             void SendErrorResponse(std::shared_ptr<Rpc::Connection> p_Connection, RpcCategory p_Category, int32_t p_Error);
             
-            void SendResponse(std::shared_ptr<Rpc::Connection> p_Connection, std::shared_ptr<Rpc::RpcHeader> p_Message);
             void SendResponse(std::shared_ptr<Rpc::Connection> p_Connection, RpcCategory p_Category, uint32_t p_Type, int64_t p_Error, std::vector<uint8_t> p_Data);
 
-            void OnRequest(std::shared_ptr<Rpc::Connection> p_Connection, std::shared_ptr<Rpc::RpcHeader> p_Message);
+            void OnRequest(Rpc::Connection* p_Connection, const Mira::Rpc::RpcHeader* p_Message);
         };
     }
 }

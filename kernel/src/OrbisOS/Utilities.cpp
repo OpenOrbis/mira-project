@@ -151,6 +151,8 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
+	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
 	struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
 	struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
@@ -170,7 +172,7 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 		{
 			PROC_LOCK(s_Proc);
 
-			if (strcmp(s_Proc->p_comm, p_Name) == 0) {
+			if (strncmp(p_Name, s_Proc->p_comm, strlen(p_Name)) == 0) {
 				s_FoundProc = s_Proc;
 				PROC_UNLOCK(s_Proc);
 				break;

@@ -2,9 +2,9 @@ name: Orbis503
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, develop ]
 
 jobs:
   build:
@@ -16,28 +16,46 @@ jobs:
       - uses: actions/checkout@v2
         # Install required stuff needed to build Mira
       - name: preinstall
-        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck
+        run: wget -q -O - https://files.viva64.com/etc/pubkey.txt | sudo apt-key add -; sudo wget -O /etc/apt/sources.list.d/viva64.list https://files.viva64.com/etc/viva64.list; sudo apt-get update; sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck pvs-studio
         # Handle loader crap
       - name: create loader directories
-        run: cd loader; make create
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 make create
       - name: clean loader
-        run: cd loader; make clean
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 make clean
       - name: create mira directories
-        run: cd kernel; make create
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 make create
       - name: clean mira
-        run: cd kernel; make clean
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 make clean
         # 5.03 Support
       - name: make 5.03 loader
-        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 MIRA_CHECKS=TRUE make
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 MIRA_CHECKS=TRUE pvs-studio-analyzer trace -- make
+      - name: generate 5.03 loader pvs report
+        run: cd loader; pvs-studio-analyzer analyze -e ../external/ -o project.log; plog-converter -a GA:1,2 -t fullhtml -o pvs-html project.log; plog-converter -a GA:1,2 -t tasklist -o report.tasks project.log
       - name: make 5.03 elf
-        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 ADD_GIT_HASH=TRUE MIRA_CHECKS=TRUE make
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_503 ADD_GIT_HASH=TRUE MIRA_CHECKS=TRUE pvs-studio-analyzer trace -- make
+      - name: generate 5.03 elf pvs report
+        run: cd kernel; pvs-studio-analyzer analyze -e ../external/ -e src/External/ -e src/Messaging/Rpc/rpc.pb-c.c -e src/Plugins/FileManager/filemanager.pb-c.c -o project.log; plog-converter -a GA:1,2 -t fullhtml -o pvs-html project.log; plog-converter -a GA:1,2 -t tasklist -o report.tasks project.log
       - name: Upload 5.03 loader
         uses: actions/upload-artifact@v2
         with:
           name: MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.bin
           path: loader/build/MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.bin
+      - name: Upload 5.03 loader pvs report
+        uses: actions/upload-artifact@v2
+        with:
+          name: MiraLoader_PVS_Report
+          path: |
+            loader/report.tasks
+            loader/pvs-html/
       - name: Upload 5.03 elf
         uses: actions/upload-artifact@v2
         with:
           name: Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.elf
           path: kernel/build/Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_503.elf
+      - name: Upload 5.03 elf pvs report
+        uses: actions/upload-artifact@v2
+        with:
+          name: Mira_PVS_Report
+          path: |
+            kernel/report.tasks
+            kernel/pvs-html/
