@@ -215,42 +215,42 @@ bool FakePkgManager::ShellCorePatch()
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchB");
         return false;
     }
-    
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchC");
         return false;
     }
-    
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchD");
         return false;
     }
-    
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchA");
         return false;
     }
-    
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchB");
         return false;
     }
-    
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchC");
         return false;
     }
-    
+
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
     if (s_Ret < 0)
     {
@@ -343,7 +343,7 @@ bool FakePkgManager::ShellUIPatch()
     s_Entries = nullptr;
 
     // TODO: Fix all fw suport; I don't feel like fixing 1.76 support atm -kd
-    #if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_505 && MIRA_PLATFORM!=MIRA_PLATFORM_ORBIS_BSD_620 
+    #if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_505 && MIRA_PLATFORM!=MIRA_PLATFORM_ORBIS_BSD_620
     #else
 
     uint8_t mov__eax_1__ret[6] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3 };
@@ -476,13 +476,13 @@ int FakePkgManager::DecryptNpdrmDebugRif(uint32_t p_Type, uint8_t* p_Data)
     auto s_Thread = __curthread();
     if (s_Thread == nullptr)
         return SCE_SBL_ERROR_NPDRM_ENOTSUP;
-    
+
     auto fpu_kern_enter = (int(*)(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags))kdlsym(fpu_kern_enter);
     auto fpu_kern_leave = (int (*)(struct thread *td, struct fpu_kern_ctx *ctx))kdlsym(fpu_kern_leave);
     auto fpu_ctx = (fpu_kern_ctx*)kdlsym(fpu_kern_ctx);
     //auto AesCbcCfb128Encrypt = (int (*)(uint8_t* out, const uint8_t* in, size_t data_size, const uint8_t* key, int key_size, uint8_t* iv))kdlsym(AesCbcCfb128Encrypt);
     auto AesCbcCfb128Decrypt = (int (*)(uint8_t* out, const uint8_t* in, size_t data_size, const uint8_t* key, int key_size, uint8_t* iv))kdlsym(AesCbcCfb128Decrypt);
-    
+
     auto s_Ret = 0;
     fpu_kern_enter(s_Thread, fpu_ctx, 0);
     s_Ret = AesCbcCfb128Decrypt(p_Data + RIF_DIGEST_SIZE, p_Data + RIF_DIGEST_SIZE, RIF_DATA_SIZE, g_RifDebugKey, sizeof(g_RifDebugKey) * 8, p_Data);
@@ -531,10 +531,10 @@ vm_offset_t FakePkgManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t
     auto s_Entry = SceSblDriverFindMappedPageListByGpuVa(p_GpuVa);
     if (s_Entry == nullptr)
         return 0;
-    
+
     if (p_NumPageGroups != nullptr)
         *p_NumPageGroups = s_Entry->numPageGroups;
-    
+
     return s_Entry->cpuVa;
 }
 
@@ -544,11 +544,11 @@ int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size) __at
     auto sceSblDriverSendMsg = (int (*)(SblMsg* msg, size_t size))kdlsym(sceSblDriverSendMsg);
     if (p_Message->hdr.cmd != SBL_MSG_CCP)
         return sceSblDriverSendMsg(p_Message, p_Size);
-    
+
     union ccp_op* s_Op = &p_Message->service.ccp.op;
     if (CCP_OP(s_Op->common.cmd) != CCP_OP_AES)
         return sceSblDriverSendMsg(p_Message, p_Size);
-    
+
     uint32_t s_Mask = CCP_USE_KEY_FROM_SLOT | CCP_GENERATE_KEY_AT_SLOT;
     if ((s_Op->aes.cmd & s_Mask) != s_Mask || (s_Op->aes.key_index != PFS_FAKE_OBF_KEY_ID))
         return sceSblDriverSendMsg(p_Message, p_Size);
@@ -593,9 +593,9 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
     int32_t ret, orig_ret = 0;
 
     ret = orig_ret = sceSblPfsSetKeys(ekh, skh, eekpfs, eekc, pubkey_ver, key_ver, hdr, hdr_size, type, finalized, is_disc);
-	
+
 	if (ret) {
-		if (finalized && is_disc != 0) 
+		if (finalized && is_disc != 0)
 		{
 			ret = sceSblPfsSetKeys(ekh, skh, eekpfs, eekc, pubkey_ver, key_ver, hdr, hdr_size, type, finalized, 0); /* always use is_disc=0 here */
 			if (ret) {
@@ -695,8 +695,6 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
 				}
 			}
 			A_sx_xunlock_hard(sbl_pfs_sx);
-
-			ret = 0;
 		}
 	}
 
@@ -714,10 +712,10 @@ err:
         WriteLog(LL_Error, "sceSblPfsSetKeys returned (%x).", s_Ret);
         return s_Ret;
     }
-    
+
     if (p_Finalized && p_IsDisc != 0)
-    
-    
+
+
     uint8_t s_Ekpfs[EKPFS_SIZE] = { 0 };
     RsaBuffer s_InData
     {
@@ -755,7 +753,7 @@ err:
         WriteLog(LL_Error, "RsaesPkcs1v15Dec2048CRT returned (%x).", s_Ret);
         return s_OriginalRet;
     }
-    
+
     auto _sx_xlock = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
     auto _sx_xunlock = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
 
@@ -815,7 +813,7 @@ err:
     {
         if (*p_Ekh != -1)
             sceSblKeymgrClearKey(*p_Ekh);
-        
+
         _sx_xunlock(sbl_pfs_sx);
         return s_OriginalRet;
     }
@@ -825,7 +823,7 @@ err:
     {
         if (*p_Skh != -1)
             sceSblKeymgrClearKey(*p_Skh);
-        
+
         _sx_xunlock(sbl_pfs_sx);
         return s_OriginalRet;
     }
@@ -841,7 +839,7 @@ int FakePkgManager::OnNpdrmDecryptIsolatedRif(KeymgrPayload* p_Payload)
     // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address
     KeymgrRequest* s_Request = reinterpret_cast<KeymgrRequest*>(SceSblDriverGpuVaToCpuVa(p_Payload->data, nullptr));
 
-    // // try to decrypt rif normally 
+    // // try to decrypt rif normally
     int s_Ret = sceSblKeymgrSmCallfunc(p_Payload);
     if ((s_Ret != 0 || p_Payload->status != 0) && s_Request)
     {
@@ -861,11 +859,11 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 {
     auto sceSblKeymgrSmCallfunc = (int (*)(KeymgrPayload* payload))kdlsym(sceSblKeymgrSmCallfunc);
 
-    // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address 
+    // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address
     uint64_t s_BufferGpuVa = p_Payload->data;
     auto s_Request = reinterpret_cast<KeymgrRequest*>(SceSblDriverGpuVaToCpuVa(s_BufferGpuVa, nullptr));
     auto s_Response = reinterpret_cast<KeymgrResponse*>(s_Request);
-    
+
     // try to decrypt rif normally
     int s_Ret = sceSblKeymgrSmCallfunc(p_Payload);
     int s_OriginalRet = s_Ret;
@@ -874,9 +872,8 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
     if ((s_Ret != 0 || p_Payload->status != 0) && s_Request)
     {
         if (s_Request->DecryptEntireRif.rif.format != 2)
-        { 
+        {
             // not fake?
-            s_Ret = s_OriginalRet;
             goto err;
         }
 
@@ -892,16 +889,15 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
         consult with kernel code if offsets needs to be changed */
         memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest) + sizeof(s_Request->DecryptEntireRif.rif.data));
 
-        memset(s_Response->DecryptEntireRif.raw + 
+        memset(s_Response->DecryptEntireRif.raw +
         sizeof(s_Request->DecryptEntireRif.rif.digest) +
-        sizeof(s_Request->DecryptEntireRif.rif.data), 
+        sizeof(s_Request->DecryptEntireRif.rif.data),
         0,
-        sizeof(s_Response->DecryptEntireRif.raw) - 
-        (sizeof(s_Request->DecryptEntireRif.rif.digest) + 
+        sizeof(s_Response->DecryptEntireRif.raw) -
+        (sizeof(s_Request->DecryptEntireRif.rif.digest) +
         sizeof(s_Request->DecryptEntireRif.rif.data)));
 
         p_Payload->status = s_Ret;
-        s_Ret = 0;
     }
 
 err:
@@ -925,7 +921,7 @@ SblKeyRbtreeEntry* FakePkgManager::sceSblKeymgrGetKey(unsigned int p_Handle)
     return nullptr;
 }
 
-int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line) 
+int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line)
 {
     //WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
     auto sceSblKeymgrSetKeyStorage = (int (*)(uint64_t key_gpu_va, unsigned int key_size, uint32_t key_id, uint32_t key_handle))kdlsym(sceSblKeymgrSetKeyStorage);
