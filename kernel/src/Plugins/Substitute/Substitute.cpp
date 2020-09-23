@@ -205,7 +205,8 @@ void Substitute::FreeHook(int hook_id) {
 bool Substitute::FindJmpslotSimilarity(struct proc* p, void* jmpslot_addr, int* hook_id) {
     if (!hook_id) {
         WriteLog(LL_Error, "Invalid argument !");
-        *hook_id = -1;
+        if (hook_id != nullptr)
+            *hook_id = -1;
         return false;
     }
 
@@ -1494,6 +1495,8 @@ int Substitute::OnIoctl_StateHook(struct thread* td, struct substitute_state_hoo
                 WriteLog(LL_Info, "Unhook %i was complete !", uap->hook_id);
                 uap->result = ret;
             }
+
+            break;
         }
 
         default: {
