@@ -907,6 +907,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
                     dynlib_obj = *(uint64_t*)(dynlib_obj);
                     if (!dynlib_obj) {
                         WriteLog(LL_Error, "Unable to find the library.");
+                        A_sx_xunlock_hard(dynlib_bind_lock);
                         return 0; // Library not found
                     }
                 }
