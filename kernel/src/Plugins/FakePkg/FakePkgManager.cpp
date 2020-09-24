@@ -276,7 +276,7 @@ bool FakePkgManager::ShellCorePatch()
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
 	}
-#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_672 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_702
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x98\x00\x00\x00", nullptr, true);
 	if (s_Ret < 0)
 	{
@@ -392,7 +392,7 @@ bool FakePkgManager::ShellUIPatch()
 	s_Entries = nullptr;
 
 	// TODO: Fix all fw suport; I don't feel like fixing 1.76 support atm -kd
-	#if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_672
+	#if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_702
 	#else
 
 	uint8_t mov__eax_1__ret[6] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3 };
