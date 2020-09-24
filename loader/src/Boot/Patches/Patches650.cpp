@@ -6,10 +6,95 @@
 /*
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
-	TODO: YOU MUST VERIFY THESE OFFSETS
 	thx: Fire30
 */
 void Mira::Boot::Patches::install_prerunPatches_650()
 {
-	// TODO: Implement
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_650
+	// NOTE: Only apply patches that the loader requires to run, the rest of them should go into Mira's ELF
+	// You must assign the kernel base pointer before anything is done
+	if (!gKernelBase)
+		return;
+
+	// Enable UART
+	kmem = (uint8_t *)&gKernelBase[0x01A6EB18];
+	kmem[0] = 0x00;
+
+	// Patch sys_dynlib_dlsym: Allow from anywhere
+	kmem = (uint8_t *)&gKernelBase[0x001D85AA];
+	kmem[0] = 0xE9;
+	kmem[1] = 0xC7;
+	kmem[2] = 0x01;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+
+	kmem = (uint8_t *)&gKernelBase[0x00419F20];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0xC3;
+
+	// Patch sys_mmap: Allow RWX (read-write-execute) mapping
+	kmem = (uint8_t *)&gKernelBase[0x000AB57A];
+	kmem[0] = 0x37;
+	kmem[3] = 0x37;
+
+	// Patch setuid: Don't run kernel exploit more than once/privilege escalation
+	kmem = (uint8_t *)&gKernelBase[0x0010BB20];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x00;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+
+	// Enable RWX (kmem_alloc) mapping
+	kmem = (uint8_t *)&gKernelBase[0x00250445];
+	kmem[0] = 0x07;
+
+	kmem = (uint8_t *)&gKernelBase[0x00250453];
+	kmem[0] = 0x07;
+
+	// Patch copyin/copyout: Allow userland + kernel addresses in both params
+	// copyin
+	kmem = (uint8_t *)&gKernelBase[0x003C1447];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x003C1453];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+
+	// copyout
+	kmem = (uint8_t *)&gKernelBase[0x003C1352];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x003C135E];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+
+	// Patch copyinstr
+	kmem = (uint8_t *)&gKernelBase[0x003C18F3];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+
+	kmem = (uint8_t *)&gKernelBase[0x003C18FF];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+
+	// Patch memcpy stack
+	kmem = (uint8_t *)&gKernelBase[0x003C120D];
+	kmem[0] = 0xEB;
+
+	// Patch mprotect: Allow RWX (mprotect) mapping
+	kmem = (uint8_t *)&gKernelBase[0x00451A08];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
+#endif
 }

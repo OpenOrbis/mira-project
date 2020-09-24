@@ -3,9 +3,7 @@
 
 #include <Boot/Patches.hpp>
 
-using namespace Mira::Boot;
-
-void Patches::install_prePatches()
+void Mira::Boot::Patches::install_prePatches()
 {
 	switch (MIRA_PLATFORM)
 	{

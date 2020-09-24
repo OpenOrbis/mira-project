@@ -6,11 +6,12 @@
 /*
 	Please, please, please!
 	Keep patches consistent with the used patch style for readability.
-	TODO: YOU MUST VERIFY THESE OFFSETS
 	thx: Fire30
 */
 void Mira::Boot::Patches::install_prerunPatches_620()
 {
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_620
+	// NOTE: Only apply patches that the loader requires to run, the rest of them should go into Mira's ELF
 	// You must assign the kernel base pointer before anything is done
 	if (!gKernelBase)
 		return;
@@ -18,14 +19,44 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 	// Use "kmem" for all patches
 	uint8_t *kmem;
 
-	// Enable rwx mapping
+	// Enable UART
+	kmem = (uint8_t *)&gKernelBase[0x01570338];
+	kmem[0] = 0x00;
+
+	// Patch sys_dynlib_dlsym: Allow from anywhere
+	kmem = (uint8_t *)&gKernelBase[0x0027F67A];
+	kmem[0] = 0xE9;
+	kmem[1] = 0xC4;
+	kmem[2] = 0x01;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+
+	kmem = (uint8_t *)&gKernelBase[0x0001A810];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+	kmem[2] = 0xC3;
+
+	// Patch sys_mmap: Allow RWX (read-write-execute) mapping
+	kmem = (uint8_t *)&gKernelBase[0x0024026D];
+	kmem[0] = 0x37;
+	kmem[3] = 0x37;
+
+	// Patch setuid: Don't run kernel exploit more than once/privilege escalation
+	kmem = (uint8_t *)&gKernelBase[0x000290E2];
+	kmem[0] = 0xB8;
+	kmem[1] = 0x00;
+	kmem[2] = 0x00;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+
+	// Enable RWX (kmem_alloc) mapping
 	kmem = (uint8_t *)&gKernelBase[0x002704E8];
 	kmem[0] = 0x07;
 
 	kmem = (uint8_t *)&gKernelBase[0x002704F6];
 	kmem[0] = 0x07;
 
-	// Patch copyin/copyout to allow userland + kernel addresses in both params
+	// Patch copyin/copyout: Allow userland + kernel addresses in both params
 	// copyin
 	kmem = (uint8_t *)&gKernelBase[0x00114947];
 	kmem[0] = 0x90;
@@ -60,16 +91,13 @@ void Mira::Boot::Patches::install_prerunPatches_620()
 	kmem = (uint8_t *)&gKernelBase[0x0011470D];
 	kmem[0] = 0xEB;
 
-	// ptrace patches
-	kmem = (uint8_t *)&gKernelBase[0x0013F234];
+	// Patch mprotect: Allow RWX (mprotect) mapping
+	kmem = (uint8_t *)&gKernelBase[0x00352278];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
-
-	kmem = (uint8_t*)&gKernelBase[0x001149A7];
-	kmem[0] = 0x41;
-	kmem[1] = 0x41;
+#endif
 }

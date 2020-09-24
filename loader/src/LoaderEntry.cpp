@@ -310,7 +310,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 
 	// Create launch parameters, this is floating in "free kernel space" so the other process should
 	// be able to grab and use the pointer directly
-	Mira::Boot::InitParams*  initParams = (Mira::Boot::InitParams*)kmem_alloc(map, sizeof(Mira::Boot::InitParams));
+	Mira::Boot::InitParams* initParams = (Mira::Boot::InitParams*)kmem_alloc(map, sizeof(Mira::Boot::InitParams));
 	if (!initParams)
 	{
 		WriteLog(LL_Error, "could not allocate initialization parameters.\n");
@@ -391,5 +391,5 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	else
 	{
 		printf("[-]could not get entry point.\n");
-	}		
+	}
 }

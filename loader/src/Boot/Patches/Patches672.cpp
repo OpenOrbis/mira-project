@@ -3,6 +3,10 @@
 
 #include <Boot/Patches.hpp>
 
+/*
+	Please, please, please!
+	Keep patches consistent with the used patch style for readability.
+*/
 void Mira::Boot::Patches::install_prerunPatches_672()
 {
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
@@ -14,50 +18,44 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	// Use "kmem" for all patches
 	uint8_t *kmem;
 
-	// Patch dynlib_dlsym
-	kmem = (uint8_t*)&gKernelBase[0x1D895A];
+	// Enable UART
+	kmem = (uint8_t *)&gKernelBase[0x01A6EB18];
+	kmem[0] = 0x00;
+
+	// Patch sys_dynlib_dlsym: Allow from anywhere
+	kmem = (uint8_t *)&gKernelBase[0x001D895A];
 	kmem[0] = 0xE9;
 	kmem[1] = 0xC7;
 	kmem[2] = 0x01;
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 
-	// Patch a function called by dynlib_dlsym
-	kmem = (uint8_t*)&gKernelBase[0x0041A2D0];
-	kmem[0] = 0x31; // xor eax, eax
+	kmem = (uint8_t *)&gKernelBase[0x0041A2D0];
+	kmem[0] = 0x31;
 	kmem[1] = 0xC0;
-	kmem[2] = 0xC3;	// ret
+	kmem[2] = 0xC3;
 
-	// Patch sys_mmap
-	kmem = (uint8_t*)&gKernelBase[0x000AB57A];
-	kmem[0] = 0x37; // mov     [rbp+var_61], 33h ; '3'
-	kmem[3] = 0x37; // mov     sil, 33h ; '3'
+	// Patch sys_mmap: Allow RWX (read-write-execute) mapping
+	kmem = (uint8_t *)&gKernelBase[0x000AB57A];
+	kmem[0] = 0x37;
+	kmem[3] = 0x37;
 
-	// patch sys_setuid
-	kmem = (uint8_t*)&gKernelBase[0x0010BED0]; // call    priv_check_cred; overwrite with mov eax, 0
-	kmem[0] = 0xB8; // mov eax, 0
+	// Patch setuid: Don't run kernel exploit more than once/privilege escalation
+	kmem = (uint8_t *)&gKernelBase[0x0010BED0];
+	kmem[0] = 0xB8;
 	kmem[1] = 0x00;
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
 
-	// patch sys_mprotect
-	kmem = (uint8_t*)&gKernelBase[0x00451DB8]; // jnz     loc_FFFFFFFF82652426; nop it out
-	kmem[0] = 0x90;
-	kmem[1] = 0x90;
-	kmem[2] = 0x90;
-	kmem[3] = 0x90;
-	kmem[4] = 0x90;
-	kmem[5] = 0x90;
-
-	// Enable rwx mapping in kmem_alloc
+	// Enable RWX (kmem_alloc) mapping
 	kmem = (uint8_t *)&gKernelBase[0x002507F5];
-	kmem[0] = 0x07; // set maxprot to RWX
+	kmem[0] = 0x07;
 
 	kmem = (uint8_t *)&gKernelBase[0x00250803];
-	kmem[0] = 0x07; // set maxprot to RWX
+	kmem[0] = 0x07;
 
-	// Patch copyin/copyout to allow userland + kernel addresses in both params
+	// Patch copyin/copyout: Allow userland + kernel addresses in both params
 	// copyin
 	kmem = (uint8_t *)&gKernelBase[0x003C17F7];
 	kmem[0] = 0x90;
@@ -91,5 +89,14 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	// Patch memcpy stack
 	kmem = (uint8_t *)&gKernelBase[0x003C15BD];
 	kmem[0] = 0xEB;
+
+	// Patch mprotect: Allow RWX (mprotect) mapping
+	kmem = (uint8_t *)&gKernelBase[0x00451DB8];
+	kmem[0] = 0x90;
+	kmem[1] = 0x90;
+	kmem[2] = 0x90;
+	kmem[3] = 0x90;
+	kmem[4] = 0x90;
+	kmem[5] = 0x90;
 #endif
 }
