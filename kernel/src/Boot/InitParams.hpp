@@ -23,20 +23,21 @@ namespace Mira
             uint64_t allocatedBase;
 
             // Kernel process handle
-            struct proc* process;
+            struct proc *process;
 
             // Entrypoint
             // Userland should set this to NULL
-            void(*entrypoint)(void*);
+            void (*entrypoint)(void *);
 
             // ElfLoader
-            MiraLoader::Loader* elfLoader;
+            MiraLoader::Loader *elfLoader;
 
             // If this is an elf launch or not
             uint8_t isElf : 1;
-            
+
             // If the kproc is currently running
             uint8_t isRunning : 1;
+
         } InitParams;
-    }
-}
+    } // namespace Boot
+} // namespace Mira
