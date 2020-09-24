@@ -230,7 +230,7 @@
 #define ssc_enable_data_mount_patch                        0x0033943E
 
 // SceShellCore patches - enable VR without spoof
-#define ssc_enable_vr_patch                                0x00DDDD70
+#define ssc_enable_vr_patch                                0x00DDDD50
 
 // SceShellCore patches - enable official external HDD support (Support added in 4.50
 #define ssc_external_hdd_pkg_installer_patch               0x009FB311
