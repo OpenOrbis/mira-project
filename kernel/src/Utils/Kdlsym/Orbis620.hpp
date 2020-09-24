@@ -180,7 +180,6 @@
 #define kdlsym_addr_vsnprintf                              0x003081C0
 #define kdlsym_addr_wakeup                                 0x000973F0
 #define kdlsym_addr_Xfast_syscall                          0x000001C0
-#define kdlsym_addr_target_id                              0x0215DB8D
 
 // Kernel Hooks
 #define kdlsym_addr_printf_hook                            0x01A9FD58
