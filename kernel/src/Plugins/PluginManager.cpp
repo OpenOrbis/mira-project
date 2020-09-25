@@ -14,7 +14,7 @@
 #include <Plugins/MorpheusEnabler/MorpheusEnabler.hpp>
 #include <Plugins/RemotePlayEnabler/RemotePlayEnabler.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
-#include <Plugins/TargetID/TargetID.hpp
+#include <Plugins/TargetID/TargetID.hpp>
 #include <Plugins/TTYRedirector/TTYRedirector.hpp>
 
 // Utility functions
