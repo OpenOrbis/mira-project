@@ -887,7 +887,8 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 
         /* XXX: sorry, i'm lazy to refactor this crappy code :D basically, we're copying decrypted data to proper place,
         consult with kernel code if offsets needs to be changed */
-        memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest) + sizeof(s_Request->DecryptEntireRif.rif.data));
+        memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest));
+        memcpy(s_Response->DecryptEntireRif.raw + sizeof(s_Request->DecryptEntireRif.rif.digest), s_Request->DecryptEntireRif.rif.data, sizeof(s_Request->DecryptEntireRif.rif.data));
 
         memset(s_Response->DecryptEntireRif.raw +
         sizeof(s_Request->DecryptEntireRif.rif.digest) +
