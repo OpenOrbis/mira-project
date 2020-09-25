@@ -872,7 +872,6 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
 
-
     // Get the nids of the function
     char nids[0xD] = { 0 };
     if ( (flags & SUBSTITUTE_IAT_NIDS) ) {
@@ -1247,6 +1246,11 @@ bool Substitute::OnProcessExit(struct proc *p) {
 
 // Substitute : Load PRX from Substitute folder
 int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_args* uap) {
+    if (!td || !uap) {
+        WriteLog(LL_Error, "Invalid argument !");
+        return EINVAL;
+    }
+
     Substitute* substitute = GetPlugin();
     if (!substitute) {
         WriteLog(LL_Error, "Substitute dependency is needed");
@@ -1261,11 +1265,6 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     auto sys_dynlib_dlsym = (int(*)(struct thread*, void*))substitute->sys_dynlib_dlsym_p;
     if (!sys_dynlib_dlsym)
         return 1;
-
-    if (td == nullptr) {
-        WriteLog(LL_Error, "Syscall called without thread ?");
-        return 1;
-    }
 
     // Call original syscall
     int ret = sys_dynlib_dlsym(td, uap);
