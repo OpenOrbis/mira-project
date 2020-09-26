@@ -78,6 +78,7 @@ Mira::Framework* Mira::Framework::GetFramework()
 
 Mira::Framework::Framework() :
 	m_InitParams(),
+	m_Configuration { 0 },
 	m_EventHandlersInstalled(false),
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
@@ -89,7 +90,7 @@ Mira::Framework::Framework() :
 	m_TrainerManager(nullptr),
 	m_CtrlDriver(nullptr)
 {
-
+	InitializeMiraConfig(&m_Configuration);
 }
 
 Mira::Framework::~Framework()

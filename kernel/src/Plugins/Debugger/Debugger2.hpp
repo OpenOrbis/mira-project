@@ -17,8 +17,6 @@
 
 extern "C"
 {
-    #include <Messaging/Rpc/rpc.pb-c.h>
-
     #include <sys/uio.h>
 	#include <sys/proc.h>
 	#include <sys/ioccom.h>

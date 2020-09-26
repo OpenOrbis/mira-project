@@ -1,5 +1,6 @@
 #pragma once
 #include <Boot/InitParams.hpp>
+#include <mira/MiraConfig.hpp>
 
 struct eventhandler_entry;
 struct eventhandler_list;
@@ -58,6 +59,7 @@ namespace Mira
     private:
         static Framework* m_Instance;
         Mira::Boot::InitParams m_InitParams;
+        MiraConfig m_Configuration;
 
         bool m_EventHandlersInstalled;
 

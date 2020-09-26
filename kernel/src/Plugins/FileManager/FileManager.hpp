@@ -1,13 +1,9 @@
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
+#include <Messaging/MessageListener.hpp>
 
 #include <sys/elf64.h>
-
-extern "C"
-{
-    #include <Messaging/Rpc/rpc.pb-c.h>
-};
 
 namespace Mira
 {

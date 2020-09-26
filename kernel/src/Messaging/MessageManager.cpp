@@ -171,7 +171,7 @@ void MessageManager::SendErrorResponse(Rpc::Connection* p_Connection, RpcCategor
 
 void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Connection == nullptr)
+    /*if (p_Connection == nullptr)
     {
         WriteLog(LL_Error, "could not get connection.");
         return;
@@ -255,7 +255,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, const RpcTransp
     }
 
     memset(s_SerializedData, 0, s_TotalSize);
-    delete [] s_SerializedData;
+    delete [] s_SerializedData;*/
 }
 
 void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_Category, uint32_t p_Type, int64_t p_Error, void* p_Data, uint32_t p_DataSize)
@@ -266,7 +266,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_C
         return;
     }
 
-    if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
+    /*if (p_Category < RPC_CATEGORY__NONE || p_Category >= RPC_CATEGORY__MAX)
     {
         WriteLog(LL_Error, "invalid category (%d)", p_Category);
         return;
@@ -285,7 +285,7 @@ void MessageManager::SendResponse(Rpc::Connection* p_Connection, RpcCategory p_C
     s_Response.data.data = static_cast<uint8_t*>(p_Data);
     s_Response.data.len = p_Data == nullptr ? 0 : p_DataSize;
 
-    SendResponse(p_Connection, &s_Response);
+    SendResponse(p_Connection, &s_Response);*/
 }
 
 void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport* p_Message)
@@ -317,10 +317,10 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
             if (l_CategoryEntry == nullptr)
                 continue;
                         
-            if (l_CategoryEntry->GetCategory() != p_Message->header->category)
+            if (l_CategoryEntry->GetCategory() != p_Message->header.category)
                 continue;
             
-            if (l_CategoryEntry->GetType() != p_Message->header->type)
+            if (l_CategoryEntry->GetType() != p_Message->header.type)
                 continue;
             
             s_FoundEntry = &m_Listeners[i];
@@ -330,7 +330,7 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
 
         if (s_FoundEntry == nullptr || s_FoundIndex == -1)
         {
-            WriteLog(LL_Error, "could not find endpoint c: (%x) t:(%x)", p_Message->header->category, p_Message->header->type);
+            WriteLog(LL_Error, "could not find endpoint c: (%x) t:(%x)", p_Message->header.category, p_Message->header.type);
             break;
         }
         

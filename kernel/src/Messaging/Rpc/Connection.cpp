@@ -20,8 +20,6 @@ extern "C"
     #include <sys/filedesc.h>
     #include <sys/proc.h>
     #include <sys/pcpu.h>
-    
-    #include "rpc.pb-c.h"
 }
 
 
@@ -32,8 +30,8 @@ Connection::Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Soc
     m_Id(p_ClientId),
     m_Running(false),
     m_Thread(nullptr),
-    m_Address{0},
-    m_Server(p_Server)
+    m_Address{0}//, // TOOD: Re-enable once protobuf has been replaced
+    //m_Server(p_Server)
 {
     memcpy(&m_Address, &p_Address, sizeof(m_Address));
 
@@ -95,7 +93,7 @@ void Connection::SetRunning(bool p_Running)
 void Connection::ConnectionThread(void* p_Connection)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    /*auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -260,6 +258,6 @@ void Connection::ConnectionThread(void* p_Connection)
     // Tell the server to free this memory
     if (s_Connection != nullptr && s_Connection->m_Server != nullptr)
         s_Connection->m_Server->OnConnectionDisconnected(s_Connection);
-
+    */
     kthread_exit();
 }

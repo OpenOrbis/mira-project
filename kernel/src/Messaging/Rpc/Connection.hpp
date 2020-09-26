@@ -37,7 +37,8 @@ namespace Mira
                 struct sockaddr_in m_Address;
 
                 // Server reference
-                Rpc::Server* m_Server;
+                // TODO: Re-enable this once protobuf has been replaced
+                //Rpc::Server* m_Server;
 
                 struct mtx m_Mutex;
 

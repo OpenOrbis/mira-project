@@ -1,5 +1,18 @@
 #pragma once
-#include "Rpc/rpc.pb-c.h"
+#include <Utils/Types.hpp>
+
+// HACK: Placeholder to remove protobuf
+typedef int RpcCategory;
+#define RPC_CATEGORY__NONE 0
+#define RPC_CATEGORY__MAX 1
+typedef struct _RpcTransport {
+    struct
+    {
+        int category;
+        int type;
+    } header;
+} RpcTransport;
+// HACK: End Hack
 
 namespace Mira
 {

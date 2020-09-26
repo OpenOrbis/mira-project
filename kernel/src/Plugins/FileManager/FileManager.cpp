@@ -26,12 +26,6 @@
 #include <sys/filedesc.h>
 #include <sys/file.h>
 
-extern "C"
-{
-    #include "filemanager.pb-c.h"
-    #include <Messaging/Rpc/rpc.pb-c.h>
-};
-
 using namespace Mira::Plugins;
 using namespace Mira::Plugins::FileManagerExtent;
 
@@ -46,7 +40,7 @@ FileManager::~FileManager()
 
 bool FileManager::OnLoad()
 {
-    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
+    /*Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Open, OnOpen);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Close, OnClose);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Read, OnRead);
@@ -56,14 +50,14 @@ bool FileManager::OnLoad()
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_MkDir, OnMkDir);
     //Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_RmDir, OnRmDir);
     Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_Unlink, OnUnlink);
-    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_DecryptSelf, OnDecryptSelf);
+    Mira::Framework::GetFramework()->GetMessageManager()->RegisterCallback(RPC_CATEGORY__FILE, FileManager_DecryptSelf, OnDecryptSelf);*/
     
     return true;
 }
 
 bool FileManager::OnUnload()
 {
-    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
+    /*Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_Echo, OnEcho);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_Open, OnOpen);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_Close, OnClose);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_Read, OnRead);
@@ -73,13 +67,13 @@ bool FileManager::OnUnload()
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_MkDir, OnMkDir);
     //Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_RmDir, OnRmDir);
     Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_Unlink, OnUnlink);
-    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_DecryptSelf, OnDecryptSelf);
+    Mira::Framework::GetFramework()->GetMessageManager()->UnregisterCallback(RPC_CATEGORY__FILE, FileManager_DecryptSelf, OnDecryptSelf);*/
     return true;
 }
 
 void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    FmEchoRequest* s_Request = fm_echo_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
+    /*FmEchoRequest* s_Request = fm_echo_request__unpack(nullptr, p_Message->data.len, p_Message->data.data);
     if (s_Request == nullptr)
     {
         WriteLog(LL_Error, "invalid message");
@@ -88,12 +82,12 @@ void FileManager::OnEcho(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
     WriteLog(LL_Error, "echo: (%s).", s_Request->message);
 
-    fm_echo_request__free_unpacked(s_Request, nullptr);
+    fm_echo_request__free_unpacked(s_Request, nullptr);*/
 }
 
 void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+	/*auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -118,13 +112,13 @@ void FileManager::OnOpen(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
     fm_open_request__free_unpacked(s_Request, nullptr);
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Open, s_Ret, nullptr, 0);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Open, s_Ret, nullptr, 0);*/
 }
 
 
 void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-    if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
+    /*if (p_Message->data.data == nullptr || p_Message->data.len <= 0)
     {
         WriteLog(LL_Error, "invalid message");
         Mira::Framework::GetFramework()->GetMessageManager()->SendErrorResponse(p_Connection, RPC_CATEGORY__FILE, -ENOMEM);
@@ -150,12 +144,12 @@ void FileManager::OnClose(Messaging::Rpc::Connection* p_Connection, const RpcTra
 
     fm_close_request__free_unpacked(s_Request, nullptr);
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Close, 0, nullptr, 0);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Close, 0, nullptr, 0);*/
 }
 
 void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+	/*auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -238,12 +232,12 @@ void FileManager::OnRead(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
     // Free the allocated data for packing
     delete [] s_PackedData;
-    delete [] s_Data;
+    delete [] s_Data;*/
 }
 
 void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+	/*auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -448,12 +442,12 @@ void FileManager::OnGetDents(Messaging::Rpc::Connection* p_Connection, const Rpc
         s_Dents[i] = nullptr;
     }
 
-    delete [] s_Data;
+    delete [] s_Data;*/
 }
 
 uint64_t FileManager::GetDentCount(const char* p_Path)
 {	
-    auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+    /*auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -490,12 +484,13 @@ uint64_t FileManager::GetDentCount(const char* p_Path)
     }
     kclose_t(s_DirectoryHandle, s_IoThread);
 
-    return s_DentCount;
+    return s_DentCount;*/
+    return 0;
 }
 
 void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+	/*auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -621,12 +616,12 @@ void FileManager::OnStat(Messaging::Rpc::Connection* p_Connection, const RpcTran
 
     Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Stat, 0, s_ResponseData, s_ResponseSize);
 
-    delete [] s_ResponseData;
+    delete [] s_ResponseData;*/
 }
 
 void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTransport* p_Message)
 {
-	auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+	/*auto s_IoThread = Mira::Framework::GetFramework()->GetSyscoreThread();
 	if (s_IoThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get io thread.");
@@ -660,7 +655,7 @@ void FileManager::OnUnlink(Messaging::Rpc::Connection* p_Connection, const RpcTr
     fm_unlink_request__free_unpacked(s_Request, nullptr);
     s_Request = nullptr;
 
-    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Unlink, 0, nullptr, 0);
+    Mira::Framework::GetFramework()->GetMessageManager()->SendResponse(p_Connection, RPC_CATEGORY__FILE, FileManager_Unlink, 0, nullptr, 0);*/
 }
 
 bool IsPhOverlapping(Elf64_Phdr* p_ProgramHeader, int p_ProgramHeaderIndex, Elf64_Phdr* p_ProgramHeaders, int p_ProgramHeaderCount)

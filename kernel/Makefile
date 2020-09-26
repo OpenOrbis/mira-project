@@ -56,7 +56,7 @@ EXTERNAL_INC := ../external
 endif
 
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC) -I$(EXTERNAL_INC)/protobuf-c
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC)
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib
@@ -113,6 +113,8 @@ post-build: main-build
 
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
+	@echo external $(EXTERNAL_INC)
+	@echo fuck off
 	@echo $(I_DIRS)
 ifneq ($(strip $(ADD_GIT_HASH)),)
 	echo  -n '#ifndef GIT_HASH\n#define GIT_HASH "' > $(SRC_DIR)/GitHash.hpp && \
@@ -122,6 +124,7 @@ endif
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 else
+	echo external $(EXTERNAL_INC)
 	@$(MAKE) --no-print-directory $(ALL_OBJ)
 endif
 

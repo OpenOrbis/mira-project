@@ -3,7 +3,6 @@
 
 extern "C"
 {
-    #include "Rpc/rpc.pb-c.h"
     #include <sys/param.h>
     #include <sys/lock.h>
     #include <sys/mutex.h>

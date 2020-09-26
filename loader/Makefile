@@ -45,10 +45,15 @@ ifeq ($(BSD_INC),)
 BSD_INC := ../external/freebsd-headers/include
 endif
 
+# Set up a path for the external directory
+ifeq ($(EXTERNAL_INC),)
+EXTERNAL_INC := ../external
+endif
+
 MIRACPP_DIR = $(abspath ${CURDIR}/../kernel/src)
 
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I$(MIRACPP_DIR) -I"$(BSD_INC)"
+I_DIRS	:=	-I. -I$(SRC_DIR) -I$(MIRACPP_DIR) -I"$(BSD_INC)" -I"$(EXTERNAL_INC)"
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib
@@ -109,7 +114,7 @@ main-build: pre-build
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 else
-	$(MAKE) --no-print-directory $(ALL_OBJ)
+	@$(MAKE) --no-print-directory $(ALL_OBJ)
 endif
 	
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
