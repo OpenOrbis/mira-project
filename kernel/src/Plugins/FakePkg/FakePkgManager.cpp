@@ -433,10 +433,10 @@ void FakePkgManager::ProcessStartEvent(void *arg, struct ::proc *p)
 		return;
 
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
-	if (strncmp(s_TitleId, "NPXS20000", 9) == 0 && strcmp(p->p_comm, "SceShellCore") == 0)
+	if (strncmp(s_TitleId, "NPXS20000", 9) == 0)
 		ShellCorePatch();
 
-	if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
+	if (strncmp(s_TitleId, "NPXS20001", 9) == 0)
 		ShellUIPatch();
 
 	return;
