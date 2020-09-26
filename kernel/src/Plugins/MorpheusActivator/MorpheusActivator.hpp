@@ -11,7 +11,7 @@ namespace Mira
 {
 		namespace Plugins
 		{
-				class MorpheusEnabler : public Mira::Utils::IModule
+				class MorpheusActivator : public Mira::Utils::IModule
 				{
 				private:
 			            eventhandler_entry* m_processStartEvent;
@@ -19,10 +19,10 @@ namespace Mira
 			    private:
 			    		static bool DoPatch();
 				public:
-						MorpheusEnabler();
-						virtual ~MorpheusEnabler();
+						MorpheusActivator();
+						virtual ~MorpheusActivator();
 
-						virtual const char* GetName() override { return "MorpheusEnabler"; }
+						virtual const char* GetName() override { return "MorpheusActivator"; }
 						virtual bool OnLoad() override;
 						virtual bool OnUnload() override;
 						virtual bool OnSuspend() override;

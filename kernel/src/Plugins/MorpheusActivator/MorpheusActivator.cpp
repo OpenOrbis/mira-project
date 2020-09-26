@@ -1,7 +1,7 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "MorpheusEnabler.hpp"
+#include "MorpheusActivator.hpp"
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
 
@@ -17,17 +17,17 @@ extern "C"
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
 
-MorpheusEnabler::MorpheusEnabler()
+MorpheusActivator::MorpheusActivator()
 {
 
 }
 
-MorpheusEnabler::~MorpheusEnabler()
+MorpheusActivator::~MorpheusActivator()
 {
 
 }
 
-void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
+void MorpheusActivator::ProcessStartEvent(void *arg, struct ::proc *p)
 {
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
@@ -42,14 +42,14 @@ void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
     return;
 }
 
-void MorpheusEnabler::ResumeEvent()
+void MorpheusActivator::ResumeEvent()
 {
     DoPatch();
     WriteLog(LL_Debug, "InstallEventHandlers finished");
     return;
 }
 
-bool MorpheusEnabler::DoPatch()
+bool MorpheusActivator::DoPatch()
 {
 	WriteLog(LL_Debug, "patching SceShellCore");
 
@@ -107,7 +107,7 @@ bool MorpheusEnabler::DoPatch()
 	return true;
 }
 
-bool MorpheusEnabler::OnLoad()
+bool MorpheusActivator::OnLoad()
 {
 	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
     if (s_MainThread == nullptr)
@@ -119,13 +119,13 @@ bool MorpheusEnabler::OnLoad()
     // Initialize the event handlers
     auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
-    m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
-    m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
+    m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusActivator::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+    m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusActivator::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
 	return DoPatch();
 }
 
-bool MorpheusEnabler::OnUnload()
+bool MorpheusActivator::OnUnload()
 {
     auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
     auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
@@ -143,12 +143,12 @@ bool MorpheusEnabler::OnUnload()
 	return true;
 }
 
-bool MorpheusEnabler::OnSuspend()
+bool MorpheusActivator::OnSuspend()
 {
 	return true;
 }
 
-bool MorpheusEnabler::OnResume()
+bool MorpheusActivator::OnResume()
 {
 	return true;
 }

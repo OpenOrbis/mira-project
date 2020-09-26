@@ -11,8 +11,8 @@
 #include <Plugins/FakePkg/FakePkgManager.hpp>
 #include <Plugins/Substitute/Substitute.hpp>
 #include <Plugins/BrowserActivator/BrowserActivator.hpp>
-#include <Plugins/MorpheusEnabler/MorpheusEnabler.hpp>
-#include <Plugins/RemotePlayEnabler/RemotePlayEnabler.hpp>
+#include <Plugins/MorpheusActivator/MorpheusActivator.hpp>
+#include <Plugins/RemotePlayActivator/RemotePlayActivator.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
 #include <Plugins/TTYRedirector/TTYRedirector.hpp>
 
@@ -131,8 +131,8 @@ bool PluginManager::OnLoad()
             break;
         }
 
-        // Initialize MorpheusEnabler
-        m_MorpheusEnabler = new Mira::Plugins::MorpheusEnabler();
+        // Initialize MorpheusActivator
+        m_MorpheusEnabler = new Mira::Plugins::MorpheusActivator();
         if (m_MorpheusEnabler == nullptr)
         {
             WriteLog(LL_Error, "could not allocate morpheus enabler.");
@@ -140,8 +140,8 @@ bool PluginManager::OnLoad()
             break;
         }
 
-        // Initialize RemotePlayEnabler
-        m_RemotePlayEnabler = new Mira::Plugins::RemotePlayEnabler();
+        // Initialize RemotePlayActivator
+        m_RemotePlayEnabler = new Mira::Plugins::RemotePlayActivator();
         if (m_RemotePlayEnabler == nullptr)
         {
             WriteLog(LL_Error, "could not allocate remote play enabler.");
@@ -351,26 +351,26 @@ bool PluginManager::OnUnload()
         m_BrowserActivator = nullptr;
     }
 
-    // Delete MorpheusEnabler
+    // Delete MorpheusActivator
     if (m_MorpheusEnabler)
     {
         WriteLog(LL_Debug, "unloading morpheus enabler");
         if (!m_MorpheusEnabler->OnUnload())
             WriteLog(LL_Error, "morpheus enabler could not unload");
 
-        // Free MorpheusEnabler
+        // Free MorpheusActivator
         delete m_MorpheusEnabler;
         m_MorpheusEnabler = nullptr;
     }
 
-    // Delete RemotePlayEnabler
+    // Delete RemotePlayActivator
     if (m_RemotePlayEnabler)
     {
         WriteLog(LL_Debug, "unloading remote play enabler");
         if (!m_RemotePlayEnabler->OnUnload())
             WriteLog(LL_Error, "remote play enabler could not unload");
 
-        // Free RemotePlayEnabler
+        // Free RemotePlayActivator
         delete m_RemotePlayEnabler;
         m_RemotePlayEnabler = nullptr;
     }
@@ -468,14 +468,14 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "browser activator suspend failed");
     }
 
-    // Suspend MorpheusEnabler (does nothing)
+    // Suspend MorpheusActivator (does nothing)
     if (m_MorpheusEnabler)
     {
         if (!m_MorpheusEnabler->OnSuspend())
             WriteLog(LL_Error, "morpheus enabler suspend failed");
     }
 
-    // Suspend RemotePlayEnabler (does nothing)
+    // Suspend RemotePlayActivator (does nothing)
     if (m_RemotePlayEnabler)
     {
         if (!m_RemotePlayEnabler->OnSuspend())

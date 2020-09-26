@@ -276,8 +276,12 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         WriteLog(LL_Error, "could not get proc main thread (%p) (%s).", p_TargetProc, p_TargetProc->p_comm);
         return false;
     }
-
+    
     WriteLog(LL_Info, "got target proc main thread: (%p).", s_TargetProcMainThread);
+
+    PrintDirectory("/", false, s_TargetProcMainThread);
+
+    
 
     // Get path from the file name
     auto s_TrainerFileName = strrchr(p_TrainerPrxPath, '/'); // "/test.prx"

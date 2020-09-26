@@ -1,7 +1,7 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "RemotePlayEnabler.hpp"
+#include "RemotePlayActivator.hpp"
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
 
@@ -17,17 +17,17 @@ extern "C"
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
 
-RemotePlayEnabler::RemotePlayEnabler()
+RemotePlayActivator::RemotePlayActivator()
 {
 
 }
 
-RemotePlayEnabler::~RemotePlayEnabler()
+RemotePlayActivator::~RemotePlayActivator()
 {
 
 }
 
-void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
+void RemotePlayActivator::ProcessStartEvent(void *arg, struct ::proc *p)
 {
 	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
@@ -45,7 +45,7 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 	return;
 }
 
-void RemotePlayEnabler::ResumeEvent()
+void RemotePlayActivator::ResumeEvent()
 {
 	ShellUIPatch();
 	RemotePlayPatch();
@@ -53,7 +53,7 @@ void RemotePlayEnabler::ResumeEvent()
 	return;
 }
 
-bool RemotePlayEnabler::ShellUIPatch()
+bool RemotePlayActivator::ShellUIPatch()
 {
 	WriteLog(LL_Debug, "patching SceShellUI");
 
@@ -164,7 +164,7 @@ bool RemotePlayEnabler::ShellUIPatch()
 	return true;
 }
 
-bool RemotePlayEnabler::RemotePlayPatch()
+bool RemotePlayActivator::RemotePlayPatch()
 {
 	WriteLog(LL_Debug, "patching SceRemotePlay");
 
@@ -233,7 +233,7 @@ bool RemotePlayEnabler::RemotePlayPatch()
 	return true;
 }
 
-bool RemotePlayEnabler::OnLoad()
+bool RemotePlayActivator::OnLoad()
 {
 	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
 	if (s_MainThread == nullptr)
@@ -245,8 +245,8 @@ bool RemotePlayEnabler::OnLoad()
 	// Initialize the event handlers
 	auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
-	m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(RemotePlayEnabler::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
-	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
+	m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(RemotePlayActivator::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayActivator::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
 	auto s_Ret = ShellUIPatch();
 	if (s_Ret == false) {
@@ -263,17 +263,17 @@ bool RemotePlayEnabler::OnLoad()
 	return true;
 }
 
-bool RemotePlayEnabler::OnUnload()
+bool RemotePlayActivator::OnUnload()
 {
 	return true;
 }
 
-bool RemotePlayEnabler::OnSuspend()
+bool RemotePlayActivator::OnSuspend()
 {
 	return true;
 }
 
-bool RemotePlayEnabler::OnResume()
+bool RemotePlayActivator::OnResume()
 {
 	return true;
 }
