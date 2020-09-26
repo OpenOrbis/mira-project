@@ -35,11 +35,10 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 		return;
 
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
-
-	if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
+	if (strncmp(s_TitleId, "NPXS20001", 9) == 0)
 		ShellUIPatch();
 
-	if (strncmp(s_TitleId, "NPXS21006", 9) == 0 && strcmp(p->p_comm, "SceRemotePlay") == 0)
+	if (strncmp(s_TitleId, "NPXS21006", 9) == 0)
 		RemotePlayPatch();
 
 	return;
