@@ -113,7 +113,9 @@ FakePkgManager::FakePkgManager() :
     m_NpdrmDecryptRifNewHook(nullptr),
     m_SceSblDriverSendMsgHook(nullptr),
     m_SceSblKeymgrInvalidateKey(nullptr),
-    m_SceSblPfsSetKeysHook(nullptr)
+    m_SceSblPfsSetKeysHook(nullptr),
+    m_processStartEvent(nullptr),
+    m_resumeEvent(nullptr)
 {
     auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
     struct sysent* sysents = sv->sv_table;
