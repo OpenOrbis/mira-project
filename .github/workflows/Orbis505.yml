@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
         # Install required stuff needed to build Mira
       - name: preinstall
-        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools cppcheck
+        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools clang-format cppcheck
         # Handle loader crap
       - name: create loader directories
         run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 make create
