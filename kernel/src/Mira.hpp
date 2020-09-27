@@ -92,6 +92,10 @@ namespace Mira
         bool SetInitParams(Mira::Boot::InitParams* p_Params);
         Mira::Boot::InitParams* GetInitParams() { return &m_InitParams; }
 
+        bool SetConfiguration(MiraConfig* p_SourceConfig);
+        const MiraConfig* GetConfiguration() { return &m_Configuration; }
+        
+
         bool Initialize();
         bool Terminate();
 

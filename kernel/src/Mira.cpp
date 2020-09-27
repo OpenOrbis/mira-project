@@ -253,6 +253,14 @@ bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
 	return true;
 }
 
+bool Mira::Framework::SetConfiguration(MiraConfig* p_SourceConfig)
+{
+	if (p_SourceConfig == nullptr)
+		return false;
+	
+	memcpy(&m_Configuration, p_SourceConfig, sizeof(*p_SourceConfig));
+}
+
 bool Mira::Framework::Initialize()
 {
 	// TODO: Load settings

@@ -7,6 +7,7 @@
 #include <Utils/Kernel.hpp>
 
 #include <Plugins/Substitute/Substitute.hpp>
+#include <mira/MiraConfig.hpp>
 
 extern "C"
 {
@@ -202,10 +203,14 @@ typedef struct _MiraGetTrainersShm
 #define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, 5, sizeof(MiraCreateTrainerShm))
 
 // Get the currently loaded shm's
-#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm));
+#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm))
 
 // Debug load trainer
 #define MIRA_LOAD_TRAINERS _IOC(IOC_IN, MIRA_IOCTL_BASE, 7, 0)
+
+// Configuration
+#define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, 8, 0)
+#define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, 9, sizeof(MiraConfig))
 
 namespace Mira
 {
@@ -233,6 +238,8 @@ namespace Mira
             static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraGetConfig(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraSetConfig(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Helper functions
             static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);

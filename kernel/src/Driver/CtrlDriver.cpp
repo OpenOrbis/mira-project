@@ -163,7 +163,8 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
 
-    switch (IOCGROUP(p_Command)) {
+    switch (IOCGROUP(p_Command)) 
+    {
         case SUBSTITUTE_IOCTL_BASE:
             return Mira::Plugins::Substitute::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
         case MIRA_IOCTL_BASE:
@@ -188,16 +189,19 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 {
                     return 0;
                 }
+                case MIRA_GET_CONFIG:
+                    return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                case MIRA_SET_CONFIG:
+                    return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
             }
         }
 
-        default: {
+        default:
             WriteLog(LL_Debug, "unknown base (0x%02x) command: (0x%llx).", IOCGROUP(p_Command), p_Command);
             break;
-        }
     }
 
-    return -1;
+    return EINVAL;
 }
 
 int32_t CtrlDriver::OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
