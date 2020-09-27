@@ -17,7 +17,9 @@ extern "C"
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
 
-MorpheusEnabler::MorpheusEnabler()
+MorpheusEnabler::MorpheusEnabler() :
+	m_processStartEvent(nullptr),
+	m_resumeEvent(nullptr)
 {
 
 }
