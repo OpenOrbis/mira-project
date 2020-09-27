@@ -85,7 +85,7 @@ Loader::Loader(const void* p_Elf, uint32_t p_ElfSize, ElfLoaderType_t p_Type) :
 		else
 			WriteNotificationLog("err: could not load properly\n");
 	}
-		
+
 }
 
 
@@ -181,7 +181,7 @@ bool Loader::ElfRelocInternal(Elf64_Addr p_RelocationBase, const void * p_Data, 
 		}
 		else
 			WriteNotificationLog("err: unknown reloc type\n");
-		
+
 		return false;
 	}
 
@@ -224,7 +224,7 @@ bool Loader::ElfRelocInternal(Elf64_Addr p_RelocationBase, const void * p_Data, 
 		 * There shouldn't be copy relocations in kernel
 		 * objects.
 		 */
-		
+
 		if (m_LoaderType == ElfLoaderType_t::KernelProc)
 		{
 			auto printf = (void(*)(const char *format, ...))kdlsym(printf);
@@ -232,7 +232,7 @@ bool Loader::ElfRelocInternal(Elf64_Addr p_RelocationBase, const void * p_Data, 
 		}
 		else
 			WriteNotificationLog("kldload: unexpected R_COPY relocation\n");
-		
+
 		return false;
 
 	case R_X86_64_GLOB_DAT:	/* S */
@@ -260,7 +260,7 @@ bool Loader::ElfRelocInternal(Elf64_Addr p_RelocationBase, const void * p_Data, 
 		}
 		else
 			WriteNotificationLog("kldload: unexpected relocation type\n");
-		
+
 		return false;
 	}
 
@@ -291,7 +291,7 @@ Elf64_Addr Loader::Lookup(Elf64_Size p_SymbolIndex, bool p_CheckDependencies)
 
 	// TODO: Implement
 	//const auto s_Symbol2 = LinkerFileLookupSymbol(s_SymbolName, p_CheckDependencies);
-	
+
 	if (m_LoaderType == ElfLoaderType_t::KernelProc)
 	{
 		auto printf = (void(*)(const char *format, ...))kdlsym(printf);
@@ -328,7 +328,7 @@ Elf64_Sym* Loader::LinkerFileLookupSymbolInternal(const char * p_Name, bool p_Ch
 		}
 		else
 			WriteNotificationLog("err: LinkerFileLookupSymbolInternal: missing symbol hash table\n");
-		
+
 		return nullptr;
 	}
 
@@ -384,7 +384,7 @@ Elf64_Sym* Loader::LinkerFileLookupSymbolInternal(const char * p_Name, bool p_Ch
 		return nullptr;
 
 	// Exhaustive search
-	
+
 	for (auto i = 0; i < m_DdbSymbolCount; i++)
 	{
 		s_Symp = m_DdbSymbolTable + i;
@@ -454,7 +454,7 @@ bool Loader::RelocateFile()
 				else
 					WriteNotificationLog("warn: could not elf reloc local for rela's\n");
 			}
-				
+
 
 			s_Rela++;
 		}
@@ -539,7 +539,7 @@ bool Loader::ParseDynamic()
 			break;
 		case DT_SYMENT:
 			if (l_Dynamic->d_un.d_val != sizeof(Elf64_Sym))
-			{	
+			{
 				if (m_LoaderType == ElfLoaderType_t::KernelProc)
 				{
 					auto printf = (void(*)(const char *format, ...))kdlsym(printf);
@@ -547,7 +547,7 @@ bool Loader::ParseDynamic()
 				}
 				else
 					WriteNotificationLog("err: elf64_sym size isn't correct in this elf wtf\n");
-				
+
 				return false;
 			}
 			break;
@@ -669,7 +669,7 @@ void* k_malloc(size_t size)
 {
 	if (!size)
 		size = sizeof(uint64_t);
-	
+
 	auto kmem_alloc = (vm_offset_t(*)(vm_map_t map, vm_size_t size))kdlsym(kmem_alloc);
 	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
 
@@ -692,7 +692,7 @@ void k_free(void* address)
 	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
 	auto kmem_free = (void(*)(void* map, void* addr, size_t size))kdlsym(kmem_free);
 
-	
+
 	uint8_t* data = ((uint8_t*)address) - sizeof(uint64_t);
 
 	uint64_t size = *(uint64_t*)data;
@@ -723,7 +723,7 @@ void * Loader::Allocate(Elf64_Xword p_Size)
 
 		void* s_Allocation = k_malloc(p_Size); //(void*)kmem_alloc(map, p_Size);
 
-		//auto s_Allocation = new uint8_t[p_Size]; 
+		//auto s_Allocation = new uint8_t[p_Size];
 
 		// Zero allocation
 		memset(s_Allocation, 0, p_Size);
@@ -738,7 +738,7 @@ void * Loader::Allocate(Elf64_Xword p_Size)
 		auto s_AllocationData = _mmap(NULL, p_Size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
 		if (s_AllocationData == nullptr)
 			return nullptr;
-		
+
 		memset(s_AllocationData, 0, p_Size);
 
 		return s_AllocationData;
@@ -908,7 +908,7 @@ bool Loader::Load()
 				WriteNotificationLog("err: could not get program header\n");
 			continue;
 		}
-		
+
 		switch (l_ProgramHeader->p_type)
 		{
 		case PT_LOAD:
@@ -1198,7 +1198,7 @@ bool Loader::Load()
 		}
 		else
 			WriteNotificationLog("warn: could not find symbol table or symbol string table\n");
-		
+
 		// Don't forget to free memory
 		Free(s_SectionHeaderData);
 		s_SectionHeaderData = nullptr;
@@ -1219,7 +1219,7 @@ bool Loader::Load()
 		}
 		else
 			WriteNotificationLog("err: could not allocate symbol table\n");
-		
+
 		Free(s_SectionHeaderData);
 		s_SectionHeaderData = nullptr;
 
@@ -1266,7 +1266,7 @@ bool Loader::Load()
 	}
 	else
 		WriteNotificationLog("info: 2 copying data\n");
-	
+
 	memcpy(reinterpret_cast<void*>(m_StringTableBase), static_cast<const uint8_t*>(m_SourceElf) + s_SectionHeaderData[s_SymStrIndex].sh_offset, m_StringTableBaseSize);
 
 	m_DdbSymbolCount = m_SymbolTableSize / sizeof(Elf64_Sym);

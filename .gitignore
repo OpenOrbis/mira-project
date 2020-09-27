@@ -3,13 +3,18 @@
 *.elf
 *.a
 *.so
+*.tmp
 *SteamLink*
 *steam_link*
 src/GitHash.hpp
 build/*
 reeee/*
+
 # PVS-Studio Ignores
+*.PVS-Studio*
+strace_out
 project.log
 report.tasks
-strace_out
+pvs-html/
+
 maneja/**

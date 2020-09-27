@@ -109,11 +109,13 @@ const uint8_t FakePkgManager::g_FakeKeySeed[] =
 #pragma endregion
 
 FakePkgManager::FakePkgManager() :
-	m_NpdrmDecryptIsolatedRifHook(nullptr),
-	m_NpdrmDecryptRifNewHook(nullptr),
-	m_SceSblDriverSendMsgHook(nullptr),
-	m_SceSblKeymgrInvalidateKey(nullptr),
-	m_SceSblPfsSetKeysHook(nullptr)
+    m_NpdrmDecryptIsolatedRifHook(nullptr),
+    m_NpdrmDecryptRifNewHook(nullptr),
+    m_SceSblDriverSendMsgHook(nullptr),
+    m_SceSblKeymgrInvalidateKey(nullptr),
+    m_SceSblPfsSetKeysHook(nullptr),
+    m_processStartEvent(nullptr),
+    m_resumeEvent(nullptr)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 	struct sysent* sysents = sv->sv_table;
@@ -746,8 +748,6 @@ int FakePkgManager::OnSceSblPfsSetKeys(uint32_t* ekh, uint32_t* skh, uint8_t* ee
 				}
 			}
 			A_sx_xunlock_hard(sbl_pfs_sx);
-
-			ret = 0;
 		}
 	}
 
@@ -927,7 +927,6 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 		if (s_Request->DecryptEntireRif.rif.format != 2)
 		{
 			// not fake?
-			s_Ret = s_OriginalRet;
 			goto err;
 		}
 
@@ -941,7 +940,8 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 
 		/* XXX: sorry, i'm lazy to refactor this crappy code :D basically, we're copying decrypted data to proper place,
 		consult with kernel code if offsets needs to be changed */
-		memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest) + sizeof(s_Request->DecryptEntireRif.rif.data));
+		memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest));
+		memcpy(s_Response->DecryptEntireRif.raw + sizeof(s_Request->DecryptEntireRif.rif.digest), s_Request->DecryptEntireRif.rif.data, sizeof(s_Request->DecryptEntireRif.rif.data));
 
 		memset(s_Response->DecryptEntireRif.raw +
 		sizeof(s_Request->DecryptEntireRif.rif.digest) +
@@ -952,7 +952,6 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 		sizeof(s_Request->DecryptEntireRif.rif.data)));
 
 		p_Payload->status = s_Ret;
-		s_Ret = 0;
 	}
 
 err:

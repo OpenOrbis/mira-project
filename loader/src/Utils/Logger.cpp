@@ -18,7 +18,7 @@ Logger* Logger::GetInstance()
 {
 	if (m_Instance == nullptr)
 		m_Instance = new Logger();
-	
+
 	return m_Instance;
 }
 

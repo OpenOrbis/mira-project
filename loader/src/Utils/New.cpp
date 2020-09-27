@@ -28,7 +28,7 @@ void * operator new(unsigned long int p_Size)
 // placement new
 void * operator new(unsigned long int p_Size, void * p_Pointer)
 {
-    return p_Pointer;
+	return p_Pointer;
 }
 
 // operator new[]
