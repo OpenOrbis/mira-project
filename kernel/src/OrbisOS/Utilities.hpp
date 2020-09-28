@@ -36,7 +36,7 @@ namespace Mira
             Utilities();
 
         protected:
-            
+
 
         public:
             static Utilities* GetInstance();
@@ -51,6 +51,8 @@ namespace Mira
             static int CreatePOSIXThread(struct proc* p, void* entrypoint);
             static int LoadPRXModule(struct proc* p, const char* prx_path);
             static int KillProcess(struct proc* p);
+            static void GetEapKeys(uint8_t* data, uint8_t* tweak);
+            static int DumpEapKeys(const char* path);
         };
     }
 }
