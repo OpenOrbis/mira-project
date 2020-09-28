@@ -25,11 +25,11 @@ namespace Mira
             virtual bool OnUnload() override;
             virtual bool OnSuspend() override;
             virtual bool OnResume() override;
-            
+
             virtual bool OnProcessExec(struct proc* p_Process) override;
             virtual bool OnProcessExecEnd(struct proc* p_Process) override;
             virtual bool OnProcessExit(struct proc* p_Process) override;
-            
+
         private:
             Mira::Utils::IModule* m_Logger;
             Mira::Utils::IModule* m_Debugger;
@@ -43,6 +43,7 @@ namespace Mira
             Mira::Utils::IModule* m_RemotePlayEnabler;
             Mira::Utils::IModule* m_SyscallGuard;
             Mira::Utils::IModule* m_TTYRedirector;
+            Mira::Utils::IModule* m_FanController;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }
@@ -53,6 +54,7 @@ namespace Mira
             Mira::Utils::IModule* GetMorpheusEnabler() { return m_MorpheusEnabler; }
             Mira::Utils::IModule* GetRemotePlayEnabler() { return m_RemotePlayEnabler; }
             Mira::Utils::IModule* GetSyscallGuard() { return m_SyscallGuard; }
+            Mira::Utils::IModule* GetFanController() { return m_FanController; }
         };
     }
 }

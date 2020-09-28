@@ -15,6 +15,7 @@
 #include <Plugins/RemotePlayEnabler/RemotePlayEnabler.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
 #include <Plugins/TTYRedirector/TTYRedirector.hpp>
+#include <Plugins/FanController/FanController.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -39,7 +40,8 @@ PluginManager::PluginManager() :
     m_MorpheusEnabler(nullptr),
     m_RemotePlayEnabler(nullptr),
     m_SyscallGuard(nullptr),
-    m_TTYRedirector(nullptr)
+    m_TTYRedirector(nullptr),
+    m_FanController(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
@@ -150,6 +152,15 @@ bool PluginManager::OnLoad()
             break;
         }
 
+        // Initialize FanController
+        m_FanController = new Mira::Plugins::FanController();
+        if (m_FanController == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate fan controller.");
+            s_Success = false;
+            break;
+        }
+
         // Initialize TTYRedirector
         m_TTYRedirector = new Mira::Plugins::TTYRedirector();
         if (m_TTYRedirector == nullptr)
@@ -212,6 +223,12 @@ bool PluginManager::OnLoad()
     {
         if (!m_RemotePlayEnabler->OnLoad())
             WriteLog(LL_Error, "could not load remote play enabler.");
+    }
+
+    if (m_FanController)
+    {
+        if (!m_FanController->OnLoad())
+            WriteLog(LL_Error, "could not load fan controller.");
     }
 
     if (m_TTYRedirector)
@@ -376,6 +393,18 @@ bool PluginManager::OnUnload()
         m_RemotePlayEnabler = nullptr;
     }
 
+    // Delete FanController
+    if (m_FanController)
+    {
+        WriteLog(LL_Debug, "unloading fan controller");
+        if (!m_FanController->OnUnload())
+            WriteLog(LL_Error, "fan controller could not unload");
+
+        // Free FanController
+        delete m_FanController;
+        m_FanController = nullptr;
+    }
+
     // Delete the debugger
     // NOTE: Don't unload before the debugger for catch error if something wrong
     if (m_Debugger)
@@ -483,6 +512,13 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "remote play enabler suspend failed");
     }
 
+    // Suspend FanController (does nothing)
+    if (m_FanController)
+    {
+        if (!m_FanController->OnSuspend())
+            WriteLog(LL_Error, "fan controller suspend failed");
+    }
+
     // Nota: Don't suspend before the debugger for catch error if something when wrong
     if (m_Debugger)
     {
@@ -555,6 +591,13 @@ bool PluginManager::OnResume()
     {
         if (!m_RemotePlayEnabler->OnResume())
             WriteLog(LL_Error, "remote play enabler resume failed");
+    }
+
+    WriteLog(LL_Debug, "resuming fan controller");
+    if (m_FanController)
+    {
+        if (!m_FanController->OnResume())
+            WriteLog(LL_Error, "fan controller resume failed");
     }
 
     WriteLog(LL_Debug, "resuming tty redirector");
