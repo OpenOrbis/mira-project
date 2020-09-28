@@ -3,7 +3,7 @@
 
 // Offsets ported by SiSTRo & Joonie
 
-#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_405
+#if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405
 /*
 These are the required functions in order for the Oni Framework to operate properly
 These are all offsets into the base of the kernel. They expect all standard FreeBSD 9 prototypes
@@ -214,13 +214,13 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define ssc_sceKernelIsGenuineCEX_patchA                   0x0011A0DB
 #define ssc_sceKernelIsGenuineCEX_patchB                   0x0066EA3B
 #define ssc_sceKernelIsGenuineCEX_patchC                   0x007F554B
-#define ssc_sceKernelIsGenuineCEX_patchD                   0x0
+//#define ssc_sceKernelIsGenuineCEX_patchD                   0x0
 
 // SceShellCore patches - call nidf_libSceDipsw
 #define ssc_nidf_libSceDipsw_patchA                        0x0011A107
 #define ssc_nidf_libSceDipsw_patchB                        0x0066EA67
 #define ssc_nidf_libSceDipsw_patchC                        0x007F5577
-#define ssc_nidf_libSceDipsw_patchD                        0x0
+//#define ssc_nidf_libSceDipsw_patchD                        0x0
 
 #define ssc_enable_fakepkg_patch                           0x0032F8F3
 

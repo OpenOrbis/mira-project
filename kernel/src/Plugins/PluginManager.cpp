@@ -40,7 +40,8 @@ PluginManager::PluginManager() :
     m_MorpheusEnabler(nullptr),
     m_RemotePlayEnabler(nullptr),
     m_SyscallGuard(nullptr),
-    m_TargetID(nullptr)
+    m_TargetID(nullptr),
+    m_TTYRedirector(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
@@ -652,7 +653,7 @@ bool PluginManager::OnProcessExec(struct proc* p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
+
     if (m_Substitute)
     {
         if (!m_Substitute->OnProcessExec(p_Process))
@@ -672,7 +673,7 @@ bool PluginManager::OnProcessExecEnd(struct proc* p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
+
     if (m_Substitute)
     {
         if (!m_Substitute->OnProcessExecEnd(p_Process))
@@ -686,7 +687,7 @@ bool PluginManager::OnProcessExit(struct proc* p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
+
     if (m_Substitute)
     {
         if (!m_Substitute->OnProcessExit(p_Process))

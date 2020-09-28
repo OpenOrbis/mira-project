@@ -17,7 +17,9 @@ extern "C"
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
 
-MorpheusEnabler::MorpheusEnabler()
+MorpheusEnabler::MorpheusEnabler() :
+	m_processStartEvent(nullptr),
+	m_resumeEvent(nullptr)
 {
 
 }
@@ -35,9 +37,8 @@ void MorpheusEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
         return;
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
-    if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
+    if (strncmp(s_TitleId, "NPXS20000", 9) == 0)
         DoPatch();
-    }
 
     return;
 }

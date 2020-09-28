@@ -17,7 +17,9 @@ extern "C"
 using namespace Mira::Plugins;
 using namespace Mira::OrbisOS;
 
-RemotePlayEnabler::RemotePlayEnabler()
+RemotePlayEnabler::RemotePlayEnabler() :
+	m_processStartEvent(nullptr),
+	m_resumeEvent(nullptr)
 {
 
 }
@@ -35,11 +37,10 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 		return;
 
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
-
-	if (strncmp(s_TitleId, "NPXS20001", 9) == 0 && strcmp(p->p_comm, "SceShellUI") == 0)
+	if (strncmp(s_TitleId, "NPXS20001", 9) == 0)
 		ShellUIPatch();
 
-	if (strncmp(s_TitleId, "NPXS21006", 9) == 0 && strcmp(p->p_comm, "SceRemotePlay") == 0)
+	if (strncmp(s_TitleId, "NPXS21006", 9) == 0)
 		RemotePlayPatch();
 
 	return;
@@ -240,7 +241,7 @@ bool RemotePlayEnabler::OnLoad()
 	{
 		WriteLog(LL_Error, "could not get main mira thread");
 		return false;
-  	}
+	}
 
 	// Initialize the event handlers
 	auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
@@ -249,13 +250,15 @@ bool RemotePlayEnabler::OnLoad()
 	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayEnabler::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
 	auto s_Ret = ShellUIPatch();
-	if (s_Ret == false) {
+	if (s_Ret == false)
+	{
 		WriteLog(LL_Error, "could not patch SceShellUI");
 		return false;
 	}
 
 	s_Ret = RemotePlayPatch();
-	if (s_Ret == false) {
+	if (s_Ret == false)
+	{
 		WriteLog(LL_Error, "could not patch SceRemotePlay");
 		return false;
 	}
