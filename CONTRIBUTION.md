@@ -8,6 +8,7 @@ We recommend to follow these guidelines when writing code for Mira-Project. They
     * Class members: _m__*
     * Scoped: _s__*
     * Looped: _l__*
+    * Constants: _c__*
 * Template parameter names: *CamelCase*, or just T, U, V...
 * Avoid `#defines`, use constant variables instead, preferrably in an enum class.
 * Put curly-brackets (`{` and `}`) on the next line.

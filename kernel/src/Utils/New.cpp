@@ -25,6 +25,7 @@ void * operator new(unsigned long int p_Size)
 	auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
 	auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
+	// Sanity check
 	if (p_Size >= 0x10000000)
 	{
 		auto printf = (void(*)(const char *format, ...))kdlsym(printf);

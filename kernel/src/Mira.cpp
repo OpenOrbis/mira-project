@@ -259,12 +259,16 @@ bool Mira::Framework::SetConfiguration(MiraConfig* p_SourceConfig)
 		return false;
 	
 	memcpy(&m_Configuration, p_SourceConfig, sizeof(*p_SourceConfig));
+
+	return true;
 }
 
 bool Mira::Framework::Initialize()
 {
 	// TODO: Load settings
 	WriteLog(LL_Warn, "FIXME: loading settings not implemented!!!!");
+
+	// Initialize everything that will survive past reboots and what not, and will not be torn down until Mira ends execution (on shutdown)
 
 	// Initialize message manager
 	WriteLog(LL_Debug, "Initializing the message manager");
@@ -292,35 +296,11 @@ bool Mira::Framework::Initialize()
 		return false;
 	}
 
-	// Install eventhandler's
-	WriteLog(LL_Debug, "Installing event handlers");
-	if (!InstallEventHandlers())
-		WriteLog(LL_Error, "could not register event handlers");
-
 	// TODO: Install needed hooks for Mira
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
 
-	// Install device driver
-	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
-	m_CtrlDriver = new Mira::Driver::CtrlDriver();
-	if (m_CtrlDriver == nullptr)
-	{
-		WriteLog(LL_Error, "could not allocate control driver.");
-		return false;
-	}
-
-	// Set the running flag
-	m_InitParams.isRunning = true;
-
-	// Mira is now ready ! Now Killing SceShellUI for relaunching UI Process :D
-	struct proc* s_ShellUIProc = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-	if (s_ShellUIProc)
-		Mira::OrbisOS::Utilities::KillProcess(s_ShellUIProc);
-	else
-		WriteLog(LL_Error, "Unable to find SceShellUI Process !");
-
 	// Initialize the trainer manager
-	m_TrainerManager = new Trainers::TrainerManager();
+	/*m_TrainerManager = new Trainers::TrainerManager();
 	if (m_TrainerManager == nullptr)
 	{
 		WriteLog(LL_Error, "could not initalize the trainer manager.");
@@ -332,44 +312,83 @@ bool Mira::Framework::Initialize()
 	{
 		WriteLog(LL_Error, "could not load the trainer manager.");
 		return false;
+	}*/
+
+	// Install device driver
+	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
+	m_CtrlDriver = new Mira::Driver::CtrlDriver();
+	if (m_CtrlDriver == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate control driver.");
+		return false;
 	}
+
+	// Install eventhandler's
+	WriteLog(LL_Debug, "Installing event handlers");
+	if (!InstallEventHandlers())
+		WriteLog(LL_Error, "could not register event handlers");
+
+	// Set the running flag
+	m_InitParams.isRunning = true;
   
 	return true;
 }
 
 bool Mira::Framework::Terminate()
 {
-	// Unload the plugin manager
-	if (m_PluginManager && !m_PluginManager->OnUnload())
-		WriteLog(LL_Error, "could not unload plugin manager");
+	// Mira is shutting down for good, kill everything.
+	// This should be INVERTED of how it was initialized
 
-	// Free the plugin manager
-	if (m_PluginManager != nullptr)
-	{
-		delete m_PluginManager;
-		m_PluginManager = nullptr;
-	}
+	// Check if we already have torn down
+	if (!m_InitParams.isRunning)
+		return true;
+	
+	// Update our state
+	m_InitParams.isRunning = false;
 
-	// Unload the trainer manager
-	if (m_TrainerManager && !m_TrainerManager->OnUnload())
-		WriteLog(LL_Error, "could not unload trainer manager.");
-
-	// Free the trainer manager
-	if (m_TrainerManager != nullptr)
-	{
-		delete m_TrainerManager;
-		m_TrainerManager = nullptr;
-	}
-
-	// Remove all eventhandlers
 	if (!RemoveEventHandlers())
-		WriteLog(LL_Error, "could not remove event handlers");
+		WriteLog(LL_Error, "could not remove event handlers.");
 
 	// Remove the device driver
 	if (m_CtrlDriver != nullptr)
 	{
+		WriteLog(LL_Debug, "deleting device driver.");
 		delete m_CtrlDriver;
 		m_CtrlDriver = nullptr;
+	}
+
+	// Unload the trainer manager
+	if (m_TrainerManager)
+	{
+		WriteLog(LL_Debug, "unloading trainer manager.");
+		if (m_TrainerManager->OnUnload())
+		{
+			delete m_TrainerManager;
+			m_TrainerManager = nullptr;
+		}
+		else
+			WriteLog(LL_Error, "could not unload trainer manager.");
+	}
+	
+	// Unload the plugin manager
+	if (m_PluginManager)
+	{
+		WriteLog(LL_Debug, "unloading plugin manager.");
+		if (m_PluginManager->OnUnload())
+		{
+			delete m_PluginManager;
+			m_PluginManager = nullptr;
+		}
+		else
+			WriteLog(LL_Error, "could not unload plugin manager");
+	}
+
+	// Unload the message manager
+	if (m_MessageManager)
+	{
+		WriteLog(LL_Debug, "Deleting message manager.");
+		delete m_MessageManager;
+		m_MessageManager = nullptr;
 	}
 
 	// Update our running state, to allow the proc to terminate
@@ -446,7 +465,6 @@ bool Mira::Framework::InstallEventHandlers()
 		void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
 	// Register our event handlers
-	//const int32_t prio = 1337;
 	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), nullptr, EVENTHANDLER_PRI_FIRST);
 	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase3, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), nullptr, EVENTHANDLER_PRI_LAST);
 
@@ -499,7 +517,11 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 
 	auto s_PluginManager = GetFramework()->m_PluginManager;
 	if (s_PluginManager)
-		s_PluginManager->OnSuspend();
+	{
+		WriteLog(LL_Debug, "suspending plugin manager.");
+		if (!s_PluginManager->OnSuspend())
+			WriteLog(LL_Error, "could not suspend plugin manager.");
+	}
 }
 
 void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
@@ -509,16 +531,22 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 
 	WriteLog(LL_Warn, "RESUME RESUME RESUME");
 
+	if (GetFramework() == nullptr)
+		return;
+
 	// Handle resume events
 	auto s_PluginManager = GetFramework()->GetPluginManager();
 	if (s_PluginManager)
-		s_PluginManager->OnResume();
+	{
+		WriteLog(LL_Debug, "resuming plugin manager.");
+		if (!s_PluginManager->OnResume())
+			WriteLog(LL_Error, "could not resume plugin manager.");
+	}
 }
 
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
-	auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
-	//auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
+	//auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
 
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
 
@@ -526,12 +554,10 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 		return;
 
 	if (!GetFramework()->Terminate())
-	{
 		WriteLog(LL_Error, "could not terminate cleanly");
-		return;
-	}
-
-	kproc_exit(0);
+	
+	// Which thread is this executed on???
+	// kproc_exit(0);
 }
 
 void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
@@ -569,22 +595,34 @@ void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process
 			WriteLog(LL_Error, "could not call end process on plugin manager.");
 	}
 
-	if (s_Framework->m_TrainerManager)
-		s_Framework->m_TrainerManager->OnProcessExecEnd(p_Process);
+	auto s_TrainerManager = s_Framework->m_TrainerManager;
+	if (s_TrainerManager)
+	{
+		if (!s_TrainerManager->OnProcessExecEnd(p_Process))
+			WriteLog(LL_Error, "trainer manager on process exec end failed.");
+	}
 }
 
 void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 {
-	WriteLog(LL_Warn, "Process Exiting: ");
+	WriteLog(LL_Warn, "Process Exiting: (%d) (%s) (%s).", p_Process->p_pid, p_Process->p_comm, p_Process->p_elfpath);
 
-	if (GetFramework() == nullptr)
+	auto s_Framework = Mira::Framework::GetFramework();
+	if (s_Framework == nullptr)
 		return;
 	
-	if (!GetFramework()->GetPluginManager()->OnProcessExit(p_Process))
+	// Call plugin manager callback
+	auto s_PluginManager = s_Framework->GetPluginManager();
+	if (s_PluginManager)
 	{
-		WriteLog(LL_Error, "could not call exit process on plugin manager.");
+		if (!s_PluginManager->OnProcessExit(p_Process))
+			WriteLog(LL_Error, "could not call exit process on plugin manager.");
 	}
 
-	if (!GetFramework()->m_TrainerManager->OnProcessExit(p_Process))
-		WriteLog(LL_Error, "");
+	auto s_TrainerManager = s_Framework->m_TrainerManager;
+	if (s_TrainerManager)
+	{
+		if (!s_TrainerManager->OnProcessExit(p_Process))
+			WriteLog(LL_Error, "trainer manager process exit error");
+	}
 }

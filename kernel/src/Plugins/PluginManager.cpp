@@ -77,14 +77,14 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load syscall guard.");*/
 
         // Initialize Logger
-        m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
+        /*m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
         if (m_Logger == nullptr)
         {
             WriteLog(LL_Error, "could not allocate log manager.");
             return false;
         }
         if (!m_Logger->OnLoad())
-            WriteLog(LL_Error, "could not load logmanager");
+            WriteLog(LL_Error, "could not load logmanager");*/
 
         // Initialize file manager
         m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
@@ -114,13 +114,13 @@ bool PluginManager::OnLoad()
         }
 
         // Initialize Substitute
-        m_Substitute = new Mira::Plugins::Substitute();
+        /*m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
         {
             WriteLog(LL_Error, "could not allocate substitute.");
             s_Success = false;
             break;
-        }
+        }*/
 
         // Initialize BrowserActivator
         m_BrowserActivator = new Mira::Plugins::BrowserActivator();
