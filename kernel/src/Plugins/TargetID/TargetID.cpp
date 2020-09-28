@@ -29,7 +29,6 @@ void TargetID::SpoofTo(char targetId_input)
 
 	WriteLog(LL_Warn, "spoofing target ID to %02hhX", targetId_input);
 	*(char *)kdlsym(target_id) = targetId_input;
-	*(char *)kdlsym(target_id_2) = targetId_input;
 	WriteLog(LL_Info, "target ID spoofed to %02hhX", targetId_input);
 }
 

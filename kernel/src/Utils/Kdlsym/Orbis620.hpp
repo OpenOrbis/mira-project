@@ -168,6 +168,7 @@
 #define kdlsym_addr_sys_unmount                            0x0000FFD0
 #define kdlsym_addr_sys_wait4                              0x00076590
 #define kdlsym_addr_sys_write                              0x0030B1E0
+#define kdlsym_addr_target_id                              0x0215DB8D
 #define kdlsym_addr_trap_fatal                             0x002E0DD0
 #define kdlsym_addr_utilUSleep                             0x006864B0
 #define kdlsym_addr_vm_fault_disable_pagefaults            0x003FEE40

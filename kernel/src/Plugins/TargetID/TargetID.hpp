@@ -20,7 +20,7 @@ namespace Mira
 				virtual bool OnUnload() override;
 				virtual bool OnSuspend() override;
 				virtual bool OnResume() override;
-				void SpoofTo(char dex_id);
+				void SpoofTo(char targetId_input);
 		};
 	}
 }

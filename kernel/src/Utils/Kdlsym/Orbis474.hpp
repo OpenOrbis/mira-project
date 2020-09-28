@@ -169,6 +169,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_sys_unmount                            0x000DAB60
 #define kdlsym_addr_sys_wait4                              0x0015BB90
 #define kdlsym_addr_sys_write                              0x0005E780
+#define kdlsym_addr_target_id                              0x01B7D08D
 #define kdlsym_addr_trap_fatal                             0x003DCBD0
 #define kdlsym_addr_utilUSleep                             0x006626A0
 #define kdlsym_addr_vm_fault_disable_pagefaults            0x002A3BA0
