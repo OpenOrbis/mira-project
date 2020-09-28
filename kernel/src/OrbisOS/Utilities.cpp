@@ -623,7 +623,8 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 
 void Utilities::GetEapKeys(uint8_t* data, uint8_t* tweak)
 {
-	for (int i = 0, j = 15; i < 16; i++, j--) {
+	for (int i = 0, j = 15; i < 16; i++, j--)
+	{
 		data[j] = *(uint8_t*)kdlsym(sbl_eap_internal_partition_key + i);
 		tweak[j] = *(uint8_t*)kdlsym(sbl_eap_internal_partition_key + i + 16);
 	}
@@ -635,7 +636,8 @@ void Utilities::GetEapKeys(uint8_t* data, uint8_t* tweak)
 
 int Utilities::DumpEapKeys(const char* dump_path)
 {
-	if (!dump_path || strlen(dump_path) > PATH_MAX) {
+	if (!dump_path || strlen(dump_path) > PATH_MAX)
+	{
 		WriteLog(LL_Error, "Invalid argument !");
 		return -1;
 	}
@@ -652,7 +654,7 @@ int Utilities::DumpEapKeys(const char* dump_path)
 		return -1;
 	}
 
-	auto fd = kopen_t(dump_path, O_WRONLY | O_CREAT | O_TRUNC, 0644, s_Thread);
+	auto fd = kopen_t(dump_path, 0x0001 | 0x0200 | 0x0400, 0644, s_Thread); // O_WRONLY | O_CREAT | O_TRUNC
 	if (fd < 0)
 	{
 		WriteLog(LL_Error, "unable to open \"%s\"", dump_path);
