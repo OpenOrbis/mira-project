@@ -40,8 +40,8 @@ PluginManager::PluginManager() :
     m_MorpheusEnabler(nullptr),
     m_RemotePlayEnabler(nullptr),
     m_SyscallGuard(nullptr),
-    m_TargetID(nullptr),
-    m_TTYRedirector(nullptr)
+    m_TTYRedirector(nullptr),
+    m_TargetID(nullptr)
 {
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
@@ -160,7 +160,7 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
-	    
+
 	// Initialize TargetID/TargetID
 	m_TargetID = new Mira::Plugins::TargetID();
 	if (m_TargetID == nullptr)
@@ -230,7 +230,7 @@ bool PluginManager::OnLoad()
         if (!m_TTYRedirector->OnLoad())
             WriteLog(LL_Error, "could not load tty redirector.");
     }
-	
+
     if (m_TargetID)
     {
 	if (!m_TargetID->OnLoad())
@@ -417,14 +417,14 @@ bool PluginManager::OnUnload()
         delete m_TTYRedirector;
         m_TTYRedirector = nullptr;
     }
-	
+
     // Delete target ID spoofer
     if (m_TargetID)
     {
         WriteLog(LL_Debug, "unloading target ID spoofer");
         if (!m_TargetID->OnUnload())
             WriteLog(LL_Error, "target ID spoofer could not unload");
-		
+
 	// Free TargetID
 	delete m_TargetID;
         m_TargetID = nullptr;
@@ -525,7 +525,7 @@ bool PluginManager::OnSuspend()
         if (!m_TTYRedirector->OnSuspend())
             WriteLog(LL_Error, "tty redirector suspend failed");
     }
-	
+
     // Suspend TargetID (does nothing)
     if (m_TargetID)
     {
@@ -599,7 +599,7 @@ bool PluginManager::OnResume()
         if (!m_TTYRedirector->OnResume())
             WriteLog(LL_Error, "tty redirector resume failed");
     }
-	
+
     WriteLog(LL_Debug, "resuming target ID spoofer");
     if (m_TargetID)
     {
