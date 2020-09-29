@@ -91,10 +91,10 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 {
 	if (p_Process == nullptr)
 		return -EPROCUNAVAIL;
-	
+
 	if (p_DestAddress == nullptr)
 		return -EINVAL;
-	
+
 	if (p_ToReadWriteAddress == nullptr)
 		return -EINVAL;
 
@@ -145,7 +145,7 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 }
 
 // Credits: flatz
-struct proc* Utilities::FindProcessByName(const char* p_Name) 
+struct proc* Utilities::FindProcessByName(const char* p_Name)
 {
 	auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
 	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
@@ -168,7 +168,7 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 	{
 		struct proc* s_Proc = nullptr;
 
-		FOREACH_PROC_IN_SYSTEM(s_Proc) 
+		FOREACH_PROC_IN_SYSTEM(s_Proc)
 		{
 			PROC_LOCK(s_Proc);
 
@@ -189,7 +189,7 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 
 
 // Credits: flatz
-int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries) 
+int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries)
 {
 	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
@@ -246,7 +246,7 @@ int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entr
 	}
 	if (n == 0)
 		goto done;
-	
+
     allocSize = n * sizeof(*info);
 	info = (ProcVmMapEntry*)new uint8_t[allocSize];
 	if (!info) {
@@ -457,7 +457,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	if ( !(s_ValidInstruction[0] == 0x48 && s_ValidInstruction[1] == 0x83 && s_ValidInstruction[2] == 0x3D) ) {
 		WriteLog(LL_Error, "[%s] Invalid instruction detected ! Abord.", s_TitleId);
 		return -6;
-	} 
+	}
 
 	uint64_t s_RelativeAddress = 0;
 	s_Size = sizeof(uint32_t);
@@ -565,7 +565,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
     }
 
 	// Payload containts all call needed for create a thread (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
-	unsigned char s_Payload[0x100] = "\x4D\x49\x52\x41\x28\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x72\x78\x73\x74\x75\x62\x00\x48\x8B\x3D\xE1\xFF\xFF\xFF\x48\x31\xF6\x48\x31\xD2\x48\x31\xC9\x4D\x31\xC0\x4D\x31\xC9\x4C\x8B\x25\xD3\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\xBA\xFF\xFF\xFF\x01\x00\x00\x00\x31\xC0\xC3";	
+	unsigned char s_Payload[0x100] = "\x4D\x49\x52\x41\x28\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x72\x78\x73\x74\x75\x62\x00\x48\x8B\x3D\xE1\xFF\xFF\xFF\x48\x31\xF6\x48\x31\xD2\x48\x31\xC9\x4D\x31\xC0\x4D\x31\xC9\x4C\x8B\x25\xD3\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\xBA\xFF\xFF\xFF\x01\x00\x00\x00\x31\xC0\xC3";
 
 	// Allocate memory
 	size_t s_PayloadSize = 0x8000; //sizeof(s_Payload) + PATH_MAX but need more for allow the allocation
@@ -617,6 +617,60 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 	kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
 
 	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX: Done.", s_TitleId, prx_path);
+
+	return 0;
+}
+
+void Utilities::GetEapKeys(uint8_t* data, uint8_t* tweak)
+{
+	for (int i = 0, j = 15; i < 16; i++, j--)
+	{
+		data[j] = *(uint8_t*)kdlsym(sbl_eap_internal_partition_key + i);
+		tweak[j] = *(uint8_t*)kdlsym(sbl_eap_internal_partition_key + i + 16);
+	}
+
+  // If `WriteLog();` could print wihtout line endings this could be simplified
+	WriteLog(LL_Info, "EAP Data Key: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15]);
+	WriteLog(LL_Info, "EAP Tweak Key: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", tweak[0], tweak[1], tweak[2], tweak[3], tweak[4], tweak[5], tweak[6], tweak[7], tweak[8], tweak[9], tweak[10], tweak[11], tweak[12], tweak[13], tweak[14], tweak[15]);
+}
+
+int Utilities::DumpEapKeys(const char* dump_path)
+{
+	if (!dump_path || strlen(dump_path) > PATH_MAX)
+	{
+		WriteLog(LL_Error, "Invalid argument !");
+		return -1;
+	}
+
+	uint8_t data_key[16] = {0};
+	uint8_t tweak_key[16] = {0};
+
+	GetEapKeys(data_key, tweak_key);
+
+	auto s_Thread = curthread;
+	if (s_Thread == nullptr)
+	{
+		WriteLog(LL_Error, "could not get current thread.");
+		return -1;
+	}
+
+	auto fd = kopen_t(dump_path, 0x0001 | 0x0200 | 0x0400, 0644, s_Thread); // O_WRONLY | O_CREAT | O_TRUNC
+	if (fd < 0)
+	{
+		WriteLog(LL_Error, "unable to open \"%s\"", dump_path);
+		return -1;
+	}
+
+	if (kwrite_t(fd, data_key, sizeof(data_key), s_Thread) < 0 || kwrite_t(fd, tweak_key, sizeof(tweak_key), s_Thread) < 0)
+	{
+		kclose_t(fd, s_Thread);
+		WriteLog(LL_Error, "unable to write \"%s\"", dump_path);
+		return -1;
+	}
+
+	kclose_t(fd, s_Thread);
+
+	WriteLog(LL_Info, "EAP Key successfully dumped to \"%s\"", dump_path);
 
 	return 0;
 }
