@@ -6,7 +6,7 @@
 *.tmp
 *SteamLink*
 *steam_link*
-src/GitHash.hpp
+kernel/src/GitHash.hpp
 build/*
 reeee/*
 
