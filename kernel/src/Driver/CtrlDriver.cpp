@@ -65,6 +65,11 @@ CtrlDriver::CtrlDriver() :
         S_IRWXU | S_IRWXG | S_IRWXO,
         "mira");
 
+    WriteLog(LL_Debug, "MIRA_MOUNT_IN_SANDBOX: 0x%08x", MIRA_MOUNT_IN_SANDBOX);
+    WriteLog(LL_Debug, "MIRA_GET_PROC_THREAD_CREDENTIALS: 0x%08x", MIRA_GET_PROC_THREAD_CREDENTIALS);
+    WriteLog(LL_Debug, "MIRA_GET_PID_LIST: 0x%08x", MIRA_GET_PID_LIST);
+    WriteLog(LL_Debug, "MIRA_GET_PROC_INFORMATION: 0x%08x", MIRA_GET_PROC_INFORMATION);
+
     switch (s_ErrorDev)
     {
     case 0:
@@ -673,6 +678,12 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
         WriteLog(LL_Error, "could not copyin all data (%d).", s_Result);
         return (s_Result < 0 ? s_Result : -s_Result);
     }
+
+    if (s_Input.ThreadId <= 0)
+        s_Input.ThreadId = p_Thread->td_tid;
+
+    if (s_Input.ProcessId <= 0)
+        s_Input.ProcessId = p_Thread->td_proc->p_pid;
 
     MiraThreadCredentials* s_Output = nullptr;
 
