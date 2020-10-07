@@ -66,6 +66,7 @@ CtrlDriver::CtrlDriver() :
         "mira");
 
     WriteLog(LL_Debug, "MIRA_MOUNT_IN_SANDBOX: 0x%08x", MIRA_MOUNT_IN_SANDBOX);
+    WriteLog(LL_Debug, "MIRA_UNMOUNT_IN_SANDBOX: 0x%08x", MIRA_UNMOUNT_IN_SANDBOX);
     WriteLog(LL_Debug, "MIRA_GET_PROC_THREAD_CREDENTIALS: 0x%08x", MIRA_GET_PROC_THREAD_CREDENTIALS);
     WriteLog(LL_Debug, "MIRA_GET_PID_LIST: 0x%08x", MIRA_GET_PID_LIST);
     WriteLog(LL_Debug, "MIRA_GET_PROC_INFORMATION: 0x%08x", MIRA_GET_PROC_INFORMATION);
@@ -183,6 +184,9 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 
                 case MIRA_MOUNT_IN_SANDBOX:
                     return OnMiraMountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+
+                case MIRA_UNMOUNT_IN_SANDBOX:
+                    return OnMiraUnmountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
 
                 // Get/set the thread credentials
                 case MIRA_GET_PROC_THREAD_CREDENTIALS:
@@ -354,6 +358,15 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         return -EACCES;
     }
 
+
+    // Check to make sure that there's some kind of name
+    if (s_Input.Name[0] == '\0')
+    {
+        WriteLog(LL_Error, "invalid input path.");
+        return -EACCES;
+    }
+
+
     // Get the jailed path
     char* s_SandboxPath = nullptr;
     char* s_FreePath = nullptr;
@@ -380,9 +393,7 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
 
     do
     {
-        // TODO: we want to get the name of the folder so we can mount it within
-        // under the same name
-        s_Result = snprintf(s_InSandboxPath, sizeof(s_InSandboxPath), "%s/%s", s_SandboxPath, "myFolderName");
+        s_Result = snprintf(s_InSandboxPath, sizeof(s_InSandboxPath), "%s/%s", s_SandboxPath, s_Input.Name);
         if (s_Result <= 0)
             break;
 
@@ -435,16 +446,169 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
-        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SandboxPath, s_RealPath, MNT_RDONLY);
+        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_InSandboxPath, s_RealPath, MNT_RDONLY);
         if (s_Result < 0)
         {
-            WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SandboxPath, s_Result);
-            krmdir_t(s_SandboxPath, s_MainThread);
+            WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_InSandboxPath, s_Result);
+            krmdir_t(s_InSandboxPath, s_MainThread);
 
             // Restore credentials and fd
             *s_CurrentThreadCred = s_OriginalThreadCred;
             *s_CurrentThreadFd = s_OriginalThreadFd;
 
+            break;
+        }
+
+        // Restore credentials and fd
+        *s_CurrentThreadCred = s_OriginalThreadCred;
+        *s_CurrentThreadFd = s_OriginalThreadFd;
+
+        s_Result = 0;
+    } while (false);
+
+    // Cleanup the freepath
+    if (s_FreePath != nullptr)
+        delete s_FreePath;
+
+    return s_Result;
+}
+
+int32_t CtrlDriver::OnMiraUnmountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
+    //auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+
+
+    if (p_Device == nullptr)
+    {
+        WriteLog(LL_Error, "invalid device.");
+        return -1;
+    }
+
+    if (p_Thread == nullptr)
+    {
+        WriteLog(LL_Error, "invalid thread.");
+        return -1;
+    }
+
+    auto s_TargetProc = p_Thread->td_proc;
+    if (s_TargetProc == nullptr)
+    {
+        WriteLog(LL_Error, "thread does not have a parent process wtf?");
+        return -1;
+    }
+
+    auto s_Descriptor = s_TargetProc->p_fd;
+    if (s_Descriptor == nullptr)
+    {
+        WriteLog(LL_Error, "could not get the file descriptor for proc.");
+        return -1;
+    }
+
+    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira main thread.");
+        return -1;
+    }
+
+    // Read in the mount point and the flags
+    MiraUnmountInSandbox s_Input = { 0 };
+    auto s_Result = copyin(p_Data, &s_Input, sizeof(s_Input));
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyin all data (%d).", s_Result);
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    // Check to make sure that there's some kind of name
+    if (s_Input.Name[0] == '\0')
+    {
+        WriteLog(LL_Error, "invalid input path.");
+        return -EACCES;
+    }
+
+
+    // Get the jailed path
+    char* s_SandboxPath = nullptr;
+    char* s_FreePath = nullptr;
+    s_Result = vn_fullpath(s_MainThread, s_Descriptor->fd_jdir, &s_SandboxPath, &s_FreePath);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not get the full path (%d).", s_Result);
+        return (s_Result < 0 ? s_Result : -s_Result);
+    }
+
+    // Validate that we got something back
+    if (s_SandboxPath == nullptr)
+    {
+        WriteLog(LL_Error, "could not get the sandbox path.");
+
+        if (s_FreePath != nullptr)
+            delete s_FreePath;
+
+        return -1;
+    }
+
+    char s_InSandboxPath[PATH_MAX] = { 0 };
+
+    do
+    {
+        s_Result = snprintf(s_InSandboxPath, sizeof(s_InSandboxPath), "%s/%s", s_SandboxPath, s_Input.Name);
+        if (s_Result <= 0)
+            break;
+
+        // Check to see if the real path directory actually exists
+        auto s_DirectoryHandle = kopen_t(s_InSandboxPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
+        if (s_DirectoryHandle < 0)
+        {
+            WriteLog(LL_Error, "could not open directory (%s) (%d).", s_InSandboxPath, s_DirectoryHandle);
+            break;
+        }
+
+        // Close the directory once we know it exists
+        kclose_t(s_DirectoryHandle, s_MainThread);
+
+
+        // In order for the mount call, it uses the calling thread to see if it has permissions
+        auto s_CurrentThreadCred = curthread->td_proc->p_ucred;
+        auto s_CurrentThreadFd = curthread->td_proc->p_fd;
+
+        // Validate that our cred and descriptor are valid
+        if (s_CurrentThreadCred == nullptr || s_CurrentThreadFd == nullptr)
+        {
+            WriteLog(LL_Error, "the cred and/or fd are nullptr.");
+            s_Result = -EACCES;
+            break;
+        }
+
+        // Save backups of the original fd and credentials
+        auto s_OriginalThreadCred = *s_CurrentThreadCred;
+        auto s_OriginalThreadFd = *s_CurrentThreadFd;
+
+        // Set maximum permissions
+        s_CurrentThreadCred->cr_uid = 0;
+        s_CurrentThreadCred->cr_ruid = 0;
+        s_CurrentThreadCred->cr_rgid = 0;
+        s_CurrentThreadCred->cr_groups[0] = 0;
+
+        s_CurrentThreadCred->cr_prison = *(struct prison**)kdlsym(prison0);
+        s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+
+        // Unmount folder if the folder exist
+        int ret = kunmount_t(s_InSandboxPath, MNT_FORCE, s_MainThread);
+        if (ret < 0) {
+            WriteLog(LL_Error, "could not unmount folder (%s) (%d), Trying to remove anyway ...", s_InSandboxPath, ret);
+        }
+
+        // Remove folder
+        ret = krmdir_t(s_InSandboxPath, s_MainThread);
+        if (ret < 0) {
+            WriteLog(LL_Error, "could not remove substitute folder (%s) (%d).", s_InSandboxPath, ret);
             break;
         }
 
