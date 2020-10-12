@@ -330,6 +330,8 @@ bool Mira::Framework::Initialize()
 
 	// Set the running flag
 	m_InitParams.isRunning = true;
+
+	WriteLog(LL_Debug, "initalize thread (%d).", curthread->td_tid);
   
 	return true;
 }
@@ -513,7 +515,7 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 	if (GetFramework() == nullptr)
 		return;
 
-	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND");
+	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND (%d).", curthread->td_tid);
 
 	auto s_PluginManager = GetFramework()->m_PluginManager;
 	if (s_PluginManager)
@@ -529,7 +531,7 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 	if (GetFramework() == nullptr)
 		return;
 
-	WriteLog(LL_Warn, "RESUME RESUME RESUME");
+	WriteLog(LL_Warn, "RESUME RESUME RESUME (%d).", curthread->td_tid);
 
 	if (GetFramework() == nullptr)
 		return;
@@ -548,7 +550,7 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
 	//auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
 
-	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN");
+	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN on thread (%d).", curthread->td_tid);
 
 	if (GetFramework() == nullptr)
 		return;
@@ -562,7 +564,10 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 
 void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 {
-	WriteLog(LL_Warn, "Process Executing: ");	
+	if (p_Process == nullptr)
+		return;
+	
+	WriteLog(LL_Warn, "Process Executing: (%d) (%s).", p_Process->p_pid, p_Process->p_comm);	
 	
 	auto s_Framework = GetFramework();
 	if (s_Framework == nullptr)
