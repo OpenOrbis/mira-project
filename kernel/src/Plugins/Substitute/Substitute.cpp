@@ -1031,7 +1031,8 @@ void Substitute::LoadAllPrx(struct thread* td, const char* folder_path)
 
                     // Create relative path for the load
                     WriteLog(LL_Info, "[%s] Loading  %s ...", s_TitleId, s_RelativeSprxPath);
-                    Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);
+                    Utilities::LoadPRXModule(td->td_proc, s_RelativeSprxPath);                    
+
                     WriteLog(LL_Info, "Loading PRX Done !");
                 }
 

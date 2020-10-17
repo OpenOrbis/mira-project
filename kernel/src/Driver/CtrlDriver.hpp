@@ -156,7 +156,13 @@ typedef struct _MiraMountInSandbox
 {
     int32_t Permissions;
     char Path[_MAX_PATH];
+    char Name[50];
 } MiraMountInSandbox;
+
+typedef struct _MiraUnmountInSandbox
+{
+    char Name[50];
+} MiraUnmountInSandbox;
 
 typedef struct _MiraCreateTrainerShm
 {
@@ -197,6 +203,9 @@ typedef struct _MiraGetTrainersShm
 // Mount a path within sandbox
 #define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, 4, sizeof(MiraMountInSandbox))
 
+// Unmount a path within sandbox
+#define MIRA_UNMOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, 4, sizeof(MiraUnmountInSandbox))
+
 // Create new Shm
 #define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, 5, sizeof(MiraCreateTrainerShm))
 
@@ -228,6 +237,7 @@ namespace Mira
             static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraUnmountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Helper functions
