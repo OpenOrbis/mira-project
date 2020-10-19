@@ -18,6 +18,7 @@
 #define kdlsym_addr__mtx_unlock_spin_flags                 0x00496B30
 #define kdlsym_addr__sceSblAuthMgrGetSelfInfo              0x0065E010
 #define kdlsym_addr__sceSblAuthMgrSmStart                  0x0065E490
+#define kdlsym_addr__sleep                                 0x00229BF0
 #define kdlsym_addr__sx_init_flags                         0x00042450
 #define kdlsym_addr__sx_slock                              0x000424E0
 #define kdlsym_addr__sx_sunlock                            0x000427C0

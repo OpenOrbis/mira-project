@@ -231,5 +231,47 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 
+	// Send sysveri to hell
+	kmem = (uint8_t*)&gKernelBase[0x0063BD90];
+	kmem[0] = 0xC3;
+
+	kmem = (uint8_t*)&gKernelBase[0x0063C8C0];
+	// mov rax, 0
+	// ret
+	kmem[0] = 0x48;
+	kmem[1] = 0xC7;
+	kmem[2] = 0xC0;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0x00;
+	kmem[6] = 0x00;
+	kmem[7] = 0xC3;
+
+	// Fuck this function too
+	kmem = (uint8_t*)&gKernelBase[0x0063BB50];
+	kmem[0] = 0x48;
+	kmem[1] = 0xC7;
+	kmem[2] = 0xC0;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0x00;
+	kmem[6] = 0x00;
+	kmem[7] = 0xC3;
+
+	// sceSblSysVeriInitialize
+	kmem = (uint8_t*)&gKernelBase[0x0063C310];
+	kmem[0] = 0x48;
+	kmem[1] = 0xC7;
+	kmem[2] = 0xC0;
+	kmem[3] = 0x00;
+	kmem[4] = 0x00;
+	kmem[5] = 0x00;
+	kmem[6] = 0x00;
+	kmem[7] = 0xC3;
+
+	// Clear the sceVeri initialized flag
+	kmem = (uint8_t*)&gKernelBase[0x266EEF0];
+	kmem[0] = 0;
+
 #endif
 }

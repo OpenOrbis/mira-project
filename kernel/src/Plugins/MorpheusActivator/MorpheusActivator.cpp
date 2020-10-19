@@ -36,7 +36,7 @@ void MorpheusActivator::ProcessStartEvent(void *arg, struct ::proc *p)
 
     char* s_TitleId = (char*)((uint64_t)p + 0x390);
     if (strncmp(s_TitleId, "NPXS20001", 9) == 0) {
-        DoPatch();
+        //DoPatch();
     }
 
     return;
@@ -44,7 +44,7 @@ void MorpheusActivator::ProcessStartEvent(void *arg, struct ::proc *p)
 
 void MorpheusActivator::ResumeEvent()
 {
-    DoPatch();
+    //DoPatch();
     WriteLog(LL_Debug, "InstallEventHandlers finished");
     return;
 }
@@ -116,30 +116,12 @@ bool MorpheusActivator::OnLoad()
         return false;
     }
 
-    // Initialize the event handlers
-    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
-
-    m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(MorpheusActivator::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
-    m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(MorpheusActivator::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
-
-	return DoPatch();
+	//return DoPatch();
+	return true;
 }
 
 bool MorpheusActivator::OnUnload()
 {
-    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
-
-    if (m_processStartEvent) {
-        EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartEvent);
-        m_processStartEvent = nullptr;
-    }
-
-    if (m_resumeEvent) {
-        EVENTHANDLER_DEREGISTER(process_exit, m_resumeEvent);
-        m_resumeEvent = nullptr;
-    }
-
 	return true;
 }
 

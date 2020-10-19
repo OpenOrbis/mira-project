@@ -11,14 +11,13 @@ namespace Mira
 {
 	namespace Plugins
 	{
-		class RemotePlayActivator : public Mira::Utils::IModule
+		class RemotePlayActivator : 
+			public Mira::Utils::IModule
 		{
-		private:
-			eventhandler_entry* m_processStartEvent;
-			eventhandler_entry* m_resumeEvent;
 		private:
 			static bool RemotePlayPatch();
 			static bool ShellUIPatch();
+
 		public:
 			RemotePlayActivator();
 			virtual ~RemotePlayActivator();
@@ -28,6 +27,7 @@ namespace Mira
 			virtual bool OnUnload() override;
 			virtual bool OnSuspend() override;
 			virtual bool OnResume() override;
+
 		protected:
 			static void ProcessStartEvent(void *arg, struct ::proc *p);
 			static void ResumeEvent();

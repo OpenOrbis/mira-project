@@ -371,6 +371,9 @@ bool FakePkgManager::ShellUIPatch()
 
 void FakePkgManager::ResumeEvent()
 {
+    // FIXME: Remove Once determiend what crashes ShellUI
+    return;
+
     ShellUIPatch();
     WriteLog(LL_Debug, "InstallEventHandlers finished");
     return;
@@ -380,6 +383,8 @@ void FakePkgManager::ProcessStartEvent(void *arg, struct ::proc *p)
 {
     auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
+    return;
+    
     if (!p)
         return;
 
@@ -400,33 +405,17 @@ bool FakePkgManager::OnLoad()
         return false;
     }
 
+    // FIXME: Remove once this is fixed
+    return true;
+
     ShellCorePatch();
     ShellUIPatch();
-
-    // Initialize the event handlers
-    auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
-
-    m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(FakePkgManager::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
-    m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(FakePkgManager::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
     return true;
 }
 
 bool FakePkgManager::OnUnload()
 {
-    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-    auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
-
-    if (m_processStartEvent) {
-        EVENTHANDLER_DEREGISTER(process_exec_end, m_processStartEvent);
-        m_processStartEvent = nullptr;
-    }
-
-    if (m_resumeEvent) {
-        EVENTHANDLER_DEREGISTER(process_exit, m_resumeEvent);
-        m_resumeEvent = nullptr;
-    }
-
     return true;
 }
 

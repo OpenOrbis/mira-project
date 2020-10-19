@@ -31,6 +31,9 @@ void RemotePlayActivator::ProcessStartEvent(void *arg, struct ::proc *p)
 {
 	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
+	// FIXME: Remove this after testing this is why ShellUI shit's the bed
+	return;
+
 	if (!p)
 		return;
 
@@ -47,10 +50,11 @@ void RemotePlayActivator::ProcessStartEvent(void *arg, struct ::proc *p)
 
 void RemotePlayActivator::ResumeEvent()
 {
+	// FIXME: Remove this once we know what is killing shellui
+	return;
+
 	ShellUIPatch();
 	RemotePlayPatch();
-	WriteLog(LL_Debug, "InstallEventHandlers finished");
-	return;
 }
 
 bool RemotePlayActivator::ShellUIPatch()
@@ -242,23 +246,23 @@ bool RemotePlayActivator::OnLoad()
 		return false;
   	}
 
-	// Initialize the event handlers
-	auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
+	// // Initialize the event handlers
+	// auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
-	m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(RemotePlayActivator::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
-	m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayActivator::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
+	// m_processStartEvent = eventhandler_register(NULL, "process_exec_end", reinterpret_cast<void*>(RemotePlayActivator::ProcessStartEvent), NULL, EVENTHANDLER_PRI_LAST);
+	// m_resumeEvent = eventhandler_register(NULL, "system_resume_phase4", reinterpret_cast<void*>(RemotePlayActivator::ResumeEvent), NULL, EVENTHANDLER_PRI_LAST);
 
-	auto s_Ret = ShellUIPatch();
-	if (s_Ret == false) {
-		WriteLog(LL_Error, "could not patch SceShellUI");
-		return false;
-	}
+	// auto s_Ret = ShellUIPatch();
+	// if (s_Ret == false) {
+	// 	WriteLog(LL_Error, "could not patch SceShellUI");
+	// 	return false;
+	// }
 
-	s_Ret = RemotePlayPatch();
-	if (s_Ret == false) {
-		WriteLog(LL_Error, "could not patch SceRemotePlay");
-		return false;
-	}
+	// s_Ret = RemotePlayPatch();
+	// if (s_Ret == false) {
+	// 	WriteLog(LL_Error, "could not patch SceRemotePlay");
+	// 	return false;
+	// }
 
 	return true;
 }

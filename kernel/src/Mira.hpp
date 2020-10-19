@@ -57,11 +57,20 @@ namespace Mira
     class Framework
     {
     private:
+        enum class State
+        {
+            None = 0,
+            Suspend,
+            Resume,
+        };
+
         static Framework* m_Instance;
+
+        // Configuration
         Mira::Boot::InitParams m_InitParams;
         MiraConfig m_Configuration;
 
-        bool m_EventHandlersInstalled;
+        State m_State;
 
         // System state events
         struct eventhandler_entry* m_SuspendTag;
@@ -72,10 +81,12 @@ namespace Mira
         struct eventhandler_entry* m_ProcessExecEnd;
         struct eventhandler_entry* m_ProcessExit;
 
+        // Managers
         Mira::Plugins::PluginManager* m_PluginManager;
         Mira::Messaging::MessageManager* m_MessageManager;
         Mira::Trainers::TrainerManager* m_TrainerManager;
 
+        // Device driver
         Mira::Driver::CtrlDriver* m_CtrlDriver;
 
     public:
@@ -98,6 +109,11 @@ namespace Mira
 
         bool Initialize();
         bool Terminate();
+        void Update();
+
+        void SetResumeFlag() { m_State = State::Resume; }
+        void SetSuspendFlag() { m_State = State::Suspend; }
+        void ClearFlag() { m_State = State::None; }
 
         Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
@@ -106,7 +122,7 @@ namespace Mira
         struct thread* GetMainThread();
         struct thread* GetSyscoreThread();
         struct thread* GetShellcoreThread();
-        
+
     private:
         static void OnMiraSuspend(void* __unused p_Reserved);
         static void OnMiraResume(void* __unused p_Reserved);
@@ -115,6 +131,5 @@ namespace Mira
         static void OnMiraProcessExec(void* p_Framework, struct proc* p_Process);
         static void OnMiraProcessExecEnd(void* p_Framework, struct proc* p_Process);
         static void OnMiraProcessExit(void* p_Framework, struct proc* p_Process);
-
     };
 }

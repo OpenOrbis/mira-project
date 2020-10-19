@@ -13,11 +13,9 @@ namespace Mira
 		{
 				class MorpheusActivator : public Mira::Utils::IModule
 				{
-				private:
-			            eventhandler_entry* m_processStartEvent;
-			            eventhandler_entry* m_resumeEvent;
 			    private:
 			    		static bool DoPatch();
+
 				public:
 						MorpheusActivator();
 						virtual ~MorpheusActivator();
@@ -27,6 +25,7 @@ namespace Mira
 						virtual bool OnUnload() override;
 						virtual bool OnSuspend() override;
 						virtual bool OnResume() override;
+						
 				protected:
 						static void ProcessStartEvent(void *arg, struct ::proc *p);
 						static void ResumeEvent();

@@ -54,8 +54,8 @@ extern "C"
 	#include <machine/psl.h>
 	#include <machine/segments.h>
 	#include <machine/trap.h>
+	#include <sys/systm.h>
 }
-
 
 const char* gNull = "(null)";
 uint8_t* gKernelBase = nullptr;
@@ -79,7 +79,7 @@ Mira::Framework* Mira::Framework::GetFramework()
 Mira::Framework::Framework() :
 	m_InitParams(),
 	m_Configuration { 0 },
-	m_EventHandlersInstalled(false),
+	m_State(State::None),
 	m_SuspendTag(nullptr),
 	m_ResumeTag(nullptr),
 	m_ProcessExec(nullptr),
@@ -232,8 +232,10 @@ extern "C" void mira_entry(void* args)
 	}
 
 	// At this point we don't need kernel context anymore
-	WriteLog(LL_Info, "Mira initialization complete");
-	kthread_exit();
+	WriteLog(LL_Info, "Mira initialization complete (%d).", curthread->td_tid);
+
+	// This never returns
+	s_Framework->Update();
 }
 
 bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
@@ -316,12 +318,12 @@ bool Mira::Framework::Initialize()
 
 	// Install device driver
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
-	m_CtrlDriver = new Mira::Driver::CtrlDriver();
+	/*m_CtrlDriver = new Mira::Driver::CtrlDriver();
 	if (m_CtrlDriver == nullptr)
 	{
 		WriteLog(LL_Error, "could not allocate control driver.");
 		return false;
-	}
+	}*/
 
 	// Install eventhandler's
 	WriteLog(LL_Debug, "Installing event handlers");
@@ -399,6 +401,60 @@ bool Mira::Framework::Terminate()
 	return true;
 }
 
+void Mira::Framework::Update()
+{
+	//tsleep()
+	auto _sleep = (int(*)(void *ident, struct lock_object *lock, int priority, const char *wmesg, int timo))kdlsym(_sleep);
+
+	for (;;)
+	{
+		switch (m_State)
+		{
+		case State::Suspend:
+		{
+			WriteLog(LL_Debug, "got suspend flag.");
+
+			if (m_PluginManager)
+			{
+				WriteLog(LL_Debug, "suspending plugin manager.");
+				if (!m_PluginManager->OnSuspend())
+					WriteLog(LL_Error, "could not suspend plugin manager.");
+			}
+
+			// Clear the current state flag
+			ClearFlag();
+
+			// TODO: Do I need to do a tsleep here?
+			tsleep(this, PPAUSE, "mira:update", 0);
+			break;
+		}
+		case State::Resume:
+		{
+			WriteLog(LL_Debug, "got resume flag.");
+
+			// Clear the resume flag so we can continue running
+			ClearFlag();
+
+			// Handle resume events
+			auto s_PluginManager = GetFramework()->GetPluginManager();
+			if (s_PluginManager)
+			{
+				WriteLog(LL_Debug, "resuming plugin manager.");
+				if (!s_PluginManager->OnResume())
+					WriteLog(LL_Error, "could not resume plugin manager.");
+			}
+
+			break;
+		}
+		
+		// Do nothing in the case we don't have a change state
+		case State::None:
+		default:
+			break;
+		}
+	}
+}
+
 struct thread* Mira::Framework::GetMainThread()
 {
 	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
@@ -459,9 +515,6 @@ struct thread* Mira::Framework::GetShellcoreThread()
 
 bool Mira::Framework::InstallEventHandlers()
 {
-	if (m_EventHandlersInstalled)
-		return false;
-
 	auto eventhandler_register = (eventhandler_tag
 	(*)(struct eventhandler_list *list, const char *name,
 		void *func, void *arg, int priority))kdlsym(eventhandler_register);
@@ -474,18 +527,12 @@ bool Mira::Framework::InstallEventHandlers()
 	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), nullptr, EVENTHANDLER_PRI_LAST);
 	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), nullptr, EVENTHANDLER_PRI_FIRST);
 
-	// Set our event handlers as installed
-	m_EventHandlersInstalled = true;
-
 	return true;
 }
 
 bool Mira::Framework::RemoveEventHandlers()
 {
-	if (!m_EventHandlersInstalled)
-		return false;
-
-	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr)
+	if (m_SuspendTag == nullptr || m_ResumeTag == nullptr || m_ProcessExec == nullptr || m_ProcessExecEnd == nullptr || m_ProcessExit == nullptr)
 		return false;
 
 	auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
@@ -505,8 +552,6 @@ bool Mira::Framework::RemoveEventHandlers()
 	m_ProcessExecEnd = nullptr;
 	m_ProcessExit = nullptr;
 
-	m_EventHandlersInstalled = false;
-
 	return true;
 }
 
@@ -517,33 +562,23 @@ void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 
 	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND (%d).", curthread->td_tid);
 
-	auto s_PluginManager = GetFramework()->m_PluginManager;
-	if (s_PluginManager)
-	{
-		WriteLog(LL_Debug, "suspending plugin manager.");
-		if (!s_PluginManager->OnSuspend())
-			WriteLog(LL_Error, "could not suspend plugin manager.");
-	}
+	GetFramework()->SetSuspendFlag();
 }
 
 void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 {
-	if (GetFramework() == nullptr)
+	auto wakeup = (void(*)(void* chan))kdlsym(wakeup);
+
+	auto s_Framework = GetFramework();
+	if (s_Framework == nullptr)
 		return;
 
 	WriteLog(LL_Warn, "RESUME RESUME RESUME (%d).", curthread->td_tid);
 
-	if (GetFramework() == nullptr)
-		return;
+	s_Framework->SetResumeFlag();
 
-	// Handle resume events
-	auto s_PluginManager = GetFramework()->GetPluginManager();
-	if (s_PluginManager)
-	{
-		WriteLog(LL_Debug, "resuming plugin manager.");
-		if (!s_PluginManager->OnResume())
-			WriteLog(LL_Error, "could not resume plugin manager.");
-	}
+	WriteLog(LL_Debug, "waking (%p).", s_Framework);
+	wakeup(s_Framework);
 }
 
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
@@ -564,6 +599,8 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 
 void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 {
+	return;
+
 	if (p_Process == nullptr)
 		return;
 	
@@ -586,6 +623,8 @@ void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 
 void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process)
 {
+	return;
+
 	WriteLog(LL_Warn, "ProcessExecEnd: (%p) (%p).", _unused, p_Process);
 	WriteLog(LL_Error, "(%s).", p_Process->p_comm);
 	
@@ -610,6 +649,8 @@ void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process
 
 void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 {
+	return;
+	
 	WriteLog(LL_Warn, "Process Exiting: (%d) (%s) (%s).", p_Process->p_pid, p_Process->p_comm, p_Process->p_elfpath);
 
 	auto s_Framework = Mira::Framework::GetFramework();

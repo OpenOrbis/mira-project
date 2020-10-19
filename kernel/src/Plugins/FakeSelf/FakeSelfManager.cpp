@@ -286,13 +286,13 @@ bool FakeSelfManager::IsFakeSelf(SelfContext* p_Context)
     SelfExInfo* s_Info = nullptr;
     if (p_Context != nullptr && p_Context->format == SelfFormat::Self)
     {
-        (void)_sceSblAuthMgrGetSelfInfo(p_Context, &s_Info);
+        if (_sceSblAuthMgrGetSelfInfo(p_Context, &s_Info))
+            return false;
         
-        //WriteLog(LL_Debug, "ptype: (%d)", s_Info->ptype);
-        return (int32_t)s_Info->ptype == SelfPtypeFake;
+        return s_Info->ptype == SelfPtypeFake;
     }
-    else
-        return false;
+
+    return false;
 }
 
 int FakeSelfManager::SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehdr** p_OutElfHeader)
@@ -316,18 +316,16 @@ int FakeSelfManager::SceSblAuthMgrGetElfHeader(SelfContext* p_Context, Elf64_Ehd
         size_t s_PdataSize = s_SelfHeader->headerSize - sizeof(SelfEntry) * s_SelfHeader->numEntries - sizeof(SelfHeader);
         if (s_PdataSize >= sizeof(Elf64_Ehdr) && (s_PdataSize & 0xF) == 0)
         {
-            auto s_ElfHeader = reinterpret_cast<Elf64_Ehdr*>((uint8_t*)s_SelfHeader + sizeof(SelfHeader) + sizeof(SelfEntry) * s_SelfHeader->numEntries);
+            auto s_ElfHeader = reinterpret_cast<Elf64_Ehdr*>(((uint8_t*)s_SelfHeader + sizeof(SelfHeader)) + (sizeof(SelfEntry) * s_SelfHeader->numEntries));
             if (s_ElfHeader)
                 *p_OutElfHeader = s_ElfHeader;
             
             return 0;
         }
 
-        WriteLog(LL_Error, "-EALREADY");
         return -EALREADY;
     }
 
-    WriteLog(LL_Error, "-EAGAIN");
     return -EAGAIN;
 }
 
@@ -369,8 +367,8 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
         return -ESRCH;
     }
     
-    SelfAuthInfo s_Info = { 0 };
-    s_Result = SceSblAuthMgrGetSelfAuthInfoFake(p_Context, &s_Info);
+    SelfAuthInfo s_FakeAuthInfo = { 0 };
+    s_Result = SceSblAuthMgrGetSelfAuthInfoFake(p_Context, &s_FakeAuthInfo);
     if (s_Result)
     {
         switch (s_ElfHeader->e_type)
@@ -378,11 +376,11 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
         case ET_EXEC:
         case ET_SCE_EXEC:
         case ET_SCE_EXEC_ASLR:
-            memcpy(&s_Info, FakeSelfManager::c_ExecAuthInfo, sizeof(s_Info));
+            memcpy(&s_FakeAuthInfo, FakeSelfManager::c_ExecAuthInfo, sizeof(s_FakeAuthInfo));
             s_Result = 0;
             break;
         case ET_SCE_DYNAMIC:
-            memcpy(&s_Info, FakeSelfManager::c_DynlibAuthInfo, sizeof(s_Info));
+            memcpy(&s_FakeAuthInfo, FakeSelfManager::c_DynlibAuthInfo, sizeof(s_FakeAuthInfo));
             s_Result = 0;
             break;
         default:
@@ -390,11 +388,11 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
             return s_Result;
         }
 
-        s_Info.paid = s_ExInfo->paid;
+        s_FakeAuthInfo.paid = s_ExInfo->paid;
     }
 
     if (p_AuthInfo)
-        memcpy(p_AuthInfo, &s_Info, sizeof(*p_AuthInfo));
+        memcpy(p_AuthInfo, &s_FakeAuthInfo, sizeof(*p_AuthInfo));
 
     return s_Result;
 }
@@ -460,18 +458,18 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint64_t p_ServiceId
 
 int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, uint8_t* p_Request, void* p_Response)
 {
+    auto sceSblServiceMailbox = (int(*)(uint64_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+
     // self_context is first param of caller. 0x08 = sizeof(struct self_context*)
     uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
     SelfContext* p_Context = *(SelfContext**)(frame - 0x08);
 
-    bool s_IsUnsigned = p_Context && (p_Context->format == SelfFormat::Elf || IsFakeSelf((SelfContext*)p_Context));
+    bool s_IsUnsigned = p_Context && (p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context));
 
-    if (!s_IsUnsigned) {
-        //WriteLog(LL_Debug, "signed (s)elf detected");
-
-        auto sceSblServiceMailbox = (int(*)(uint64_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
+    if (!s_IsUnsigned)
         return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
-    } else {
+    else 
+    {
         //WriteLog(LL_Debug, "unsigned/fake (s)elf detected");
 
         vm_offset_t s_SegmentDataGpuVa = *(uint64_t*)(p_Request + 0x08);
@@ -486,18 +484,23 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, 
         vm_offset_t s_CurrentDataCpuVa = SceSblDriverGpuVaToCpuVa(s_CurrentDataGpuVa, NULL);
         vm_offset_t s_CurrentData2CpuVa = s_CurrentData2GpuVa ? SceSblDriverGpuVaToCpuVa(s_CurrentData2GpuVa, NULL) : 0;
 
-        if (s_SegmentDataCpuVa && s_CurrentDataCpuVa) {
-            if (s_CurrentData2GpuVa && s_CurrentData2GpuVa != s_CurrentDataGpuVa && s_DataOffset > 0) {
+        if (s_SegmentDataCpuVa && s_CurrentDataCpuVa) 
+        {
+            if (s_CurrentData2GpuVa && s_CurrentData2GpuVa != s_CurrentDataGpuVa && s_DataOffset > 0) 
+            {
 
                 /* data spans two consecutive memory's pages, so we need to copy twice */
                 uint32_t s_Size = PAGE_SIZE - s_DataOffset;
                 memcpy((char*)s_SegmentDataCpuVa, (char*)s_CurrentDataCpuVa + s_DataOffset, s_Size);
 
                 // prevent *potential* kpanic here
-                if (s_CurrentData2CpuVa) {
+                if (s_CurrentData2CpuVa) 
+                {
                     memcpy((char *) s_SegmentDataCpuVa + s_Size, (char *) s_CurrentData2CpuVa, s_DataSize - s_Size);
                 }
-            } else {
+            }
+            else 
+            {
                 memcpy((char*)s_SegmentDataCpuVa, (char*)s_CurrentDataCpuVa + s_DataOffset, s_DataSize);
             }
         }
@@ -510,20 +513,20 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, 
 }
 
 int FakeSelfManager::SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* path) {
-    /*auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
+    auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto sceSblACMgrGetPathId = (int(*)(const char* path))kdlsym(sceSblACMgrGetPathId);
 
     static const char* s_SelfDirPrefix = "/data/self/";
     const char* p;
 
-    if (path) {
+    if (path) 
+    {
         p = strstr(path, s_SelfDirPrefix);
         if (p)
-            path = p + strlen(s_SelfDirPrefix) - 1;
+            path = p + strlen(s_SelfDirPrefix);
     }
 
-    return sceSblACMgrGetPathId(path);*/
-    return 0;
+    return sceSblACMgrGetPathId(path);
 }
 
 bool FakeSelfManager::OnLoad()
