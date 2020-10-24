@@ -693,7 +693,8 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         // under the same name
 
 		// s_SubstituteFullMountPath = "/mnt/sandbox/NPXS20001_000/_substitute"
-        s_Result = snprintf(s_SubstituteFullMountPath, sizeof(s_SubstituteFullMountPath), "%s/_substitute", s_SandboxPath);
+		// p_SandboxPath = "/_substitute"
+        s_Result = snprintf(s_SubstituteFullMountPath, sizeof(s_SubstituteFullMountPath), "%s%s", s_SandboxPath, p_SandboxPath);
         if (s_Result <= 0)
             break;
 		
@@ -759,10 +760,10 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
-        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SandboxPath, s_RealSprxFolderPath, MNT_RDONLY);
+        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SubstituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY);
         if (s_Result < 0)
         {
-            WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SandboxPath, s_Result);
+            WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SubstituteFullMountPath, s_Result);
             krmdir_t(s_SandboxPath, s_MainThread);
         }
 

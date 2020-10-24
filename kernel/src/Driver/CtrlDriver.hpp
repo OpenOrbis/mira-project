@@ -185,32 +185,92 @@ typedef struct _MiraGetTrainersShm
     MiraTrainerShm Shms[];
 } MiraGetTrainersShm;
 
+typedef struct _MiraReadProcessMemory
+{
+    // Size of the structure
+    uint32_t StructureSize;
+
+    // -1 for calling process
+    int32_t ProcessId;
+
+    // Address to read from in process
+    uint64_t Address;
+
+    // Size of data to read from
+    uint64_t Size;
+
+    // Array of returned data
+    uint8_t Data[];
+} MiraReadProcessMemory;
+
+typedef struct _MiraWriteProcessMemory
+{
+    // Size of the structure
+    uint32_t StructureSize;
+
+    // -1 for calling process
+    int32_t ProcessId;
+
+    // Address to write to in process
+    uint64_t Address;
+
+    // Size of the data to write
+    uint64_t Size;
+
+    // Data to write
+    uint8_t Data[];
+} MiraWriteProcessMemory;
+
 #define MIRA_IOCTL_BASE 'M'
 
+// List of commands, this way everything keeps the same ID's
+// NOTE: DO NOT REMOVE/ADD ANYTHING FROM THIS LIST
+// ADDING NEW ENTRIES SHOULD ONLY BE DONE BEFORE THE MAX ENTRY, DO NOT RE-ORDER THIS SHIT OR ILL SLAP YOU IRL
+typedef enum class _MiraIoctlCmds : uint32_t
+{
+    None = 0,
+    ThreadCredentials,
+    ProcessList,
+    ProcessInformation,
+    MountInSandbox,
+    CreateTrainerShm,
+    GetTrainerShm,
+    LoadTrainers,
+    ReadProcessMemory,
+    WriteProcessMemory,
+    GetConfig,
+    SetConfig,
+    MAX
+} MiraIoctlCmds;
+
 // Get/set the thread credentials
-#define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 1, sizeof(MiraThreadCredentials))
+#define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::ThreadCredentials), sizeof(MiraThreadCredentials))
 
 // Get a process id list
-#define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 2, sizeof(MiraProcessList))
+#define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::ProcessList), sizeof(MiraProcessList))
 
 // Get process information
-#define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 3, sizeof(MiraProcessInformation))
+#define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::ProcessInformation), sizeof(MiraProcessInformation))
 
 // Mount a path within sandbox
-#define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, 4, sizeof(MiraMountInSandbox))
+#define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::MountInSandbox), sizeof(MiraMountInSandbox))
 
 // Create new Shm
-#define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, 5, sizeof(MiraCreateTrainerShm))
+#define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::CreateTrainerShm), sizeof(MiraCreateTrainerShm))
 
 // Get the currently loaded shm's
-#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm))
+#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::GetTrainerShm), sizeof(MiraGetTrainersShm))
 
 // Debug load trainer
-#define MIRA_LOAD_TRAINERS _IOC(IOC_IN, MIRA_IOCTL_BASE, 7, 0)
+#define MIRA_LOAD_TRAINERS _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::LoadTrainers), 0)
+
+// Read/Write process memory
+#define MIRA_READ_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::ReadProcessMemory), sizeof(MiraReadProcessMemory))
+#define MIRA_WRITE_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::WriteProcessMemory), sizeof(MiraWriteProcessMemory))
 
 // Configuration
-#define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, 8, 0)
-#define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, 9, sizeof(MiraConfig))
+#define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::GetConfig), 0)
+#define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::SetConfig), sizeof(MiraConfig))
 
 namespace Mira
 {
