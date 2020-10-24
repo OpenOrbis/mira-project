@@ -75,7 +75,7 @@ SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 
 # Linker flags
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
-LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie
+LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie -T $(SRC_DIR)/link.ld
 
 # Calculate the listing of all file paths
 ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
@@ -113,9 +113,6 @@ post-build: main-build
 
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
-	@echo external $(EXTERNAL_INC)
-	@echo fuck off
-	@echo $(I_DIRS)
 ifneq ($(strip $(ADD_GIT_HASH)),)
 	echo  -n '#ifndef GIT_HASH\n#define GIT_HASH "' > $(SRC_DIR)/GitHash.hpp && \
 	git rev-parse HEAD | tr -d "\n" >> $(SRC_DIR)/GitHash.hpp && \

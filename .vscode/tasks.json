@@ -18,8 +18,7 @@
             ],
             "options": {
                 "cwd": "${workspaceFolder}/kernel"
-            },
-            "dependsOn": [ "Build MiraLoader" ]
+            }
         },
         {
             "label": "Build MiraLoader",
@@ -31,28 +30,8 @@
             ],
             "options": {
                 "cwd": "${workspaceFolder}/loader"
-            }
-        },
-        {
-            "label": "Build protobuf files",
-            "type": "shell",
-            "command": "python3 ./scripts/build_proto.py --inputDir=./external",
-            "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ]
-        },
-        {
-            "label": "Build Flatbuffers",
-            "type": "shell",
-            "command": "flatc --cpp rpc.fbs; flatc --cpp filemanager.fbs",
-            "group": "build",
-            "problemMatcher": [
-                "$gcc"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}/daemon/src/External/flatbuffers"
-            }
+            },
+            "dependsOn": [ "Build Mira" ]
         },
         {
             "label": "Build Daemon",

@@ -62,5 +62,7 @@ SECTIONS
 		. = . + 4;
 		. = ALIGN(4);
 	} : ph_data
+
+	. = ALIGN(0x4000);
 }
 

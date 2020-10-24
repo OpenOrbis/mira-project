@@ -44,6 +44,11 @@ using namespace MiraLoader;
 
 uint8_t* gKernelBase = nullptr;
 
+extern uint8_t* _mira_elf_start;
+extern uint8_t* _mira_elf_end;
+
+static uint32_t g_MiraElfSize = _mira_elf_end - _mira_elf_start;
+
 struct kexec_uap
 {
 	void* func;
@@ -121,7 +126,6 @@ void mira_escape(struct thread* td, void* uap)
 	printf("[-] mira_escape\n");
 }
 
-
 extern "C" void* mira_entry(void* args)
 {
 	// Escape the jail and sandbox
@@ -150,6 +154,15 @@ extern "C" void* mira_entry(void* args)
 		Dynlib::Dlsym(netModuleId, "sceNetAccept", &sceNetAccept);
 		Dynlib::Dlsym(netModuleId, "sceNetRecv", &sceNetRecv);
 	}
+
+	// TODO: Check for custom Mira elf section to determine launch type
+	char buf[64];
+	memset(buf, 0, sizeof(buf));
+
+	snprintf(buf, sizeof(buf), "mira_start: %p mira_end: %p mira_size: %x", _mira_elf_start, _mira_elf_end, g_MiraElfSize);
+	WriteNotificationLog(buf);
+
+	return nullptr;
 
 	// Allocate a 3MB buffer
 	size_t bufferSize = ALLOC_5MB;
@@ -222,16 +235,15 @@ extern "C" void* mira_entry(void* args)
 		buffer[2] == ELFMAG2 &&
 		buffer[3] == ELFMAG3) // 0x7F 'ELF'
 	{
+		// Determine if we are launching kernel
+		bool isLaunchingKernel = MiraLoader::Loader::CheckKernelElf(buffer, currentSize);
 
-
-		// TODO: Check for custom Mira elf section to determine launch type
-		char buf[64];
+		// Send some debug output to the user to see
+		char buf[128];
 		memset(buf, 0, sizeof(buf));
-
-		snprintf(buf, sizeof(buf), "elf: %p elfSize: %llx", buffer, currentSize);
+		snprintf(buf, sizeof(buf), "%s elf: %p elfSize: %llx", (isLaunchingKernel ? "kern" : "user"), buffer, currentSize);
 		WriteNotificationLog(buf);
 
-		uint8_t isLaunchingKernel = true;
 		if (isLaunchingKernel)
 		{
 			Mira::Boot::InitParams initParams = { 0 };

@@ -788,6 +788,80 @@ uint32_t Loader::Hash(const char * p_Name)
 	return (h);
 }
 
+bool Loader::CheckKernelElf(const void* p_Elf, uint32_t p_ElfSize)
+{
+	if (p_Elf == nullptr || p_ElfSize < sizeof(Elf64_Ehdr))
+		return false;
+	
+	auto s_ElfHeader = static_cast<const Elf64_Ehdr*>(p_Elf);
+	if (!IS_ELF(*s_ElfHeader))
+		return false;
+	
+	// Check that we are x64-little endian
+	if (s_ElfHeader->e_ident[EI_CLASS] != ELFCLASS64 ||
+		s_ElfHeader->e_ident[EI_DATA] != ELFDATA2LSB)
+		return false;
+
+	// Validate elf version
+	if (s_ElfHeader->e_ident[EI_VERSION] != EV_CURRENT)
+		return false;
+	
+	// We only support executables and shared libraries
+	if (s_ElfHeader->e_type != ET_EXEC && s_ElfHeader->e_type != ET_DYN && s_ElfHeader->e_type != ET_REL)
+		return false;
+	
+	// Validate correct machine arch
+	if (s_ElfHeader->e_machine != EM_X86_64)
+		return false;
+	
+	// Validate that everthing is the correct sizes
+	if (s_ElfHeader->e_phentsize != sizeof(Elf64_Phdr))
+		return false;
+	
+	// Validate that all program headers are within bounds
+	const auto s_TotalProgramHeaderSize = s_ElfHeader->e_phnum * s_ElfHeader->e_phentsize;
+	if (s_ElfHeader->e_phoff >= p_ElfSize || s_ElfHeader->e_phoff + s_TotalProgramHeaderSize > p_ElfSize)
+		return false;
+	
+	// Update our loaders program header location
+	auto s_SourceProgramHeadersStart = reinterpret_cast<const Elf64_Phdr*>(static_cast<const uint8_t*>(p_Elf) + s_ElfHeader->e_phoff);
+
+	// Get all of the program headers
+	for (auto l_ProgramHeaderIndex = 0; l_ProgramHeaderIndex < s_ElfHeader->e_phnum; ++l_ProgramHeaderIndex)
+	{
+		auto l_ProgramHeader = s_SourceProgramHeadersStart + l_ProgramHeaderIndex;
+		if (!l_ProgramHeader)
+			continue;
+		
+		// We create a empty segment inside of the mira elf for .kern, it's PT_INTERP
+		if (l_ProgramHeader->p_type != PT_INTERP)
+			continue;
+		
+		// Don't read beyond the bounds of the data we have
+		if (l_ProgramHeader->p_offset >= (p_ElfSize - 4))
+			continue;
+
+		// Check that this has enough data for us to read
+		if (l_ProgramHeader->p_filesz < 4)
+			continue;
+		
+		// Get the kernel string location
+		const char* kernString = static_cast<const char*>(p_Elf) + l_ProgramHeader->p_offset;
+
+		// Check that this equals kern
+		if (kernString[0] != 'k' ||
+			kernString[1] != 'e' ||
+			kernString[2] != 'r' ||
+			kernString[3] != 'n')
+			continue;
+		
+		// It does, we are a kernel elf
+		return true;
+	}
+
+	return false;
+}
+
 bool Loader::Load()
 {
 	// Validate that our source header information is correct

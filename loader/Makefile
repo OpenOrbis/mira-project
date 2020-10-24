@@ -72,21 +72,29 @@ SFLAGS	:= -fPIE -m64 -nodefaultlibs -nostdlib
 
 # Linker flags
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
-LFLAGS	:= -v $(L_DIRS) -nostdlib -T $(SRC_DIR)/link.x -gc-sections -nmagic
+LFLAGS	:= -v $(L_DIRS) -nostdlib -T $(SRC_DIR)/link.ld -gc-sections -nmagic
 
 # Calculate the listing of all file paths
-ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
-ALL_C	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
-ALL_S	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
+ALL_CPP 	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
+ALL_C		:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
+ALL_S		:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
+ALL_CAPS	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.S'))
 
-
-ALL_SOURCES :=  $(ALL_S) $(ALL_C) $(ALL_CPP)
-TO_BUILD := $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)
+ALL_SOURCES :=  $(ALL_CAPS) $(ALL_S) $(ALL_C) $(ALL_CPP)
+TO_BUILD := $(ALL_CAPS:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)
 ALL_OBJ_CPP := $(TO_BUILD:.cpp=.o)
 ALL_OBJ_C := $(ALL_OBJ_CPP:.c=.o)
-ALL_OBJ := $(ALL_OBJ_C:.s=.o)
+ALL_OBJ_CAPS	:= $(ALL_OBJ_C:.s=.o)
+ALL_OBJ := $(ALL_OBJ_CAPS:.S=.o)
+
 # Target elf name
 TARGET = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.elf"
+
+# Embed the Mira elf inside of the loader to prevent sending 2 payloads
+MIRA_ELF_NAME = "Mira_Orbis_${MIRA_PLATFORM}.elf"
+MIRA_ELF_PATH = \"../kernel/$(OUT_DIR)/$(MIRA_ELF_NAME)\"
+
+SFLAGS += -D"MIRA_ELF_PATH=${MIRA_ELF_PATH}"
 
 # Target payload name (data + text only, no elf)
 PAYLOAD = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.bin"
@@ -132,6 +140,10 @@ endif
 	@$(CPPC) $(CFLAGS) $(I_DIRS) -c $< -o $@
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
+	@echo "Assembling $< ..."
+	@$(CC) $(SFLAGS) -c -o $@ $< 
+
+$(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.S
 	@echo "Assembling $< ..."
 	@$(CC) $(SFLAGS) -c -o $@ $< 
 

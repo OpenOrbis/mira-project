@@ -127,6 +127,8 @@ namespace MiraLoader
         void* DumpAllocatedMap() { return m_AllocatedMap; }
         Elf64_Xword DumpAllocatedMapSize() { return m_AllocatedMapSize; }
     #endif
+        static bool CheckKernelElf(const void* p_Elf, uint32_t p_ElfSize);
+        
     protected:
         bool Load();
 
