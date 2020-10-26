@@ -1,7 +1,7 @@
 .intel_syntax noprefix
 .text
 
-.global _start, _mira_elf_start, _mira_elf_end
+.global _start, _mira_elf_start, _mira_elf_end, _start
 
 .org 0
 _start:

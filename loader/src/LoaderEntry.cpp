@@ -36,6 +36,9 @@ extern "C"
 
 #include <Boot/MiraLoader.hpp>
 
+// Uncomment this if you want to wait on port 2021 for a payload
+// #define _SOCKET_LOADER
+
 using namespace Mira::Utils;
 using namespace MiraLoader;
 
@@ -47,7 +50,7 @@ uint8_t* gKernelBase = nullptr;
 extern uint8_t* _mira_elf_start;
 extern uint8_t* _mira_elf_end;
 
-static uint32_t g_MiraElfSize = _mira_elf_end - _mira_elf_start;
+uint32_t g_MiraElfSize = 0;
 
 struct kexec_uap
 {
@@ -131,6 +134,9 @@ extern "C" void* mira_entry(void* args)
 	// Escape the jail and sandbox
 	syscall2(KEXEC_SYSCALL_NUM, reinterpret_cast<void*>(mira_escape), NULL);
 
+	// We need to calculate the elf size on the fly, otherwise it's 0 for some odd reason
+	g_MiraElfSize = (uint64_t)&_mira_elf_end - (uint64_t)&_mira_elf_start;
+
 	//int32_t sysUtilModuleId = -1;
 	int32_t netModuleId = -1;
 	int32_t libcModuleId = -1;
@@ -156,13 +162,13 @@ extern "C" void* mira_entry(void* args)
 	}
 
 	// TODO: Check for custom Mira elf section to determine launch type
-	char buf[64];
+	/*char buf[256];
 	memset(buf, 0, sizeof(buf));
 
-	snprintf(buf, sizeof(buf), "mira_start: %p mira_end: %p mira_size: %x", _mira_elf_start, _mira_elf_end, g_MiraElfSize);
+	snprintf(buf, sizeof(buf), "mira_start: %p mira_end: %p mira_size: %x", &_mira_elf_start, &_mira_elf_end, g_MiraElfSize);
 	WriteNotificationLog(buf);
 
-	return nullptr;
+	return nullptr;*/
 
 	// Allocate a 3MB buffer
 	size_t bufferSize = ALLOC_5MB;
@@ -173,6 +179,8 @@ extern "C" void* mira_entry(void* args)
 		return nullptr;
 	}
 	memset(buffer, 0, bufferSize);
+
+#if defined(_SOCKET_LOADER)
 	//Loader::Memset(buffer, 0, bufferSize);
 	// Hold our server socket address
 	struct sockaddr_in serverAddress = { 0 };
@@ -228,6 +236,11 @@ extern "C" void* mira_entry(void* args)
 	// Close the client and server socket connections
 	sceNetSocketClose(clientSocket);
 	sceNetSocketClose(serverSocket);
+#else
+	// Handle loading embedded elf
+	uint32_t currentSize = g_MiraElfSize;
+	memcpy(buffer, &_mira_elf_start, currentSize);
+#endif
 
 	// Determine if we launch a elf or a payload
 	if (buffer[0] == ELFMAG0 &&
