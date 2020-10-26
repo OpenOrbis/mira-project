@@ -232,10 +232,14 @@ extern "C" void mira_entry(void* args)
 	}
 
 	// At this point we don't need kernel context anymore
-	WriteLog(LL_Info, "Mira initialization complete (%d).", curthread->td_tid);
+	WriteLog(LL_Info, "Mira initialization complete tid: (%d).", curthread->td_tid);
 
-	// This never returns
+	// This never returns until shutdown
 	s_Framework->Update();
+
+	WriteLog(LL_Info, "Shutting down.");
+
+	kthread_exit();
 }
 
 bool Mira::Framework::SetInitParams(Mira::Boot::InitParams* p_Params)
@@ -406,10 +410,13 @@ void Mira::Framework::Update()
 	//tsleep()
 	auto _sleep = (int(*)(void *ident, struct lock_object *lock, int priority, const char *wmesg, int timo))kdlsym(_sleep);
 
-	for (;;)
+	// As long as the main service is running this loop will continue
+	while (m_InitParams.isRunning)
 	{
+		// Check the current state of mira, it should be None if there is nothing to do
 		switch (m_State)
 		{
+			// The case is when the eventhandler for suspension is fired from any thread
 		case State::Suspend:
 		{
 			WriteLog(LL_Debug, "got suspend flag.");
@@ -421,10 +428,12 @@ void Mira::Framework::Update()
 					WriteLog(LL_Error, "could not suspend plugin manager.");
 			}
 
-			// Clear the current state flag
+			// Clear the current state flag, because we have finished suspending
 			ClearFlag();
 
-			// TODO: Do I need to do a tsleep here?
+			// We wait for a eventhandler for the resume state change
+
+			// Put this thread to sleep
 			tsleep(this, PPAUSE, "mira:update", 0);
 			break;
 		}
@@ -557,16 +566,20 @@ bool Mira::Framework::RemoveEventHandlers()
 
 void Mira::Framework::OnMiraSuspend(void* __unused p_Reserved)
 {
+	// NOTE: Do not assume that this thread is the same thread that Mira is running on
 	if (GetFramework() == nullptr)
 		return;
 
 	WriteLog(LL_Warn, "SUPSEND SUSPEND SUSPEND (%d).", curthread->td_tid);
 
+	// The Update thread should still be checking for a state change (it should be None currently which means spin)
+	// Set the suspend flag and let that thread take over suspending
 	GetFramework()->SetSuspendFlag();
 }
 
 void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 {
+	// NOTE: Do not assume that this thread is the same thread that Mira is running on
 	auto wakeup = (void(*)(void* chan))kdlsym(wakeup);
 
 	auto s_Framework = GetFramework();
@@ -575,14 +588,17 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 
 	WriteLog(LL_Warn, "RESUME RESUME RESUME (%d).", curthread->td_tid);
 
+	// Change the flag of the framework to resume
 	s_Framework->SetResumeFlag();
 
+	// and wake up the Update thread
 	WriteLog(LL_Debug, "waking (%p).", s_Framework);
 	wakeup(s_Framework);
 }
 
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
+	// NOTE: Do not assume that this thread is the same thread Mira is running on
 	//auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
 
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN on thread (%d).", curthread->td_tid);

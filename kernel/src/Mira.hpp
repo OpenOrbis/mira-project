@@ -62,6 +62,7 @@ namespace Mira
             None = 0,
             Suspend,
             Resume,
+            Shutdown,
         };
 
         static Framework* m_Instance;
@@ -100,7 +101,22 @@ namespace Mira
         bool RemoveEventHandlers();
 
     public:
+        /**
+         * @brief Set the intialization parameters
+         * These are usually set from MiraLoader with the addresses of where we are in memory
+         * and the created main thread that is running.
+         * 
+         * @param p_Params Initialization parameters to copy from
+         * @return true On Success
+         * @return false Failure
+         */
         bool SetInitParams(Mira::Boot::InitParams* p_Params);
+
+        /**
+         * @brief Get the Init Params object
+         * 
+         * @return Mira::Boot::InitParams* Pointer to the initialization parameters
+         */
         Mira::Boot::InitParams* GetInitParams() { return &m_InitParams; }
 
         bool SetConfiguration(MiraConfig* p_SourceConfig);
