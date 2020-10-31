@@ -114,13 +114,13 @@ bool PluginManager::OnLoad()
         }
 
         // Initialize Substitute
-        /*m_Substitute = new Mira::Plugins::Substitute();
+        m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
         {
             WriteLog(LL_Error, "could not allocate substitute.");
             s_Success = false;
             break;
-        }*/
+        }
 
         // Initialize BrowserActivator
         m_BrowserActivator = new Mira::Plugins::BrowserActivator();
@@ -632,8 +632,8 @@ bool PluginManager::OnProcessExecEnd(struct proc* p_Process)
     
     if (m_Substitute)
     {
-        if (!m_Substitute->OnProcessExecEnd(p_Process))
-            WriteLog(LL_Error, "substitute process exec end failed.");
+        /*if (!m_Substitute->OnProcessExecEnd(p_Process))
+            WriteLog(LL_Error, "substitute process exec end failed.");*/
     }
 
     return true;

@@ -4,6 +4,8 @@
 #include <Utils/SysWrappers.hpp>
 #include <OrbisOS/Utilities.hpp>
 
+#include <Driver/CtrlDriver.hpp>
+
 #include <Mira.hpp>
 
 extern "C"
@@ -13,15 +15,27 @@ extern "C"
     #include <sys/stat.h>
     #include <sys/dirent.h>
     #include <sys/fcntl.h>
+    #include <sys/sysent.h>
+    #include <sys/imgact.h>
+    #include <sys/imgact_elf.h>
 };
 
 using namespace Mira::Trainers;
 
 const char* TrainerManager::c_ShmPrefix = "_shm_";
+TrainerManager::sv_fixup_t TrainerManager::g_sv_fixup = nullptr;
 
 TrainerManager::TrainerManager()
 {
+    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
 
+    WriteLog(LL_Debug, "Original sv_fixup: %p (%x).", sv->sv_fixup, (reinterpret_cast<uint64_t>(sv->sv_fixup) - reinterpret_cast<uint64_t>(gKernelBase)));
+
+    // Back up the original sv_fixup
+    g_sv_fixup = reinterpret_cast<sv_fixup_t>(sv->sv_fixup);
+
+    // Overwrite our sv_fixup
+    sv->sv_fixup = (int(*)(register_t **, struct image_params *))OnSvFixup;
 }
 
 TrainerManager::~TrainerManager()
@@ -58,6 +72,13 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
         // Debug print
         WriteLog(LL_Info, "process is exiting: (%s).", p_Process->p_comm);
 
+        auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
+        if (s_Driver != nullptr)
+        {
+            WriteLog(LL_Debug, "Entrypoint for pid (%d) being removed.", p_Process->p_pid);
+            s_Driver->RemoveEntryPoint(p_Process->p_pid);
+        }
+
     } while (false);
     
 
@@ -69,6 +90,13 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
 
 bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
 {
+    return true;
+
+    if (p_Process == nullptr)
+        return false;
+    
+    WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", p_Process->p_pid);
+
     //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
@@ -93,6 +121,77 @@ bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
     }
 
     return true;
+}
+
+int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp)
+{
+    WriteLog(LL_Debug, "OnSvFixup called.");
+    //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
+	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+
+    if (g_sv_fixup == nullptr)
+    {
+        WriteLog(LL_Error, "Yo what the hell are you doing?, you need to save sv_fixup before trying to use it >_>.");
+        return -1; //g_sv_fixup(stack_base, imgp);
+    }
+
+    // If we don't have any image params bail
+    if (imgp == nullptr)
+        return g_sv_fixup(stack_base, imgp);
+
+    // Call the original
+    auto s_Ret = g_sv_fixup(stack_base, imgp);
+
+    // Get the process
+    auto s_Process = imgp->proc;
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "there is no process.");
+        return s_Ret;
+    }
+
+    WriteLog(LL_Debug, "execPath: (%s), execPath2: (%s).", imgp->execpath, imgp->execpath2);
+
+    WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
+
+    auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
+    if (s_Driver == nullptr)
+    {
+        WriteLog(LL_Error, "no device driver found, what?");
+        return s_Ret;
+    }
+
+    // Get the original entry point
+    Elf64_Auxargs* s_AuxArgs = static_cast<Elf64_Auxargs*>(imgp->auxargs);
+    if (s_AuxArgs == nullptr)
+    {
+        WriteLog(LL_Error, "could not get auxargs.");
+        return s_Ret;
+    }
+
+    // Update our driver
+    s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
+    
+    // Make sure that we have the eboot.bin
+    auto s_EbootPath = "/app0/eboot.bin";
+    if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
+    {
+        WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);
+        return s_Ret;
+    }
+    
+    // Check if the file exists
+    auto s_ExamplePath = "/mnt/usb0/mira/trainers/test.prx";
+    if (FileExists(s_ExamplePath))
+    {
+        WriteLog(LL_Debug, "injecting %s.", s_ExamplePath);
+        if (!ThreadInjection(s_ExamplePath, s_Process))
+            WriteLog(LL_Error, "could not inject (%s).", s_ExamplePath);
+    }
+
+    return s_Ret;
 }
 
 bool TrainerManager::GetUsbTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength)
@@ -279,9 +378,7 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     
     WriteLog(LL_Info, "got target proc main thread: (%p).", s_TargetProcMainThread);
 
-    PrintDirectory("/", false, s_TargetProcMainThread);
-
-    
+    //PrintDirectory("/", false, s_TargetProcMainThread);
 
     // Get path from the file name
     auto s_TrainerFileName = strrchr(p_TrainerPrxPath, '/'); // "/test.prx"
@@ -334,39 +431,8 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
         // s_SandboxTrainerPath = "/mnt/sandbox/NPXS22010_000/_substitute/test.prx"
         WriteLog(LL_Info, "sandbox trainer path: (%s).", s_SandboxTrainerPath);
         
-        /*auto s_DirectoryHandle = kopen_t("/", O_RDONLY | O_DIRECTORY, 0777, s_TargetProcMainThread);
-        if (s_DirectoryHandle >= 0)
-        {
-            // Switch this to use stack
-            char s_Buffer[1024] = { 0 };
-            memset(s_Buffer, 0, sizeof(s_Buffer));
-            //WriteLog(LL_Debug, "here");
-
-            int32_t s_ReadCount = 0;
-            for (;;)
-            {
-                memset(s_Buffer, 0, sizeof(s_Buffer));
-                s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), s_TargetProcMainThread);
-                if (s_ReadCount <= 0)
-                    break;
-                
-                for (auto l_Pos = 0; l_Pos < s_ReadCount;)
-                {
-                    auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
-                    WriteLog(LL_Debug, "dent name2: (%s).", l_Dent->d_name);
-
-                    l_Pos += l_Dent->d_reclen;
-                }
-            }
-            kclose_t(s_DirectoryHandle, s_TargetProcMainThread);
-        }
-        else
-        {
-            WriteLog(LL_Error, "could not open directory (%s) err (%d).", "/_substitute", s_DirectoryHandle);
-        }*/
-
-        PrintDirectory("/_substitute", false, s_TargetProcMainThread);
-        PrintDirectory("/mnt", false, s_TargetProcMainThread);
+        // PrintDirectory("/_substitute", false, s_TargetProcMainThread);
+        // PrintDirectory("/mnt", false, s_TargetProcMainThread);
         //PrintDirectory("/app0", false, s_TargetProcMainThread);
 
         /* code */
@@ -391,7 +457,7 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
 
         // Get the address of the entrypoint
         void* s_ModuleStart = nullptr;
-        s_Ret = kdynlib_dlsym_t(s_PrxHandle, "module_load", &s_ModuleStart, s_TargetProcMainThread);
+        s_Ret = kdynlib_dlsym_t(s_PrxHandle, "_Z19testLibraryFunctionv", &s_ModuleStart, s_TargetProcMainThread);
         if (s_Ret != 0)
         {
             WriteLog(LL_Error, "dynlib_dlsym returned (%d).", s_Ret);

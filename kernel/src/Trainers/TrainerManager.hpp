@@ -9,6 +9,7 @@ extern "C"
     #include <sys/param.h>
     #include <sys/lock.h>
     #include <sys/mutex.h>
+    #include <sys/imgact.h>
 }
 
 /*
@@ -76,6 +77,8 @@ namespace Mira
             struct mtx m_Mutex;
 
             static const char* c_ShmPrefix; // _shm_
+            typedef int(*sv_fixup_t)(register_t **, struct image_params *);
+            static sv_fixup_t g_sv_fixup;
 
         public:
             TrainerManager();
@@ -113,19 +116,21 @@ namespace Mira
             bool GetShm(const char* p_Id);
 
             // Inject a new thread per prx
-            bool ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_Proc);
+            static bool ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_Proc);
 
             // Load via payload
             bool PayloadInjection();
 
             // Checks if a file exists
-            bool FileExists(const char* p_Path);
+            static bool FileExists(const char* p_Path);
 
             // Checks if a directory exists
             bool DirectoryExists(const char* p_Path);
 
         private:
             static void OnSomethingOrAnother();
+
+            static int OnSvFixup(register_t **, struct image_params *);
         };
     }
 }

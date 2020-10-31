@@ -221,6 +221,16 @@ typedef struct _MiraWriteProcessMemory
     uint8_t Data[];
 } MiraWriteProcessMemory;
 
+typedef struct _MiraTrainerProcessInfo
+{
+    // this is 64 bit for alignment
+    int64_t ProcessId;
+    void* EntryPoint;
+    struct _MiraTrainerProcessInfo* Previous;
+    struct _MiraTrainerProcessInfo* Next;
+} MiraTrainerProcessInfo;
+
+
 #define MIRA_IOCTL_BASE 'M'
 
 // List of commands, this way everything keeps the same ID's
@@ -240,6 +250,7 @@ typedef enum class _MiraIoctlCmds : uint32_t
     WriteProcessMemory,
     GetConfig,
     SetConfig,
+    GetOriginalEntryPoint,
     MAX
 } MiraIoctlCmds;
 
@@ -256,13 +267,14 @@ typedef enum class _MiraIoctlCmds : uint32_t
 #define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::MountInSandbox), sizeof(MiraMountInSandbox))
 
 // Create new Shm
-#define MIRA_CREATE_TRAINER_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::CreateTrainerShm), sizeof(MiraCreateTrainerShm))
+#define MIRA_TRAINERS_CREATE_SHM _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::CreateTrainerShm), sizeof(MiraCreateTrainerShm))
 
 // Get the currently loaded shm's
-#define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::GetTrainerShm), sizeof(MiraGetTrainersShm))
+#define MIRA_TRAINERS_GET_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::GetTrainerShm), sizeof(MiraGetTrainersShm))
 
-// Debug load trainer
-#define MIRA_LOAD_TRAINERS _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::LoadTrainers), 0)
+// Trainers
+#define MIRA_TRAINERS_LOAD _IOC(IOC_IN, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::LoadTrainers), 0)
+#define MIRA_TRAINERS_ORIG_EP _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::GetOriginalEntryPoint), 0)
 
 // Read/Write process memory
 #define MIRA_READ_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, static_cast<uint32_t>(MiraIoctlCmds::ReadProcessMemory), sizeof(MiraReadProcessMemory))
@@ -282,15 +294,21 @@ namespace Mira
             struct cdevsw m_DeviceSw;
             struct cdev* m_Device;
 
+            struct mtx m_Mutex;
+            MiraTrainerProcessInfo* m_Head;
+
         public:
             CtrlDriver();
             ~CtrlDriver();
+
+            void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
+            void RemoveEntryPoint(int32_t p_ProcessId);
+            void* GetEntryPoint(int32_t p_ProcessId);
 
             static int32_t OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_DeviceType, struct thread* p_Thread);
             static int32_t OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_DeviceType, struct thread* p_Thread);
             static int32_t OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
         
-
             static void OnProcessExec(void*, struct proc *p);
         protected:
             // Callback functions

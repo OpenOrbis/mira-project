@@ -306,7 +306,7 @@ bool Mira::Framework::Initialize()
 	WriteLog(LL_Warn, "FIXME: Syscall table hooks not implemented!!!!");
 
 	// Initialize the trainer manager
-	/*m_TrainerManager = new Trainers::TrainerManager();
+	m_TrainerManager = new Trainers::TrainerManager();
 	if (m_TrainerManager == nullptr)
 	{
 		WriteLog(LL_Error, "could not initalize the trainer manager.");
@@ -318,16 +318,16 @@ bool Mira::Framework::Initialize()
 	{
 		WriteLog(LL_Error, "could not load the trainer manager.");
 		return false;
-	}*/
+	}
 
 	// Install device driver
 	WriteLog(LL_Warn, "Initializing the /dev/mira control driver");
-	/*m_CtrlDriver = new Mira::Driver::CtrlDriver();
+	m_CtrlDriver = new Mira::Driver::CtrlDriver();
 	if (m_CtrlDriver == nullptr)
 	{
 		WriteLog(LL_Error, "could not allocate control driver.");
 		return false;
-	}*/
+	}
 
 	// Install eventhandler's
 	WriteLog(LL_Debug, "Installing event handlers");
@@ -599,8 +599,6 @@ void Mira::Framework::OnMiraResume(void* __unused p_Reserved)
 void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 {
 	// NOTE: Do not assume that this thread is the same thread Mira is running on
-	//auto kproc_exit = (int(*)(int code))kdlsym(kproc_exit);
-
 	WriteLog(LL_Warn, "SHUTDOWN SHUTDOWN SHUTDOWN on thread (%d).", curthread->td_tid);
 
 	if (GetFramework() == nullptr)
@@ -608,15 +606,10 @@ void Mira::Framework::OnMiraShutdown(void* __unused p_Reserved)
 
 	if (!GetFramework()->Terminate())
 		WriteLog(LL_Error, "could not terminate cleanly");
-	
-	// Which thread is this executed on???
-	// kproc_exit(0);
 }
 
 void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 {
-	return;
-
 	if (p_Process == nullptr)
 		return;
 	
@@ -639,8 +632,6 @@ void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 
 void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process)
 {
-	return;
-
 	WriteLog(LL_Warn, "ProcessExecEnd: (%p) (%p).", _unused, p_Process);
 	WriteLog(LL_Error, "(%s).", p_Process->p_comm);
 	
@@ -665,8 +656,6 @@ void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process
 
 void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 {
-	return;
-	
 	WriteLog(LL_Warn, "Process Exiting: (%d) (%s) (%s).", p_Process->p_pid, p_Process->p_comm, p_Process->p_elfpath);
 
 	auto s_Framework = Mira::Framework::GetFramework();

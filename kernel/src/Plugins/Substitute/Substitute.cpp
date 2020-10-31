@@ -63,17 +63,18 @@ Substitute::~Substitute()
 // Substitute : Plugin loaded
 bool Substitute::OnLoad()
 {
-    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-    struct sysent* sysents = sv->sv_table;
+    //auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+    //struct sysent* sysents = sv->sv_table;
     //auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);   
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     WriteLog(LL_Info, "Loading Substitute ...");
 
     // Substitute syscall hook (PRX Loader)
-    sys_dynlib_dlsym_p = (void*)sysents[SYS_DYNLIB_DLSYM].sy_call;
-    sysents[SYS_DYNLIB_DLSYM].sy_call = (sy_call_t*)Sys_dynlib_dlsym_hook;
+    // NOTE: This is being replaced by TrainerManager
+    /*sys_dynlib_dlsym_p = (void*)sysents[SYS_DYNLIB_DLSYM].sy_call;
+    sysents[SYS_DYNLIB_DLSYM].sy_call = (sy_call_t*)Sys_dynlib_dlsym_hook;*/
 
-    mtx_init(&hook_mtx, "Substitute SPIN Lock", NULL, MTX_SPIN);
+    mtx_init(&hook_mtx, "Sbste", NULL, MTX_SPIN);
 
     // Print substitute ioctl command
     WriteLog(LL_Debug, "IOCTL Command:");
@@ -87,18 +88,17 @@ bool Substitute::OnLoad()
 // Substitute : Plugin unloaded
 bool Substitute::OnUnload()
 {
-    auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-    struct sysent* sysents = sv->sv_table;
-    //auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-    //auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
+    //auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+    //struct sysent* sysents = sv->sv_table;
 
     WriteLog(LL_Error, "Unloading Substitute ...");
 
     // Cleanup substitute hook (PRX Loader)
-    if (sys_dynlib_dlsym_p) {
+    // TODO: Remove this once the new shits done
+    /*if (sys_dynlib_dlsym_p) {
         sysents[SYS_DYNLIB_DLSYM].sy_call = (sy_call_t*)sys_dynlib_dlsym_p;
         sys_dynlib_dlsym_p = nullptr;
-    }
+    }*/
 
     CleanupAllHook();
     return true;
@@ -1053,6 +1053,8 @@ void Substitute::LoadAllPrx(struct thread* td, const char* folder_path)
 // Substitute : Mount Substitute folder and prepare prx for load
 bool Substitute::OnProcessExecEnd(struct proc *p)
 {
+    return true;
+
     if (!p)
         return false;
 
@@ -1167,6 +1169,8 @@ bool Substitute::OnProcessExecEnd(struct proc *p)
 
 // Substitute : Unmount Substitute folder
 bool Substitute::OnProcessExit(struct proc *p) {
+    return true;
+
     if (!p)
         return false;
 
@@ -1247,7 +1251,7 @@ bool Substitute::OnProcessExit(struct proc *p) {
 
 // Substitute : Load PRX from Substitute folder
 int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_args* uap) {
-    Substitute* substitute = GetPlugin();
+    /*Substitute* substitute = GetPlugin();
     if (!substitute) {
         WriteLog(LL_Error, "Substitute dependency is needed");
         return 1;
@@ -1382,7 +1386,8 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
     
     // Restore td ret value
     td->td_retval[0] = original_td_value;
-    return ret;
+    return ret;*/
+    return 0;
 }
 
 //////////////////////////

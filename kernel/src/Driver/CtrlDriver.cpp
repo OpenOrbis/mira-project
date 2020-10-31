@@ -46,6 +46,7 @@ CtrlDriver::CtrlDriver() :
     m_DeviceSw { 0 },
     m_Device(nullptr)
 {
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     auto make_dev_p = (int(*)(int _flags, struct cdev **_cdev, struct cdevsw *_devsw, struct ucred *_cr, uid_t _uid, gid_t _gid, int _mode, const char *_fmt, ...))kdlsym(make_dev_p);
 
     // Set up our device driver information
@@ -55,8 +56,12 @@ CtrlDriver::CtrlDriver() :
     m_DeviceSw.d_close = OnClose;
     m_DeviceSw.d_ioctl = OnIoctl;
 
-    // Add the device driver
+    // Create our mutex to protect state
+    mtx_init(&m_Mutex, "MiraCtrl", nullptr, MTX_DEF);
 
+    WriteLog(LL_Debug, "MIRA_TRAINERS_LOAD: (%x).", MIRA_TRAINERS_LOAD);
+
+    // Add the device driver
     int32_t s_ErrorDev = make_dev_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
         &m_Device,
         &m_DeviceSw,
@@ -156,7 +161,7 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
 
 int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     p_Command = p_Command & 0xFFFFFFFF; // Clear the upper32
 
@@ -185,8 +190,27 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 // Get/set the thread credentials
                 case MIRA_GET_PROC_THREAD_CREDENTIALS:
                     return OnMiraThreadCredentials(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_LOAD_TRAINERS:
+                case MIRA_TRAINERS_LOAD:
                 {
+                    return 0;
+                }
+                case MIRA_TRAINERS_ORIG_EP:
+                {
+                    auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
+                    if (s_Driver == nullptr)
+                        return ENOMEM;
+                    
+                    auto s_Proc = p_Thread->td_proc;
+                    if (s_Proc == nullptr)
+                        return EPROCUNAVAIL;
+                    
+                    auto s_EntryPoint = s_Driver->GetEntryPoint(s_Proc->p_pid);
+                    if (s_EntryPoint == nullptr)
+                        return ESRCH;
+                    
+                    WriteLog(LL_Debug, "Found EntryPoint (%p).", s_EntryPoint);
+
+                    copyout(&s_EntryPoint, p_Data, sizeof(s_EntryPoint));
                     return 0;
                 }
                 case MIRA_GET_CONFIG:
@@ -838,4 +862,167 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     p_Output = s_Credentials;
 
     return true;
+}
+
+void CtrlDriver::AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_ProcessId <= 0)
+    {
+        WriteLog(LL_Error, "invalid process id (%d).", p_ProcessId);
+        return;
+    }
+
+    if (p_EntryPoint == nullptr)
+    {
+        WriteLog(LL_Error, "invalid entry point (%p).", p_EntryPoint);
+        return;
+    }
+
+    _mtx_lock_flags(&m_Mutex, 0);
+
+    do
+    {
+        // Handle if there is nothing added
+        if (m_Head == nullptr)
+        {
+            auto s_NewHead = new MiraTrainerProcessInfo;
+            if (s_NewHead == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate a new MiraTrainerProcessInfo.");
+                break;
+            }
+
+            s_NewHead->ProcessId = p_ProcessId;
+            s_NewHead->EntryPoint = p_EntryPoint;
+            s_NewHead->Previous = nullptr;
+            s_NewHead->Next = nullptr;
+
+            m_Head = s_NewHead;
+        }
+        else // We already created a head
+        {
+            MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
+            bool s_Updated = false;
+            while (s_CurrentInfo != nullptr)
+            {
+                if (p_ProcessId == s_CurrentInfo->ProcessId)
+                {
+                    s_CurrentInfo->EntryPoint = p_EntryPoint;
+                    s_Updated = true;
+                    break;
+                }
+
+                s_CurrentInfo = s_CurrentInfo->Next;
+            }
+
+            // Add a new entry
+            if (!s_Updated)
+            {
+                auto s_Entry = new MiraTrainerProcessInfo;
+                if (s_Entry == nullptr)
+                {
+                    WriteLog(LL_Error, "could not create a new MiraTrainerProcessInfo.");
+                    break;
+                }
+
+                s_Entry->ProcessId = p_ProcessId;
+                s_Entry->EntryPoint = p_EntryPoint;
+                s_Entry->Next = nullptr;
+                s_Entry->Previous = nullptr;
+
+                // Find the last entry in the chain
+                MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
+                while (s_CurrentInfo != nullptr)
+                {
+                    if (s_CurrentInfo->Next == nullptr)
+                    {
+                        // Add to the tail
+                        s_CurrentInfo->Next = s_Entry;
+
+                        // Set the previous
+                        s_Entry->Previous = s_CurrentInfo;
+
+                        WriteLog(LL_Debug, "Added new MiraTrainerProcessInfo.");
+                        break;
+                    }
+
+                    s_CurrentInfo = s_CurrentInfo->Next;
+                }
+            }
+        }
+        
+    } while (false);
+    
+    _mtx_unlock_flags(&m_Mutex, 0);
+}
+
+void CtrlDriver::RemoveEntryPoint(int32_t p_ProcessId)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    _mtx_lock_flags(&m_Mutex, 0);
+
+    do
+    {
+        MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
+        while (s_CurrentInfo != nullptr)
+        {
+            if (s_CurrentInfo->ProcessId == p_ProcessId)
+            {
+                WriteLog(LL_Debug, "Removing PID (%d).", p_ProcessId);
+
+                // Set the previous entry to point to our next entry
+                if (s_CurrentInfo->Previous != nullptr)
+                    s_CurrentInfo->Previous->Next = s_CurrentInfo->Next;
+                
+                // Set our next entry to our previous entry
+                if (s_CurrentInfo->Next != nullptr)
+                    s_CurrentInfo->Next->Previous = s_CurrentInfo->Previous;
+                
+                // Delete the current entry
+                delete s_CurrentInfo;
+                break;
+            }
+        }
+
+    } while (false);
+
+    _mtx_unlock_flags(&m_Mutex, 0);
+
+}
+
+void* CtrlDriver::GetEntryPoint(int32_t p_ProcessId)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_ProcessId <= 0)
+        return nullptr;
+    
+    _mtx_lock_flags(&m_Mutex, 0);
+
+    void* s_Found = nullptr;
+
+    do
+    {
+        MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
+        while (s_CurrentInfo != nullptr)
+        {
+            if (s_CurrentInfo->ProcessId == p_ProcessId)
+            {
+                s_Found = s_CurrentInfo->EntryPoint;
+                break;
+            }
+
+            s_CurrentInfo = s_CurrentInfo->Next;
+        }
+    } while (false);
+    
+    _mtx_unlock_flags(&m_Mutex, 0);
+
+    return s_Found;
 }

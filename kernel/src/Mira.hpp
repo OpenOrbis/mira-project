@@ -135,6 +135,8 @@ namespace Mira
         Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
         Mira::Trainers::TrainerManager* GetTrainerManager() { return m_TrainerManager; }
 
+        Mira::Driver::CtrlDriver* GetDriver() { return m_CtrlDriver; }
+
         struct thread* GetMainThread();
         struct thread* GetSyscoreThread();
         struct thread* GetShellcoreThread();
