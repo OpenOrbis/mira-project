@@ -116,7 +116,7 @@ namespace Mira
             bool GetShm(const char* p_Id);
 
             // Inject a new thread per prx
-            static bool ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_Proc);
+            static bool ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_Proc, struct image_params* p_Params);
 
             // Load via payload
             bool PayloadInjection();

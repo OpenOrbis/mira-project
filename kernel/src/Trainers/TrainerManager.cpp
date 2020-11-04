@@ -92,7 +92,7 @@ bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
 {
     return true;
 
-    if (p_Process == nullptr)
+    /*if (p_Process == nullptr)
         return false;
     
     WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", p_Process->p_pid);
@@ -120,7 +120,7 @@ bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
         return ThreadInjection("/mnt/usb0/mira/trainers/test.prx", p_Process);
     }
 
-    return true;
+    return true;*/
 }
 
 int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp)
@@ -141,57 +141,59 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
     if (imgp == nullptr)
         return g_sv_fixup(stack_base, imgp);
 
+    do
+    {
+        // Get the process
+        auto s_Process = imgp->proc;
+        if (s_Process == nullptr)
+        {
+            WriteLog(LL_Error, "there is no process.");
+            break;
+        }
+
+        WriteLog(LL_Debug, "execPath: (%s), execPath2: (%s).", imgp->execpath, imgp->execpath2);
+
+        WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
+
+        auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
+        if (s_Driver == nullptr)
+        {
+            WriteLog(LL_Error, "no device driver found, what?");
+            break;
+        }
+
+        // Get the original entry point
+        Elf64_Auxargs* s_AuxArgs = static_cast<Elf64_Auxargs*>(imgp->auxargs);
+        if (s_AuxArgs == nullptr)
+        {
+            WriteLog(LL_Error, "could not get auxargs.");
+            break;
+        }
+
+        // Update our driver
+        s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
+        
+        // Make sure that we have the eboot.bin
+        auto s_EbootPath = "/app0/eboot.bin";
+        if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
+        {
+            WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);
+            break;
+        }
+        
+        // Check if the file exists
+        auto s_ExamplePath = "/mnt/usb0/mira/trainers/test.prx";
+        if (FileExists(s_ExamplePath))
+        {
+            WriteLog(LL_Debug, "injecting %s.", s_ExamplePath);
+            if (!ThreadInjection(s_ExamplePath, s_Process, imgp))
+                WriteLog(LL_Error, "could not inject (%s).", s_ExamplePath);
+        }
+
+    } while (false);
+
     // Call the original
-    auto s_Ret = g_sv_fixup(stack_base, imgp);
-
-    // Get the process
-    auto s_Process = imgp->proc;
-    if (s_Process == nullptr)
-    {
-        WriteLog(LL_Error, "there is no process.");
-        return s_Ret;
-    }
-
-    WriteLog(LL_Debug, "execPath: (%s), execPath2: (%s).", imgp->execpath, imgp->execpath2);
-
-    WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
-
-    auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
-    if (s_Driver == nullptr)
-    {
-        WriteLog(LL_Error, "no device driver found, what?");
-        return s_Ret;
-    }
-
-    // Get the original entry point
-    Elf64_Auxargs* s_AuxArgs = static_cast<Elf64_Auxargs*>(imgp->auxargs);
-    if (s_AuxArgs == nullptr)
-    {
-        WriteLog(LL_Error, "could not get auxargs.");
-        return s_Ret;
-    }
-
-    // Update our driver
-    s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
-    
-    // Make sure that we have the eboot.bin
-    auto s_EbootPath = "/app0/eboot.bin";
-    if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
-    {
-        WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);
-        return s_Ret;
-    }
-    
-    // Check if the file exists
-    auto s_ExamplePath = "/mnt/usb0/mira/trainers/test.prx";
-    if (FileExists(s_ExamplePath))
-    {
-        WriteLog(LL_Debug, "injecting %s.", s_ExamplePath);
-        if (!ThreadInjection(s_ExamplePath, s_Process))
-            WriteLog(LL_Error, "could not inject (%s).", s_ExamplePath);
-    }
-
-    return s_Ret;
+    return g_sv_fixup(stack_base, imgp);
 }
 
 bool TrainerManager::GetUsbTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength)
@@ -346,7 +348,7 @@ void PrintDirectory(const char* p_Path, bool p_Recursive, struct thread* p_Threa
 
 
 // "/mnt/usb0/mira/trainers/test.prx"
-bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_TargetProc)
+bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_TargetProc, struct image_params* p_Params)
 {
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
@@ -473,12 +475,19 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
             break;
         }
 
+        // TODO: Overwrite imgp->auxshit
         // Create a new thread
-        s_Ret = OrbisOS::Utilities::CreatePOSIXThread(p_TargetProc, s_ModuleStart);
+        /*s_Ret = OrbisOS::Utilities::CreatePOSIXThread(p_TargetProc, s_ModuleStart);
         if (s_Ret != 0)
         {
             WriteLog(LL_Error, "could not create posix thread (%d).", s_Ret);
             break;
+        }*/
+        auto s_AuxArgs = static_cast<Elf64_Auxargs*>(p_Params->auxargs);
+        if (s_AuxArgs)
+        {
+            WriteLog(LL_Debug, "modifying auxargs.");
+            s_AuxArgs->entry = (Elf64_Size)s_ModuleStart;
         }
 
         s_Success = s_Ret == 0;
