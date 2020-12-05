@@ -34,6 +34,18 @@
             "dependsOn": [ "Build Mira" ]
         },
         {
+            "label": "Build trainer_loader",
+            "type": "shell",
+            "command": "MIRA_PLATFORM=$platform make clean;MIRA_PLATFORM=$platform make create;MIRA_PLATFORM=$platform MIRA_CHECKS=$checks make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/trainer_loader"
+            }
+        },
+        {
             "label": "Build Daemon",
             "type": "shell",
             "command": "make clean; make",

@@ -646,6 +646,8 @@ struct proc {
 	
 };
 
+#if defined(MIRA_CHECKS)
+
 // Saftey measure so we don't fuck anything
 #if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_672
 static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect");
@@ -655,6 +657,8 @@ static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect"
 static_assert(offsetof(struct proc, p_dynlib) == 0x340, "dynlib start incorrect");
 static_assert(offsetof(struct proc, p_magic) == 0x44C, "struct start incorrect");
 #endif
+
+#endif // MIRA_CHECKS
 
 #define	p_session	p_pgrp->pg_session
 #define	p_pgid		p_pgrp->pg_id

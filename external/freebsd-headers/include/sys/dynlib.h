@@ -1,10 +1,18 @@
 #ifndef __DYNLIB_H__
 #define __DYNLIB_H__
+
 #include "../../../../kernel/src/Utils/Kdlsym.hpp"
 #ifdef _KERNEL
 #include <sys/types.h>
 #include <sys/lock.h>
 #include <sys/sx.h>
+
+#if !defined(__cplusplus)
+#include <sys/stddef.h>
+#ifndef static_assert
+#define static_asssert
+#endif
+#endif
 
 typedef STAILQ_HEAD(Struct_Objlist, Struct_Objlist_Entry) Objlist;
 
@@ -158,6 +166,8 @@ const int s = sizeof(struct dynlib);
 	5.05 = 0x100
 	1.00 = 0xE0
 */
+
+#if defined(MIRA_CHECKS)
 static_assert(offsetof(struct dynlib, objs) == 0x0, "invalid slh_first");
 static_assert(offsetof(struct dynlib, self) == 0x8, "invalid self");
 static_assert(offsetof(struct dynlib, main_obj) == 0x10, "invalid main_obj");
@@ -220,6 +230,8 @@ static_assert(offsetof(struct dynlib, bind_lock) == 0x60, "1.xx bind_lock invali
 static_assert(offsetof(struct dynlib, procparam_seg_addr) == 0xB8, "1.xx procparam_seg_addr invalid offset");
 static_assert(offsetof(struct dynlib, unkD4) == 0xD4, "1.xx unkD4 invalid offset");
 #endif
+
+#endif // MIRA_CHECKS
 
 #endif // _KERNEL
 
