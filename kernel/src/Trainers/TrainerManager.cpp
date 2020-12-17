@@ -164,11 +164,14 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
 
         // Get the original entry point
         Elf64_Auxargs* s_AuxArgs = static_cast<Elf64_Auxargs*>(imgp->auxargs);
+        WriteLog(LL_Debug, "auxArgs: %p.", s_AuxArgs);
         if (s_AuxArgs == nullptr)
         {
             WriteLog(LL_Error, "could not get auxargs.");
             break;
         }
+
+        s_AuxArgs->entry = 0x4242424242424242;
 
         // Update our driver
         s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
