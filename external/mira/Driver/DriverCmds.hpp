@@ -68,5 +68,5 @@ enum MiraIoctlCmds
 #define MIRA_WRITE_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_WriteProcessMemory), sizeof(MiraWriteProcessMemory))
 
 // Configuration
-#define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::GetConfig), 0)
-#define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::SetConfig), sizeof(MiraConfig))
+#define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetConfig), 0)
+#define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SetConfig), sizeof(MiraConfig))

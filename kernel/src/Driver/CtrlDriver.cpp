@@ -2,6 +2,7 @@
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
 #include "CtrlDriver.hpp"
+#include <mira/Driver/DriverCmds.hpp>
 #include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
 #include <Utils/Kdlsym.hpp>

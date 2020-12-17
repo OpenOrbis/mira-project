@@ -1,7 +1,7 @@
 #pragma once
 //#include <Utils/Types.hpp>
 #include <sys/types.h>
-//#include <Boot/Config.hpp>
+#include <Boot/Config.hpp>
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,7 +12,7 @@ extern "C" {
 #endif
 
 #if MIRA_PLATFORM==ONI_UNKNOWN_PLATFORM
-#include "Kdlsym/Default.hpp"
+#error "No Platform Set"
 #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_176
 #include "Kdlsym/Orbis176.hpp"
 #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_405
