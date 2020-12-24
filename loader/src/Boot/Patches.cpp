@@ -38,6 +38,7 @@ void Patches::install_prePatches()
 			break;
 		case MIRA_PLATFORM_ORBIS_BSD_672:
 			install_prerunPatches_672();
+			break;
 		case MIRA_PLATFORM_ORBIS_BSD_702:
 			install_prerunPatches_702();
 			break;
