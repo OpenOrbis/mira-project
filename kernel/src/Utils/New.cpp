@@ -61,6 +61,11 @@ void operator delete(void* p_Pointer) noexcept
 	free(p_Pointer, M_TEMP);
 }
 
+void operator delete(void* p_Pointer, unsigned long int p_Size) noexcept
+{
+	::operator delete(p_Pointer);
+}
+
 void operator delete[](void* p_Pointer) noexcept
 {
 	::operator delete(p_Pointer);

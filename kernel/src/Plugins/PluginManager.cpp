@@ -11,6 +11,7 @@
 #include <Plugins/FakePkg/FakePkgManager.hpp>
 #include <Plugins/Substitute/Substitute.hpp>
 #include <Plugins/BrowserActivator/BrowserActivator.hpp>
+#include <Plugins/DebugSettings/DebugSettings.hpp>
 #include <Plugins/MorpheusEnabler/MorpheusEnabler.hpp>
 #include <Plugins/RemotePlayEnabler/RemotePlayEnabler.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
@@ -36,6 +37,7 @@ PluginManager::PluginManager() :
     m_EmuRegistry(nullptr),
     m_Substitute(nullptr),
     m_BrowserActivator(nullptr),
+    m_DebugSettingsActivator(nullptr),
     m_MorpheusEnabler(nullptr),
     m_RemotePlayEnabler(nullptr),
     m_SyscallGuard(nullptr),
@@ -134,6 +136,15 @@ bool PluginManager::OnLoad()
             break;
         }
 
+        // Initialize DebugSettingsActivator
+        m_DebugSettingsActivator = new Mira::Plugins::DebugSettingsActivator();
+        if (m_DebugSettingsActivator == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate debug settings activator.");
+            s_Success = false;
+            break;
+        }
+
         // Initialize MorpheusEnabler
         m_MorpheusEnabler = new Mira::Plugins::MorpheusEnabler();
         if (m_MorpheusEnabler == nullptr)
@@ -203,6 +214,12 @@ bool PluginManager::OnLoad()
     {
         if (!m_BrowserActivator->OnLoad())
             WriteLog(LL_Error, "could not load browser activator.");
+    }
+
+    if (m_DebugSettingsActivator)
+    {
+        if (!m_DebugSettingsActivator->OnLoad())
+            WriteLog(LL_Error, "could not load debug settings activator.");
     }
 
     if (m_MorpheusEnabler)

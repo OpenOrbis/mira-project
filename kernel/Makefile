@@ -68,7 +68,7 @@ LIBS	:=
 C_DEFS	:= -D_KERNEL=1 -D_DEBUG -D_STANDALONE -D"MIRA_PLATFORM=${MIRA_PLATFORM}" -DMIRA_UNSUPPORTED_PLATFORMS -D__LP64__ -D_M_X64 -D__amd64__ -D__BSD_VISIBLE
 
 # C++ Flags, -02 Optimizations break shit badly
-CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpic -m64 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas
+CFLAGS	:= $(I_DIRS) $(C_DEFS) -fpic -m64 -O0 -fno-builtin -nodefaultlibs -nostdlib -nostdinc -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas -mno-red-zone
 
 # Assembly flags
 SFLAGS	:= -m64 -nodefaultlibs -nostdlib
