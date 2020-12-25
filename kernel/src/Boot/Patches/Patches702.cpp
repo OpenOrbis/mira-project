@@ -125,13 +125,12 @@ void Mira::Boot::Patches::install_prerunPatches_702()
 	kmem[0] = 0xEB;
 
 	// second ptrace patch
-	/*kmem = (uint8_t *)&gKernelBase[0x00044DAF];
+	kmem = (uint8_t *)&gKernelBase[0x00044DAF];
 	kmem[0] = 0xE9;
-	kmem[1] = 0xE2;
+	kmem[1] = 0x7C;
 	kmem[2] = 0x02;
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
-  */
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0008A8EC];
