@@ -34,6 +34,8 @@ extern "C" {
 #include "Kdlsym/Orbis650.hpp"
 #elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_672
 #include "Kdlsym/Orbis672.hpp"
+#elif MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_702
+#include "Kdlsym/Orbis702.hpp"
 #endif
 
 // Kernel base address, this must be filled out on-startup (normally done in oni_initializeKernel)
