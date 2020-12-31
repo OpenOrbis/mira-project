@@ -96,6 +96,8 @@ namespace Mira
             // Handle event for process execution end
             virtual bool OnProcessExecEnd(struct proc* p_Process) override;
 
+            bool LoadTrainers(struct proc* p_TargetProcess);
+
         protected:
             // Get HDD Trainers Folder (ex: /user/mira/trainers )
             bool GetHddTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength);
@@ -126,6 +128,8 @@ namespace Mira
 
             // Checks if a directory exists
             bool DirectoryExists(const char* p_Path);
+
+            static uint8_t* InjectTrainerLoader(struct proc* p_TargetProcess);
 
         private:
             static void OnSomethingOrAnother();

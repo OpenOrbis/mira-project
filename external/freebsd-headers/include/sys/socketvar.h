@@ -147,7 +147,7 @@ struct socket {
 #endif
 
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
-    char unk0x3F8[0x60];
+    char unk0x418[0x60];
 #endif
 };
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600

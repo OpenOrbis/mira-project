@@ -22,6 +22,11 @@ extern "C"
 
 using namespace Mira::Trainers;
 
+extern uint8_t* _trainer_loader_start;
+extern uint8_t* _trainer_loader_end;
+
+uint32_t g_TrainerLoaderSize = 0;
+
 const char* TrainerManager::c_ShmPrefix = "_shm_";
 TrainerManager::sv_fixup_t TrainerManager::g_sv_fixup = nullptr;
 
@@ -36,6 +41,9 @@ TrainerManager::TrainerManager()
 
     // Overwrite our sv_fixup
     sv->sv_fixup = (int(*)(register_t **, struct image_params *))OnSvFixup;
+
+    // We need to calculate the elf size on the fly, otherwise it's 0 for some odd reason
+	g_TrainerLoaderSize = (uint64_t)&_trainer_loader_end - (uint64_t)&_trainer_loader_start;
 }
 
 TrainerManager::~TrainerManager()
@@ -171,7 +179,11 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
             break;
         }
 
-        s_AuxArgs->entry = 0x4242424242424242;
+        auto s_TrainerLoaderEntry = InjectTrainerLoader(s_Process);
+
+        WriteLog(LL_Debug, "TrainerLoader EntryPoint: (%p).", s_TrainerLoaderEntry);
+
+        s_AuxArgs->entry = reinterpret_cast<Elf64_Size>(s_TrainerLoaderEntry);
 
         // Update our driver
         s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
@@ -185,13 +197,13 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
         }
         
         // Check if the file exists
-        auto s_ExamplePath = "/mnt/usb0/mira/trainers/test.prx";
+        /*auto s_ExamplePath = "/mnt/usb0/mira/trainers/test.prx";
         if (FileExists(s_ExamplePath))
         {
             WriteLog(LL_Debug, "injecting %s.", s_ExamplePath);
             if (!ThreadInjection(s_ExamplePath, s_Process, imgp))
                 WriteLog(LL_Error, "could not inject (%s).", s_ExamplePath);
-        }
+        }*/
 
     } while (false);
 
@@ -349,6 +361,50 @@ void PrintDirectory(const char* p_Path, bool p_Recursive, struct thread* p_Threa
     kclose_t(s_DirectoryHandle, p_Thread);
 }
 
+uint8_t* TrainerManager::InjectTrainerLoader(struct proc* p_TargetProcess)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+
+    // Validate target process
+    if (p_TargetProcess == nullptr)
+        return nullptr;
+    
+    // Get the main thread of the target process
+    auto s_MainThread = p_TargetProcess->p_singlethread ? p_TargetProcess->p_singlethread : p_TargetProcess->p_threads.tqh_first;
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get process (%s) (%d) main thread.", p_TargetProcess->p_comm, p_TargetProcess->p_pid);
+        return nullptr;
+    }
+
+    // Allocate new memory inside of our target process
+    auto s_Address = kmmap_t(nullptr, g_TrainerLoaderSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0, s_MainThread);
+    if (s_Address == nullptr || s_Address == MAP_FAILED)
+    {
+        WriteLog(LL_Error, "could not allocate new target process memory of size (%d).", g_TrainerLoaderSize);
+        return nullptr;
+    }
+
+    WriteLog(LL_Debug, "Allocated Address: (%p).", s_Address);
+
+    // Write out the trainer loader into the process address space
+    auto s_Result = copyout(&_trainer_loader_start, s_Address, g_TrainerLoaderSize);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not write trainer loader data to process (%d).", s_Result);
+        return nullptr;
+    }
+    
+    // Set the protection to RWX (does this require a patch)
+    /*s_Result = kmprotect_t(s_Address, g_TrainerLoaderSize, PROT_READ | PROT_EXEC, s_MainThread);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not set RWX protection on trainer loader (%d).", s_Result);
+        return nullptr;
+    }*/
+
+    return reinterpret_cast<uint8_t*>(s_Address);
+}
 
 // "/mnt/usb0/mira/trainers/test.prx"
 bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_TargetProc, struct image_params* p_Params)
@@ -502,6 +558,138 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     return s_Success;
 }
 
+void ParseDirectory(const char* p_Path)
+{
+    // Debug output
+    WriteLog(LL_Debug, "ParsingDirectory: (%s).", p_Path);
+
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+
+    auto s_MiraThread = Mira::Framework::GetFramework()->GetMainThread();
+
+    auto s_DirectoryHandle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_MiraThread);
+    if (s_DirectoryHandle < 0)
+    {
+		WriteLog(LL_Error, "could not open directory (%s) (%d).", p_Path, s_DirectoryHandle);
+        return;
+    }
+
+    uint64_t s_DentCount = 0;
+
+    // Switch this to use stack
+    const uint32_t c_BufferSize = 0x1000;
+    char* s_Buffer = new char[c_BufferSize];
+    if (s_Buffer == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate buffer, path: (%s).", p_Path);
+        kclose_t(s_DirectoryHandle, s_MiraThread);
+        return;
+    }
+    memset(s_Buffer, 0, c_BufferSize);
+
+    int32_t s_ReadCount = 0;
+    for (;;)
+    {
+        memset(s_Buffer, 0, c_BufferSize);
+        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, c_BufferSize, s_MiraThread);
+        if (s_ReadCount <= 0)
+            break;
+        
+        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
+        {
+            // Get the new directory entry
+            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
+
+            // Increase the dent count
+            s_DentCount++;
+
+            // Allocate a new recursive directory path name
+            char* s_FullPath = new char[_MAX_PATH];
+
+            // Validate our allocation
+            if (s_FullPath == nullptr)
+            {
+                WriteLog(LL_Error, "could not allocate full path.");
+                l_Pos += l_Dent->d_reclen;
+                continue;
+            }
+
+            // Zero out the buffer and build the string
+            memset(s_FullPath, 0, _MAX_PATH);
+            snprintf(s_FullPath, _MAX_PATH, "%s/%s", p_Path, l_Dent->d_name);
+
+            
+
+            // Based on the type either recurse or spit out
+            switch (l_Dent->d_type)
+            {
+                case DT_DIR:
+                {
+                    // TODO: Check via TitleId
+                    // TODO: Check via ProcessName
+                    WriteLog(LL_Debug, "DIRECTORY: (%s).", s_FullPath);
+
+                    // Call the recursive function
+                    ParseDirectory(s_FullPath);
+                    break;
+                }
+                case DT_REG:
+                    WriteLog(LL_Debug, "FILE: (%s).", s_FullPath);
+                break;
+            }
+
+            // When completed free the memory we allocated
+            if (s_FullPath)
+            {
+                memset(s_FullPath, 0, _MAX_PATH);
+                delete [] s_FullPath;
+            }
+            
+            l_Pos += l_Dent->d_reclen;
+        }
+    }
+    kclose_t(s_DirectoryHandle, s_MiraThread);
+
+    // Free the allocated memory
+    if (s_Buffer)
+        delete [] s_Buffer;
+}
+
+bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
+{
+    // Validate target process
+    if (p_TargetProcess == nullptr)
+    {
+        WriteLog(LL_Error, "could not load trainers for invalid process.");
+        return false;
+    }
+
+    // We will need to be doing file io so we need the rooted process
+    auto s_MiraThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MiraThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira main thread.");
+        return false;
+    }
+
+    // We will get the title id and version information
+    // The flash drive/hdd should be formatted as such
+
+    // /mira/trainers/<TitleId>/<Version>/blah.prx
+    // /mira/trainers/<ProcName>/blah.prx
+    if (!DirectoryExists("/mnt/usb0/mira/trainers"))
+    {
+        WriteLog(LL_Error, "could not find usb trainers directory...");
+        return false;
+    }
+
+    // TODO: Determine which root path we are loading from, for now we will hardcode
+    const char* s_TrainersPath = "/mnt/usb0/mira/trainers";
+
+    ParseDirectory(s_TrainersPath);
+
+    return true;
+}
 
 bool TrainerManager::PayloadInjection()
 {

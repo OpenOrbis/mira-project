@@ -18,6 +18,7 @@ void * operator new(unsigned long int p_Size)
 {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wnew-returns-null"
+#pragma clang diagnostic ignored "-Wnonnull"
 	if (p_Size == 0)
 		return nullptr;
 #pragma clang diagnostic pop

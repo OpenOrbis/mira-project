@@ -428,8 +428,13 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint64_t p_ServiceId
 {
     auto sceSblServiceMailbox = (int(*)(uint32_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wframe-address"
 	// self_context is first param of caller. 0x08 = sizeof(struct self_context*)
 	uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
+#pragma clang diagnostic pop
+
 	SelfContext* s_Context = *(SelfContext**)(frame - 0x08);
 
     auto s_RequestMessage = static_cast<MailboxMessage*>(p_Request);

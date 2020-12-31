@@ -78,21 +78,32 @@ SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie -T $(SRC_DIR)/link.ld
 
 # Calculate the listing of all file paths
-ALL_CPP := $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
-ALL_C	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
-ALL_S	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
+ALL_CPP 	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
+ALL_C		:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
+ALL_S		:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
+ALL_CAPS	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.S'))
 
 ALL_SOURCES :=  $(ALL_S) $(ALL_C) $(ALL_CPP)
-TO_BUILD := $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)
+TO_BUILD := $(ALL_S:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CAPS:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_C:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%) $(ALL_CPP:$(SRC_DIR)%=$(OUT_DIR)/$(SRC_DIR)%)
 ALL_OBJ_CPP := $(TO_BUILD:.cpp=.o)
 ALL_OBJ_C := $(ALL_OBJ_CPP:.c=.o)
-ALL_OBJ := $(ALL_OBJ_C:.s=.o)
+ALL_OBJ_CAPS	:= $(ALL_OBJ_C:.s=.o)
+ALL_OBJ := $(ALL_OBJ_CAPS:.S=.o)
 
 # Target elf name
 TARGET = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.elf"
 
 # Target payload name (data + text only, no elf)
 PAYLOAD = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.bin"
+
+#trainer_loader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
+#trainer_loader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
+
+# Embed the Mira elf inside of the loader to prevent sending 2 payloads
+TRAINER_LOADER_BIN_NAME = trainer_loader_Orbis_${MIRA_PLATFORM}.bin # trainer_loader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
+TRAINER_LOADER_BIN_PATH = ../trainer_loader/$(OUT_DIR)/$(TRAINER_LOADER_BIN_NAME)
+
+SFLAGS += -DTRAINER_LOADER_BIN_PATH="\"${TRAINER_LOADER_BIN_PATH}\""
 
 .PHONY: all clean
 
@@ -142,6 +153,10 @@ endif
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."
 	@$(CC) $(SFLAGS) -c -o $@ $<
+
+$(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.S
+	@echo "Assembling $< ..."
+	@$(CC) $(SFLAGS) -c -o $@ $< 
 
 clean:
 	@echo "Cleaning project..."

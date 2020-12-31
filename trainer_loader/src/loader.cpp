@@ -1,14 +1,14 @@
 #include "_syscalls.hpp"
 #include <mira/Driver/DriverCmds.hpp>
 
-struct LoaderGlobals
-{
-    bool EntryBP;
-};
+// struct LoaderGlobals
+// {
+//     bool EntryBP;
+// };
 
-static struct LoaderGlobals g_Globals = {
-    .EntryBP = false
-};
+// static struct LoaderGlobals g_Globals = {
+//     .EntryBP = false
+// };
 
 int64_t stub_open(const char* path, int flags, int mode)
 {
@@ -25,7 +25,7 @@ int64_t stub_close(int fd)
     return (int64_t)syscall1(SYS_CLOSE, (void*)(int64_t)fd);
 }
 
-void main()
+extern "C" void loader_entry()
 {
     // TODO: Open Mira driver
     int s_DriverDescriptor = stub_open("/dev/mira", 0, 0);
@@ -48,7 +48,7 @@ void main()
         return;
 
     // TODO: Jump to original start point OR wait for debugger
-    if (g_Globals.EntryBP)
+    if (s_EntryPoint)
     {
         for (;;)
             __asm__("nop");

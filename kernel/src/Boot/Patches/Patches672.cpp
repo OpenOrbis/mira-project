@@ -158,13 +158,16 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[5] = 0x90;
 
 	// patch mprotect to allow RWX (mprotect) mapping 6.72
-	kmem = (uint8_t *)&gKernelBase[0x00451DB8];
+	/*kmem = (uint8_t *)&gKernelBase[0x00451DB8];
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem[5] = 0x90;*/
+	kmem = (uint8_t*)&gKernelBase[0x451db8];
+	kmem[0] = 0xEB;
+	kmem[1] = 0x04;
 
 	// flatz disable pfs signature check
 	kmem = (uint8_t *)&gKernelBase[0x006A8EB0];

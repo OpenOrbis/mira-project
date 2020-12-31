@@ -18,7 +18,8 @@
             ],
             "options": {
                 "cwd": "${workspaceFolder}/kernel"
-            }
+            },
+            "dependsOn": [ "Build trainer_loader" ]
         },
         {
             "label": "Build MiraLoader",

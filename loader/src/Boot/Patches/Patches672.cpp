@@ -42,13 +42,13 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x00;
 
 	// patch sys_mprotect
-	kmem = (uint8_t*)&gKernelBase[0x00451DB8]; // jnz     loc_FFFFFFFF82652426; nop it out
+	/*kmem = (uint8_t*)&gKernelBase[0x00451DB8]; // jnz     loc_FFFFFFFF82652426; nop it out
 	kmem[0] = 0x90;
 	kmem[1] = 0x90;
 	kmem[2] = 0x90;
 	kmem[3] = 0x90;
 	kmem[4] = 0x90;
-	kmem[5] = 0x90;
+	kmem[5] = 0x90;*/
 
 	// Enable rwx mapping in kmem_alloc
 	kmem = (uint8_t *)&gKernelBase[0x002507F5];
