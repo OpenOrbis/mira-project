@@ -18,6 +18,11 @@ extern "C"
     #include <sys/sysent.h>
     #include <sys/imgact.h>
     #include <sys/imgact_elf.h>
+
+    #include <vm/pmap.h>
+    #include <machine/pmap.h>      
+    #include <vm/vm_map.h>
+    #include <vm/vm.h>
 };
 
 using namespace Mira::Trainers;
@@ -44,6 +49,7 @@ TrainerManager::TrainerManager()
 
     // We need to calculate the elf size on the fly, otherwise it's 0 for some odd reason
 	g_TrainerLoaderSize = (uint64_t)&_trainer_loader_end - (uint64_t)&_trainer_loader_start;
+    WriteLog(LL_Info, "g_TrainerLoaderSize: (%x).", g_TrainerLoaderSize);
 }
 
 TrainerManager::~TrainerManager()
@@ -82,10 +88,7 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
 
         auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
         if (s_Driver != nullptr)
-        {
-            WriteLog(LL_Debug, "Entrypoint for pid (%d) being removed.", p_Process->p_pid);
             s_Driver->RemoveEntryPoint(p_Process->p_pid);
-        }
 
     } while (false);
     
@@ -378,10 +381,10 @@ uint8_t* TrainerManager::InjectTrainerLoader(struct proc* p_TargetProcess)
     }
 
     // Allocate new memory inside of our target process
-    auto s_Address = kmmap_t(nullptr, g_TrainerLoaderSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0, s_MainThread);
-    if (s_Address == nullptr || s_Address == MAP_FAILED)
+    auto s_Address = AllocateProcessMemory(p_TargetProcess, g_TrainerLoaderSize);
+    if (s_Address == nullptr)
     {
-        WriteLog(LL_Error, "could not allocate new target process memory of size (%d).", g_TrainerLoaderSize);
+        WriteLog(LL_Error, "could not allocate process memory (%x).", g_TrainerLoaderSize);
         return nullptr;
     }
 
@@ -394,14 +397,6 @@ uint8_t* TrainerManager::InjectTrainerLoader(struct proc* p_TargetProcess)
         WriteLog(LL_Error, "could not write trainer loader data to process (%d).", s_Result);
         return nullptr;
     }
-    
-    // Set the protection to RWX (does this require a patch)
-    /*s_Result = kmprotect_t(s_Address, g_TrainerLoaderSize, PROT_READ | PROT_EXEC, s_MainThread);
-    if (s_Result != 0)
-    {
-        WriteLog(LL_Error, "could not set RWX protection on trainer loader (%d).", s_Result);
-        return nullptr;
-    }*/
 
     return reinterpret_cast<uint8_t*>(s_Address);
 }
@@ -741,4 +736,87 @@ bool TrainerManager::DirectoryExists(const char* p_Path)
     }
 
     return S_ISDIR(s_Stat.st_mode);
+}
+
+void TrainerManager::_vm_map_lock(vm_map_t map)
+{
+    auto _sx_xlock = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+
+    if (map->system_map)
+        _mtx_lock_flags(&map->system_mtx, 0);
+    else
+        (void)_sx_xlock(&map->lock, 0);
+    
+    map->timestamp++;    
+}
+
+uint8_t* TrainerManager::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size)
+{
+    //auto vm_map_lock = (void(*)(vm_map_t map))kdlsym(vm_map_lock);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+    auto _vm_map_findspace = (int(*)(vm_map_t map, vm_offset_t start, vm_size_t length, vm_offset_t *addr))kdlsym(_vm_map_findspace);
+    auto _vm_map_insert = (int(*)(vm_map_t map, vm_object_t object, vm_ooffset_t offset,vm_offset_t start, vm_offset_t end, vm_prot_t prot, vm_prot_t max, int cow))kdlsym(_vm_map_insert);
+    auto _vm_map_unlock = (void(*)(vm_map_t map))kdlsym(_vm_map_unlock);
+
+    vm_offset_t s_Address = 0;
+
+    if (p_Process == nullptr)
+        return nullptr;
+    
+    _mtx_lock_flags(&p_Process->p_mtx, 0);
+
+    do
+    {
+        // Get the vmspace
+        auto s_VmSpace = p_Process->p_vmspace;
+        if (s_VmSpace == nullptr)
+        {
+            WriteLog(LL_Info, "invalid vmspace.");
+            break;
+        }
+
+        // Get the vmmap
+        auto s_VmMap = &s_VmSpace->vm_map;
+
+        // Lock the vmmap
+        _vm_map_lock(s_VmMap);
+
+        do
+        {
+            // Find some free space to allocate memory
+            auto s_Result = _vm_map_findspace(s_VmMap, NULL, p_Size, &s_Address);
+            if (s_Result != 0)
+            {
+                WriteLog(LL_Error, "vm_map_findspace returned (%d).", s_Result);
+                break;
+            }
+
+            // Validate the address
+            if (s_Address == 0)
+            {
+                WriteLog(LL_Error, "allocated address is invalid.");
+                break;
+            }
+
+            // Insert the new stuff map
+            s_Result = _vm_map_insert(s_VmMap, nullptr, NULL, s_Address, s_Address + p_Size, VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE, VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE, 0);
+            if (s_Result != 0)
+            {
+                WriteLog(LL_Error, "vm_map_insert returned (%d).", s_Result);
+                break;
+            }
+
+        } while (false);
+
+        _vm_map_unlock(s_VmMap);
+
+
+    } while (false);
+    
+
+    _mtx_unlock_flags(&p_Process->p_mtx, 0);
+
+    return reinterpret_cast<uint8_t*>(s_Address);
 }

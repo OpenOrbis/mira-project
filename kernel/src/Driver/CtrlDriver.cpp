@@ -988,6 +988,8 @@ void CtrlDriver::RemoveEntryPoint(int32_t p_ProcessId)
                 if (s_CurrentInfo->Next != nullptr)
                     s_CurrentInfo->Next->Previous = s_CurrentInfo->Previous;
                 
+                WriteLog(LL_Debug, "Entrypoint for pid (%d) being removed.", p_ProcessId);
+
                 // Delete the current entry
                 delete s_CurrentInfo;
                 break;

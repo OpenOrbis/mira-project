@@ -131,6 +131,11 @@ namespace Mira
 
             static uint8_t* InjectTrainerLoader(struct proc* p_TargetProcess);
 
+            static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size);
+
+            // This gets inlined in some firmwares, so we copy pasta'd it here
+            static void _vm_map_lock(vm_map_t map);
+
         private:
             static void OnSomethingOrAnother();
 
