@@ -43,6 +43,7 @@ namespace Mira
             Mira::Utils::IModule* m_RemotePlayEnabler;
             Mira::Utils::IModule* m_SyscallGuard;
             Mira::Utils::IModule* m_TTYRedirector;
+            Mira::Utils::IModule* m_TargetID;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }
@@ -53,6 +54,7 @@ namespace Mira
             Mira::Utils::IModule* GetMorpheusEnabler() { return m_MorpheusEnabler; }
             Mira::Utils::IModule* GetRemotePlayEnabler() { return m_RemotePlayEnabler; }
             Mira::Utils::IModule* GetSyscallGuard() { return m_SyscallGuard; }
+            Mira::Utils::IModule* GetTargetId() { return m_TargetID; }
         };
     }
 }
