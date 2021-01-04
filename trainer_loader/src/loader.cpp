@@ -29,11 +29,11 @@ extern "C" void loader_entry()
 {
     // Open Mira driver
     int s_DriverDescriptor = stub_open("/dev/mira", 0, 0);
-    if (s_DriverDescriptor != 0)
+    if (s_DriverDescriptor <= 0)
         return;
 
     // Request for original start point
-    void* s_EntryPoint = NULL;
+    void* s_EntryPoint = (void*)0x0000000041414141;
     int s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
     if (s_Ret != 0)
         return;
@@ -43,9 +43,9 @@ extern "C" void loader_entry()
         return;
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
-    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
+    /*s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
     if (s_Ret != 0)
-        return;
+        return;*/
 
     ((void(*)())s_EntryPoint)();
     
