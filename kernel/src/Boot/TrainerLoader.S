@@ -11,5 +11,5 @@ _padding:
 	nop
 
 _trainer_loader_start:
-.file TRAINER_LOADER_BIN_PATH
+.incbin TRAINER_LOADER_BIN_PATH
 _trainer_loader_end:

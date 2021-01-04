@@ -201,17 +201,27 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 }
                 case MIRA_TRAINERS_ORIG_EP:
                 {
+                    WriteLog(LL_Debug, "Got Trainer Orig EP request");
                     auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
                     if (s_Driver == nullptr)
+                    {
+                        WriteLog(LL_Error, "cannot get driver instance.");
                         return ENOMEM;
+                    }
                     
                     auto s_Proc = p_Thread->td_proc;
                     if (s_Proc == nullptr)
+                    {
+                        WriteLog(LL_Error, "could not get thread (%d) proc.", p_Thread->td_tid);
                         return EPROCUNAVAIL;
+                    }
                     
                     auto s_EntryPoint = s_Driver->GetEntryPoint(s_Proc->p_pid);
                     if (s_EntryPoint == nullptr)
+                    {
+                        WriteLog(LL_Error, "entry point not found for proc (%d).", s_Proc->p_pid);
                         return ESRCH;
+                    }
                     
                     WriteLog(LL_Debug, "Found EntryPoint (%p).", s_EntryPoint);
 

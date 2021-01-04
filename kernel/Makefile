@@ -100,10 +100,11 @@ PAYLOAD = "$(PROJ_NAME)_Orbis_${MIRA_PLATFORM}.bin"
 #trainer_loader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
 
 # Embed the Mira elf inside of the loader to prevent sending 2 payloads
-TRAINER_LOADER_BIN_NAME = trainer_loader_Orbis_${MIRA_PLATFORM}.bin # trainer_loader_Orbis_MIRA_PLATFORM_ORBIS_BSD_672.bin
-TRAINER_LOADER_BIN_PATH = ../trainer_loader/$(OUT_DIR)/$(TRAINER_LOADER_BIN_NAME)
+TRAINER_LOADER_BIN_NAME = trainer_loader_Orbis_${MIRA_PLATFORM}.bin
+TRAINER_LOADER_BIN_PATH = $(abspath ${CURDIR}/../trainer_loader/$(OUT_DIR)/trainer_loader_Orbis_${MIRA_PLATFORM}.bin)
+#TRAINER_LOADER_BIN_PATH = \"../trainer_loader/$(OUT_DIR)/$(TRAINER_LOADER_BIN_NAME)\"
 
-SFLAGS += -DTRAINER_LOADER_BIN_PATH="\"${TRAINER_LOADER_BIN_PATH}\""
+SFLAGS += -DTRAINER_LOADER_BIN_PATH=\"${TRAINER_LOADER_BIN_PATH}\"
 
 .PHONY: all clean
 

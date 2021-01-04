@@ -116,10 +116,29 @@ struct vm_map_entry {
 	vm_pindex_t lastr;		/* last read */									// 0x68
 	struct ucred *cred;		/* tmp storage for creator ref */				// 0x70
 
-#ifdef MIRA_PLATFORM
-	uint8_t unk78[0x15];													// 0x78
-	char name[0x20];														// 0x8D
-	uint8_t unkAD[0x13];													// 0xAD
+#if MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_200
+    char unk78[0x1]; //budget related?
+    char name[0x20]; //0x79
+    char unk99[0x7]; //0x8 alignment?
+#elif MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_250
+    char unk78[0x1]; //budget related?
+    char unk79[0xF];
+    char name[0x20]; //0x88
+#elif MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_350
+    char unk78[0x1]; //budget related?
+    char unk79[0xF];
+    char name[0x20]; //0x88
+    char unkA8[0x8];
+#elif MIRA_PLATFORM < MIRA_PLATFORM_ORBIS_BSD_450
+    char unk78[0x1]; //budget related?
+    char unk79[0xF];
+    char name[0x20]; //0x88
+    char unkA8[0x10];
+#else
+    char unk78[0x1]; //budget related?
+    char unk79[0x14];
+    char name[0x20]; //0x8D
+    char unkAD[0x13];
 #endif
 }; // 0xC0
 
@@ -195,7 +214,29 @@ struct vm_map {
 #define	max_offset	header.end	/* (c) */
 	int busy;
 
-	char unk130[0x48];
+int vmid;//set by gbase_gvmsw_open, conditionally vm_map_suspend_gpu_map_entries	// 0x10C / 0x114 / 0x11C / 0x124 / 0x12C
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_170
+	char sce_custom1;																	// 0x114 / 0x120 / 0x128 / 0x130
+	uint64_t sce_custom2;																// 0x118 / 0x128 / 0x130 / 0x138
+	uint64_t sce_custom3;																// 0x120 / 0x130 / 0x138 / 0x140
+	uint64_t sce_custom4;																// 0x128 / 0x138 / 0x140 / 0x148
+	uint64_t sce_custom5;																// 0x130 / 0x140 / 0x148 / 0x150
+	uint64_t sce_custom6;																// 0x138 / 0x148 / 0x150 / 0x158
+	uint64_t sce_custom7;																// 0x140 / 0x150 / 0x158 / 0x160
+	uint64_t sce_custom8;																// 0x148 / 0x158 / 0x160 / 0x168
+#endif
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_250
+	uint32_t sdk_version;																// 0x160 / 0x168 / 0x170
+#endif
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
+	uint8_t sce_custom9;																// 0x174
+#endif
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_450 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_500
+	char sce_custom10[0x8];																// 0x178
+#endif
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
+	uint8_t sce_custom11[0x18];																// 0x178
+#endif
 };
 
 /*

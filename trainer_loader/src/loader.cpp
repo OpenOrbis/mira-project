@@ -27,32 +27,25 @@ int64_t stub_close(int fd)
 
 extern "C" void loader_entry()
 {
-    // TODO: Open Mira driver
+    // Open Mira driver
     int s_DriverDescriptor = stub_open("/dev/mira", 0, 0);
-    if (s_DriverDescriptor <= 0)
+    if (s_DriverDescriptor != 0)
         return;
 
     // Request for original start point
     void* s_EntryPoint = NULL;
-
     int s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
     if (s_Ret != 0)
         return;
 
+    // Validate the entry point
     if (s_EntryPoint == NULL)
         return;
 
-    // TODO: Request to load all available
+    // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
     s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
     if (s_Ret != 0)
         return;
-
-    // TODO: Jump to original start point OR wait for debugger
-    if (s_EntryPoint)
-    {
-        for (;;)
-            __asm__("nop");
-    }
 
     ((void(*)())s_EntryPoint)();
     
