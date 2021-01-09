@@ -84,7 +84,7 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
     do
     {
         // Debug print
-        WriteLog(LL_Info, "process is exiting: (%s).", p_Process->p_comm);
+        WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
 
         auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
         if (s_Driver != nullptr)
@@ -99,53 +99,15 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
     return true;
 }
 
-bool TrainerManager::OnProcessExecEnd(struct proc* p_Process)
-{
-    return true;
-
-    /*if (p_Process == nullptr)
-        return false;
-    
-    WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", p_Process->p_pid);
-
-    //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
-	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
-
-    // Validate process
-    if (p_Process == nullptr)
-        return false;
-    
-    // Make sure that we have the eboot.bin
-    if (strncmp("eboot.bin", p_Process->p_comm, sizeof("eboot.bin")) != 0)
-    {
-        WriteLog(LL_Error, "skipping non eboot process (%s).", p_Process->p_comm);
-        return false;
-    }
-    
-    // Check if the file exists
-    if (FileExists("/mnt/usb0/mira/trainers/test.prx"))
-    {
-        WriteLog(LL_Debug, "injecting /mira/usb0/mira/trainers/test.prx");
-        return ThreadInjection("/mnt/usb0/mira/trainers/test.prx", p_Process);
-    }
-
-    return true;*/
-}
-
 int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp)
 {
     WriteLog(LL_Debug, "OnSvFixup called.");
-    //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
 	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
     if (g_sv_fixup == nullptr)
     {
         WriteLog(LL_Error, "Yo what the hell are you doing?, you need to save sv_fixup before trying to use it >_>.");
-        return -1; //g_sv_fixup(stack_base, imgp);
+        return -1;
     }
 
     // If we don't have any image params bail
@@ -182,20 +144,6 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
             break;
         }
 
-        auto s_TrainerLoaderEntry = InjectTrainerLoader(s_Process);
-        if (s_TrainerLoaderEntry == nullptr || s_TrainerLoaderEntry == (uint8_t*)0x00400000)
-        {
-            WriteLog(LL_Error, "invalid trainer entry point.");
-            break;
-        }
-
-        WriteLog(LL_Debug, "TrainerLoader EntryPoint: (%p).", s_TrainerLoaderEntry);
-
-        s_AuxArgs->entry = reinterpret_cast<Elf64_Size>(s_TrainerLoaderEntry);
-
-        // Update our driver
-        s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
-        
         // Make sure that we have the eboot.bin
         auto s_EbootPath = "/app0/eboot.bin";
         if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
@@ -203,16 +151,23 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
             WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);
             break;
         }
-        
-        // Check if the file exists
-        /*auto s_ExamplePath = "/mnt/usb0/mira/trainers/test.prx";
-        if (FileExists(s_ExamplePath))
-        {
-            WriteLog(LL_Debug, "injecting %s.", s_ExamplePath);
-            if (!ThreadInjection(s_ExamplePath, s_Process, imgp))
-                WriteLog(LL_Error, "could not inject (%s).", s_ExamplePath);
-        }*/
 
+        // Allocate the trainer loader inside of the process
+        auto s_TrainerLoaderEntry = InjectTrainerLoader(s_Process);
+        if (s_TrainerLoaderEntry == nullptr)
+        {
+            WriteLog(LL_Error, "invalid trainer entry point.");
+            break;
+        }
+
+        // Update our driver
+        s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
+
+        WriteLog(LL_Debug, "TrainerLoader EntryPoint: (%p) pid (%d).", s_TrainerLoaderEntry, s_Process->p_pid);
+
+        // Set the new entry point inside of the trainer loader
+        s_AuxArgs->entry = reinterpret_cast<Elf64_Size>(s_TrainerLoaderEntry);
+        
     } while (false);
 
     // Call the original
@@ -682,7 +637,7 @@ bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
 
     // /mira/trainers/<TitleId>/<Version>/blah.prx
     // /mira/trainers/<ProcName>/blah.prx
-    if (!DirectoryExists("/mnt/usb0/mira/trainers"))
+    /*if (!DirectoryExists("/mnt/usb0/mira/trainers"))
     {
         WriteLog(LL_Error, "could not find usb trainers directory...");
         return false;
@@ -691,7 +646,7 @@ bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
     // TODO: Determine which root path we are loading from, for now we will hardcode
     const char* s_TrainersPath = "/mnt/usb0/mira/trainers";
 
-    ParseDirectory(s_TrainersPath);
+    ParseDirectory(s_TrainersPath);*/
 
     return true;
 }

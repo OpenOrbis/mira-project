@@ -25,11 +25,16 @@ namespace Mira
         class CtrlDriver
         {
         private:
+            enum 
+            {
+                MaxTrainerProcInfo = 10
+            };
+
             struct cdevsw m_DeviceSw;
             struct cdev* m_Device;
 
             struct mtx m_Mutex;
-            MiraTrainerProcessInfo* m_Head;
+            MiraTrainerProcessInfo m_ProcessInfo[MaxTrainerProcInfo];
 
         public:
             CtrlDriver();

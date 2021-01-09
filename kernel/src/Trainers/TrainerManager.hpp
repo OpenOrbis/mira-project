@@ -93,9 +93,6 @@ namespace Mira
             // Handle event for process exit
             virtual bool OnProcessExit(struct proc* p_Process) override;
 
-            // Handle event for process execution end
-            virtual bool OnProcessExecEnd(struct proc* p_Process) override;
-
             bool LoadTrainers(struct proc* p_TargetProcess);
 
         protected:

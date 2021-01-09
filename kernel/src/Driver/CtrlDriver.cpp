@@ -50,6 +50,9 @@ CtrlDriver::CtrlDriver() :
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     auto make_dev_p = (int(*)(int _flags, struct cdev **_cdev, struct cdevsw *_devsw, struct ucred *_cr, uid_t _uid, gid_t _gid, int _mode, const char *_fmt, ...))kdlsym(make_dev_p);
 
+    // Initialize process info space
+    memset(&m_ProcessInfo, 0, sizeof(m_ProcessInfo));
+    
     // Set up our device driver information
     m_DeviceSw.d_version = D_VERSION;
     m_DeviceSw.d_name = "mira";
@@ -896,82 +899,50 @@ void CtrlDriver::AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint)
         return;
     }
 
+    auto s_UpdatedEntryPoint = false;
+    auto s_AddedEntryPoint = false;
+
     _mtx_lock_flags(&m_Mutex, 0);
 
+    
     do
     {
-        // Handle if there is nothing added
-        if (m_Head == nullptr)
+        // Attempt to update the entry point
+        for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
         {
-            auto s_NewHead = new MiraTrainerProcessInfo;
-            if (s_NewHead == nullptr)
+            auto& l_Info = m_ProcessInfo[l_Index];
+            if (l_Info.ProcessId == p_ProcessId)
             {
-                WriteLog(LL_Error, "could not allocate a new MiraTrainerProcessInfo.");
+                WriteLog(LL_Info, "Updating Entrypoint for pid (%d) to (%p).", p_ProcessId, p_EntryPoint);
+                l_Info.EntryPoint = p_EntryPoint;
+                s_UpdatedEntryPoint = true;
                 break;
             }
-
-            s_NewHead->ProcessId = p_ProcessId;
-            s_NewHead->EntryPoint = p_EntryPoint;
-            s_NewHead->Previous = nullptr;
-            s_NewHead->Next = nullptr;
-
-            m_Head = s_NewHead;
         }
-        else // We already created a head
-        {
-            MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
-            bool s_Updated = false;
-            while (s_CurrentInfo != nullptr)
-            {
-                if (p_ProcessId == s_CurrentInfo->ProcessId)
-                {
-                    s_CurrentInfo->EntryPoint = p_EntryPoint;
-                    s_Updated = true;
-                    break;
-                }
 
-                s_CurrentInfo = s_CurrentInfo->Next;
-            }
-
-            // Add a new entry
-            if (!s_Updated)
-            {
-                auto s_Entry = new MiraTrainerProcessInfo;
-                if (s_Entry == nullptr)
-                {
-                    WriteLog(LL_Error, "could not create a new MiraTrainerProcessInfo.");
-                    break;
-                }
-
-                s_Entry->ProcessId = p_ProcessId;
-                s_Entry->EntryPoint = p_EntryPoint;
-                s_Entry->Next = nullptr;
-                s_Entry->Previous = nullptr;
-
-                // Find the last entry in the chain
-                MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
-                while (s_CurrentInfo != nullptr)
-                {
-                    if (s_CurrentInfo->Next == nullptr)
-                    {
-                        // Add to the tail
-                        s_CurrentInfo->Next = s_Entry;
-
-                        // Set the previous
-                        s_Entry->Previous = s_CurrentInfo;
-
-                        WriteLog(LL_Debug, "Added new MiraTrainerProcessInfo.");
-                        break;
-                    }
-
-                    s_CurrentInfo = s_CurrentInfo->Next;
-                }
-            }
-        }
+        // If we have updated an entry point don't worry about adding it
+        if (s_UpdatedEntryPoint)
+            break;
         
+        // Since there had been no updates, add the new entry point
+        for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
+        {
+            auto& l_Info = m_ProcessInfo[l_Index];
+            if (l_Info.ProcessId <= 0)
+            {
+                WriteLog(LL_Info, "Adding Entrypoint for pid (%d) as (%p).", p_ProcessId, p_EntryPoint);
+                l_Info.EntryPoint = p_EntryPoint;
+                l_Info.ProcessId = p_ProcessId;
+                s_AddedEntryPoint = true;
+                break;
+            }
+        }
     } while (false);
     
     _mtx_unlock_flags(&m_Mutex, 0);
+
+    if (!s_AddedEntryPoint && !s_UpdatedEntryPoint)
+        WriteLog(LL_Error, "There was an error adding or updating entry point (%p) for pid (%d).", p_EntryPoint, p_ProcessId);
 }
 
 void CtrlDriver::RemoveEntryPoint(int32_t p_ProcessId)
@@ -979,37 +950,30 @@ void CtrlDriver::RemoveEntryPoint(int32_t p_ProcessId)
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
+    auto s_Removed = false;
+
     _mtx_lock_flags(&m_Mutex, 0);
 
     do
     {
-        MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
-        while (s_CurrentInfo != nullptr)
+        for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
         {
-            if (s_CurrentInfo->ProcessId == p_ProcessId)
+            auto& l_Info = m_ProcessInfo[l_Index];
+            if (p_ProcessId == l_Info.ProcessId)
             {
-                WriteLog(LL_Debug, "Removing PID (%d).", p_ProcessId);
-
-                // Set the previous entry to point to our next entry
-                if (s_CurrentInfo->Previous != nullptr)
-                    s_CurrentInfo->Previous->Next = s_CurrentInfo->Next;
-                
-                // Set our next entry to our previous entry
-                if (s_CurrentInfo->Next != nullptr)
-                    s_CurrentInfo->Next->Previous = s_CurrentInfo->Previous;
-                
-                WriteLog(LL_Debug, "Entrypoint for pid (%d) being removed.", p_ProcessId);
-
-                // Delete the current entry
-                delete s_CurrentInfo;
+                WriteLog(LL_Info, "Removing Entrypoint (%p) from (%d).", l_Info.EntryPoint, p_ProcessId);
+                l_Info.ProcessId = -1;
+                l_Info.EntryPoint = nullptr;
+                s_Removed = true;
                 break;
             }
         }
-
     } while (false);
 
     _mtx_unlock_flags(&m_Mutex, 0);
 
+    if (!s_Removed)
+        WriteLog(LL_Error, "could not remove Entrypoint for (%d).", p_ProcessId);
 }
 
 void* CtrlDriver::GetEntryPoint(int32_t p_ProcessId)
@@ -1020,24 +984,19 @@ void* CtrlDriver::GetEntryPoint(int32_t p_ProcessId)
     if (p_ProcessId <= 0)
         return nullptr;
     
-    _mtx_lock_flags(&m_Mutex, 0);
-
     void* s_Found = nullptr;
 
-    do
-    {
-        MiraTrainerProcessInfo* s_CurrentInfo = m_Head;
-        while (s_CurrentInfo != nullptr)
-        {
-            if (s_CurrentInfo->ProcessId == p_ProcessId)
-            {
-                s_Found = s_CurrentInfo->EntryPoint;
-                break;
-            }
+    _mtx_lock_flags(&m_Mutex, 0);
 
-            s_CurrentInfo = s_CurrentInfo->Next;
+    for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
+    {
+        auto& l_Info = m_ProcessInfo[l_Index];
+        if (l_Info.ProcessId == p_ProcessId)
+        {
+            s_Found = l_Info.EntryPoint;
+            break;
         }
-    } while (false);
+    }
     
     _mtx_unlock_flags(&m_Mutex, 0);
 

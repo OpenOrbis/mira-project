@@ -20,19 +20,36 @@ typedef enum class _MiraIoctlCmds : uint32_t
 enum MiraIoctlCmds
 #endif
 {
+    // 0 - 100 = General Use
+    CMD_GENERAL_START = 0,
     CMD_None = 0,
-    CMD_ThreadCredentials,
-    CMD_ProcessList,
-    CMD_ProcessInformation,
-    CMD_MountInSandbox,
-    CMD_CreateTrainerShm,
-    CMD_GetTrainerShm,
-    CMD_LoadTrainers,
-    CMD_ReadProcessMemory,
-    CMD_WriteProcessMemory,
-    CMD_GetConfig,
-    CMD_SetConfig,
-    CMD_GetOriginalEntryPoint,
+    CMD_GENERAL_END = 100,
+    
+    // 101-200 = Trainers
+    CMD_TRAINERS_START = 101,
+    CMD_CreateTrainerShm,           // TODO: Implement
+    CMD_GetTrainerShm,              // TODO: Implement
+    CMD_LoadTrainers,               // TODO: Implement
+    CMD_GetOriginalEntryPoint,      // Gets the original entry point by process id
+    
+    CMD_TRAINERS_END = 200,
+    // 201-300 = Debugger
+    CMD_DEBUGGER_START = 201,
+    CMD_ProcessList,                // Get process list
+    CMD_ProcessInformation,         // Get process information
+    CMD_ReadProcessMemory,          // Read process memory
+    CMD_WriteProcessMemory,         // Write process memory
+    CMD_ThreadCredentials,          // Get/Set thread credentials
+
+    CMD_DEBUGGER_END = 300,
+
+    // 301-400 = Mira Reserved
+    CMD_MIRA_START = 301,
+    CMD_GetConfig,                  // Get mira's kernel configuration
+    CMD_SetConfig,                  // Set mira's kernel configuration
+
+    CMD_MountInSandbox,             // Mount full unescaped sandbox path into the current sandbox
+    CMD_MIRA_END = 400,
     CMD_MAX
 #if defined(__cplusplus)
 } MiraIoctlCmds;
@@ -60,8 +77,8 @@ enum MiraIoctlCmds
 #define MIRA_TRAINERS_GET_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetTrainerShm), sizeof(MiraGetTrainersShm))
 
 // Trainers
-#define MIRA_TRAINERS_LOAD _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_LoadTrainers), 0)
-#define MIRA_TRAINERS_ORIG_EP _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetOriginalEntryPoint), 0)
+#define MIRA_TRAINERS_LOAD _IOC(IOC_VOID, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_LoadTrainers), 0)
+#define MIRA_TRAINERS_ORIG_EP _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetOriginalEntryPoint), sizeof(uint64_t))
 
 // Read/Write process memory
 #define MIRA_READ_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ReadProcessMemory), sizeof(MiraReadProcessMemory))

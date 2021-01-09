@@ -215,8 +215,6 @@ typedef struct _MiraWriteProcessMemory
 typedef struct _MiraTrainerProcessInfo
 {
     // this is 64 bit for alignment
-    int64_t ProcessId;
+    pid_t ProcessId;
     void* EntryPoint;
-    struct _MiraTrainerProcessInfo* Previous;
-    struct _MiraTrainerProcessInfo* Next;
 } MiraTrainerProcessInfo;
