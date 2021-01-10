@@ -91,6 +91,22 @@
             "intelliSenseMode": "clang-x64"
         },
         {
+            "name": "Debugger",
+            "includePath": [
+                "${workspaceFolder}/debugger/src",
+                "${env:OO_PS4_TOOLCHAIN}/include",
+                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1",
+                "${workspaceFolder}/external/mira"
+            ],
+            "defines": [
+                "PS4",
+            ],
+            "compilerPath": "/usr/bin/clang++",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "clang-x64"
+        },
+        {
             "name": "Maneja",
             "includePath": [
                 "${workspaceFolder}/maneja/Source/**",

@@ -143,6 +143,8 @@ namespace Mira
 
             static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size);
 
+            static bool CreateRemoteThread(struct proc* p_Process, void* p_EntryPoint);
+
             void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
             void RemoveEntryPoint(int32_t p_ProcessId);
 

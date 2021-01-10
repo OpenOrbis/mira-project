@@ -33,6 +33,16 @@ int stub_dup2(int from, int to)
     return (int32_t)(int64_t)syscall2(SYS_DUP2, (void*)(int64_t)from, (void*)(int64_t)to);
 }
 
+int64_t stub_loadprx(const char* p_PrxPath, int* p_OutModuleId)
+{
+    return (int64_t)syscall4(594, reinterpret_cast<void*>(const_cast<char*>(p_PrxPath)), 0, p_OutModuleId, 0);
+}
+
+int64_t stub_dlsym(int64_t p_PrxId, const char* p_FunctionName, void* p_DestinationFunctionOffset)
+{
+    return (int64_t)syscall3(591, (void*)p_PrxId, (void*)p_FunctionName, p_DestinationFunctionOffset);
+}
+
 extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 {
     _g_rdi = p_Rdi;
@@ -68,6 +78,11 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         *(uint8_t*)0x1333 = 0x0;
         return;
     }
+
+    // Close access to the driver
+    stub_close(s_DriverDescriptor);
+
+
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
     /*s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
@@ -108,8 +123,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         "pxor mm0, mm0\n"
     );*/
 
-    // Close access to the driver
-    stub_close(s_DriverDescriptor);
+
 
     ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
     

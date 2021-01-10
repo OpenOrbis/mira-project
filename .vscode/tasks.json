@@ -47,6 +47,18 @@
             }
         },
         {
+            "label": "Build debugger",
+            "type": "shell",
+            "command": "make clean;make create;MIRA_CHECKS=$checks make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/debugger"
+            }
+        },
+        {
             "label": "Build Daemon",
             "type": "shell",
             "command": "make clean; make",
