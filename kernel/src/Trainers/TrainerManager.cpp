@@ -47,9 +47,8 @@ TrainerManager::TrainerManager()
     // Overwrite our sv_fixup
     sv->sv_fixup = (int(*)(register_t **, struct image_params *))OnSvFixup;
 
-    // We need to calculate the elf size on the fly, otherwise it's 0 for some odd reason
-	//g_TrainerLoaderSize = (uint64_t)&_trainer_loader_end - (uint64_t)&_trainer_loader_start;
-    //WriteLog(LL_Info, "g_TrainerLoaderSize: (%x).", g_TrainerLoaderSize);
+    // Initialize process info space
+    memset(&m_ProcessInfo, 0, sizeof(m_ProcessInfo));
 }
 
 TrainerManager::~TrainerManager()
@@ -86,9 +85,9 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
         // Debug print
         WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
 
-        auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
-        if (s_Driver != nullptr)
-            s_Driver->RemoveEntryPoint(p_Process->p_pid);
+        auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
+        if (s_TrainerManager != nullptr)
+            s_TrainerManager->RemoveEntryPoint(p_Process->p_pid);
 
     } while (false);
     
@@ -128,10 +127,10 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
 
         WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
 
-        auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
-        if (s_Driver == nullptr)
+        auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
+        if (s_TrainerManager == nullptr)
         {
-            WriteLog(LL_Error, "no device driver found, what?");
+            WriteLog(LL_Error, "no trainer manager found, what?");
             break;
         }
 
@@ -153,7 +152,7 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
         }
 
         // Allocate the trainer loader inside of the process
-        auto s_TrainerLoaderEntry = InjectTrainerLoader(s_Process);
+        auto s_TrainerLoaderEntry = AllocateTrainerLoader(s_Process);
         if (s_TrainerLoaderEntry == nullptr)
         {
             WriteLog(LL_Error, "invalid trainer entry point.");
@@ -161,7 +160,7 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
         }
 
         // Update our driver
-        s_Driver->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
+        s_TrainerManager->AddOrUpdateEntryPoint(s_Process->p_pid, reinterpret_cast<void*>(s_AuxArgs->entry));
 
         WriteLog(LL_Debug, "TrainerLoader EntryPoint: (%p) pid (%d).", s_TrainerLoaderEntry, s_Process->p_pid);
 
@@ -324,7 +323,7 @@ void PrintDirectory(const char* p_Path, bool p_Recursive, struct thread* p_Threa
     kclose_t(s_DirectoryHandle, p_Thread);
 }
 
-uint8_t* TrainerManager::InjectTrainerLoader(struct proc* p_TargetProcess)
+uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
 
@@ -637,7 +636,7 @@ bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
 
     // /mira/trainers/<TitleId>/<Version>/blah.prx
     // /mira/trainers/<ProcName>/blah.prx
-    /*if (!DirectoryExists("/mnt/usb0/mira/trainers"))
+    if (!DirectoryExists("/mnt/usb0/mira/trainers"))
     {
         WriteLog(LL_Error, "could not find usb trainers directory...");
         return false;
@@ -646,7 +645,7 @@ bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
     // TODO: Determine which root path we are loading from, for now we will hardcode
     const char* s_TrainersPath = "/mnt/usb0/mira/trainers";
 
-    ParseDirectory(s_TrainersPath);*/
+    ParseDirectory(s_TrainersPath);
 
     return true;
 }
@@ -767,4 +766,125 @@ uint8_t* TrainerManager::AllocateProcessMemory(struct proc* p_Process, uint32_t 
     _mtx_unlock_flags(&p_Process->p_mtx, 0);
 
     return reinterpret_cast<uint8_t*>(s_Address);
+}
+
+
+void TrainerManager::AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_ProcessId <= 0)
+    {
+        WriteLog(LL_Error, "invalid process id (%d).", p_ProcessId);
+        return;
+    }
+
+    if (p_EntryPoint == nullptr)
+    {
+        WriteLog(LL_Error, "invalid entry point (%p).", p_EntryPoint);
+        return;
+    }
+
+    auto s_UpdatedEntryPoint = false;
+    auto s_AddedEntryPoint = false;
+
+    _mtx_lock_flags(&m_Mutex, 0);
+
+    do
+    {
+        // Attempt to update the entry point
+        for (auto l_Index = 0; l_Index < MaxTrainerProcInfos; ++l_Index)
+        {
+            auto& l_Info = m_ProcessInfo[l_Index];
+            if (l_Info.ProcessId == p_ProcessId)
+            {
+                WriteLog(LL_Info, "Updating Entrypoint for pid (%d) to (%p).", p_ProcessId, p_EntryPoint);
+                l_Info.EntryPoint = p_EntryPoint;
+                s_UpdatedEntryPoint = true;
+                break;
+            }
+        }
+
+        // If we have updated an entry point don't worry about adding it
+        if (s_UpdatedEntryPoint)
+            break;
+        
+        // Since there had been no updates, add the new entry point
+        for (auto l_Index = 0; l_Index < MaxTrainerProcInfos; ++l_Index)
+        {
+            auto& l_Info = m_ProcessInfo[l_Index];
+            if (l_Info.ProcessId <= 0)
+            {
+                WriteLog(LL_Info, "Adding Entrypoint for pid (%d) as (%p).", p_ProcessId, p_EntryPoint);
+                l_Info.EntryPoint = p_EntryPoint;
+                l_Info.ProcessId = p_ProcessId;
+                s_AddedEntryPoint = true;
+                break;
+            }
+        }
+    } while (false);
+    
+    _mtx_unlock_flags(&m_Mutex, 0);
+
+    if (!s_AddedEntryPoint && !s_UpdatedEntryPoint)
+        WriteLog(LL_Error, "There was an error adding or updating entry point (%p) for pid (%d).", p_EntryPoint, p_ProcessId);
+}
+
+void TrainerManager::RemoveEntryPoint(int32_t p_ProcessId)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    auto s_Removed = false;
+
+    _mtx_lock_flags(&m_Mutex, 0);
+
+    do
+    {
+        for (auto l_Index = 0; l_Index < MaxTrainerProcInfos; ++l_Index)
+        {
+            auto& l_Info = m_ProcessInfo[l_Index];
+            if (p_ProcessId == l_Info.ProcessId)
+            {
+                WriteLog(LL_Info, "Removing Entrypoint (%p) from (%d).", l_Info.EntryPoint, p_ProcessId);
+                l_Info.ProcessId = -1;
+                l_Info.EntryPoint = nullptr;
+                s_Removed = true;
+                break;
+            }
+        }
+    } while (false);
+
+    _mtx_unlock_flags(&m_Mutex, 0);
+
+    if (!s_Removed)
+        WriteLog(LL_Error, "could not remove Entrypoint for (%d).", p_ProcessId);
+}
+
+void* TrainerManager::GetEntryPoint(int32_t p_ProcessId)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_ProcessId <= 0)
+        return nullptr;
+    
+    void* s_Found = nullptr;
+
+    _mtx_lock_flags(&m_Mutex, 0);
+
+    for (auto l_Index = 0; l_Index < MaxTrainerProcInfos; ++l_Index)
+    {
+        auto& l_Info = m_ProcessInfo[l_Index];
+        if (l_Info.ProcessId == p_ProcessId)
+        {
+            s_Found = l_Info.EntryPoint;
+            break;
+        }
+    }
+    
+    _mtx_unlock_flags(&m_Mutex, 0);
+
+    return s_Found;
 }

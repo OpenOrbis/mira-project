@@ -50,9 +50,6 @@ CtrlDriver::CtrlDriver() :
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
     auto make_dev_p = (int(*)(int _flags, struct cdev **_cdev, struct cdevsw *_devsw, struct ucred *_cr, uid_t _uid, gid_t _gid, int _mode, const char *_fmt, ...))kdlsym(make_dev_p);
 
-    // Initialize process info space
-    memset(&m_ProcessInfo, 0, sizeof(m_ProcessInfo));
-    
     // Set up our device driver information
     m_DeviceSw.d_version = D_VERSION;
     m_DeviceSw.d_name = "mira";
@@ -205,8 +202,8 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 case MIRA_TRAINERS_ORIG_EP:
                 {
                     WriteLog(LL_Debug, "Got Trainer Orig EP request");
-                    auto s_Driver = Mira::Framework::GetFramework()->GetDriver();
-                    if (s_Driver == nullptr)
+                    auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
+                    if (s_TrainerManager == nullptr)
                     {
                         WriteLog(LL_Error, "cannot get driver instance.");
                         return ENOMEM;
@@ -219,7 +216,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                         return EPROCUNAVAIL;
                     }
                     
-                    auto s_EntryPoint = s_Driver->GetEntryPoint(s_Proc->p_pid);
+                    auto s_EntryPoint = s_TrainerManager->GetEntryPoint(s_Proc->p_pid);
                     if (s_EntryPoint == nullptr)
                     {
                         WriteLog(LL_Error, "entry point not found for proc (%d).", s_Proc->p_pid);
@@ -880,125 +877,4 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     p_Output = s_Credentials;
 
     return true;
-}
-
-void CtrlDriver::AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint)
-{
-    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-
-    if (p_ProcessId <= 0)
-    {
-        WriteLog(LL_Error, "invalid process id (%d).", p_ProcessId);
-        return;
-    }
-
-    if (p_EntryPoint == nullptr)
-    {
-        WriteLog(LL_Error, "invalid entry point (%p).", p_EntryPoint);
-        return;
-    }
-
-    auto s_UpdatedEntryPoint = false;
-    auto s_AddedEntryPoint = false;
-
-    _mtx_lock_flags(&m_Mutex, 0);
-
-    
-    do
-    {
-        // Attempt to update the entry point
-        for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
-        {
-            auto& l_Info = m_ProcessInfo[l_Index];
-            if (l_Info.ProcessId == p_ProcessId)
-            {
-                WriteLog(LL_Info, "Updating Entrypoint for pid (%d) to (%p).", p_ProcessId, p_EntryPoint);
-                l_Info.EntryPoint = p_EntryPoint;
-                s_UpdatedEntryPoint = true;
-                break;
-            }
-        }
-
-        // If we have updated an entry point don't worry about adding it
-        if (s_UpdatedEntryPoint)
-            break;
-        
-        // Since there had been no updates, add the new entry point
-        for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
-        {
-            auto& l_Info = m_ProcessInfo[l_Index];
-            if (l_Info.ProcessId <= 0)
-            {
-                WriteLog(LL_Info, "Adding Entrypoint for pid (%d) as (%p).", p_ProcessId, p_EntryPoint);
-                l_Info.EntryPoint = p_EntryPoint;
-                l_Info.ProcessId = p_ProcessId;
-                s_AddedEntryPoint = true;
-                break;
-            }
-        }
-    } while (false);
-    
-    _mtx_unlock_flags(&m_Mutex, 0);
-
-    if (!s_AddedEntryPoint && !s_UpdatedEntryPoint)
-        WriteLog(LL_Error, "There was an error adding or updating entry point (%p) for pid (%d).", p_EntryPoint, p_ProcessId);
-}
-
-void CtrlDriver::RemoveEntryPoint(int32_t p_ProcessId)
-{
-    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-
-    auto s_Removed = false;
-
-    _mtx_lock_flags(&m_Mutex, 0);
-
-    do
-    {
-        for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
-        {
-            auto& l_Info = m_ProcessInfo[l_Index];
-            if (p_ProcessId == l_Info.ProcessId)
-            {
-                WriteLog(LL_Info, "Removing Entrypoint (%p) from (%d).", l_Info.EntryPoint, p_ProcessId);
-                l_Info.ProcessId = -1;
-                l_Info.EntryPoint = nullptr;
-                s_Removed = true;
-                break;
-            }
-        }
-    } while (false);
-
-    _mtx_unlock_flags(&m_Mutex, 0);
-
-    if (!s_Removed)
-        WriteLog(LL_Error, "could not remove Entrypoint for (%d).", p_ProcessId);
-}
-
-void* CtrlDriver::GetEntryPoint(int32_t p_ProcessId)
-{
-    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-
-    if (p_ProcessId <= 0)
-        return nullptr;
-    
-    void* s_Found = nullptr;
-
-    _mtx_lock_flags(&m_Mutex, 0);
-
-    for (auto l_Index = 0; l_Index < CtrlDriver::MaxTrainerProcInfo; ++l_Index)
-    {
-        auto& l_Info = m_ProcessInfo[l_Index];
-        if (l_Info.ProcessId == p_ProcessId)
-        {
-            s_Found = l_Info.EntryPoint;
-            break;
-        }
-    }
-    
-    _mtx_unlock_flags(&m_Mutex, 0);
-
-    return s_Found;
 }

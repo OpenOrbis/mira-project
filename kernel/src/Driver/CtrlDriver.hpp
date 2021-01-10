@@ -25,24 +25,14 @@ namespace Mira
         class CtrlDriver
         {
         private:
-            enum 
-            {
-                MaxTrainerProcInfo = 10
-            };
-
             struct cdevsw m_DeviceSw;
             struct cdev* m_Device;
 
             struct mtx m_Mutex;
-            MiraTrainerProcessInfo m_ProcessInfo[MaxTrainerProcInfo];
 
         public:
             CtrlDriver();
             ~CtrlDriver();
-
-            void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
-            void RemoveEntryPoint(int32_t p_ProcessId);
-            void* GetEntryPoint(int32_t p_ProcessId);
 
             static int32_t OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_DeviceType, struct thread* p_Thread);
             static int32_t OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_DeviceType, struct thread* p_Thread);

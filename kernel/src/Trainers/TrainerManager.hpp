@@ -49,11 +49,19 @@ namespace Mira
         class TrainerManager : public Utils::IModule
         {
         public:
+            typedef struct _MiraTrainerProcessInfo
+            {
+                // this is 64 bit for alignment
+                pid_t ProcessId;
+                void* EntryPoint;
+            } MiraTrainerProcessInfo;
+
             enum
             {
                 MaxPrxPath = 256,
                 MaxShmIdLength = 10,
-                MaxShms = 16
+                MaxShms = 16,
+                MaxTrainerProcInfos = 10,
             };
 
             typedef struct TrainerShm_t
@@ -70,6 +78,9 @@ namespace Mira
             } TrainerBoot;
 
         private:
+            // These are for processes that need keeping track of their OEP's
+            MiraTrainerProcessInfo m_ProcessInfo[MaxTrainerProcInfos];
+
             // Total amount of proxied shm's
             TrainerShm Shms[MaxShms];
 
@@ -94,6 +105,8 @@ namespace Mira
             virtual bool OnProcessExit(struct proc* p_Process) override;
 
             bool LoadTrainers(struct proc* p_TargetProcess);
+
+            void* GetEntryPoint(int32_t p_ProcessId);
 
         protected:
             // Get HDD Trainers Folder (ex: /user/mira/trainers )
@@ -126,9 +139,12 @@ namespace Mira
             // Checks if a directory exists
             bool DirectoryExists(const char* p_Path);
 
-            static uint8_t* InjectTrainerLoader(struct proc* p_TargetProcess);
+            static uint8_t* AllocateTrainerLoader(struct proc* p_TargetProcess);
 
             static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size);
+
+            void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
+            void RemoveEntryPoint(int32_t p_ProcessId);
 
         private:
             static void OnSomethingOrAnother();

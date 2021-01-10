@@ -211,10 +211,3 @@ typedef struct _MiraWriteProcessMemory
     // Data to write
     uint8_t Data[];
 } MiraWriteProcessMemory;
-
-typedef struct _MiraTrainerProcessInfo
-{
-    // this is 64 bit for alignment
-    pid_t ProcessId;
-    void* EntryPoint;
-} MiraTrainerProcessInfo;

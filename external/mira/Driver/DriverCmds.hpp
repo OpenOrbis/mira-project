@@ -20,36 +20,36 @@ typedef enum class _MiraIoctlCmds : uint32_t
 enum MiraIoctlCmds
 #endif
 {
-    // 0 - 100 = General Use
+    // 0 - 20 = General Use
     CMD_GENERAL_START = 0,
     CMD_None = 0,
-    CMD_GENERAL_END = 100,
+    CMD_GENERAL_END = 20,
     
-    // 101-200 = Trainers
-    CMD_TRAINERS_START = 101,
+    // 21-40 = Trainers
+    CMD_TRAINERS_START = 21,
     CMD_CreateTrainerShm,           // TODO: Implement
     CMD_GetTrainerShm,              // TODO: Implement
     CMD_LoadTrainers,               // TODO: Implement
     CMD_GetOriginalEntryPoint,      // Gets the original entry point by process id
     
-    CMD_TRAINERS_END = 200,
-    // 201-300 = Debugger
-    CMD_DEBUGGER_START = 201,
+    CMD_TRAINERS_END = 40,
+    // 41-60 = Debugger
+    CMD_DEBUGGER_START = 41,
     CMD_ProcessList,                // Get process list
     CMD_ProcessInformation,         // Get process information
     CMD_ReadProcessMemory,          // Read process memory
     CMD_WriteProcessMemory,         // Write process memory
     CMD_ThreadCredentials,          // Get/Set thread credentials
 
-    CMD_DEBUGGER_END = 300,
+    CMD_DEBUGGER_END = 60,
 
-    // 301-400 = Mira Reserved
-    CMD_MIRA_START = 301,
+    // 61-90 = Mira Reserved
+    CMD_MIRA_START = 61,
     CMD_GetConfig,                  // Get mira's kernel configuration
     CMD_SetConfig,                  // Set mira's kernel configuration
 
     CMD_MountInSandbox,             // Mount full unescaped sandbox path into the current sandbox
-    CMD_MIRA_END = 400,
+    CMD_MIRA_END = 90,
     CMD_MAX
 #if defined(__cplusplus)
 } MiraIoctlCmds;
