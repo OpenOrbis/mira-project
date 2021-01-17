@@ -470,60 +470,19 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     return s_Success;
 }
 
-static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)(void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type))
-{
-    auto s_Thread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_Thread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get the main thread.");
-        return;
-    }
-
-    if (p_Callback == nullptr)
-    {
-        WriteLog(LL_Error, "invalid callback.");
-        return;
-    }
-
-    auto s_Handle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_Thread);
-    if (s_Handle < 0)
-    {
-        WriteLog(LL_Error, "could not open directory (%s) (%d).", p_Path, s_Handle);
-        return;
-    }
-
-    // Switch this to use stack
-    const uint32_t c_BufferSize = 0x200;
-    char s_Buffer[c_BufferSize];
-    memset(s_Buffer, 0, c_BufferSize);
-
-    int32_t s_ReadCount = 0;
-    for (;;)
-    {
-        memset(s_Buffer, 0, c_BufferSize);
-        s_ReadCount = kgetdents_t(s_Handle, s_Buffer, c_BufferSize, s_Thread);
-        if (s_ReadCount <= 0)
-            break;
-        
-        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
-        {
-            // Get the new directory entry
-            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
-
-            p_Callback(p_Args, p_Path, l_Dent->d_name, l_Dent->d_type);
-
-            l_Pos += l_Dent->d_reclen;
-        }
-    }
-    kclose_t(s_Handle, s_Thread);
-}
-
-bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
+bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
 {
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
 
     // Validate target process
-    if (p_TargetProcess == nullptr)
+    if (p_CallingThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not load trainers for invalid thread.");
+        return false;
+    }
+
+    auto s_CallingProc = p_CallingThread->td_proc;
+    if (s_CallingProc == nullptr)
     {
         WriteLog(LL_Error, "could not load trainers for invalid process.");
         return false;
@@ -553,181 +512,61 @@ bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
         return false;
     }
 
-    auto s_ProcessTitleId = ((char*)p_TargetProcess) + 0x390;
+    auto s_ProcessTitleId = "CUSA00001"; // ((char*)p_TargetProcess) + 0x390;
 
-    // /mnt/usbN/mira/trainers/CUSA00013
+    // /mnt/usbN/mira/trainers/CUSA00001
     char s_TitleIdPath[c_PathLength];
     snprintf(s_TitleIdPath, sizeof(s_TitleIdPath), "%s/%s", s_BasePath, s_ProcessTitleId);
-
     if (!DirectoryExists(s_TitleIdPath))
     {
         WriteLog(LL_Error, "could not find trainers directory for title id (%s).", s_ProcessTitleId);
         return false;
     }
 
-    IterateDirectory(s_TitleIdPath, p_TargetProcess, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+    // Determine if we need to mount the _stubstitute path into the sandbox
+    if (!DirectoryExists(p_CallingThread, "/_substitute"))
     {
-        auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-        auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-        auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
-        auto strrchr = [](const char* s, int c)
+        WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
+
+        // Mount the host directory in the sandbox
+        char s_MountedSandboxDirectory[260] = { 0 };
+        auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
+        if (s_Result < 0)
         {
-            const char* ret=nullptr;
-            do {
-                if( *s == (char)c )
-                    ret=s;
-            } while(*s++);
-            return ret;
-        };
-
-        if (p_Args == nullptr)
-            return;
-        
-        auto s_TargetProcess = static_cast<struct proc*>(p_Args);
-
-        // Get the fullpath
-        char s_PrxPath[c_PathLength];
-        snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
-
-        // s_PrxPath = /mnt/usbN/mira/trainers/CUSA00013/whatever.prx
-
-        // Check to make sure the file name ends in .prx
-        auto s_Length = strlen(s_PrxPath);
-        if (s_Length < 4)
-            return;
-        
-        // Check if the end file path ends with ".prx"
-        if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0)
-            return;
-
-        // Load the prx
-
-        // Get the target thread
-        auto s_TargetProcMainThread = s_TargetProcess->p_threads.tqh_first;
-        if (s_TargetProcMainThread == nullptr)
-        {
-            WriteLog(LL_Error, "could not get proc main thread (%p) (%s).", s_TargetProcess, s_TargetProcess->p_comm);
-            return;
-        }
-        WriteLog(LL_Info, "got target proc main thread: (%p).", s_TargetProcMainThread);
-
-        // Get path from the file name
-        auto s_TrainerFileName = strrchr(s_PrxPath, '/'); // s_TrainerFileName = /whatever.prx
-        if (s_TrainerFileName == nullptr)
-        {
-            WriteLog(LL_Error, "could not find the filename in (%s).", s_PrxPath);
-            return;
-        }
-        WriteLog(LL_Info, "trainer file name with slash: (%s).", s_TrainerFileName);
-
-        // Calculate the host path length
-        auto s_HostPathLength = (uint64_t)s_TrainerFileName - (uint64_t)s_PrxPath;
-        if (s_HostPathLength == 0 || s_HostPathLength >= 260)
-        {
-            WriteLog(LL_Error, "invalid host path length (%lx).", s_HostPathLength);
-            return;
+            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
+            return false;
         }
 
-        // s_HostMountDirectory = /mnt/usbN/mira/trainers/CUSA00013
-        char s_HostMountDirectory[260] = { 0 };
-        
-        // Copy the string, "/mnt/usbN/mira/trainers/CUSA00013"
-        memcpy(s_HostMountDirectory, s_PrxPath, s_HostPathLength);
-        WriteLog(LL_Info, "host mount directory: (%s).", s_HostMountDirectory);
+        // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+        WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+    }
 
-        // Determine if we need to mount the path into the sandbox
-        if (!DirectoryExists(s_TargetProcMainThread, "/_substitute"))
+    // Get the _mira folder on the usb path
+    char s_MiraModulePath[c_PathLength];
+    snprintf(s_MiraModulePath, sizeof(s_MiraModulePath), "%s/_mira", s_BasePath);
+    if (!DirectoryExists(s_MiraModulePath))
+    {
+        WriteLog(LL_Error, "could not find trainers directory for mira modules (%s).", s_MiraModulePath);
+        return false;
+    }
+
+    // Determine if we need to mount the _mira path into the sandbox
+    if (!DirectoryExists(p_CallingThread, "/_mira"))
+    {
+        WriteLog(LL_Info, "mira directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
+
+        // Mount the host directory in the sandbox
+        char s_MountedSandboxDirectory[260] = { 0 };
+        auto s_Result = OrbisOS::Utilities::MountInSandbox(s_MiraModulePath, "/_mira", s_MountedSandboxDirectory, p_CallingThread);
+        if (s_Result < 0)
         {
-            WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_TargetProcess->p_pid, s_TargetProcess->p_comm);
-
-            // Mount the host directory in the sandbox
-            char s_MountedSandboxDirectory[260] = { 0 };
-            auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "/_substitute", s_MountedSandboxDirectory, s_TargetProcMainThread);
-            if (s_Result < 0)
-            {
-                WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
-                return;
-            }
-
-            // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
-            WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_mira).", s_Result);
+            return false;
         }
-        
-        // Actually load the prx now
-        auto s_Success = false;
 
-        // Lock the process
-        PROC_LOCK(s_TargetProcess);
-
-        do
-        {
-            char s_SandboxTrainerPath[260] = { 0 };
-            snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "/_substitute%s", s_TrainerFileName); // s_SandboxTrainerPath = /_substitute/whatever.prx
-            WriteLog(LL_Debug, "Sandbox trainer path (%s).", s_SandboxTrainerPath);
-
-            int32_t s_PrxHandle = -1;
-            auto s_Ret = kdynlib_load_prx_t(s_SandboxTrainerPath, 0, &s_PrxHandle, s_TargetProcMainThread);
-            if (s_Ret != 0)
-            {
-                WriteLog(LL_Error, "dynlib_load_prx return (%d).", s_Ret);
-                break;
-            }
-
-            // Check the handle value
-            if (s_PrxHandle < 0)
-            {
-                WriteLog(LL_Error, "dynlib_load_prx handle returned (%d).", s_PrxHandle);
-                break;
-            }
-            WriteLog(LL_Debug, "(%s) trainer loaded (%s): handle: (%d) ret: (%d).", s_TargetProcess->p_comm, s_TrainerFileName, s_PrxHandle, s_Ret);
-
-            // Get the address of the entrypoint
-            void* s_ModuleStart = nullptr;
-            s_Ret = kdynlib_dlsym_t(s_PrxHandle, "trainer_load", &s_ModuleStart, s_TargetProcMainThread);
-            if (s_Ret != 0)
-            {
-                WriteLog(LL_Error, "trainer_load dynlib_dlsym returned (%d).", s_Ret);
-                // TODO: Unload prx
-                break;
-            }
-            WriteLog(LL_Error, "trainer_load: (%p).", s_ModuleStart);
-
-            // Validate the module starting address
-            if (s_ModuleStart == nullptr)
-            {
-                WriteLog(LL_Error, "trainer_load not found.");
-                // TODO: Unload prx
-                break;
-            }
-
-            // Get the address of the trainer config block (for shm)
-            void* s_Configuration = nullptr;
-            s_Ret = kdynlib_dlsym_t(s_PrxHandle, "g_TrainerConfig", &s_Configuration, s_TargetProcMainThread);
-            if (s_Ret != 0)
-            {
-                WriteLog(LL_Error, "g_TrainerConfig dynlib_dlsym returned (%d).", s_Ret);
-                // TODO: Unload prx
-                // TODO: Re-enable this
-                //break;
-            }
-
-            // Create a new thread
-            s_Ret = OrbisOS::Utilities::CreatePOSIXThread(s_TargetProcess, s_ModuleStart);
-            if (s_Ret != 0)
-            {
-                WriteLog(LL_Error, "could not create posix thread (%d).", s_Ret);
-                break;
-            }
-
-            WriteLog(LL_Error, "new trainer_load thread created.");
-            s_Success = s_Ret == 0;
-        } while (false);
-        
-        // Unlock the process
-        PROC_UNLOCK(s_TargetProcess);
-    });
-
+        // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+        WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+    }
     return true;
 }
 

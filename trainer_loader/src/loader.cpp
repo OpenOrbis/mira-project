@@ -43,6 +43,50 @@ int64_t stub_dlsym(int64_t p_PrxId, const char* p_FunctionName, void* p_Destinat
     return (int64_t)syscall3(591, (void*)p_PrxId, (void*)p_FunctionName, p_DestinationFunctionOffset);
 }
 
+int64_t stub_load_prx(const char* p_PrxPath, int* p_OutModuleId)
+{
+    return (int64_t)syscall4(594, reinterpret_cast<void*>(const_cast<char*>(p_PrxPath)), 0, p_OutModuleId, 0);
+}
+
+int64_t stub_unload_prx(int64_t p_PrxId)
+{
+    return (int64_t)syscall1(595, (void*)p_PrxId);
+}
+
+// Libkernel
+int (*sceKernelLoadStartModule)(const char *name, size_t argc, const void *argv, unsigned int flags, int, int) = nullptr;
+
+// Libc
+typedef struct DIR DIR;
+struct dirent {
+	uint32_t d_fileno;
+	uint16_t d_reclen;
+	uint8_t d_type;
+	uint8_t d_namlen;
+	char d_name[255 + 1];
+};
+DIR *(*opendir)(const char *filename) = nullptr;
+struct dirent *(*readdir)(DIR *dirp) = nullptr;
+int (*closedir)(DIR *dirp) = nullptr;
+int (*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
+size_t (*strlen)(const char *s) = nullptr;
+int (*strcmp)(const char *s1, const char *s2) = nullptr;
+
+static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)(void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type))
+{
+    if (p_Callback == nullptr)
+        return;
+    
+    DIR* s_Directory = opendir(p_Path);
+    if (s_Directory == nullptr)
+        return;
+    
+    struct dirent* s_CurrentDir = nullptr;
+    while ((s_CurrentDir = readdir(s_Directory)) != nullptr)
+        p_Callback(p_Args, p_Path, s_CurrentDir->d_name, s_CurrentDir->d_type);
+    closedir(s_Directory);
+}
+
 extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 {
     _g_rdi = p_Rdi;
@@ -79,53 +123,98 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         return;
     }
 
-    // Close access to the driver
-    stub_close(s_DriverDescriptor);
-
-
-
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
-    /*s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
+    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
     if (s_Ret != 0)
     {
         *(uint8_t*)0x1444 = 0x0;
         return;
     }
+
+    // Close access to the driver
+    stub_close(s_DriverDescriptor);
+
+    // Resolve libkernel.sprx
+    int32_t s_LibKernelHandle = -1;
+    stub_load_prx("libkernel.sprx", &s_LibKernelHandle);
+    if (s_LibKernelHandle == -1)
+    {
+        stub_load_prx("libkernel_web.prx", &s_LibKernelHandle);
+        if (s_LibKernelHandle == -1)
+        {
+            stub_load_prx("libkernel_sys.sprx", &s_LibKernelHandle);
+        }
+    }
     
-    .text:0000000000028A2C                 pxor    mm0, mm0
-.text:0000000000028A2F                 pxor    mm1, mm1
-.text:0000000000028A32                 pxor    mm2, mm2
-.text:0000000000028A35                 pxor    mm3, mm3
-.text:0000000000028A38                 pxor    mm4, mm4
-.text:0000000000028A3B                 pxor    mm5, mm5
-.text:0000000000028A3E                 pxor    mm6, mm6
-.text:0000000000028A41                 pxor    mm7, mm7
-.text:0000000000028A44                 emms
-.text:0000000000028A46                 vzeroall
-.text:0000000000028A49                 xor     r15, r15
-.text:0000000000028A4C                 xor     r14, r14
-.text:0000000000028A4F                 xor     r13, r13
-.text:0000000000028A52                 xor     r12, r12
-.text:0000000000028A55                 xor     r11, r11
-.text:0000000000028A58                 xor     r10, r10
-.text:0000000000028A5B                 xor     r9, r9
-.text:0000000000028A5E                 xor     r8, r8
-.text:0000000000028A61                 xor     rdx, rdx
-.text:0000000000028A64                 xor     rcx, rcx
-.text:0000000000028A67                 xor     rbx, rbx
-.text:0000000000028A6A                 xor     rax, rax
-.text:0000000000028A6D                 jmp     [rsp+10h+var_18]
-*/
+    // Resolve sceKernelLoadStartModule
+    stub_dlsym(s_LibKernelHandle, "sceKernelLoadStartModule", &sceKernelLoadStartModule);
+    if (sceKernelLoadStartModule)
+    {
+        // Load the libc module
+        int32_t s_LibcModuleId = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, NULL, 0, 0, 0);
 
-    // Prepare to jump yeehaw
-    /*__asm__(
-        ".intex_syntax\n"
-        "pxor mm0, mm0\n"
-    );*/
+        // Resolve the needed functions to iterate
+        stub_dlsym(s_LibcModuleId, "opendir", &opendir);
+        stub_dlsym(s_LibcModuleId, "readdir", &readdir);
+        stub_dlsym(s_LibcModuleId, "closedir", &closedir);
+        stub_dlsym(s_LibcModuleId, "snprintf", &snprintf);
+        stub_dlsym(s_LibcModuleId, "strlen", &strlen);
+        stub_dlsym(s_LibcModuleId, "strcmp", &strcmp);
 
+        // Iterate _mira directory
+        IterateDirectory("/_mira", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+        {
+            // Get the fullpath
+            char s_PrxPath[260];
+            snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
 
+            // s_PrxPath = /_mira/whatever.prx
+
+            // Check to make sure the file name ends in .prx
+            auto s_Length = strlen(s_PrxPath);
+            if (s_Length < 4)
+                return;
+            
+            // Check if the end file path ends with ".prx"
+            if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0)
+                return;
+            
+            // Load the trainer
+            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, NULL, 0, 0, 0);
+            
+            int32_t(*trainer_load)() = nullptr;
+            stub_dlsym(s_TrainerModuleId, "trainer_loader", &trainer_load);
+
+            (void)trainer_load();
+        });
+
+        // Iterate _substitute directory
+        IterateDirectory("/_substitute", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+        {
+            // Get the fullpath
+            char s_PrxPath[260];
+            snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
+
+            // s_PrxPath = /_substitute/whatever.prx
+
+            // Check to make sure the file name ends in .prx
+            auto s_Length = strlen(s_PrxPath);
+            if (s_Length < 4)
+                return;
+            
+            // Check if the end file path ends with ".prx"
+            if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0)
+                return;
+            
+            // Load the trainer
+            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, NULL, 0, 0, 0);
+            
+            int32_t(*trainer_load)() = nullptr;
+            stub_dlsym(s_TrainerModuleId, "trainer_loader", &trainer_load);
+
+            (void)trainer_load();
+        });
+    }
 
     ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
-    
-    // If debugger, then we wait for attachment and also grab save/send the information we got from the ioctl (original EP + process information)
 }

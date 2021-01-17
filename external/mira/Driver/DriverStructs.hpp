@@ -6,7 +6,12 @@ extern "C"
     #include <sys/proc.h>
 };
 
+#ifdef _KERNEL
 #include <Utils/Kernel.hpp>
+#else
+typedef uint64_t SceAuthenticationId;
+typedef uint64_t SceCapabilites;
+#endif
 
 #if !defined(_MAX_PATH)
 #define _MAX_PATH 260

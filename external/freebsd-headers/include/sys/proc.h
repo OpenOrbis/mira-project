@@ -56,7 +56,11 @@
 #include <sys/sigio.h>
 #include <sys/signal.h>
 #include <sys/signalvar.h>
+
+#ifdef _KERNEL
 #include <sys/dynlib.h>
+#endif
+
 #ifndef _KERNEL
 #include <sys/time.h>			/* For structs itimerval, timeval. */
 #else

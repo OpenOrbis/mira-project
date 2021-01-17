@@ -113,7 +113,7 @@ namespace Mira
             // Handle event for process exit
             virtual bool OnProcessExit(struct proc* p_Process) override;
 
-            bool LoadTrainers(struct proc* p_TargetProcess);
+            bool LoadTrainers(struct thread* p_CallingThread);
 
             void* GetEntryPoint(int32_t p_ProcessId);
 
