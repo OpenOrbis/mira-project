@@ -138,12 +138,6 @@ namespace Mira
             // Gets if a Shm exists with this id
             bool GetShm(const char* p_Id);
 
-            // Inject a new thread per prx
-            static bool ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_Proc, struct image_params* p_Params);
-
-            // Load via payload
-            bool PayloadInjection();
-
             // Checks if a file exists
             static bool FileExists(const char* p_Path);
 
@@ -158,8 +152,6 @@ namespace Mira
             void RemoveEntryPoint(int32_t p_ProcessId);
 
         private:
-            static void OnSomethingOrAnother();
-
             static int OnSvFixup(register_t **, struct image_params *);
         };
     }

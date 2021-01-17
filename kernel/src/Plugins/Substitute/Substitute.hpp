@@ -152,8 +152,8 @@ namespace Mira
         {
         private:
             // Hook management
-            struct mtx hook_mtx;
-            SubstituteHook hooks[SUBSTITUTE_MAX_HOOKS];
+            struct mtx m_Mutex;
+            SubstituteHook m_Hooks[SUBSTITUTE_MAX_HOOKS];
 
         public:
             // Syscall hook (Original pointer)
@@ -195,18 +195,11 @@ namespace Mira
             uint64_t FindJmpslotAddress(struct proc* p, const char* module_name, const char* name, int32_t flags);
             void*    FindOriginalAddress(struct proc* p, const char* name, int32_t flags);
 
-            // Utility
-            void     LoadAllPrx(struct thread* td, const char* folder_path);
-
             // IOCTL Function
             static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
             static int OnIoctl_HookJMP(struct thread* td, struct substitute_hook_jmp* uap);
             static int OnIoctl_StateHook(struct thread* td, struct substitute_state_hook* uap);
             static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
-
-        protected:
-            // Event to trigger
-            static int Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_args* uap);
         };
     }
 }

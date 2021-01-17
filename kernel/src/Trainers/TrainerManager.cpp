@@ -38,6 +38,7 @@ TrainerManager::sv_fixup_t TrainerManager::g_sv_fixup = nullptr;
 TrainerManager::TrainerManager()
 {
     auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+    auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
 
     WriteLog(LL_Debug, "Original sv_fixup: %p (%x).", sv->sv_fixup, (reinterpret_cast<uint64_t>(sv->sv_fixup) - reinterpret_cast<uint64_t>(gKernelBase)));
 
@@ -49,6 +50,9 @@ TrainerManager::TrainerManager()
 
     // Initialize process info space
     memset(&m_ProcessInfo, 0, sizeof(m_ProcessInfo));
+
+    // Initialize the mutex
+    mtx_init(&m_Mutex, "MiraTM", MTX_DEF, 0);
 }
 
 TrainerManager::~TrainerManager()
@@ -317,159 +321,6 @@ uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
     return reinterpret_cast<uint8_t*>(s_Address);
 }
 
-
-// "/mnt/usb0/mira/trainers/test.prx"
-bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_TargetProc, struct image_params* p_Params)
-{
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-
-    // Validate the proc
-    if (p_TargetProc == nullptr)
-    {
-        WriteLog(LL_Error, "invalid proc.");
-        return false;
-    }
-
-    // Validate the trainer prx path
-    if (p_TrainerPrxPath == nullptr)
-    {
-        WriteLog(LL_Error, "invalid trainer prx path.");
-        return false;
-    }
-
-    WriteLog(LL_Info, "injecting prx: (%s).", p_TrainerPrxPath);
-
-    // Get the target thread
-    auto s_TargetProcMainThread = p_TargetProc->p_threads.tqh_first;
-    if (s_TargetProcMainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get proc main thread (%p) (%s).", p_TargetProc, p_TargetProc->p_comm);
-        return false;
-    }
-    
-    WriteLog(LL_Info, "got target proc main thread: (%p).", s_TargetProcMainThread);
-
-    //PrintDirectory("/", false, s_TargetProcMainThread);
-
-    // Get path from the file name
-    auto s_TrainerFileName = strrchr(p_TrainerPrxPath, '/'); // "/test.prx"
-    if (s_TrainerFileName == nullptr)
-    {
-        WriteLog(LL_Error, "could not find the filename in (%s).", p_TrainerPrxPath);
-        return false;
-    }
-
-    WriteLog(LL_Info, "trainer file name with slash: (%s).", s_TrainerFileName);
-
-    // Calculate the host path length
-    auto s_HostPathLength = (uint64_t)s_TrainerFileName - (uint64_t)p_TrainerPrxPath;
-    if (s_HostPathLength == 0 || s_HostPathLength >= PATH_MAX)
-    {
-        WriteLog(LL_Error, "invalid host path length (%lx).", s_HostPathLength);
-        return false;
-    }
-
-    // "/mnt/usb0/_mira/trainers"
-    char s_HostMountDirectory[260] = { 0 };
-    
-    // Copy the string to stack, "/mnt/usb0/_mira/trainers"
-    memcpy(s_HostMountDirectory, p_TrainerPrxPath, s_HostPathLength);
-
-    WriteLog(LL_Info, "host mount directory: (%s).", s_HostMountDirectory);
-
-    // Mount the host directory in the sandbox
-    char s_MountedSandboxDirectory[260] = { 0 };
-    auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "/_substitute", s_MountedSandboxDirectory, s_TargetProcMainThread);
-    if (s_Result < 0)
-    {
-        WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
-        return false;
-    }
-
-    // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
-    WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
-
-    auto s_Success = false;
-
-    // Lock the process
-    PROC_LOCK(p_TargetProc);
-
-    do
-    {
-        char s_SandboxTrainerPath[260] = { 0 };
-        snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "%s%s", s_MountedSandboxDirectory, s_TrainerFileName); // Should print <sandboxpath>/_substitute/test.prx
-
-        // s_SandboxTrainerPath = "/mnt/sandbox/NPXS22010_000/_substitute/test.prx"
-        WriteLog(LL_Info, "sandbox trainer path: (%s).", s_SandboxTrainerPath);
-        
-        // PrintDirectory("/_substitute", false, s_TargetProcMainThread);
-        // PrintDirectory("/mnt", false, s_TargetProcMainThread);
-        //PrintDirectory("/app0", false, s_TargetProcMainThread);
-
-        /* code */
-        // TODO: Iterate the trainer directory for prx files
-        // TODO: Load all prx files
-        int32_t s_PrxHandle = -1;
-        auto s_Ret = kdynlib_load_prx_t((char*)"/_substitute/test.prx", 0, &s_PrxHandle, s_TargetProcMainThread);
-        if (s_Ret != 0)
-        {
-            WriteLog(LL_Error, "dynlib_load_prx return (%d).", s_Ret);
-            break;
-        }
-
-        WriteLog(LL_Debug, "prxHandle: (%d) ret (%d).", s_PrxHandle, s_Ret);
-
-        // Check the handle value
-        if (s_PrxHandle < 0)
-        {
-            WriteLog(LL_Error, "dynlib_load_prx handle returned (%d).", s_PrxHandle);
-            break;
-        }
-
-        // Get the address of the entrypoint
-        void* s_ModuleStart = nullptr;
-        s_Ret = kdynlib_dlsym_t(s_PrxHandle, "_Z19testLibraryFunctionv", &s_ModuleStart, s_TargetProcMainThread);
-        if (s_Ret != 0)
-        {
-            WriteLog(LL_Error, "dynlib_dlsym returned (%d).", s_Ret);
-            break;
-        }
-
-        WriteLog(LL_Error, "module_load: (%p).", s_ModuleStart);
-
-        // Validate the module starting address
-        if (s_ModuleStart == nullptr)
-        {
-            WriteLog(LL_Error, "module start not found.");
-            break;
-        }
-
-        // TODO: Overwrite imgp->auxshit
-        // Create a new thread
-        /*s_Ret = OrbisOS::Utilities::CreatePOSIXThread(p_TargetProc, s_ModuleStart);
-        if (s_Ret != 0)
-        {
-            WriteLog(LL_Error, "could not create posix thread (%d).", s_Ret);
-            break;
-        }*/
-        auto s_AuxArgs = static_cast<Elf64_Auxargs*>(p_Params->auxargs);
-        if (s_AuxArgs)
-        {
-            WriteLog(LL_Debug, "modifying auxargs.");
-            s_AuxArgs->entry = (Elf64_Size)s_ModuleStart;
-        }
-
-        s_Success = s_Ret == 0;
-    } while (false);
-    
-    // Unlock the process
-    PROC_UNLOCK(p_TargetProc);
-
-    return s_Success;
-}
-
 bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
 {
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
@@ -529,7 +380,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
 
         // Mount the host directory in the sandbox
-        char s_MountedSandboxDirectory[260] = { 0 };
+        char s_MountedSandboxDirectory[c_PathLength] = { 0 };
         auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
         if (s_Result < 0)
         {
@@ -556,7 +407,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         WriteLog(LL_Info, "mira directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
 
         // Mount the host directory in the sandbox
-        char s_MountedSandboxDirectory[260] = { 0 };
+        char s_MountedSandboxDirectory[c_PathLength] = { 0 };
         auto s_Result = OrbisOS::Utilities::MountInSandbox(s_MiraModulePath, "/_mira", s_MountedSandboxDirectory, p_CallingThread);
         if (s_Result < 0)
         {
@@ -622,11 +473,12 @@ bool TrainerManager::DirectoryExists(struct thread* p_Thread, const char* p_Path
     return S_ISDIR(s_Stat.st_mode);
 }
 
+// This function assumes that the process is already locked
 uint8_t* TrainerManager::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size)
 {
     auto _vm_map_lock = (void(*)(vm_map_t map, const char* file, int line))kdlsym(_vm_map_lock);
-    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+    //auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	//auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
     auto _vm_map_findspace = (int(*)(vm_map_t map, vm_offset_t start, vm_size_t length, vm_offset_t *addr))kdlsym(_vm_map_findspace);
     auto _vm_map_insert = (int(*)(vm_map_t map, vm_object_t object, vm_ooffset_t offset,vm_offset_t start, vm_offset_t end, vm_prot_t prot, vm_prot_t max, int cow))kdlsym(_vm_map_insert);
     auto _vm_map_unlock = (void(*)(vm_map_t map))kdlsym(_vm_map_unlock);
@@ -639,61 +491,51 @@ uint8_t* TrainerManager::AllocateProcessMemory(struct proc* p_Process, uint32_t 
     WriteLog(LL_Info, "Adjusted Size (%x).", p_Size);
 
     vm_offset_t s_Address = 0;
-    
-    _mtx_lock_flags(&p_Process->p_mtx, 0);
+
+    // Get the vmspace
+    auto s_VmSpace = p_Process->p_vmspace;
+    if (s_VmSpace == nullptr)
+    {
+        WriteLog(LL_Info, "invalid vmspace.");
+        return nullptr;
+    }
+
+    // Get the vmmap
+    vm_map_t s_VmMap = &s_VmSpace->vm_map;
+
+    // Lock the vmmap
+    _vm_map_lock(s_VmMap, __FILE__, __LINE__);
 
     do
     {
-        // Get the vmspace
-        auto s_VmSpace = p_Process->p_vmspace;
-        if (s_VmSpace == nullptr)
+        // Find some free space to allocate memory
+        auto s_Result = _vm_map_findspace(s_VmMap, s_VmMap->header.start, p_Size, &s_Address);
+        if (s_Result != 0)
         {
-            WriteLog(LL_Info, "invalid vmspace.");
+            WriteLog(LL_Error, "vm_map_findspace returned (%d).", s_Result);
             break;
         }
 
-        // Get the vmmap
-        vm_map_t s_VmMap = &s_VmSpace->vm_map;
+        WriteLog(LL_Debug, "_vm_map_findspace returned address (%p).", s_Address);
 
-        // Lock the vmmap
-        _vm_map_lock(s_VmMap, __FILE__, __LINE__);
-
-        do
+        // Validate the address
+        if (s_Address == 0)
         {
-            // Find some free space to allocate memory
-            auto s_Result = _vm_map_findspace(s_VmMap, s_VmMap->header.start, p_Size, &s_Address);
-            if (s_Result != 0)
-            {
-                WriteLog(LL_Error, "vm_map_findspace returned (%d).", s_Result);
-                break;
-            }
+            WriteLog(LL_Error, "allocated address is invalid (%p).", s_Address);
+            break;
+        }
 
-            WriteLog(LL_Debug, "_vm_map_findspace returned address (%p).", s_Address);
-
-            // Validate the address
-            if (s_Address == 0)
-            {
-                WriteLog(LL_Error, "allocated address is invalid (%p).", s_Address);
-                break;
-            }
-
-            // Insert the new stuff map
-            s_Result = _vm_map_insert(s_VmMap, NULL, 0, s_Address, s_Address + p_Size, VM_PROT_ALL, VM_PROT_ALL, 0);
-            if (s_Result != 0)
-            {
-                WriteLog(LL_Error, "vm_map_insert returned (%d).", s_Result);
-                break;
-            }
-
-        } while (false);
-
-        _vm_map_unlock(s_VmMap);
-
+        // Insert the new stuff map
+        s_Result = _vm_map_insert(s_VmMap, NULL, 0, s_Address, s_Address + p_Size, VM_PROT_ALL, VM_PROT_ALL, 0);
+        if (s_Result != 0)
+        {
+            WriteLog(LL_Error, "vm_map_insert returned (%d).", s_Result);
+            break;
+        }
 
     } while (false);
-    
 
-    _mtx_unlock_flags(&p_Process->p_mtx, 0);
+    _vm_map_unlock(s_VmMap);
 
     return reinterpret_cast<uint8_t*>(s_Address);
 }

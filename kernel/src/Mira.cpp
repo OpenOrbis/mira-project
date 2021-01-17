@@ -613,7 +613,7 @@ void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 	if (p_Process == nullptr)
 		return;
 	
-	WriteLog(LL_Warn, "Process Executing: (%d) (%s).", p_Process->p_pid, p_Process->p_comm);	
+	//WriteLog(LL_Warn, "Process Executing: (%d) (%s).", p_Process->p_pid, p_Process->p_comm);	
 	
 	auto s_Framework = GetFramework();
 	if (s_Framework == nullptr)
@@ -632,13 +632,12 @@ void Mira::Framework::OnMiraProcessExec(void* _unused, struct proc* p_Process)
 
 void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process)
 {
-	WriteLog(LL_Warn, "ProcessExecEnd: (%p) (%p).", _unused, p_Process);
-	WriteLog(LL_Error, "(%s).", p_Process->p_comm);
-	
+	// Get the framework
 	auto s_Framework = GetFramework();
 	if (s_Framework == nullptr)
 		return;
 	
+	// Call exec end to the plugin manager
 	auto s_PluginManager = s_Framework->GetPluginManager();
 	if (s_PluginManager)
 	{
@@ -646,6 +645,7 @@ void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process
 			WriteLog(LL_Error, "could not call end process on plugin manager.");
 	}
 
+	// Call exec end to the trainer manager
 	auto s_TrainerManager = s_Framework->m_TrainerManager;
 	if (s_TrainerManager)
 	{
@@ -656,8 +656,7 @@ void Mira::Framework::OnMiraProcessExecEnd(void* _unused, struct proc* p_Process
 
 void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 {
-	WriteLog(LL_Warn, "Process Exiting: (%d) (%s) (%s).", p_Process->p_pid, p_Process->p_comm, p_Process->p_elfpath);
-
+	// Get the framework
 	auto s_Framework = Mira::Framework::GetFramework();
 	if (s_Framework == nullptr)
 		return;
@@ -670,6 +669,7 @@ void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 			WriteLog(LL_Error, "could not call exit process on plugin manager.");
 	}
 
+	// Call trainer manager callback
 	auto s_TrainerManager = s_Framework->m_TrainerManager;
 	if (s_TrainerManager)
 	{

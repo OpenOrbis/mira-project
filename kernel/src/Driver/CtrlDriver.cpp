@@ -194,10 +194,9 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 case MIRA_TRAINERS_LOAD:
                 {
                     WriteLog(LL_Debug, "tid: (%d) requesting trainer loading...", p_Thread->td_tid);
-                    if (Mira::Framework::GetFramework()->GetTrainerManager()->LoadTrainers(p_Thread))
-                        return 0;
-                        
-                    return EPROCUNAVAIL;
+                    (void)Mira::Framework::GetFramework()->GetTrainerManager()->LoadTrainers(p_Thread);
+                    
+                    return 0;
                 }
                 case MIRA_TRAINERS_ORIG_EP:
                 {
