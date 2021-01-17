@@ -2196,6 +2196,28 @@ int kdynlib_load_prx_t(char* path, int32_t flags, int32_t* handle_out, struct th
 	return ret;
 }
 
+// int kdynlib_unload_prx_internal(int32_t handle, struct thread* td)
+// {
+// 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+// 	struct sysent* sysents = sv->sv_table;
+// 	auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args*))sysents[SYS_DYNLIB_LOAD_PRX].sy_call;
+// 	if (!sys_dynlib_load_prx)
+// 		return -1;
+
+// 	int error;
+// 	struct dynlib_load_prx_args uap;
+// 	uap.prx_path = path;
+// 	uap.flags = flags;
+// 	uap.handle_out = handle_out;
+// 	uap.unk = 0;
+
+// 	error = sys_dynlib_load_prx(td, &uap);
+// 	if (error)
+// 		return -error;
+
+// 	return td->td_retval[0];
+// }
+
 int kdynlib_get_obj_member_internal(uint32_t handle, uint32_t index, uint64_t value, struct thread* td)
 {
 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
@@ -2682,56 +2704,55 @@ int kdynlib_dlsym_t(int64_t p_PrxId, const char* p_FunctionName, void* p_Destina
 	return ret;
 }
 
-// int kdynlib_load_prx_internal(const char* p_PrxPath, int* p_OutModuleId, struct thread* td)
-// {
-// 	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
-// 	struct sysent* sysents = sv->sv_table;
-// 	auto sys_dynlib_load_prx = (int(*)(struct thread*, struct dynlib_load_prx_args*))sysents[SYS_DYNLIB_LOAD_PRX].sy_call;
-// 	if (!sys_dynlib_load_prx)
-// 		return -1;
+int kthr_create_internal(void* stack_base, size_t* stack_size, void*(*start_func)(void*), void* arg, long flags, long* new_thread_ID, struct thread* td)
+{
+	return -1;
+	// auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	// struct sysent* sysents = sv->sv_table;
+	// auto sys_dynlib_dlsym = (int(*)(struct thread*, struct dynlib_dlsym_args*))sysents[SYS_DYNLIB_DLSYM].sy_call;
+	// if (!sys_dynlib_dlsym)
+	// 	return -1;
 
-// 	int error;
-// 	struct dynlib_load_prx_args uap;
+	// int error;
+	// struct thr_create_args uap;
 
-// 	// clear errors
-// 	td->td_retval[0] = 0;
+	// // clear errors
+	// td->td_retval[0] = 0;
 
-// 	// call syscall
-// 	uap.path = const_cast<char*>(p_PrxPath);
-// 	uap.pRes = (uint64_t)p_OutModuleId;
+	// // call syscall
+	// uap.ctx
+	// error = sys_dynlib_dlsym(td, &uap);
+	// if (error)
+	// 	return -error;
 
-// 	error = sys_dynlib_load_prx(td, &uap);
-// 	if (error)
-// 		return -error;
+	// // return socket
+	// return td->td_retval[0];
+}
 
-// 	// return socket
-// 	return td->td_retval[0];
-// }
+int kthr_create_t(void* stack_base, size_t* stack_size, void*(*start_func)(void*), void* arg, long flags, long* new_thread_ID, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
 
-// int kdynlib_load_prx_t(const char* p_PrxPath, int* p_OutModuleId, struct thread* td)
-// {
-// 	int ret = -EIO;
-// 	int retry = 0;
-
-// 	for (;;)
-// 	{
-// 		ret = kdynlib_load_prx_internal(p_PrxPath, p_OutModuleId, td);
-// 		if (ret < 0)
-// 		{
-// 			if (ret == -EINTR)
-// 			{
-// 				if (retry > MaxInterruptRetries)
-// 					break;
+	for (;;)
+	{
+		ret = kthr_create_internal(stack_base, stack_size, start_func, arg, flags, new_thread_ID, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
 					
-// 				retry++;
-// 				continue;
-// 			}
+				retry++;
+				continue;
+			}
 			
-// 			return ret;
-// 		}
+			return ret;
+		}
 
-// 		break;
-// 	}
+		break;
+	}
 
-// 	return ret;
-// }
+	return ret;
+}

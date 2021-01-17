@@ -132,6 +132,8 @@ extern "C"
 
     extern int kdynlib_load_prx_t(char* path, int32_t flags, int32_t* handle_out, struct thread* td);
 
+    extern int kdynlib_unload_prx_t(int32_t handle);
+
     extern int kdynlib_get_obj_member_t(uint32_t handle, uint32_t index, void** value, struct thread* td);
 
     extern int kunmount_t(char* path, int flags, struct thread* td);
@@ -149,6 +151,8 @@ extern "C"
     extern int kshm_unlink_t(const char *, struct thread* td);
 
     extern int kdynlib_dlsym_t(int64_t p_PrxId, const char* p_FunctionName, void* p_DestinationFunctionOffset, struct thread* td);
+
+    extern int kthr_create_t(void* stack_base, size_t stack_size, void*(*start_func)(void*), void* arg, long flags, long* new_thread_id);
 
     //extern int kdynlib_load_prx_t(const char* p_PrxPath, int* p_OutModuleId, struct thread* td);
 };

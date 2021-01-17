@@ -173,13 +173,19 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
     return g_sv_fixup(stack_base, imgp);
 }
 
-bool TrainerManager::GetUsbTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength)
+bool TrainerManager::GetUsbTrainerPath(char* p_OutputString, uint32_t p_OutputStringLength)
 {
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
 
-    p_OutputString = nullptr;
-    p_OutputStringLength = 0;
-    
+    if (p_OutputString == nullptr || p_OutputStringLength == 0)
+    {
+        WriteLog(LL_Error, "invalid output string or length.");
+        return false;
+    }
+
+    // Zero out the output buffer
+    memset(p_OutputString, 0, p_OutputStringLength);
+
     // Iterate through each of the usb inices
     for (auto l_UsbIndex = 0; l_UsbIndex < 6; ++l_UsbIndex)
     {
@@ -190,19 +196,9 @@ bool TrainerManager::GetUsbTrainerPath(char*& p_OutputString, uint32_t& p_Output
         // Check if the directory exists
         if (!DirectoryExists(l_UsbPath))
             continue;
-        
-        // Allocate the output string
-        p_OutputString = new char[l_Length];
-        if (p_OutputString == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate output string of length (%d).", l_Length);
-            return false;
-        }
-        p_OutputStringLength = l_Length;
 
         // Copy out our string
         memcpy(p_OutputString, l_UsbPath, l_Length);
-
         return true;
     }
 
@@ -279,50 +275,6 @@ const char *strrchr(const char *s, int c)
     return ret;
 }
 
-void PrintDirectory(const char* p_Path, bool p_Recursive, struct thread* p_Thread, uint8_t p_Indent = 0)
-{
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-
-    auto s_DirectoryHandle = kopen_t(p_Path, O_RDONLY | O_DIRECTORY, 0777, p_Thread);
-    if (s_DirectoryHandle < 0)
-        return;        
-    
-    WriteLog(LL_Debug, "Dir: %s", p_Path);
-    // Switch this to use stack
-    char s_Buffer[PATH_MAX] = { 0 };
-    memset(s_Buffer, 0, sizeof(s_Buffer));
-
-    char s_CurrentFullPath[PATH_MAX] = { 0 };
-
-    char s_Indents[256] = { 0 };
-    memset(s_Indents, 0, sizeof(s_Indents));
-    memset(s_Indents, '\t', p_Indent);
-
-    int32_t s_ReadCount = 0;
-    for (;;)
-    {
-        memset(s_Buffer, 0, sizeof(s_Buffer));
-        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, sizeof(s_Buffer), p_Thread);
-        if (s_ReadCount <= 0)
-            break;
-        
-        for (auto l_Pos = 0; l_Pos < s_ReadCount;)
-        {
-            auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
-
-            snprintf(s_CurrentFullPath, sizeof(s_CurrentFullPath), "%s/%s", p_Path, l_Dent->d_name);
-            
-            WriteLog(LL_Debug, "%s[%s] (%s).",s_Indents, (l_Dent->d_type == DT_DIR ? "D" : "F"), s_CurrentFullPath);
-
-            if (l_Dent->d_type == DT_DIR && p_Recursive)
-                PrintDirectory(s_CurrentFullPath, p_Recursive, p_Thread, p_Indent + 1);
-            
-            l_Pos += l_Dent->d_reclen;
-        }
-    }
-    kclose_t(s_DirectoryHandle, p_Thread);
-}
-
 uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
@@ -364,6 +316,7 @@ uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
 
     return reinterpret_cast<uint8_t*>(s_Address);
 }
+
 
 // "/mnt/usb0/mira/trainers/test.prx"
 bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* p_TargetProc, struct image_params* p_Params)
@@ -517,40 +470,38 @@ bool TrainerManager::ThreadInjection(const char* p_TrainerPrxPath, struct proc* 
     return s_Success;
 }
 
-void ParseDirectory(const char* p_Path)
+static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)(void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type))
 {
-    // Debug output
-    WriteLog(LL_Debug, "ParsingDirectory: (%s).", p_Path);
-
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-
-    auto s_MiraThread = Mira::Framework::GetFramework()->GetMainThread();
-
-    auto s_DirectoryHandle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_MiraThread);
-    if (s_DirectoryHandle < 0)
+    auto s_Thread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_Thread == nullptr)
     {
-		WriteLog(LL_Error, "could not open directory (%s) (%d).", p_Path, s_DirectoryHandle);
+        WriteLog(LL_Error, "could not get the main thread.");
         return;
     }
 
-    uint64_t s_DentCount = 0;
+    if (p_Callback == nullptr)
+    {
+        WriteLog(LL_Error, "invalid callback.");
+        return;
+    }
+
+    auto s_Handle = kopen_t(p_Path, 0x0000 | 0x00020000, 0777, s_Thread);
+    if (s_Handle < 0)
+    {
+        WriteLog(LL_Error, "could not open directory (%s) (%d).", p_Path, s_Handle);
+        return;
+    }
 
     // Switch this to use stack
-    const uint32_t c_BufferSize = 0x1000;
-    char* s_Buffer = new char[c_BufferSize];
-    if (s_Buffer == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate buffer, path: (%s).", p_Path);
-        kclose_t(s_DirectoryHandle, s_MiraThread);
-        return;
-    }
+    const uint32_t c_BufferSize = 0x200;
+    char s_Buffer[c_BufferSize];
     memset(s_Buffer, 0, c_BufferSize);
 
     int32_t s_ReadCount = 0;
     for (;;)
     {
         memset(s_Buffer, 0, c_BufferSize);
-        s_ReadCount = kgetdents_t(s_DirectoryHandle, s_Buffer, c_BufferSize, s_MiraThread);
+        s_ReadCount = kgetdents_t(s_Handle, s_Buffer, c_BufferSize, s_Thread);
         if (s_ReadCount <= 0)
             break;
         
@@ -559,63 +510,18 @@ void ParseDirectory(const char* p_Path)
             // Get the new directory entry
             auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
 
-            // Increase the dent count
-            s_DentCount++;
+            p_Callback(p_Args, p_Path, l_Dent->d_name, l_Dent->d_type);
 
-            // Allocate a new recursive directory path name
-            char* s_FullPath = new char[_MAX_PATH];
-
-            // Validate our allocation
-            if (s_FullPath == nullptr)
-            {
-                WriteLog(LL_Error, "could not allocate full path.");
-                l_Pos += l_Dent->d_reclen;
-                continue;
-            }
-
-            // Zero out the buffer and build the string
-            memset(s_FullPath, 0, _MAX_PATH);
-            snprintf(s_FullPath, _MAX_PATH, "%s/%s", p_Path, l_Dent->d_name);
-
-            
-
-            // Based on the type either recurse or spit out
-            switch (l_Dent->d_type)
-            {
-                case DT_DIR:
-                {
-                    // TODO: Check via TitleId
-                    // TODO: Check via ProcessName
-                    WriteLog(LL_Debug, "DIRECTORY: (%s).", s_FullPath);
-
-                    // Call the recursive function
-                    ParseDirectory(s_FullPath);
-                    break;
-                }
-                case DT_REG:
-                    WriteLog(LL_Debug, "FILE: (%s).", s_FullPath);
-                break;
-            }
-
-            // When completed free the memory we allocated
-            if (s_FullPath)
-            {
-                memset(s_FullPath, 0, _MAX_PATH);
-                delete [] s_FullPath;
-            }
-            
             l_Pos += l_Dent->d_reclen;
         }
     }
-    kclose_t(s_DirectoryHandle, s_MiraThread);
-
-    // Free the allocated memory
-    if (s_Buffer)
-        delete [] s_Buffer;
+    kclose_t(s_Handle, s_Thread);
 }
 
 bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
 {
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+
     // Validate target process
     if (p_TargetProcess == nullptr)
     {
@@ -636,21 +542,194 @@ bool TrainerManager::LoadTrainers(struct proc* p_TargetProcess)
 
     // /mira/trainers/<TitleId>/<Version>/blah.prx
     // /mira/trainers/<ProcName>/blah.prx
-    if (!DirectoryExists("/mnt/usb0/mira/trainers"))
+
+    // /mnt/usbN/mira/trainers
+    const uint32_t c_PathLength = 260;
+    char s_BasePath[c_PathLength];
+    uint32_t s_BasePathLength = sizeof(s_BasePath);
+    if (!GetUsbTrainerPath(s_BasePath, s_BasePathLength))
     {
         WriteLog(LL_Error, "could not find usb trainers directory...");
         return false;
     }
 
-    // TODO: Determine which root path we are loading from, for now we will hardcode
-    const char* s_TrainersPath = "/mnt/usb0/mira/trainers";
+    auto s_ProcessTitleId = ((char*)p_TargetProcess) + 0x390;
 
-    ParseDirectory(s_TrainersPath);
+    // /mnt/usbN/mira/trainers/CUSA00013
+    char s_TitleIdPath[c_PathLength];
+    snprintf(s_TitleIdPath, sizeof(s_TitleIdPath), "%s/%s", s_BasePath, s_ProcessTitleId);
+
+    if (!DirectoryExists(s_TitleIdPath))
+    {
+        WriteLog(LL_Error, "could not find trainers directory for title id (%s).", s_ProcessTitleId);
+        return false;
+    }
+
+    IterateDirectory(s_TitleIdPath, p_TargetProcess, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+    {
+        auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	    auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+        auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+        auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
+        auto strrchr = [](const char* s, int c)
+        {
+            const char* ret=nullptr;
+            do {
+                if( *s == (char)c )
+                    ret=s;
+            } while(*s++);
+            return ret;
+        };
+
+        if (p_Args == nullptr)
+            return;
+        
+        auto s_TargetProcess = static_cast<struct proc*>(p_Args);
+
+        // Get the fullpath
+        char s_PrxPath[c_PathLength];
+        snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
+
+        // s_PrxPath = /mnt/usbN/mira/trainers/CUSA00013/whatever.prx
+
+        // Check to make sure the file name ends in .prx
+        auto s_Length = strlen(s_PrxPath);
+        if (s_Length < 4)
+            return;
+        
+        // Check if the end file path ends with ".prx"
+        if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0)
+            return;
+
+        // Load the prx
+
+        // Get the target thread
+        auto s_TargetProcMainThread = s_TargetProcess->p_threads.tqh_first;
+        if (s_TargetProcMainThread == nullptr)
+        {
+            WriteLog(LL_Error, "could not get proc main thread (%p) (%s).", s_TargetProcess, s_TargetProcess->p_comm);
+            return;
+        }
+        WriteLog(LL_Info, "got target proc main thread: (%p).", s_TargetProcMainThread);
+
+        // Get path from the file name
+        auto s_TrainerFileName = strrchr(s_PrxPath, '/'); // s_TrainerFileName = /whatever.prx
+        if (s_TrainerFileName == nullptr)
+        {
+            WriteLog(LL_Error, "could not find the filename in (%s).", s_PrxPath);
+            return;
+        }
+        WriteLog(LL_Info, "trainer file name with slash: (%s).", s_TrainerFileName);
+
+        // Calculate the host path length
+        auto s_HostPathLength = (uint64_t)s_TrainerFileName - (uint64_t)s_PrxPath;
+        if (s_HostPathLength == 0 || s_HostPathLength >= 260)
+        {
+            WriteLog(LL_Error, "invalid host path length (%lx).", s_HostPathLength);
+            return;
+        }
+
+        // s_HostMountDirectory = /mnt/usbN/mira/trainers/CUSA00013
+        char s_HostMountDirectory[260] = { 0 };
+        
+        // Copy the string, "/mnt/usbN/mira/trainers/CUSA00013"
+        memcpy(s_HostMountDirectory, s_PrxPath, s_HostPathLength);
+        WriteLog(LL_Info, "host mount directory: (%s).", s_HostMountDirectory);
+
+        // Determine if we need to mount the path into the sandbox
+        if (!DirectoryExists(s_TargetProcMainThread, "/_substitute"))
+        {
+            WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_TargetProcess->p_pid, s_TargetProcess->p_comm);
+
+            // Mount the host directory in the sandbox
+            char s_MountedSandboxDirectory[260] = { 0 };
+            auto s_Result = OrbisOS::Utilities::MountInSandbox(s_HostMountDirectory, "/_substitute", s_MountedSandboxDirectory, s_TargetProcMainThread);
+            if (s_Result < 0)
+            {
+                WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
+                return;
+            }
+
+            // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+            WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+        }
+        
+        // Actually load the prx now
+        auto s_Success = false;
+
+        // Lock the process
+        PROC_LOCK(s_TargetProcess);
+
+        do
+        {
+            char s_SandboxTrainerPath[260] = { 0 };
+            snprintf(s_SandboxTrainerPath, sizeof(s_SandboxTrainerPath), "/_substitute%s", s_TrainerFileName); // s_SandboxTrainerPath = /_substitute/whatever.prx
+            WriteLog(LL_Debug, "Sandbox trainer path (%s).", s_SandboxTrainerPath);
+
+            int32_t s_PrxHandle = -1;
+            auto s_Ret = kdynlib_load_prx_t(s_SandboxTrainerPath, 0, &s_PrxHandle, s_TargetProcMainThread);
+            if (s_Ret != 0)
+            {
+                WriteLog(LL_Error, "dynlib_load_prx return (%d).", s_Ret);
+                break;
+            }
+
+            // Check the handle value
+            if (s_PrxHandle < 0)
+            {
+                WriteLog(LL_Error, "dynlib_load_prx handle returned (%d).", s_PrxHandle);
+                break;
+            }
+            WriteLog(LL_Debug, "(%s) trainer loaded (%s): handle: (%d) ret: (%d).", s_TargetProcess->p_comm, s_TrainerFileName, s_PrxHandle, s_Ret);
+
+            // Get the address of the entrypoint
+            void* s_ModuleStart = nullptr;
+            s_Ret = kdynlib_dlsym_t(s_PrxHandle, "trainer_load", &s_ModuleStart, s_TargetProcMainThread);
+            if (s_Ret != 0)
+            {
+                WriteLog(LL_Error, "trainer_load dynlib_dlsym returned (%d).", s_Ret);
+                // TODO: Unload prx
+                break;
+            }
+            WriteLog(LL_Error, "trainer_load: (%p).", s_ModuleStart);
+
+            // Validate the module starting address
+            if (s_ModuleStart == nullptr)
+            {
+                WriteLog(LL_Error, "trainer_load not found.");
+                // TODO: Unload prx
+                break;
+            }
+
+            // Get the address of the trainer config block (for shm)
+            void* s_Configuration = nullptr;
+            s_Ret = kdynlib_dlsym_t(s_PrxHandle, "g_TrainerConfig", &s_Configuration, s_TargetProcMainThread);
+            if (s_Ret != 0)
+            {
+                WriteLog(LL_Error, "g_TrainerConfig dynlib_dlsym returned (%d).", s_Ret);
+                // TODO: Unload prx
+                // TODO: Re-enable this
+                //break;
+            }
+
+            // Create a new thread
+            s_Ret = OrbisOS::Utilities::CreatePOSIXThread(s_TargetProcess, s_ModuleStart);
+            if (s_Ret != 0)
+            {
+                WriteLog(LL_Error, "could not create posix thread (%d).", s_Ret);
+                break;
+            }
+
+            WriteLog(LL_Error, "new trainer_load thread created.");
+            s_Success = s_Ret == 0;
+        } while (false);
+        
+        // Unlock the process
+        PROC_UNLOCK(s_TargetProcess);
+    });
 
     return true;
 }
-
-
 
 bool TrainerManager::FileExists(const char* p_Path)
 {
@@ -675,6 +754,18 @@ bool TrainerManager::FileExists(const char* p_Path)
 bool TrainerManager::DirectoryExists(const char* p_Path)
 {
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread.");
+        return false;
+    }
+
+    return DirectoryExists(s_MainThread, p_Path);
+}
+
+bool TrainerManager::DirectoryExists(struct thread* p_Thread, const char* p_Path)
+{
+    auto s_MainThread = p_Thread;
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread.");

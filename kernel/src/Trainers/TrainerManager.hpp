@@ -41,6 +41,15 @@ extern "C"
     This means that SceShellUI can poke values into the Shm, which then the trainer will read.
 
     OnProcessExit the shm is closed on the trainer's behalf
+
+    2021 Update:
+    Each trainer will need to implement these functions
+
+    // Called on initialization on it's own thread
+    void trainer_load(ProcessInfo* p_Args);
+    void trainer_unload(ProcessInfo* p_Args);
+    void trainer_clear(ProcessInfo* p_Args);
+    void trainer_reload(ProcessInfo* p_Args);
 */
 namespace Mira
 {
@@ -108,12 +117,14 @@ namespace Mira
 
             void* GetEntryPoint(int32_t p_ProcessId);
 
+            static bool DirectoryExists(struct thread* p_Thread, const char* p_Path);
+
         protected:
             // Get HDD Trainers Folder (ex: /user/mira/trainers )
-            bool GetHddTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength);
+            bool GetHddTrainerPath(char* p_OutputString, uint32_t p_OutputStringLength);
 
             // Get USB Trainers Folder (ex: /dev/usb/usb0/mira/trainers )
-            bool GetUsbTrainerPath(char*& p_OutputString, uint32_t& p_OutputStringLength);
+            bool GetUsbTrainerPath(char* p_OutputString, uint32_t p_OutputStringLength);
             
             // Generate a new randomized alphanumeric Shm Id (p_OutputStringLength must be > 5) strlen("_shm_")
             bool GenerateShmId(char* p_OutputString, uint32_t p_OutputStringLength);
@@ -142,8 +153,6 @@ namespace Mira
             static uint8_t* AllocateTrainerLoader(struct proc* p_TargetProcess);
 
             static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size);
-
-            static bool CreateRemoteThread(struct proc* p_Process, void* p_EntryPoint);
 
             void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
             void RemoveEntryPoint(int32_t p_ProcessId);
