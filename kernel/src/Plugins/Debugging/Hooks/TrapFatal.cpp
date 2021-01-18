@@ -43,12 +43,12 @@ void sdtossd(struct user_segment_descriptor *sd, struct soft_segment_descriptor 
 	ssd->ssd_gran  = sd->sd_gran;
 }
 
-bool Debugger2::IsStackSpace(void* p_Address)
+bool Debugger::IsStackSpace(void* p_Address)
 {
 	return ((reinterpret_cast<uint64_t>(p_Address) & 0xFFFFFFFF00000000) == 0xFFFFFF8000000000);
 }
 
-void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
+void Debugger::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 {
 	int code, ss;
 	u_int type;
@@ -240,7 +240,7 @@ void Debugger2::OnTrapFatal(struct trapframe* frame, vm_offset_t eva)
 	{
 		auto amdFrameCount = 0;
 
-		while (Debugger2::IsStackSpace(amdFrame))
+		while (Debugger::IsStackSpace(amdFrame))
 		{
 			printf("##  [%d] [return: %p] [from: %p]\n", amdFrameCount, amdFrame->f_retaddr, amdFrame);
 			amdFrame = amdFrame->f_frame;

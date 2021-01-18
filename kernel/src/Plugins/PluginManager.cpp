@@ -4,17 +4,11 @@
 #include "PluginManager.hpp"
 
 // Built in plugins
-#include <Plugins/Debugger/Debugger2.hpp>
-#include <Plugins/LogServer/LogManager.hpp>
-#include <Plugins/FileManager/FileManager.hpp>
+#include <Plugins/Debugging/Debugger.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
 #include <Plugins/Substitute/Substitute.hpp>
-#include <Plugins/BrowserActivator/BrowserActivator.hpp>
-#include <Plugins/MorpheusActivator/MorpheusActivator.hpp>
-#include <Plugins/RemotePlayActivator/RemotePlayActivator.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
-#include <Plugins/TTYRedirector/TTYRedirector.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -28,21 +22,14 @@ extern "C"
 using namespace Mira::Plugins;
 
 PluginManager::PluginManager() :
-	m_Logger(nullptr),
     m_Debugger(nullptr),
-    m_FileManager(nullptr),
     m_FakeSelfManager(nullptr),
     m_FakePkgManager(nullptr),
     m_EmuRegistry(nullptr),
     m_Substitute(nullptr),
-    m_BrowserActivator(nullptr),
-    m_MorpheusEnabler(nullptr),
-    m_RemotePlayEnabler(nullptr),
     m_SyscallGuard(nullptr)
 {
-    // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
-	m_Logger = nullptr;
-    m_FileManager = nullptr;
+
 }
 
 PluginManager::~PluginManager()
@@ -57,40 +44,10 @@ bool PluginManager::OnLoad()
     do
     {
         // Initialize debugger
-        m_Debugger = new Mira::Plugins::Debugger2();
+        m_Debugger = new Mira::Plugins::Debugger();
         if (m_Debugger == nullptr)
         {
             WriteLog(LL_Error, "could not allocate debugger.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize the syscall guard
-        /*m_SyscallGuard = new Mira::Plugins::SyscallGuard();
-        if (m_SyscallGuard == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate syscall guard.");
-            s_Success = false;
-            break;
-        }
-        if (!m_SyscallGuard->OnLoad())
-            WriteLog(LL_Error, "could not load syscall guard.");*/
-
-        // Initialize Logger
-        /*m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
-        if (m_Logger == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate log manager.");
-            return false;
-        }
-        if (!m_Logger->OnLoad())
-            WriteLog(LL_Error, "could not load logmanager");*/
-
-        // Initialize file manager
-        m_FileManager = new Mira::Plugins::FileManagerExtent::FileManager();
-        if (m_FileManager == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate file manager.");
             s_Success = false;
             break;
         }
@@ -121,54 +78,12 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
-
-        // Initialize BrowserActivator
-        m_BrowserActivator = new Mira::Plugins::BrowserActivator();
-        if (m_BrowserActivator == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate browser activator.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize MorpheusActivator
-        m_MorpheusEnabler = new Mira::Plugins::MorpheusActivator();
-        if (m_MorpheusEnabler == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate morpheus enabler.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize RemotePlayActivator
-        m_RemotePlayEnabler = new Mira::Plugins::RemotePlayActivator();
-        if (m_RemotePlayEnabler == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate remote play enabler.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize TTYRedirector
-        m_TTYRedirector = new Mira::Plugins::TTYRedirector();
-        if (m_TTYRedirector == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate tty redirector.");
-            s_Success = false;
-            break;
-        }
     } while (false);
 
     if (m_Debugger)
     {
         if (!m_Debugger->OnLoad())
             WriteLog(LL_Error, "could not load debugger.");
-    }
-
-    if (m_FileManager)
-    {
-        if (!m_FileManager->OnLoad())
-            WriteLog(LL_Error, "could not load filemanager");
     }
 
     if (m_FakeSelfManager)
@@ -193,30 +108,6 @@ bool PluginManager::OnLoad()
     {
         if (!m_Substitute->OnLoad())
             WriteLog(LL_Error, "could not load substitute.");
-    }
-
-    if (m_BrowserActivator)
-    {
-        if (!m_BrowserActivator->OnLoad())
-            WriteLog(LL_Error, "could not load browser activator.");
-    }
-
-    if (m_MorpheusEnabler)
-    {
-        if (!m_MorpheusEnabler->OnLoad())
-            WriteLog(LL_Error, "could not load morpheus enabler.");
-    }
-
-    if (m_RemotePlayEnabler)
-    {
-        if (!m_RemotePlayEnabler->OnLoad())
-            WriteLog(LL_Error, "could not load remote play enabler.");
-    }
-
-    if (m_TTYRedirector)
-    {
-        if (!m_TTYRedirector->OnLoad())
-            WriteLog(LL_Error, "could not load tty redirector.");
     }
 
     return s_Success;
@@ -258,18 +149,6 @@ bool PluginManager::OnUnload()
     m_Plugins.clear();
 
     // Free the default plugins
-    // Delete the file manager
-    if (m_FileManager)
-    {
-        WriteLog(LL_Debug, "unloading file manager");
-
-        if (!m_FileManager->OnUnload())
-            WriteLog(LL_Error, "filemanager could not unload");
-
-        // Free the file manager
-        delete m_FileManager;
-        m_FileManager = nullptr;
-    }
 
     // Delete the fake self manager
     if (m_FakeSelfManager)
@@ -314,19 +193,6 @@ bool PluginManager::OnUnload()
         m_SyscallGuard = nullptr;
     }
 
-    // Delete the log server
-    if (m_Logger)
-    {
-        WriteLog(LL_Debug, "unloading log manager");
-
-        if (!m_Logger->OnUnload())
-            WriteLog(LL_Error, "logmanager could not unload");
-
-        // Free the file manager
-        delete m_Logger;
-        m_Logger = nullptr;
-    }
-
     // Delete Substitute
     if (m_Substitute)
     {
@@ -337,42 +203,6 @@ bool PluginManager::OnUnload()
         // Free Substitute
         delete m_Substitute;
         m_Substitute = nullptr;
-    }
-
-    // Delete BrowserActivator
-    if (m_BrowserActivator)
-    {
-        WriteLog(LL_Debug, "unloading browser activator");
-        if (!m_BrowserActivator->OnUnload())
-            WriteLog(LL_Error, "browser activator could not unload");
-
-        // Free BrowserActivator
-        delete m_BrowserActivator;
-        m_BrowserActivator = nullptr;
-    }
-
-    // Delete MorpheusActivator
-    if (m_MorpheusEnabler)
-    {
-        WriteLog(LL_Debug, "unloading morpheus enabler");
-        if (!m_MorpheusEnabler->OnUnload())
-            WriteLog(LL_Error, "morpheus enabler could not unload");
-
-        // Free MorpheusActivator
-        delete m_MorpheusEnabler;
-        m_MorpheusEnabler = nullptr;
-    }
-
-    // Delete RemotePlayActivator
-    if (m_RemotePlayEnabler)
-    {
-        WriteLog(LL_Debug, "unloading remote play enabler");
-        if (!m_RemotePlayEnabler->OnUnload())
-            WriteLog(LL_Error, "remote play enabler could not unload");
-
-        // Free RemotePlayActivator
-        delete m_RemotePlayEnabler;
-        m_RemotePlayEnabler = nullptr;
     }
 
     // Delete the debugger
@@ -386,18 +216,6 @@ bool PluginManager::OnUnload()
         // Free the debugger
         delete m_Debugger;
         m_Debugger = nullptr;
-    }
-
-    // Unload TTY Redirector
-    if (m_TTYRedirector)
-    {
-        WriteLog(LL_Debug, "unloading tty redirector");
-        if (!m_TTYRedirector->OnUnload())
-            WriteLog(LL_Error, "tty redirector could not unload");
-
-        // Free TTYRedirector
-        delete m_TTYRedirector;
-        m_TTYRedirector = nullptr;
     }
 
     WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");
@@ -429,12 +247,6 @@ bool PluginManager::OnSuspend()
     }
 
     // Suspend the built in plugins
-    if (m_FileManager)
-    {
-        if (!m_FileManager->OnSuspend())
-            WriteLog(LL_Error, "file manager suspend failed");
-    }
-
     if (m_FakeSelfManager)
     {
         if (!m_FakeSelfManager->OnSuspend())
@@ -447,13 +259,6 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "emuRegistry suspend failed");
     }
 
-    // Suspend both of the loggers (cleans up the sockets)
-    if (m_Logger)
-    {
-        if (!m_Logger->OnSuspend())
-            WriteLog(LL_Error, "log manager suspend failed");
-    }
-
     // Suspend substitute (currently does nothing)
     if (m_Substitute)
     {
@@ -461,39 +266,11 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "substitute suspend failed");
     }
 
-    // Suspend BrowserActivator (does nothing)
-    if (m_BrowserActivator)
-    {
-        if (!m_BrowserActivator->OnSuspend())
-            WriteLog(LL_Error, "browser activator suspend failed");
-    }
-
-    // Suspend MorpheusActivator (does nothing)
-    if (m_MorpheusEnabler)
-    {
-        if (!m_MorpheusEnabler->OnSuspend())
-            WriteLog(LL_Error, "morpheus enabler suspend failed");
-    }
-
-    // Suspend RemotePlayActivator (does nothing)
-    if (m_RemotePlayEnabler)
-    {
-        if (!m_RemotePlayEnabler->OnSuspend())
-            WriteLog(LL_Error, "remote play enabler suspend failed");
-    }
-
     // Nota: Don't suspend before the debugger for catch error if something when wrong
     if (m_Debugger)
     {
         if (!m_Debugger->OnSuspend())
             WriteLog(LL_Error, "debugger suspend failed");
-    }
-
-    // Suspend TTYRedirector (does nothing)
-    if (m_TTYRedirector)
-    {
-        if (!m_TTYRedirector->OnSuspend())
-            WriteLog(LL_Error, "tty redirector suspend failed");
     }
 
     // Return final status
@@ -514,13 +291,6 @@ bool PluginManager::OnResume()
             WriteLog(LL_Error, "debugger resume failed");
     }
 
-    WriteLog(LL_Debug, "resuming log manager");
-    if (m_Logger)
-    {
-        if (!m_Logger->OnResume())
-            WriteLog(LL_Error, "log manager resume failed");
-    }
-
     WriteLog(LL_Debug, "resuming emuRegistry");
     if (m_EmuRegistry)
     {
@@ -533,34 +303,6 @@ bool PluginManager::OnResume()
     {
         if (!m_Substitute->OnResume())
             WriteLog(LL_Error, "substitute resume failed");
-    }
-
-    WriteLog(LL_Debug, "resuming browser activator");
-    if (m_BrowserActivator)
-    {
-        if (!m_BrowserActivator->OnResume())
-            WriteLog(LL_Error, "browser activator resume failed");
-    }
-
-    WriteLog(LL_Debug, "resuming morpheus enabler");
-    if (m_MorpheusEnabler)
-    {
-        if (!m_MorpheusEnabler->OnResume())
-            WriteLog(LL_Error, "morpheus enabler resume failed");
-    }
-
-    WriteLog(LL_Debug, "resuming remote play enabler");
-    if (m_RemotePlayEnabler)
-    {
-        if (!m_RemotePlayEnabler->OnResume())
-            WriteLog(LL_Error, "remote play enabler resume failed");
-    }
-
-    WriteLog(LL_Debug, "resuming tty redirector");
-    if (m_TTYRedirector)
-    {
-        if (!m_TTYRedirector->OnResume())
-            WriteLog(LL_Error, "tty redirector resume failed");
     }
 
     // Iterate through all of the plugins
@@ -582,13 +324,6 @@ bool PluginManager::OnResume()
         WriteLog(LL_Info, "plugin (%s) resume %s",
             l_Plugin->GetName(),
             s_ResumeResult ? "success" : "failure");
-    }
-
-    WriteLog(LL_Debug, "resuming file manager");
-    if (m_FileManager)
-    {
-        if (!m_FileManager->OnResume())
-            WriteLog(LL_Error, "file manager resume failed");
     }
 
 

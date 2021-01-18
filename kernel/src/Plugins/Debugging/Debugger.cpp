@@ -1,43 +1,23 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "Debugger2.hpp"
+#include "Debugger.hpp"
 #include <Utils/Kdlsym.hpp>
 
 using namespace Mira::Plugins;
 
-const char Debugger2::hexchars[] = "0123456789abcdef";
 
-Debugger2::Debugger2(uint16_t p_Port) :
-    m_TrapFatalHook(nullptr),
-    m_ServerAddress { 0 },
-    m_Socket(-1),
-    m_Port(p_Port),
-    m_OnProcessExitTag(nullptr),
-    m_AttachedPid(-1)
+Debugger::Debugger()
 {
-    // auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
-    //auto eventhandler_register = (eventhandler_tag(*)(struct eventhandler_list *list, const char *name, void *func, void *arg, int priority))kdlsym(eventhandler_register);
 
-    // mtx_init(&m_Mutex, "DbgLock", nullptr, MTX_SPIN);
-
-    // Registers process exiting
-    //m_OnProcessExitTag = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(OnProcessExit), this, EVENTHANDLER_PRI_FIRST);
 }
 
-Debugger2::~Debugger2()
+Debugger::~Debugger()
 {
-    auto eventhandler_deregister = (void(*)(struct eventhandler_list* a, struct eventhandler_entry* b))kdlsym(eventhandler_deregister);
-	auto eventhandler_find_list = (struct eventhandler_list * (*)(const char *name))kdlsym(eventhandler_find_list);
 
-    if (m_OnProcessExitTag != nullptr)
-    {
-        EVENTHANDLER_DEREGISTER(process_exit, m_OnProcessExitTag);
-        m_OnProcessExitTag = nullptr;
-    }
 }
 
-bool Debugger2::OnLoad()
+bool Debugger::OnLoad()
 {
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
 	// Create the trap fatal hook
@@ -53,7 +33,7 @@ bool Debugger2::OnLoad()
     return true;
 }
 
-bool Debugger2::OnUnload()
+bool Debugger::OnUnload()
 {
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
     WriteLog(LL_Info, "deleting trap fatal hook");
@@ -67,15 +47,5 @@ bool Debugger2::OnUnload()
     }
 #endif
 
-    return true;
-}
-
-bool Debugger2::OnSuspend()
-{
-    return true;
-}
-
-bool Debugger2::OnResume()
-{
     return true;
 }
