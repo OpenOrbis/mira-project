@@ -46,13 +46,7 @@ namespace Mira
 {
     namespace Plugins
     {
-        /**
-         * @brief Debugger Plugin
-         * 
-         * This thing memory leaks like a mf
-         * go back and fix it at a later date, maybe tomorow?
-         */
-        class Debugger2 : public Utils::IModule
+        class Debugger : public Utils::IModule
         {
         private:
             enum

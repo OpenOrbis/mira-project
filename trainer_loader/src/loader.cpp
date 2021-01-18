@@ -183,9 +183,10 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
             int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, NULL, 0, 0, 0);
             
             int32_t(*trainer_load)() = nullptr;
-            stub_dlsym(s_TrainerModuleId, "trainer_loader", &trainer_load);
+            stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
 
-            (void)trainer_load();
+            if (trainer_load)
+                (void)trainer_load();
         });
 
         // Iterate _substitute directory
@@ -210,9 +211,10 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
             int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, NULL, 0, 0, 0);
             
             int32_t(*trainer_load)() = nullptr;
-            stub_dlsym(s_TrainerModuleId, "trainer_loader", &trainer_load);
+            stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
 
-            (void)trainer_load();
+            if (trainer_load != nullptr)
+                (void)trainer_load();
         });
     }
 

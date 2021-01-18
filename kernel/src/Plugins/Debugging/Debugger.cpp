@@ -72,10 +72,10 @@ bool Debugger2::OnUnload()
 
 bool Debugger2::OnSuspend()
 {
-    return OnUnload();
+    return true;
 }
 
 bool Debugger2::OnResume()
 {
-    return OnLoad();
+    return true;
 }

@@ -1,7 +1,7 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "Debugger2.hpp"
+#include <Plugins/Debugging/Debugger.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Mira.hpp>
 
