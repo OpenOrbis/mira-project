@@ -151,7 +151,22 @@ struct file {
 	 * Mandatory Access control information.
 	 */
 	void		*f_label;	/* Place-holder for MAC label. */
+
+	// Additional structure changes, credits: ChendoChap
+	// PlayStation 4 specific
+	char _unk50[0x8];
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_200
+    char _unk58[0x10];
+#endif
 };
+
+#if defined(MIRA_CHECKS)
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_200
+static_assert(sizeof(struct file) == 0x68, "invalid struct file size");
+#else
+static_assert(sizeof(struct file) == 0x58, "invalid struct file size");
+#endif
+#endif
 
 #define	FOFFSET_LOCKED       0x1
 #define	FOFFSET_LOCK_WAITING 0x2		 
