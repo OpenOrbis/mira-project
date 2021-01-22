@@ -926,7 +926,7 @@ void* Substitute::FindOriginalAddress(struct proc* p_Process, const char* p_Name
 }
 
 // Substitute : Find pre-offset from the name or nids
-uint64_t Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_ModuleName, const char* p_Name, int32_t p_Flags) 
+void* Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_ModuleName, const char* p_Name, int32_t p_Flags) 
 {
     auto A_sx_xlock_hard = (int (*)(struct sx *sx, int opts))kdlsym(_sx_xlock);
     auto A_sx_xunlock_hard = (int (*)(struct sx *sx))kdlsym(_sx_xunlock);
@@ -950,130 +950,153 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_Mo
     else
         name_to_nids(p_Name, s_Nids); // nids calculated by name
 
-    uint64_t s_NidsOffsetFound = 0;
+    caddr_t s_NidsOffsetFound = 0;
 
-    if (p_Process->p_dynlib->objs.slh_first) 
+    // Determine if we need to lock the process, then do it if needed
+    bool s_ProcessUnlockNeeded = false;
+    auto s_ProcessLocked = PROC_LOCKED(p_Process);
+    if (s_ProcessLocked == false)
     {
+        PROC_LOCK(p_Process);
+        s_ProcessUnlockNeeded = true;
+    }
+
+    do
+    {
+        auto s_DynlibObj = p_Process->p_dynlib->objs.slh_first;
+        if (s_DynlibObj == nullptr)
+        {
+            WriteLog(LL_Error, "[%s] The process (%d) (%s) is not dynamically linkable.", s_TitleId, p_Process->p_pid, p_Process->p_comm);
+            break;
+        }
+
         // Lock dynlib object (Note: Locking will panic kernel sometime)
+        // BUG: Determine if we need to lock at all, or if the lock is already held (unlocking and causing races later)
         struct sx* s_DynlibBindLock = &p_Process->p_dynlib->bind_lock; //(struct sx*)((uint64_t)p->p_dynlib + 0x70);
         A_sx_xlock_hard(s_DynlibBindLock, 0);
 
-        uint64_t s_MainDynlibObj = (uint64_t)p_Process->p_dynlib->main_obj; //*(uint64_t*)((uint64_t)p->p_dynlib + 0x10);
-
-        if (s_MainDynlibObj) 
+        do
         {
+            // Get the main dynlib object
+            auto s_MainDynlibObj = p_Process->p_dynlib->main_obj;
+            if (s_MainDynlibObj == nullptr) 
+            {
+                WriteLog(LL_Error, "main dynlib object is nullptr.");
+                break;
+            }
+
             // Search in all library
-            uint64_t s_DynlibObj = s_MainDynlibObj;
+            auto s_DynlibObj = s_MainDynlibObj;
 
             // Check if we not are in the main executable
-            if (strncmp(p_ModuleName, SUBSTITUTE_MAIN_MODULE, SUBSTITUTE_MAX_NAME) != 0) 
+            if (strncmp(p_ModuleName, SUBSTITUTE_MAIN_MODULE, SUBSTITUTE_MAX_NAME) == 0)
             {
-                for (;;) 
+                WriteLog(LL_Debug, "not the main executable bailing.");
+                break;
+            }
+
+            for (;;) 
+            {
+                char* s_LibName = (char*)(*(uint64_t*)(s_DynlibObj + 8));
+
+                // If the libname (a path) containt the module name, it's the good object, break it
+                if (s_LibName && strstr(s_LibName, p_ModuleName)) {
+                    break;
+                }
+
+                s_DynlibObj = s_DynlibObj->link.sle_next; //*(uint64_t*)(s_DynlibObj);
+                if (s_DynlibObj == nullptr) 
                 {
-                    char* s_LibName = (char*)(*(uint64_t*)(s_DynlibObj + 8));
-
-                    // If the libname (a path) containt the module name, it's the good object, break it
-                    if (s_LibName && strstr(s_LibName, p_ModuleName)) {
-                        break;
-                    }
-
-                    s_DynlibObj = *(uint64_t*)(s_DynlibObj);
-                    if (!s_DynlibObj) 
-                    {
-                        WriteLog(LL_Error, "Unable to find the library.");
-                        // FIXME: Fix the bug below, probably by re-organizing this function
-                        // BUG: Did not unlock dynlib bind lock
-                        return 0; // Library not found
-                    }
+                    WriteLog(LL_Error, "Unable to find the library.");
+                    break;
                 }
             }
 
             // Get the main relocbase address, for calculation after
-            uint64_t s_RelocBase = (uint64_t)(*(uint64_t*)(s_DynlibObj + 0x70));
+            caddr_t s_RelocBase = s_DynlibObj->realloc_base; //(uint64_t)(*(uint64_t*)(s_DynlibObj + 0x70));
 
-            uint64_t s_UnkObj = *(uint64_t*)(s_DynlibObj + 0x150);
-            if (s_UnkObj) 
+            // Get the pfi
+            auto s_Pfi = s_DynlibObj->pfi;
+            if (s_Pfi == nullptr)
             {
-                uint64_t s_StringTable = *(uint64_t*)(s_UnkObj + 0x38);
+                WriteLog(LL_Error, "pfi invalid.");
+                break;
+            }
 
-                uint64_t s_UnkObjSizeInUnkObj = *(uint64_t*)(s_UnkObj + 0x50);
-                uint64_t s_UnkObjInObj = *(uint64_t*)(s_UnkObj + 0x48);
+            caddr_t s_StringTable = s_Pfi->strtab;
 
-                // Idk what is it ^^', check it anyway, conform to Sony kernel
-                if (s_UnkObjInObj && s_UnkObjSizeInUnkObj) 
-                {
-                    uint64_t s_Current = s_UnkObjInObj;
-                    uint64_t s_EndAddress = s_UnkObjInObj + s_UnkObjSizeInUnkObj;
-                    while(s_Current < s_EndAddress) 
-                    {
-                        uint64_t s_RcxValue = (*(uint64_t*)(s_Current + 0x8)) >> 32;
-                        uint64_t s_RdxValue = s_RcxValue * 24;
+            size_t s_PltRelaSize = s_Pfi->pltrelasize;
+            caddr_t s_PltRela = s_Pfi->pltrela;
 
-                        uint64_t s_NidsOffset = 0;
-                        if (*(uint64_t*)(s_UnkObj + 0x30) <= s_RdxValue) 
-                        {
-                            s_NidsOffset = 0;
-                        } 
-                        else 
-                        {
-                            uint64_t s_NidsOffsetAddress = *(uint64_t*)(s_UnkObj + 0x28) + s_RdxValue;
-                            s_NidsOffset = (uint64_t)(*(uint32_t*)(s_NidsOffsetAddress));
-                        }
+            if (s_PltRela == nullptr || s_PltRelaSize == 0)
+            {
+                WriteLog(LL_Error, "pltrela (%p) or pltrelasize (%lx) invalid.", s_PltRela, s_PltRelaSize);
+                break;
+            }
 
-                        uint64_t s_NidsAddressValidation = *(uint64_t*)(s_UnkObj + 0x40);
-                        if (s_NidsAddressValidation <= s_NidsOffset) 
-                        {
-                             WriteLog(LL_Error, "[%s] (%p <= %p) : Error", s_TitleId, (void*)s_NidsAddressValidation, (void*)s_NidsOffset);
-                        } 
-                        else 
-                        {
-                            s_NidsOffset += s_StringTable;
+            const Elf64_Rela* s_RelaStart = (const Elf64_Rela*)s_PltRela;
+            const Elf64_Rela* s_RelaEnd = (const Elf64_Rela*)(s_PltRela + s_PltRelaSize);
 
-                            /* uint64_t r_info = *(uint64_t*)(current + 0x8); */
+            for (const Elf64_Rela* s_Current = s_RelaStart; s_Current != s_RelaEnd; ++s_Current)
+            {
+                uint64_t s_SymbolIndex = ELF64_R_SYM(s_Current->r_info); // (*(uint64_t*)(s_Current + 0x8)) >> 32;
+                uint64_t s_SymbolOffset = s_SymbolIndex * sizeof(Elf64_Sym);
 
-                            uint64_t s_Offset = *(uint64_t*)(s_Current);
+                // Get the nids offset by looking up the symbol offset
+                size_t s_NidStringOffset = 0;
 
-                            char* s_Nidsf = (char*)s_NidsOffset;
-
-                            // If the nids_offset is a valid address
-                            if (s_Nidsf) 
-                            {
-                                // Check if it's the good nids
-                                if (strncmp(s_Nidsf, s_Nids, 11) == 0) 
-                                {
-                                    s_NidsOffsetFound = s_RelocBase + s_Offset;
-                                    break;
-                                }
-                            }
-                        }
-
-                        s_Current += 0x18;
-                    }
-                } 
+                // Check to make sure that the symbol offset is within the symbol table size
+                if (s_Pfi->symtabsize <= s_SymbolOffset) 
+                    s_NidStringOffset = 0;
                 else 
                 {
-                    WriteLog(LL_Error, "[%s] Not conform to Sony code.", s_TitleId);
-                    WriteLog(LL_Error, "[%s] unk_obj_in_obj: %p", s_TitleId, (void*)s_UnkObjInObj);
-                    WriteLog(LL_Error, "[%s] unk_obj_size_in_unk_obj: %p", s_TitleId, (void*)s_UnkObjSizeInUnkObj);
+                    caddr_t s_NidsOffsetAddress = s_Pfi->symtab /* *(uint64_t*)(s_UnkObj + 0x28) */ + s_SymbolOffset;
+                    const Elf64_Sym* s_NidsSymbol = (Elf64_Sym*)s_NidsOffsetAddress;
+                    //s_NidsSymbol->st_info;
+
+                    // TODO: Ask TW what this is supposed to be doing ????
+                    s_NidStringOffset = (size_t)(*(uint32_t*)(s_NidsOffsetAddress));
                 }
-            } 
-            else 
-            {
-                WriteLog(LL_Error, "[%s] Unable to find unk object !", s_TitleId);
+
+                // Make sure the string table offset is within bounds
+                size_t s_StringTableSize = s_Pfi->strsize;
+                if (s_StringTableSize <= s_NidStringOffset) 
+                {
+                    WriteLog(LL_Error, "[%s] (%p <= %p) : Error", s_TitleId, (void*)s_StringTableSize, (void*)s_NidStringOffset);
+                    continue;
+                }
+
+                s_NidStringOffset += (size_t)s_StringTable;
+
+                Elf64_Addr s_Offset = s_Current->r_offset;
+                
+
+                char* s_Nidsf = (char*)s_NidStringOffset;
+
+                // If the nids_offset is a valid address
+                if (s_Nidsf == nullptr) 
+                {
+                    WriteLog(LL_Error, "could not get the nids strings.");
+                    continue;
+                }
+
+                // Check if it's the good nids
+                if (strncmp(s_Nidsf, s_Nids, 11) == 0) 
+                {
+                    s_NidsOffsetFound = s_RelocBase + s_Offset;
+                    break;
+                }
             }
-        } 
-        else 
-        {
-            WriteLog(LL_Error, "[%s] Unable to find main object !", s_TitleId);
-        }
+
+        } while (false);
 
         // Unlock dynlib object
         A_sx_xunlock_hard(s_DynlibBindLock);
-    } 
-    else 
-    {
-        WriteLog(LL_Error, "[%s] The process is not Dynamic Linkable", s_TitleId);
-    }
+
+    } while (false);
+
+    if (s_ProcessUnlockNeeded)
+        PROC_UNLOCK(p_Process);
 
     return s_NidsOffsetFound;
 }

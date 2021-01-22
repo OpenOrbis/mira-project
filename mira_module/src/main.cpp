@@ -11,12 +11,12 @@ int testLibraryFunction()
     return 0x1337;
 }
 
-extern "C" int32_t trainer_load()
+extern "C" bool trainer_load()
 {
 
 }
 
-extern "C" int32_t trainer_unload()
+extern "C" bool trainer_unload()
 {
     
 }

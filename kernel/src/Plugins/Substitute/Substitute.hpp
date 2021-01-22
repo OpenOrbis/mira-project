@@ -156,8 +156,8 @@ namespace Mira
             void CleanupAllHook();
 
             // SCE Module Utility
-            uint64_t FindJmpslotAddress(struct proc* p, const char* module_name, const char* name, int32_t flags);
-            void*    FindOriginalAddress(struct proc* p, const char* name, int32_t flags);
+            void* FindJmpslotAddress(struct proc* p, const char* module_name, const char* name, int32_t flags);
+            void* FindOriginalAddress(struct proc* p, const char* name, int32_t flags);
 
             // IOCTL Function
             static int OnIoctl_HookIAT(struct thread* td, struct substitute_hook_iat* uap);
