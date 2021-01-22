@@ -12,7 +12,7 @@ MIRA_CHECKS :=
 endif
 
 # Project name
-PROJ_NAME := Debugger
+PROJ_NAME := mira_module
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Linux)

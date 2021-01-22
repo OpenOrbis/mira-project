@@ -58,6 +58,7 @@ int (*sceKernelLoadStartModule)(const char *name, size_t argc, const void *argv,
 
 // Libc
 typedef struct DIR DIR;
+typedef struct FILE FILE;
 struct dirent {
 	uint32_t d_fileno;
 	uint16_t d_reclen;
@@ -71,6 +72,11 @@ int (*closedir)(DIR *dirp) = nullptr;
 int (*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 size_t (*strlen)(const char *s) = nullptr;
 int (*strcmp)(const char *s1, const char *s2) = nullptr;
+int (*fprintf)(FILE *stream, const char *format, ...) = nullptr;
+FILE *(*fopen)(const char *filename, const char *mode) = nullptr;
+size_t (*fread)(void *ptr, size_t size, size_t count, FILE *stream) = nullptr;
+size_t (*fwrite)(const void * ptr, size_t size, size_t count, FILE *stream ) = nullptr;
+int (*fclose)(FILE *stream) = nullptr;
 
 static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)(void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type))
 {
@@ -160,6 +166,13 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         stub_dlsym(s_LibcModuleId, "snprintf", &snprintf);
         stub_dlsym(s_LibcModuleId, "strlen", &strlen);
         stub_dlsym(s_LibcModuleId, "strcmp", &strcmp);
+        stub_dlsym(s_LibcModuleId, "fprintf", &fprintf);
+        stub_dlsym(s_LibcModuleId, "fopen", &fopen);
+        stub_dlsym(s_LibcModuleId, "fread", &fread);
+        stub_dlsym(s_LibcModuleId, "fwrite", &fwrite);
+        stub_dlsym(s_LibcModuleId, "fclose", &fclose);
+
+        
 
         // Iterate _mira directory
         IterateDirectory("/_mira", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
@@ -169,6 +182,11 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
             snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
 
             // s_PrxPath = /_mira/whatever.prx
+            FILE* s_File = fopen("/dev/deci_stdout", "rw");
+            fprintf(s_File, "HELLO WORLD FROM TRAINER LOADER STUB\n");
+            fprintf(s_File, s_PrxPath);
+            fprintf(s_File, s_PrxPath);
+            fclose(s_File);
 
             // Check to make sure the file name ends in .prx
             auto s_Length = strlen(s_PrxPath);

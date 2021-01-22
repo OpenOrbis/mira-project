@@ -1186,7 +1186,7 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
 //////////////////////////
 
 // Substitute (IOCTL) : Do a IAT Hook for the specified thread
-int Substitute::OnIoctl_HookIAT(struct thread* p_Thread, struct substitute_hook_iat* p_Uap /* this should not be accessed without copyin */) 
+int Substitute::OnIoctl_HookIAT(struct thread* p_Thread, struct substitute_hook_iat* p_Uap) 
 {
     // BUG: We do not copyin anything, we directly reference, this function needs to be rewritten
 
@@ -1340,11 +1340,19 @@ int32_t Substitute::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 {
     // TODO: Implement copyin/copyout so we aren't accessing userland memory from kernel
     // RESPECT THE BOUNDARIES
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     
     switch (p_Command) {
         case SUBSTITUTE_HOOK_IAT: 
         {
-            return Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
+            struct substitute_hook_iat s_Uap = { 0 };
+            if (copyin(p_Data, &s_Uap, sizeof(s_Uap)))
+            {
+                WriteLog(LL_Error, "could not copyin enough data for substitute hook iat.");
+                return 0;
+            }
+
+            return Substitute::OnIoctl_HookIAT(p_Thread, &s_Uap);
         }
 
         case SUBSTITUTE_HOOK_JMP: 

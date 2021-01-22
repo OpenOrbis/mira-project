@@ -26,6 +26,23 @@ struct Trainer_t
     };
 };
 
+/**
+ * @brief Entrypoint called for when a trainer loads
+ * 
+ * @return enum SubstituteError return error
+ */
+extern int32_t trainer_load();
+
+/**
+ * @brief Entrypoint called for when a trainer unloads
+ * 
+ * @return enum SubstituteError return error
+ */
+extern int32_t trainer_unload();
+
+extern int32_t trainer_hookiat();
+extern int32_t trainer_hook();
+
 #if __cplusplus
 }
 #endif // __cplusplus

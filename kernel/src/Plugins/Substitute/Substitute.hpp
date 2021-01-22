@@ -4,6 +4,9 @@
 #include <Utils/Hook.hpp>
 #include <Driver/CtrlDriver.hpp>
 
+// This is ussed in both kernel and userland
+#include <mira/Trainer/Substitute/SubstituteDefs.hpp>
+
 extern "C"
 {
     #include <sys/eventhandler.h>
@@ -30,45 +33,6 @@ struct entrypointhook_header {
     uint64_t fakeReturnAddress;
 } __attribute__((packed));
 
-
-/////////////////////////////////////////
-// Substitute Parameter (Don't forget to update library !)
-/////////////////////////////////////////
-
-#define SUBSTITUTE_IOCTL_BASE   'S'
-#define SUBSTITUTE_MAX_NAME 255 // Max lenght for name
-#define SUBSTITUTE_MAIN_MODULE "" // Define the main module
-#define SUBSTITUTE_MAX_HOOKS 100 // Max possible hooks (all process)
-#define SUBSTITUTE_MAX_CHAINS 50 // Max possible function in chains
-
-/////////////////////////////////////////
-// Enumeration
-/////////////////////////////////////////
-
-enum HookType {
-    HOOKTYPE_IAT,
-    HOOKTYPE_JMP
-};
-
-enum {
-    SUBSTITUTE_IAT_NAME = 0,
-    SUBSTITUTE_IAT_NIDS = 1
-};
-
-enum {
-    SUBSTITUTE_STATE_DISABLE = 0,
-    SUBSTITUTE_STATE_ENABLE = 1,
-    SUBSTITUTE_STATE_UNHOOK = 2
-};
-
-enum SubstituteError {
-    SUBSTITUTE_OK       =  0,
-    SUBSTITUTE_BAD_ARGS = -1,
-    SUBSTITUTE_INVALID  = -2,
-    SUBSTITUTE_BADLOGIC = -3,
-    SUBSTITUTE_NOTFOUND = -4,
-    SUBSTITUTE_NOMEM    = -5
-};
 
 /////////////////////////////////////////
 // Kernel structure

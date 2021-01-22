@@ -5,6 +5,9 @@
 extern "C" {
 #endif // __cplusplus
 
+
+typedef struct OrbisPadData OrbisPadData;
+
 /**
  * @brief v1 Default values
  * 
@@ -65,6 +68,14 @@ struct v1Option_t
         double asDouble;
         uint8_t asBytes[8];
     } defaultData;
+};
+
+struct v1FunctionBlock_t
+{
+    int32_t(*trainer_load)(void*);
+    int32_t(*trainer_unload)(void*);
+
+    int32_t(*trainer_oninput)(int32_t p_PadId, OrbisPadData* p_PadData);
 };
 
 struct v1Trainer_t
