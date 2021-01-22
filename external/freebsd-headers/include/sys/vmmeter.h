@@ -85,7 +85,11 @@ struct vmmeter {
 	/*
 	 * Distribution of page usages.
 	 */
+	// PlayStation 4: v_page_size is not present in orbis kernels
+	// Credits: ChendoChap
+#if !defined(MIRA_PLATFORM)
 	u_int v_page_size;	/* (c) page size in bytes */
+#endif
 	u_int v_page_count;	/* (c) total number of pages in system */
 	u_int v_free_reserved;	/* (c) pages reserved for deadlock */
 	u_int v_free_target;	/* (c) pages desired free */

@@ -1,22 +1,25 @@
 #pragma once
+
+extern "C"
+{
+    #include <sys/types.h>
+    #include <sys/eventhandler.h>
+    #include <sys/module.h>
+    #include <sys/proc.h>
+    #include <sys/ioccom.h>
+    #include <vm/vm.h>
+    #include <sys/conf.h>
+    #include <sys/sysproto.h>
+    #include <sys/sysent.h>
+};
+
 #include <Utils/Types.hpp>
-#include <sys/conf.h>
-#include <sys/sysproto.h>
-#include <sys/sysent.h>
 #include <Utils/_Syscall.hpp>
 #include <Utils/Kernel.hpp>
 
 #include <Plugins/Substitute/Substitute.hpp>
 #include <mira/MiraConfig.hpp>
 #include <mira/Driver/DriverCmds.hpp>
-
-extern "C"
-{
-    #include <sys/eventhandler.h>
-    #include <sys/module.h>
-    #include <sys/proc.h>
-    #include <sys/ioccom.h>
-};
 
 namespace Mira
 {

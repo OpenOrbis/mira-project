@@ -524,17 +524,32 @@ struct thread* Mira::Framework::GetShellcoreThread()
 
 bool Mira::Framework::InstallEventHandlers()
 {
+	#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
 	auto eventhandler_register = (eventhandler_tag
 	(*)(struct eventhandler_list *list, const char *name,
+		void *func, void* unk, void *arg, int priority))kdlsym(eventhandler_register);
+	#else
+		auto eventhandler_register = (eventhandler_tag
+	(*)(struct eventhandler_list *list, const char *name,
 		void *func, void *arg, int priority))kdlsym(eventhandler_register);
+	#endif
 
 	// Register our event handlers
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
+	m_SuspendTag = eventhandler_register(nullptr, "system_suspend_phase1", reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), nullptr, nullptr, EVENTHANDLER_PRI_FIRST);
+	m_ResumeTag = eventhandler_register(nullptr, "system_resume_phase3", reinterpret_cast<void*>(Mira::Framework::OnMiraResume), nullptr, nullptr, EVENTHANDLER_PRI_LAST);
+
+	m_ProcessExec = eventhandler_register(nullptr, "process_exec", reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExec), nullptr, nullptr, EVENTHANDLER_PRI_ANY);
+	m_ProcessExecEnd = eventhandler_register(nullptr, "process_exec_end", reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), nullptr, nullptr, EVENTHANDLER_PRI_LAST);
+	m_ProcessExit = eventhandler_register(nullptr, "process_exit", reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), nullptr, nullptr, EVENTHANDLER_PRI_FIRST);
+#else
 	m_SuspendTag = EVENTHANDLER_REGISTER(system_suspend_phase1, reinterpret_cast<void*>(Mira::Framework::OnMiraSuspend), nullptr, EVENTHANDLER_PRI_FIRST);
 	m_ResumeTag = EVENTHANDLER_REGISTER(system_resume_phase3, reinterpret_cast<void*>(Mira::Framework::OnMiraResume), nullptr, EVENTHANDLER_PRI_LAST);
 
 	m_ProcessExec = EVENTHANDLER_REGISTER(process_exec, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExec), nullptr, EVENTHANDLER_PRI_ANY);
 	m_ProcessExecEnd = EVENTHANDLER_REGISTER(process_exec_end, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExecEnd), nullptr, EVENTHANDLER_PRI_LAST);
 	m_ProcessExit = EVENTHANDLER_REGISTER(process_exit, reinterpret_cast<void*>(Mira::Framework::OnMiraProcessExit), nullptr, EVENTHANDLER_PRI_FIRST);
+#endif
 
 	return true;
 }

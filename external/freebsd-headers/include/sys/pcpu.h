@@ -164,6 +164,12 @@ struct pcpu {
 	STAILQ_ENTRY(pcpu) pc_allcpu;
 	struct lock_list_entry *pc_spinlocks;
 	struct vmmeter	pc_cnt;			/* VM stats counters */
+
+	// PlayStation 4 Modified
+#if defined(MIRA_PLATFORM)
+	// Unknown blob after pc_cnt estimated sz (0x90-0x94)
+	char _unk48[0x94];
+#endif
 	long		pc_cp_time[CPUSTATES];	/* statclock ticks */
 	struct device	*pc_device;
 	void		*pc_netisr;		/* netisr SWI cookie */

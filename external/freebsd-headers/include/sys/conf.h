@@ -142,6 +142,9 @@ typedef int d_mmap_single_t(struct cdev *cdev, vm_ooffset_t *offset,
     vm_size_t size, struct vm_object **object, int nprot);
 typedef void d_purge_t(struct cdev *dev);
 
+// PlayStation 4 addition, Credits: ChendoChap
+typedef int d_mmap_single_ext_t(struct cdev *dev, vm_ooffset_t *offset, vm_size_t size, struct vm_object **object, vm_prot_t nprot, void* unk0, void* unk1);
+
 typedef int dumper_t(
 	void *_priv,		/* Private to the driver. */
 	void *_virtual,		/* Virtual (mapped) address. */
@@ -207,6 +210,11 @@ struct cdevsw {
 	d_purge_t		*d_purge;
 	d_mmap_single_t		*d_mmap_single;
 
+	// PlayStation 4 Addition, credits: ChendoChap
+#if defined(MIRA_PLATFORM)
+	d_mmap_single_ext_t *d_mmap_single_ext;
+#endif
+
 	int32_t			d_spare0[3];
 	void			*d_spare1[3];
 
@@ -218,6 +226,11 @@ struct cdevsw {
 		SLIST_ENTRY(cdevsw)	postfree_list;
 	} __d_giant;
 };
+
+#if defined(MIRA_CHECKS)
+static_assert(sizeof(struct cdevsw) == 0xC0, "devsw size invalid.");
+#endif
+
 #define	d_gianttrick		__d_giant.gianttrick
 #define	d_postfree_list		__d_giant.postfree_list
 

@@ -249,6 +249,9 @@ struct md_page {
  * within the direct map (DMAP) region.
  */
 struct pmap {
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_750
+	uint64_t pm_unk;
+#endif
 	struct mtx		pm_mtx;
 	pml4_entry_t		*pm_pml4;	/* KVA of level 4 page table */
 	TAILQ_HEAD(,pv_chunk)	pm_pvchunk;	/* list of mappings in pmap */

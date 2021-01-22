@@ -88,6 +88,9 @@ struct buf_ops {
 #define BO_BDFLUSH(bo, bp)	((bo)->bo_ops->bop_bdflush((bo), (bp)))
 
 struct bufobj {
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_170
+	uint64_t bo_unk;
+#endif
 	struct mtx	bo_mtx;		/* Mutex which protects "i" things */
 	struct bufv	bo_clean;	/* i Clean buffers */
 	struct bufv	bo_dirty;	/* i Dirty buffers */

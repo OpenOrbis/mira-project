@@ -143,8 +143,16 @@ do {									\
 } while(0)
 	
 
+// PlayStation 4: After 5.50 there's an extra argument after func
+// Credits: ChendoChap
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
+eventhandler_tag eventhandler_register(struct eventhandler_list *list, 
+	    const char *name, void *func, void* unk, void *arg, int priority);
+#else
 eventhandler_tag eventhandler_register(struct eventhandler_list *list, 
 	    const char *name, void *func, void *arg, int priority);
+#endif
+
 void	eventhandler_deregister(struct eventhandler_list *list,
 	    eventhandler_tag tag);
 struct eventhandler_list *eventhandler_find_list(const char *name);
