@@ -934,6 +934,8 @@ void* Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_Modul
     auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto name_to_nids = (void(*)(const char *name, const char *nids_out))kdlsym(name_to_nids);
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     if (p_Name == nullptr || p_Process == nullptr) 
     {
@@ -957,7 +959,7 @@ void* Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_Modul
     auto s_ProcessLocked = PROC_LOCKED(p_Process);
     if (s_ProcessLocked == false)
     {
-        PROC_LOCK(p_Process);
+        _mtx_lock_flags(&p_Process->p_mtx, 0);
         s_ProcessUnlockNeeded = true;
     }
 
@@ -1051,7 +1053,7 @@ void* Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_Modul
                 else 
                 {
                     caddr_t s_NidsOffsetAddress = s_Pfi->symtab /* *(uint64_t*)(s_UnkObj + 0x28) */ + s_SymbolOffset;
-                    const Elf64_Sym* s_NidsSymbol = (Elf64_Sym*)s_NidsOffsetAddress;
+                    //const Elf64_Sym* s_NidsSymbol = (Elf64_Sym*)s_NidsOffsetAddress;
                     //s_NidsSymbol->st_info;
 
                     // TODO: Ask TW what this is supposed to be doing ????
@@ -1096,7 +1098,7 @@ void* Substitute::FindJmpslotAddress(struct proc* p_Process, const char* p_Modul
     } while (false);
 
     if (s_ProcessUnlockNeeded)
-        PROC_UNLOCK(p_Process);
+        _mtx_unlock_flags(&p_Process->p_mtx, 0);
 
     return s_NidsOffsetFound;
 }

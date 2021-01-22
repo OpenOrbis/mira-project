@@ -79,7 +79,7 @@ typedef struct _TrainerSubstituteHookChain
 #if defined(__cplusplus)
 }   // extern "C"
 #endif
-
+/*
 int open_hook(const char* path, const char* type)
 {
     // printf("open called (%s).\n", path);
@@ -153,4 +153,4 @@ inline RetType CallChain(TrainerSubstituteHookChain* p_Chain, Args... p_Args)
 void test_func()
 {
 
-}
+}*/

@@ -77,6 +77,7 @@ FILE *(*fopen)(const char *filename, const char *mode) = nullptr;
 size_t (*fread)(void *ptr, size_t size, size_t count, FILE *stream) = nullptr;
 size_t (*fwrite)(const void * ptr, size_t size, size_t count, FILE *stream ) = nullptr;
 int (*fclose)(FILE *stream) = nullptr;
+int* (*__error)() = nullptr;
 
 static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)(void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type))
 {
@@ -150,6 +151,14 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         {
             stub_load_prx("libkernel_sys.sprx", &s_LibKernelHandle);
         }
+    }
+
+    // Before we do anything find error
+    stub_dlsym(s_LibKernelHandle, "__error", &__error);
+    if (__error == nullptr)
+    {
+        *(uint8_t*)0x1555 = 0x0;
+        return;
     }
     
     // Resolve sceKernelLoadStartModule

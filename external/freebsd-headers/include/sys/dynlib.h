@@ -17,7 +17,6 @@
 
 typedef STAILQ_HEAD(Struct_Objlist, Struct_Objlist_Entry) Objlist;
 
-
 struct dynlib_obj;
 struct dynlib_obj_dyn;
 struct dynlib;
@@ -263,9 +262,9 @@ struct dynlib_obj
 	char _unk158[0x30];				// 0x158
 #endif
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_200
-	char _unk158[0x8];				// 0x158
+	char _unk148[0x8];				// 0x148
 #endif
-	struct SceKdlPerFileInfo* pfi;	// 0x160
+	struct SceKdlPerFileInfo* pfi;	// 0x150
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_101 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176
 	struct dynlib* parent_dynlib;	//1C8/190 //used to get debug flags for conditional printfs, 2.00 - 2.04 does it with currthread->td_proc->p_dynlib instead
 #endif
@@ -273,12 +272,14 @@ struct dynlib_obj
 	char _unk158[0x18]; //1D0/198/158/168/158
 
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_200
-	char _unk158[0x8];				// 0x158
+	char _unk170[0x8];				// 0x170
 #endif
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_500
-	char _unk158[0x10];				// 0x158
+	char _unk170[0x10];				// 0x170
 #endif
 };
+static_assert(offsetof(struct dynlib_obj, pfi) == 0x150, "invalid pfi");
+static_assert(offsetof(struct dynlib_obj, _unk158) == 0x158, "invalid _unk158");
 
 // The maximum size is found by looking up function
 // dynlib_proc_initialize_step1
