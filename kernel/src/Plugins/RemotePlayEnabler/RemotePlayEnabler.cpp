@@ -148,7 +148,7 @@ bool RemotePlayEnabler::ShellUIPatch()
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_555 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_620
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\xB8\x02\x00\x00", nullptr, true);
-#elif MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_672
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_672 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_755
 	// `/system_ex/app/NPXS20001/psm/Application/app.exe.sprx`
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUIAppTextStart + ssu_remote_play_menu_patch), 5, (void*)"\xE9\xBA\x02\x00\x00", nullptr, true);
 #else

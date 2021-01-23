@@ -209,43 +209,43 @@
 #define kdlsym_addr_sceRegMgrSetStr                        0x00500890
 
 // SceShellCore patches - call sceKernelIsGenuineCEX
-#define ssc_sceKernelIsGenuineCEX_patchA                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchB                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchC                   0x0
-#define ssc_sceKernelIsGenuineCEX_patchD                   0x0
+#define ssc_sceKernelIsGenuineCEX_patchA                   0x00168A90
+#define ssc_sceKernelIsGenuineCEX_patchB                   0x007FBF00
+#define ssc_sceKernelIsGenuineCEX_patchC                   0x0084AF42
+#define ssc_sceKernelIsGenuineCEX_patchD                   0x009D3150
 
 // SceShellCore patches - call nidf_libSceDipsw
-#define ssc_nidf_libSceDipsw_patchA                        0x0
-#define ssc_nidf_libSceDipsw_patchB                        0x0
-#define ssc_nidf_libSceDipsw_patchC                        0x0
-#define ssc_nidf_libSceDipsw_patchD                        0x0
+#define ssc_nidf_libSceDipsw_patchA                        0x00168ABA
+#define ssc_nidf_libSceDipsw_patchB                        0x00316BD3
+#define ssc_nidf_libSceDipsw_patchC                        0x007FBF2A
+#define ssc_nidf_libSceDipsw_patchD                        0x009D317A
 
-#define ssc_enable_fakepkg_patch                           0x0
+#define ssc_enable_fakepkg_patch                           0x003C244F
 
 // SceShellCore patches - use free prefix instead fake
-#define ssc_fake_to_free_patch                             0x0
+#define ssc_fake_to_free_patch                             0x00F66831
 
 // SceShellCore patches - enable remote pkg installer
-#define ssc_enable_data_mount_patch                        0x0
+#define ssc_enable_data_mount_patch                        0x00316BC3
 
 // SceShellCore patches - enable VR without spoof
-#define ssc_enable_vr_patch                                0x0
+#define ssc_enable_vr_patch                                0x00D57E60
 
 // SceShellCore patches - enable official external HDD support (Support added in 4.50)
-#define ssc_external_hdd_pkg_installer_patch               0x0
-#define ssc_external_hdd_version_patchA                    0x0
-#define ssc_external_hdd_version_patchB                    0x0
+#define ssc_external_hdd_pkg_installer_patch               0x009BC141
+#define ssc_external_hdd_version_patchA                    0x005BCF2D
+#define ssc_external_hdd_version_patchB                    0x00133080
 
 // SceShellUI patches - debug patches
-#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0
-#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0
+#define ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch   0x0001D140
+#define ssu_sceSblRcMgrIsStoreMode_patch                   0x0001D4A0
 
 // SceShellUI - remote play related patching
-#define ssu_CreateUserForIDU_patch                         0x0
-#define ssu_remote_play_menu_patch                         0x0
+#define ssu_CreateUserForIDU_patch                         0x0018E120
+#define ssu_remote_play_menu_patch                         0x00EC66E1
 
 // SceRemotePlay - enabler patches
-#define srp_enabler_patchA                                 0x0
-#define srp_enabler_patchB                                 0x0
+#define srp_enabler_patchA                                 0x0010A13A
+#define srp_enabler_patchB                                 0x0010A155
 
 #endif

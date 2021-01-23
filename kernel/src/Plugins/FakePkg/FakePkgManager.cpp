@@ -278,7 +278,7 @@ bool FakePkgManager::ShellCorePatch()
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
 	}
-#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_672 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_702
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_672 && MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_755
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x98\x00\x00\x00", nullptr, true);
 	if (s_Ret < 0)
 	{
