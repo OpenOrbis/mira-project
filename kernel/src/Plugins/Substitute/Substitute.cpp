@@ -751,6 +751,15 @@ int Substitute::Unhook(struct proc* p_Process, int p_HookId, struct substitute_h
                         s_NextAddress = s_Hook->iat.uap_chains[s_ChainPosition+1];
 
                     s_BeforeChain.next = (struct substitute_hook_uat*)s_NextAddress;
+
+                    // Write the next inside chain
+                    s_Error = proc_rw_mem(p_Process, s_BeforeChainAddress, sizeof(struct substitute_hook_uat), &s_BeforeChain, nullptr, true);
+                    if (s_Error != 0) 
+                    {
+                        WriteLog(LL_Error, "Unable to write the before chain: (%d)", s_Error);
+                        s_Error = -10;
+                        break;
+                    }
                 } 
                 else if (s_ChainPosition == 0) 
                 {
@@ -759,6 +768,13 @@ int Substitute::Unhook(struct proc* p_Process, int p_HookId, struct substitute_h
                     // Get the next function chain
                     struct substitute_hook_uat s_Next;
                     void* s_NextAddress = (void*)s_Hook->iat.uap_chains[1];
+
+                    // If no next chains, simply free the hook.
+                    if (s_NextAddress == nullptr) {
+                        WriteLog(LL_Info, "Unhook for %i is called and no next chain. Remove it.", p_HookId);
+                        FreeHook(p_HookId);
+                        break;
+                    }
 
                     // Read the next chain
                     s_Error = proc_rw_mem(p_Process, s_NextAddress, sizeof(struct substitute_hook_uat), &s_Next, nullptr, false);
@@ -1118,16 +1134,10 @@ bool Substitute::OnProcessExecEnd(struct proc *p_Process)
 // Substitute : Unmount Substitute folder
 bool Substitute::OnProcessExit(struct proc *p_Process) 
 {
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
-
     if (!p_Process)
         return false;
 
-    int s_Ret = 0;
-
     // Get process information
-    struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p_Process);
     char* s_TitleId = (char*)((uint64_t)p_Process + 0x390);
 
     Substitute* s_Substitute = GetPlugin();
@@ -1136,71 +1146,8 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
     if ( !s_TitleId || s_TitleId[0] == 0 )
         return false;
 
-    // Getting needed thread
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
-    if (s_MainThread == nullptr || s_ProcessThread == nullptr)
-    {
-        WriteLog(LL_Error, "[%s] Could not get main or process thread", s_TitleId);
-        WriteLog(LL_Error, "[%s] Main thread: %p", s_TitleId, s_MainThread);
-        WriteLog(LL_Error, "[%s] Process thread: %p", s_TitleId, s_ProcessThread);
-        return false;
-    }
-
     // Start by cleanup hook list
     s_Substitute->CleanupProcessHook(p_Process);
-
-    // Getting jailed path for the process
-    struct filedesc* s_FileDesc = p_Process->p_fd;
-
-    char* s_SandboxPath = nullptr;
-    char* s_Freepath = nullptr;
-    vn_fullpath(s_MainThread, s_FileDesc->fd_jdir, &s_SandboxPath, &s_Freepath);
-
-    if (s_SandboxPath == nullptr) 
-    {
-        if (s_Freepath)
-            delete (s_Freepath);
-
-        return false;
-    }
-
-    // Finding substitute folder
-    char s_SubstituteFullMountPath[PATH_MAX];
-    snprintf(s_SubstituteFullMountPath, PATH_MAX, "%s/_substitute", s_SandboxPath);
-
-    auto s_DirectoryHandle = kopen_t(s_SubstituteFullMountPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
-    if (s_DirectoryHandle < 0)
-    {
-        // Free the memory used by freepath
-        if (s_Freepath)
-            delete (s_Freepath);
-
-        return false;
-    }
-    kclose_t(s_DirectoryHandle, s_MainThread);
-
-    WriteLog(LL_Info, "[%s] Cleaning substitute ...", s_TitleId);
-
-    // Unmount substitute folder if the folder exist
-    s_Ret = kunmount_t(s_SubstituteFullMountPath, MNT_FORCE, s_MainThread);
-    if (s_Ret < 0) 
-        WriteLog(LL_Error, "could not unmount folder (%s) (%d), Trying to remove anyway ...", s_SubstituteFullMountPath, s_Ret);
-
-    // Remove substitute folder
-    s_Ret = krmdir_t(s_SubstituteFullMountPath, s_MainThread);
-    if (s_Ret < 0) 
-    {
-        WriteLog(LL_Error, "could not remove substitute folder (%s) (%d).", s_SubstituteFullMountPath, s_Ret);
-
-        // Free the memory used by freepath
-        if (s_Freepath)
-            delete (s_Freepath);
-
-        return false;
-    }
-
-    if (s_Freepath)
-        delete (s_Freepath);
 
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
     return true;
@@ -1213,79 +1160,114 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
 // Substitute (IOCTL) : Do a IAT Hook for the specified thread
 int Substitute::OnIoctl_HookIAT(struct thread* p_Thread, struct substitute_hook_iat* p_Uap) 
 {
-    // BUG: We do not copyin anything, we directly reference, this function needs to be rewritten
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
 
-    int s_HookId = -1;
     if (!p_Thread || !p_Uap) 
     {
         WriteLog(LL_Error, "Invalid argument !");        
-        return EINVAL;
+        return 0;
     }
 
+    struct substitute_hook_iat s_Uap = { 0 };
+    if (copyin(p_Uap, &s_Uap, sizeof(s_Uap)))
+    {
+        WriteLog(LL_Error, "could not copyin enough data for substitute hook iat.");
+        return 0;
+    }
+
+    int s_HookId = -1;
     Substitute* s_Substitute = GetPlugin();
     if (!s_Substitute) 
     {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        p_Uap->hook_id = -1;
+        s_Uap.hook_id = -1;
         return 0;
     }
 
-    s_HookId = s_Substitute->HookIAT(p_Thread->td_proc, p_Uap->chain, p_Uap->module_name, p_Uap->name, p_Uap->flags, p_Uap->hook_function);
+    s_HookId = s_Substitute->HookIAT(p_Thread->td_proc, s_Uap.chain, s_Uap.module_name, s_Uap.name, s_Uap.flags, s_Uap.hook_function);
     if (s_HookId >= 0) 
     {
         WriteLog(LL_Info, "New hook at %i", s_HookId);
     } 
     else 
     {
-        WriteLog(LL_Error, "Unable to hook %s ! (%i)", p_Uap->name, s_HookId);
+        WriteLog(LL_Error, "Unable to hook %s ! (%i)", s_Uap.name, s_HookId);
     }
 
-    p_Uap->hook_id = s_HookId;
+    s_Uap.hook_id = s_HookId;
+    if (copyout((void*)&s_Uap, p_Uap, sizeof(s_Uap))) {
+        WriteLog(LL_Error, "could not copyout enough data for substitute hook iat.");
+        return 0;
+    }
+
     return 0;
 }
 
 // Substitute (IOCTL) : Do a JMP Hook for the specified thread
 int Substitute::OnIoctl_HookJMP(struct thread* p_Thread, struct substitute_hook_jmp* p_Uap) 
 {
-    // BUG: This function needs to be re-written, or ioctl needs to copyin first before trying to use uap
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
 
-    int s_HookId = -1;
     if (!p_Thread || !p_Uap) 
     {
         WriteLog(LL_Error, "Invalid argument !");        
-        return EINVAL;
+        return 0;
     }
 
+    struct substitute_hook_jmp s_Uap = { 0 };
+    if (copyin(p_Uap, &s_Uap, sizeof(s_Uap)))
+    {
+        WriteLog(LL_Error, "could not copyin enough data for substitute hook jmp.");
+        return 0;
+    }
+
+    int s_HookId = -1;
     Substitute* s_Substitute = GetPlugin();
     if (!s_Substitute) 
     {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        p_Uap->hook_id = s_HookId;
+        s_Uap.hook_id = s_HookId;
         return 0;
     }
 
-    s_HookId = s_Substitute->HookJmp(p_Thread->td_proc, p_Uap->original_function, p_Uap->hook_function);
+    s_HookId = s_Substitute->HookJmp(p_Thread->td_proc, s_Uap.original_function, s_Uap.hook_function);
     if (s_HookId >= 0) 
     {
         WriteLog(LL_Info, "New hook at %i", s_HookId);
     } 
-    else 
+    else
     {
-        WriteLog(LL_Error, "Unable to hook %p ! (%i)", p_Uap->original_function, s_HookId);
+        WriteLog(LL_Error, "Unable to hook %p ! (%i)", s_Uap.original_function, s_HookId);
     }
 
-    p_Uap->hook_id = s_HookId;
+    s_Uap.hook_id = s_HookId;
+    if (copyout((void*)&s_Uap, p_Uap, sizeof(s_Uap))) {
+        WriteLog(LL_Error, "could not copyout enough data for substitute hook jmp.");
+        return 0;
+    }
+
     return 0;
 }
 
 // Substitute (IOCTL) : Enable / Disable hook
 int Substitute::OnIoctl_StateHook(struct thread* p_Thread, struct substitute_state_hook* p_Uap) 
 {
-    // BUG: This function needs to be rewritten, need to copyin before touching uap
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+
     if (!p_Thread || !p_Uap) 
     {
         WriteLog(LL_Error, "Invalid argument !");        
         return EINVAL;
+    }
+
+    struct substitute_state_hook s_Uap = { 0 };
+    if (copyin(p_Uap, &s_Uap, sizeof(s_Uap)))
+    {
+        WriteLog(LL_Error, "could not copyin enough data for substitute state hook.");
+        return 0;
     }
 
     int s_Ret = -1;
@@ -1294,25 +1276,25 @@ int Substitute::OnIoctl_StateHook(struct thread* p_Thread, struct substitute_sta
     if (!s_Substitute) 
     {
         WriteLog(LL_Error, "Unable to got substitute object !");
-        p_Uap->result = s_Ret;
+        s_Uap.result = s_Ret;
         return 0;
     }
 
-    switch (p_Uap->state) 
+    switch (s_Uap.state) 
     {
         case SUBSTITUTE_STATE_ENABLE: 
         {
-            s_Ret = s_Substitute->EnableHook(p_Thread->td_proc, p_Uap->hook_id);
+            s_Ret = s_Substitute->EnableHook(p_Thread->td_proc, s_Uap.hook_id);
             if (s_Ret < 0) 
             {
-                WriteLog(LL_Error, "Unable to enable hook %i !", p_Uap->hook_id);
-                p_Uap->result = s_Ret;
+                WriteLog(LL_Error, "Unable to enable hook %i !", s_Uap.hook_id);
+                s_Uap.result = s_Ret;
             } 
             else 
             {
                 s_Ret = 1;
-                WriteLog(LL_Info, "Hook %i enabled !", p_Uap->hook_id);
-                p_Uap->result = s_Ret;
+                WriteLog(LL_Info, "Hook %i enabled !", s_Uap.hook_id);
+                s_Uap.result = s_Ret;
             }
 
             break;
@@ -1320,17 +1302,17 @@ int Substitute::OnIoctl_StateHook(struct thread* p_Thread, struct substitute_sta
 
         case SUBSTITUTE_STATE_DISABLE: 
         {
-            s_Ret = s_Substitute->DisableHook(p_Thread->td_proc, p_Uap->hook_id);
+            s_Ret = s_Substitute->DisableHook(p_Thread->td_proc, s_Uap.hook_id);
             if (s_Ret < 0) 
             {
-                WriteLog(LL_Error, "Unable to disable hook %i (%d) !", p_Uap->hook_id, s_Ret);
-                p_Uap->result = s_Ret;
+                WriteLog(LL_Error, "Unable to disable hook %i (%d) !", s_Uap.hook_id, s_Ret);
+                s_Uap.result = s_Ret;
             } 
             else 
             {
                 s_Ret = 1;
-                WriteLog(LL_Info, "Hook %i disable !", p_Uap->hook_id);
-                p_Uap->result = s_Ret;
+                WriteLog(LL_Info, "Hook %i disable !", s_Uap.hook_id);
+                s_Uap.result = s_Ret;
             }
             
             break;
@@ -1338,23 +1320,28 @@ int Substitute::OnIoctl_StateHook(struct thread* p_Thread, struct substitute_sta
 
         case SUBSTITUTE_STATE_UNHOOK: 
         {
-            s_Ret = s_Substitute->Unhook(p_Thread->td_proc, p_Uap->hook_id, p_Uap->chain);
+            s_Ret = s_Substitute->Unhook(p_Thread->td_proc, s_Uap.hook_id, s_Uap.chain);
             if (s_Ret < 0) {
-                WriteLog(LL_Error, "Unable to unhook %i (%d) !", p_Uap->hook_id, s_Ret);  
-                p_Uap->result = s_Ret;
+                WriteLog(LL_Error, "Unable to unhook %i (%d) !", s_Uap.hook_id, s_Ret);  
+                s_Uap.result = s_Ret;
             } else {
                 s_Ret = 1;
-                WriteLog(LL_Info, "Unhook %i was complete !", p_Uap->hook_id);
-                p_Uap->result = s_Ret;
+                WriteLog(LL_Info, "Unhook %i was complete !", s_Uap.hook_id);
+                s_Uap.result = s_Ret;
             }
         }
 
         default: 
         {
             WriteLog(LL_Error, "Invalid state detected.");
-            p_Uap->result = s_Ret;
+            s_Uap.result = s_Ret;
             break;
         }
+    }
+
+    if (copyout((void*)&s_Uap, p_Uap, sizeof(s_Uap))) {
+        WriteLog(LL_Error, "could not copyout enough data for substitute state hook.");
+        return 0;
     }
 
     return 0;
@@ -1365,19 +1352,12 @@ int32_t Substitute::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 {
     // TODO: Implement copyin/copyout so we aren't accessing userland memory from kernel
     // RESPECT THE BOUNDARIES
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     
     switch (p_Command) {
         case SUBSTITUTE_HOOK_IAT: 
         {
-            struct substitute_hook_iat s_Uap = { 0 };
-            if (copyin(p_Data, &s_Uap, sizeof(s_Uap)))
-            {
-                WriteLog(LL_Error, "could not copyin enough data for substitute hook iat.");
-                return 0;
-            }
 
-            return Substitute::OnIoctl_HookIAT(p_Thread, &s_Uap);
+            return Substitute::OnIoctl_HookIAT(p_Thread, (struct substitute_hook_iat*)p_Data);
         }
 
         case SUBSTITUTE_HOOK_JMP: 
