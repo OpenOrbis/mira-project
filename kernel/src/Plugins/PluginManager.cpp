@@ -71,13 +71,13 @@ bool PluginManager::OnLoad()
         }
 
         // Initialize Substitute
-        m_Substitute = new Mira::Plugins::Substitute();
+        /*m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
         {
             WriteLog(LL_Error, "could not allocate substitute.");
             s_Success = false;
             break;
-        }
+        }*/
     } while (false);
 
     if (m_Debugger)

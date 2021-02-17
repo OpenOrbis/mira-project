@@ -11,7 +11,10 @@
 #include <Utils/Vector.hpp>
 #include <OrbisOS/Utilities.hpp>
 
+#include <Plugins/PluginManager.hpp>
 #include <Plugins/Substitute/Substitute.hpp>
+#include <Plugins/Debugging/Debugger.hpp>
+
 #include <Trainers/TrainerManager.hpp>
 
 #include <Mira.hpp>
@@ -169,6 +172,16 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira framework.");
+        return ENOMEM;
+    }
+
+    // TODO: Holy shit clean this up dude, you are better than this >_>
+    // TODO: Move all of the TrainerManager stuff to use that ioctl
+    // just do it similar to how the debugger works
     switch (IOCGROUP(p_Command)) 
     {
         case SUBSTITUTE_IOCTL_BASE:
@@ -178,6 +191,25 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
             // If we are handling Mira specific ioctl's
             switch (p_Command)
             {
+                case MIRA_READ_PROCESS_MEMORY:
+                case MIRA_WRITE_PROCESS_MEMORY:
+                {
+                    auto s_PluginManager = s_Framework->GetPluginManager();
+                    if (s_PluginManager == nullptr)
+                    {
+                        WriteLog(LL_Error, "could not get plugin manager.");
+                        return ENOMEM;
+                    }
+
+                    auto s_Debugger = static_cast<Mira::Plugins::Debugger*>(s_PluginManager->GetDebugger());
+                    if (s_Debugger == nullptr)
+                    {
+                        WriteLog(LL_Error, "could not get debugger.");
+                        return ENOMEM;
+                    }
+
+                    return s_Debugger->OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                }
                 // Get the requested process information
                 case MIRA_GET_PROC_INFORMATION:
                     return OnMiraGetProcInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);

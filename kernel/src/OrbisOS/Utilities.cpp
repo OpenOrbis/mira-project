@@ -93,28 +93,24 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
 int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_BytesReadWrote, bool p_Write)
 {
 	if (p_Process == nullptr)
-		return -EPROCUNAVAIL;
+		return EPROCUNAVAIL;
 	
 	if (p_DestAddress == nullptr)
-		return -EINVAL;
+		return EINVAL;
 	
 	if (p_ToReadWriteAddress == nullptr)
-		return -EINVAL;
+		return EINVAL;
 
 	auto s_DebuggerThread = curthread;
 	if (s_DebuggerThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get debugger thread.");
-		return -EIO;
+		return EIO;
 	}
 
 	struct iovec s_Iov;
 	struct uio s_Uio;
 	int s_Ret = 0;
-
-	if (!p_Process) {
-		return 1;
-	}
 
 	if (p_Size == 0) {
 		if (p_BytesReadWrote) {

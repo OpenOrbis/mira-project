@@ -818,7 +818,7 @@ void Substitute::CleanupAllHook()
     auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
-    WriteLog(LL_Info, "Cleaning up all hook ...");
+    //WriteLog(LL_Info, "Cleaning up all hook ...");
 
     _mtx_lock_flags(&m_Mutex, 0, __FILE__, __LINE__);
 
@@ -835,12 +835,13 @@ void Substitute::CleanupProcessHook(struct proc* p_Process)
     auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 
     if (!p_Process)
+    {
+        WriteLog(LL_Error, "invalid process.");
         return;
+    }
 
     // TODO: Implement in the proc structure
     char* s_TitleId = (char*)((uint64_t)p_Process + 0x390);
-    WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
-
 
     _mtx_lock_flags(&m_Mutex, 0, __FILE__, __LINE__);
 
@@ -848,7 +849,10 @@ void Substitute::CleanupProcessHook(struct proc* p_Process)
     {
         SubstituteHook* hook = GetHookByID(i);
         if (hook && hook->process == p_Process) 
+        {
+            WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
             FreeHook(i);
+        }
     }
 
     _mtx_unlock_flags(&m_Mutex, 0, __FILE__, __LINE__);
@@ -1118,13 +1122,16 @@ bool Substitute::OnProcessExecEnd(struct proc *p_Process)
 // Substitute : Unmount Substitute folder
 bool Substitute::OnProcessExit(struct proc *p_Process) 
 {
-    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
+    //auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+    //auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
     if (!p_Process)
+    {
+        WriteLog(LL_Error, "invalid process.");
         return false;
+    }
 
-    int s_Ret = 0;
+    WriteLog(LL_Debug, "proc locked: (%d).", PROC_LOCKED(p_Process));
 
     // Get process information
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p_Process);
@@ -1134,7 +1141,10 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
 
     // Check if it's a valid process
     if ( !s_TitleId || s_TitleId[0] == 0 )
-        return false;
+    {
+        WriteLog(LL_Error, "title id blank or invalid.");
+        return true;
+    }
 
     // Getting needed thread
     auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
@@ -1149,6 +1159,8 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
     // Start by cleanup hook list
     s_Substitute->CleanupProcessHook(p_Process);
 
+    /*
+
     // Getting jailed path for the process
     struct filedesc* s_FileDesc = p_Process->p_fd;
 
@@ -1160,6 +1172,8 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
     {
         if (s_Freepath)
             delete (s_Freepath);
+        
+        WriteLog(LL_Error, "vn_fullpath failed.");
 
         return false;
     }
@@ -1174,6 +1188,8 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
         // Free the memory used by freepath
         if (s_Freepath)
             delete (s_Freepath);
+        
+        WriteLog(LL_Error, "could not open directory handle (%s) (%d).", s_SubstituteFullMountPath, s_DirectoryHandle);
 
         return false;
     }
@@ -1201,7 +1217,7 @@ bool Substitute::OnProcessExit(struct proc *p_Process)
 
     if (s_Freepath)
         delete (s_Freepath);
-
+*/
     WriteLog(LL_Info, "[%s] Substitute have been cleaned.", s_TitleId);
     return true;
 }

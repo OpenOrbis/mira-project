@@ -181,7 +181,7 @@ typedef struct _MiraGetTrainersShm
     MiraTrainerShm Shms[];
 } MiraGetTrainersShm;
 
-typedef struct _MiraReadProcessMemory
+typedef struct __attribute__((packed)) _MiraReadProcessMemory
 {
     // Size of the structure
     uint32_t StructureSize;
@@ -190,12 +190,8 @@ typedef struct _MiraReadProcessMemory
     int32_t ProcessId;
 
     // Address to read from in process
-    uint64_t Address;
+    void* Address;
 
-    // Size of data to read from
-    uint64_t Size;
-
-    // Array of returned data
     uint8_t Data[];
 } MiraReadProcessMemory;
 
@@ -208,10 +204,7 @@ typedef struct _MiraWriteProcessMemory
     int32_t ProcessId;
 
     // Address to write to in process
-    uint64_t Address;
-
-    // Size of the data to write
-    uint64_t Size;
+    void* Address;
 
     // Data to write
     uint8_t Data[];
