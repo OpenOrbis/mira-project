@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package Rpc.Orbis;
+package Mira.Rpc.Orbis;
 
 service OrbisService {
     rpc DecryptSelf (DecryptSelfRequest) returns (stream DecryptSelfResponse);

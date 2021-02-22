@@ -72,10 +72,10 @@ else
 I_DIRS	:= -I$(SRC_DIR)/External/include -I$(SRC_DIR)
 
 # Library directory paths
-L_DIRS	:=
+L_DIRS	:= -L/usr/local/lib `pkg-config --libs protobuf grpc++` -L/home/kuser/grpc/third_party/protobuf -L/usr/lib/x86_64-linux-gnu -L/home/kuser/grpc -L/home/kuser/grpc/third_party/abseil-cpp/absl/hash -L/home/kuser/grpc/third_party/abseil-cpp/absl/numeric -L/home/kuser/grpc/third_party/abseil-cpp/absl/status -L/home/kuser/grpc/third_party/abseil-cpp/absl/types -L/home/kuser/grpc/third_party/abseil-cpp/absl/flags -L/home/kuser/grpc/third_party/abseil-cpp/absl/base -L/home/kuser/grpc/third_party/abseil-cpp/absl/strings -L/home/kuser/grpc/third_party/abseil-cpp/absl/debugging -L/home/kuser/grpc/third_party/abseil-cpp/absl/random -L/home/kuser/grpc/third_party/abseil-cpp/absl/synchronization -L/home/kuser/grpc/third_party/abseil-cpp/absl/container -L/home/kuser/grpc/third_party/abseil-cpp/absl/time
 
 # Included libraries
-LIBS	:= -lpthread
+LIBS	:= -lpthread -lprotobuf -lgrpc++ -lssl -lcrypto
 
 # C Defines
 C_DEFS	:= -D_DEBUG
@@ -120,7 +120,7 @@ TARGET = eboot.bin
 #Make Rules
 
 $(TARGET): pre-run $(OUT_DIR) $(ALL_OBJ)
-	$(CPPC) -ggdb $(ALL_OBJ) -o $(OUT_DIR)/$(PROJ_NAME).elf $(LFLAGS)
+	$(CPPC) -std=c++17 -ggdb $(ALL_OBJ) -o $(OUT_DIR)/$(PROJ_NAME).elf $(LFLAGS)
 ifeq ($(PLATFORM),PS4)
 	$(OO_PS4_TOOLCHAIN)/bin/$(OS_NAME)/create-eboot -in=$(OUT_DIR)/$(PROJ_NAME).elf -out=$(OUT_DIR)/$(PROJ_NAME).oelf --paid 0x3800000000000011
 endif

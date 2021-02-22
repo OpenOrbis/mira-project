@@ -26,8 +26,7 @@ namespace Mira
         std::shared_ptr<Utils::IModule> m_FtpServer;
 
         // RPC
-        std::shared_ptr<Rpc::Manager> m_MessageManager;
-        std::shared_ptr<Rpc::Server> m_RpcServer;
+        std::shared_ptr<Rpc::Manager> m_RpcManager;
 
     public:
         static std::shared_ptr<Daemon> GetInstance();
@@ -37,7 +36,6 @@ namespace Mira
 
         virtual bool OnLoad() override;
 
-        std::shared_ptr<Rpc::Manager> GetMessageManager() const { return m_MessageManager; }
-        std::shared_ptr<Rpc::Server> GetRpcServer() const { return m_RpcServer; }
+        std::shared_ptr<Rpc::Manager> GetMessageManager() const { return m_RpcManager; }
     };
 };

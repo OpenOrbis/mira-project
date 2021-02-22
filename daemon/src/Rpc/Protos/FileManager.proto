@@ -1,10 +1,11 @@
 syntax = "proto3";
 
-package Rpc.FileManager;
+package Mira.Rpc.FileManager;
 
 service FileManagerService {
     rpc Echo (EchoRequest) returns (EmptyReply);
     rpc Open (OpenRequest) returns (OpenResponse);
+    rpc Close (CloseRequest) returns (CloseResponse);
     rpc Read (ReadRequest) returns (stream ReadResponse);
     rpc List (ListRequest) returns (stream ListResponse);
     rpc Stat (StatRequest) returns (StatResponse);
@@ -28,7 +29,7 @@ message OpenRequest {
     string path = 3;
 }
 
-mesasge OpenResponse {
+message OpenResponse {
     int32 error = 1;
     int32 fd = 2;
 }
@@ -66,8 +67,9 @@ message ReadRequest {
 }
 
 message ReadResponse {
-    uint64 offset = 1;
-    bytes data = 2;
+    int32 error = 1;
+    uint64 offset = 2;
+    bytes data = 3;
 }
 
 //
@@ -116,8 +118,8 @@ message ListResponse {
 // Stat
 //
 message StatRequest {
-    optional int32 handle = 1 [default = -1];
-    optional string path = 2;
+    int32 handle = 1;
+    string path = 2;
 }
 
 message Time {
