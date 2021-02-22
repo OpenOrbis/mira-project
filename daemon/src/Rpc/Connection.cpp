@@ -64,7 +64,11 @@ Connection::~Connection()
             break;
 
         // Cancel the thread
+    #if defined(PS4)
         s_Ret = scePthreadCancel(m_Thread);
+    #else
+        s_Ret = pthread_cancel(m_Thread);
+    #endif
         if (s_Ret != 0)
         {
             fprintf(stderr, "err: cancel connection thread returned (%d).\n", s_Ret);
@@ -72,7 +76,11 @@ Connection::~Connection()
         }
 
         // Wait for the thread to exit
+    #if defined(PS4)
         s_Ret = scePthreadJoin(m_Thread, &s_RetVal);
+    #else
+        s_Ret = pthread_join(m_Thread, &s_RetVal);
+    #endif
         if (s_Ret != 0)
         {
             fprintf(stderr, "err: could not join thread (%lu) ret (%d).\n", m_Thread, s_Ret);

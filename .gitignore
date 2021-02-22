@@ -13,3 +13,4 @@ project.log
 report.tasks
 strace_out
 maneja/**
+.vscode/*

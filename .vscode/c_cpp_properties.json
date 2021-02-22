@@ -90,6 +90,21 @@
             "intelliSenseMode": "clang-x64"
         },
         {
+            "name": "Daemon (PC)",
+            "includePath": [
+                "${workspaceFolder}/daemon/src",
+                "${workspaceFolder}/daemon/src/External/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "_DEFAULT_SOURCE"
+            ],
+            "compilerPath": "/usr/bin/clang++",
+            "cStandard": "c11",
+            "cppStandard": "c++14",
+            "intelliSenseMode": "clang-x64"
+        },
+        {
             "name": "Debugger",
             "includePath": [
                 "${workspaceFolder}/debugger/src",
@@ -98,7 +113,7 @@
                 "${workspaceFolder}/external/mira"
             ],
             "defines": [
-                "PS4",
+                "PS4"
             ],
             "compilerPath": "/usr/bin/clang++",
             "cStandard": "c11",

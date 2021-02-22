@@ -24,8 +24,10 @@ Daemon::Daemon() :
     m_MessageManager(nullptr),
     m_RpcServer(nullptr)
 {
+#if defined(PS4)
     // Initialize the networking
     sceNetInit();
+#endif
 }
 
 Daemon::~Daemon()

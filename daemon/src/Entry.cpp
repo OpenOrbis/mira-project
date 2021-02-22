@@ -3,10 +3,12 @@
 #include <memory>
 #include <cstdio>
 
+#if defined(PS4)
 #include <orbis/libkernel.h>
+#endif
 
 // Entry point
-int main(void)
+int main()
 {
     // Create a new instance of our daemon
     auto s_Daemon = Mira::Daemon::GetInstance();

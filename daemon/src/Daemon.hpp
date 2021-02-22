@@ -2,6 +2,7 @@
 #include <Utils/IModule.hpp>
 #include <cstdio>
 #include <mutex>
+#include <memory>
 
 namespace Mira
 {

@@ -1,6 +1,14 @@
+ifeq ($(PLATFORM),)
+PLATFORM := PS4
+endif
+
+ifeq ($(PLATFORM),PS4)
+
 # CHANGEME: Default Orbis Version
 ifeq ($(OO_PS4_TOOLCHAIN),)
 $(error OO_PS4_TOOLCHAIN not set)
+endif
+
 endif
 
 # Check to see if we are building in CI/Checking mode
@@ -35,6 +43,8 @@ endif
 # Source directory
 SRC_DIR	:=	src
 
+ifeq ($(PLATFORM),PS4)
+
 # Include directory paths
 I_DIRS	:=	-I"$(OO_PS4_TOOLCHAIN)/include" -I$(OO_PS4_TOOLCHAIN)/include/c++/v1 -I$(SRC_DIR)/External/include -I$(SRC_DIR)
 
@@ -56,6 +66,30 @@ SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 # Linker flags
 # -Wl,--build-id=none -T $(SRC_DIR)/link.x --emit-relocs -gc-sections -nmagic --relocatable
 LFLAGS	:= -m elf_x86_64 -pie --script $(OO_PS4_TOOLCHAIN)/link.x --eh-frame-hdr $(L_DIRS) $(LIBS) $(OO_PS4_TOOLCHAIN)/lib/crt1.o
+else
+
+# Include directory paths
+I_DIRS	:= -I$(SRC_DIR)/External/include -I$(SRC_DIR)
+
+# Library directory paths
+L_DIRS	:=
+
+# Included libraries
+LIBS	:= -lpthread
+
+# C Defines
+C_DEFS	:= -D_DEBUG
+
+# C++ Flags
+CFLAGS	:= -ggdb -funwind-tables -fPIC $(I_DIRS) $(C_DEFS)
+
+# Assembly flags
+SFLAGS	:= -m64 -nodefaultlibs -nostdlib
+
+# Linker flags
+LFLAGS	:= -pie $(L_DIRS) $(LIBS)
+
+endif
 
 # Compiler options. You likely won't need to touch these.
 UNAME_S := $(shell uname -s)
@@ -86,8 +120,10 @@ TARGET = eboot.bin
 #Make Rules
 
 $(TARGET): pre-run $(OUT_DIR) $(ALL_OBJ)
-	$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(PROJ_NAME).elf $(LFLAGS)
+	$(CPPC) -ggdb $(ALL_OBJ) -o $(OUT_DIR)/$(PROJ_NAME).elf $(LFLAGS)
+ifeq ($(PLATFORM),PS4)
 	$(OO_PS4_TOOLCHAIN)/bin/$(OS_NAME)/create-eboot -in=$(OUT_DIR)/$(PROJ_NAME).elf -out=$(OUT_DIR)/$(PROJ_NAME).oelf --paid 0x3800000000000011
+endif
 
 pre-run:
 	@mkdir -p $(shell find '$(SRC_DIR)/' -type d -printf '$(OUT_DIR)/%p\n')
@@ -97,18 +133,18 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.c
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 endif
-	$(CC) $(CFLAGS) -o $@ $<
+	@$(CC) -c $(CFLAGS) -o $@ $<
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@echo "Compiling $< ..."
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 endif
-	$(CPPC) $(CFLAGS) -o $@ $<
+	@$(CPPC) -c $(CFLAGS) -o $@ $<
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."
-	$(CC) $(SFLAGS) -o $@ $< 
+	@$(CC) $(SFLAGS) -o $@ $< 
 
 $(OUT_DIR):
 	@mkdir $@

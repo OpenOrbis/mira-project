@@ -3,8 +3,13 @@
 #include <memory>
 
 #include <Utils/IModule.hpp>
+
+#if defined(PS4)
 #include <orbis/libkernel.h>
 #include <orbis/Net.h>
+#else
+#include <netinet/in.h>
+#endif
 
 extern "C"
 {
@@ -37,7 +42,7 @@ namespace Mira
             uint16_t m_Port;
 
             // Thread
-            OrbisPthread m_Thread;
+            pthread_t m_Thread;
 
             // Running
             volatile bool m_Running;

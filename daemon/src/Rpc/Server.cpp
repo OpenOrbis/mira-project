@@ -9,6 +9,7 @@ extern "C"
 {
     #include <unistd.h>
     #include <sys/time.h>
+    #include <netinet/in.h>
 };
 
 using namespace Mira::Rpc;
@@ -31,7 +32,8 @@ Server::~Server()
 bool Server::OnLoad()
 {
     // Initialize the networking
-    sceNetInit();
+    // This has already been done in Deamon.cpp
+    //sceNetInit();
 
     return Startup();
 }
@@ -62,7 +64,10 @@ bool Server::Startup()
         printf("info: port (%d).\n", m_Port);
 
         memset(&m_Address, 0, sizeof(m_Address));
+    #if defined(PS4)
+        // This is only used on BSD based systems
         m_Address.sin_len = sizeof(m_Address);
+    #endif
         m_Address.sin_family = AF_INET;
         m_Address.sin_addr.s_addr = htonl(INADDR_ANY);
         m_Address.sin_port = htons(m_Port);
@@ -120,7 +125,11 @@ bool Server::Startup()
         m_Socket = s_Socket;
 
         // Create a new server processing thread        
+    #if defined(PS4)
         s_Ret = scePthreadCreate(&m_Thread, nullptr, (void*)ServerThread, this, "RpcServer"); //pthread_create(&m_Thread, nullptr, ServerThread, this);
+    #else
+        s_Ret = pthread_create(&m_Thread, nullptr, ServerThread, this);
+    #endif
         if (s_Ret != 0)
         {
             fprintf(stderr, "err: could not create new thread (%d).\n", s_Ret);
@@ -218,7 +227,11 @@ void* Server::ServerThread(void* p_ServerInstance)
             }
 
             // Create a new thread
+        #if defined(PS4)
             s_Ret = scePthreadCreate(l_Connection->GetThreadPointer(), nullptr, (void*)Connection::ConnectionThread, l_Connection.get(), "RpcConn");
+        #else
+            s_Ret = pthread_create(l_Connection->GetThreadPointer(), nullptr, Connection::ConnectionThread, l_Connection.get());
+        #endif
             if (s_Ret != 0)
             {
                 fprintf(stderr, "err: could not create new connection thread (%d).\n", s_Ret);
