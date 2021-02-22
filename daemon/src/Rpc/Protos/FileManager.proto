@@ -1,0 +1,201 @@
+syntax = "proto3";
+
+package Rpc.FileManager;
+
+service FileManagerService {
+    rpc Echo (EchoRequest) returns (EmptyReply);
+    rpc Open (OpenRequest) returns (OpenResponse);
+    rpc Read (ReadRequest) returns (stream ReadResponse);
+    rpc List (ListRequest) returns (stream ListResponse);
+    rpc Stat (StatRequest) returns (StatResponse);
+    rpc Mkdir (MkdirRequest) returns (MkdirResponse);
+}
+
+message EmptyReply {
+
+}
+
+message EchoRequest {
+    string message = 1;
+}
+
+//
+// Open
+//
+message OpenRequest {
+    int32 flags = 1;
+    int32 mode = 2;
+    string path = 3;
+}
+
+mesasge OpenResponse {
+    int32 error = 1;
+    int32 fd = 2;
+}
+
+//
+// Close
+//
+message CloseRequest {
+    int32 handle = 1;
+}
+
+message CloseResponse {
+    int32 error = 1;
+}
+
+//
+// Seek
+//
+message SeekRequest {
+    int32 handle = 1;
+    int64 offset = 2;
+    int32 whence = 3;
+}
+
+message SeekResponse {
+    int32 error = 1;
+}
+
+//
+// Read
+//
+message ReadRequest {
+    int32 handle = 1;
+    uint64 size = 2;
+}
+
+message ReadResponse {
+    uint64 offset = 1;
+    bytes data = 2;
+}
+
+//
+// Write
+//
+message WriteRequest {
+    int32 handle = 1;
+    bytes data = 2;
+}
+
+message WriteResponse {
+    int32 error = 1;
+}
+
+//
+// List
+//
+message ListRequest {
+    string path = 1;
+}
+
+enum ListTypes {
+    BLOCK_DEVICE = 0;
+    CHARACTER_DEVICE = 1;
+    DIRECTORY = 2;
+    NAMED_PIPE = 3;
+    SYMBOLIC_LINK = 4;
+    REGULAR = 5;
+    SOCKET = 6;
+    UNKNOWN = 7;
+}
+message ListResponse {
+    int32 inode = 1;
+    
+    // Not an offset
+    int64 offset = 2;
+
+    // Type
+    ListTypes type = 3;
+
+    // Name
+    string name = 4;
+}
+
+//
+// Stat
+//
+message StatRequest {
+    optional int32 handle = 1 [default = -1];
+    optional string path = 2;
+}
+
+message Time {
+    int64 seconds = 1;
+    int32 nanoseconds = 2;
+}
+
+message StatResponse {
+    // st_dev
+    int32 device = 1;
+    
+    // st_ino
+    int32 inode = 2;
+    
+    // st_mode
+    int32 protection = 3;
+
+    // st_nlink
+    int32 num_hard_links = 4;
+
+    // st_uid
+    int32 user_id = 5;
+
+    // st_gid
+    int32 group_id = 6;
+
+    // st_rdev
+    int32 device_id = 7;
+
+    // st_size
+    int64 size = 8;
+
+    // st_blksize
+    int64 block_size = 9;
+
+    // st_blocks
+    int32 blocks = 10;
+
+    // st_atime, Time of last access
+    Time access_time = 11;
+
+    // st_mtime, Time of last modification
+    Time mod_time = 12;
+
+    // st_ctime, Time of last status change
+    Time status_time = 13;
+}
+
+//
+// Mkdir
+//
+message MkdirRequest {
+    int32 mode = 1;
+    string path = 2;
+}
+
+message MkdirResponse {
+    int32 error = 1;
+}
+
+//
+// Rmdir
+//
+message RmdirRequest {
+    string path = 1;
+}
+
+message RmdirResponse {
+    int32 error = 1;
+}
+
+//
+// Unlink
+//
+message UnlinkRequest {
+    string path = 1;
+}
+
+message UnlinkResponse {
+    int32 error = 1;
+}

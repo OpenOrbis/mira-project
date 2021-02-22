@@ -2,8 +2,6 @@
 #include "Listener.hpp"
 #include "Rpc/Connection.hpp"
 
-#include <External/flatbuffers/rpc_generated.h>
-
 using namespace Mira::Rpc;
 
 Manager::Manager()

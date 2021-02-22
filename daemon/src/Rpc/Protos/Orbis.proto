@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package Rpc.Orbis;
+
+service OrbisService {
+    rpc DecryptSelf (DecryptSelfRequest) returns (stream DecryptSelfResponse);
+    rpc DecryptPup (DecryptPupRequest) returns (stream DecryptPupResponse);
+}
+
+message DecryptSelfRequest {
+    string path = 1;
+}
+
+message DecryptSelfResponse {
+    int32 error = 1;
+    uint64 offset = 2;
+    bytes data = 3;
+}
+
+message DecryptPupRequest {
+    string path = 1;
+}
+
+message DecryptPupResponse {
+    int32 error = 1;
+    uint64 offset = 2;
+    bytes data = 3;
+}

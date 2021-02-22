@@ -1,6 +1,4 @@
 #pragma once
-#include <External/flatbuffers/rpc_generated.h>
-
 #include <functional>
 #include <memory>
 

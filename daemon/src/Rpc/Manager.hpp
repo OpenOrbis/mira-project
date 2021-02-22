@@ -1,5 +1,4 @@
 #pragma once
-#include <External/flatbuffers/rpc_generated.h>
 #include <vector>
 #include <cstddef>
 #include <limits>
