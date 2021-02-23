@@ -18,8 +18,6 @@ Manager::Manager()
 {
     std::string s_ServerAddress("0.0.0.0:9999");
     FileManagerImpl s_Service;
-
-    grpc::EnableDefaultHealthCheckService(true);
     ServerBuilder s_Builder;
 
     s_Builder.AddListeningPort(s_ServerAddress, grpc::InsecureServerCredentials());

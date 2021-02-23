@@ -23,7 +23,7 @@ namespace Mira
             };
 
         public:
-            virtual ::grpc::Status Echo(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::EchoRequest* request, ::Mira::Rpc::FileManager::EmptyReply* response)
+            virtual ::grpc::Status Echo(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::EchoRequest* request, ::Mira::Rpc::FileManager::EmptyReply* response) override
             {
                 printf("asdasdasdas echo ech ehco\n");
                 auto s_Message = request->message();
