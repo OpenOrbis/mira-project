@@ -1,8 +1,8 @@
 #pragma once
 #include <grpcpp/grpcpp.h>
 
-#include "Protos/FileManager.grpc.pb.h"
 #include "Protos/FileManager.pb.h"
+#include "Protos/FileManager.grpc.pb.h"
 
 #include <unistd.h>
 #include <fcntl.h>
@@ -25,6 +25,7 @@ namespace Mira
         public:
             virtual ::grpc::Status Echo(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::EchoRequest* request, ::Mira::Rpc::FileManager::EmptyReply* response)
             {
+                printf("asdasdasdas echo ech ehco\n");
                 auto s_Message = request->message();
                 if (s_Message.length() > 1024)
                 {
@@ -32,10 +33,12 @@ namespace Mira
                     return ::grpc::Status::CANCELLED;
                 }
 
+                printf("[Echo] %s\n", request->message().c_str());
+
                 return ::grpc::Status::OK;
             }
 
-            virtual ::grpc::Status Open(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::OpenRequest* request, ::Mira::Rpc::FileManager::OpenResponse* response)
+            ::grpc::Status Open(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::OpenRequest* request, ::Mira::Rpc::FileManager::OpenResponse* response)
             {
                 // Open the file handle
                 auto s_Descriptor = open(request->path().c_str(), request->flags(), request->mode());
@@ -56,7 +59,7 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            virtual ::grpc::Status Close(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::CloseRequest* request, ::Mira::Rpc::FileManager::CloseResponse* response)
+            ::grpc::Status Close(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::CloseRequest* request, ::Mira::Rpc::FileManager::CloseResponse* response)
             {
                 auto s_Descriptor = request->handle();
                 if (s_Descriptor < 0)
@@ -67,9 +70,9 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            virtual ::grpc::Status Read(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ReadRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ReadResponse>* writer)
+            ::grpc::Status Read(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ReadRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ReadResponse>* writer)
             {
-                FileManager::ReadResponse s_Response;
+                Mira::Rpc::FileManager::ReadResponse s_Response;
 
                 auto s_Descriptor = request->handle();
                 if (s_Descriptor < 0)
@@ -193,16 +196,16 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            virtual ::grpc::Status List(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ListRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ListResponse>* writer)
+            ::grpc::Status List(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ListRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ListResponse>* writer)
             {
                 return ::grpc::Status::OK;
             }
 
-            virtual ::grpc::Status Stat(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::StatRequest* request, ::Mira::Rpc::FileManager::StatResponse* response)
+            ::grpc::Status Stat(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::StatRequest* request, ::Mira::Rpc::FileManager::StatResponse* response)
             {
                 return ::grpc::Status::OK;
             }
-            virtual ::grpc::Status Mkdir(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::MkdirRequest* request, ::Mira::Rpc::FileManager::MkdirResponse* response)
+            ::grpc::Status Mkdir(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::MkdirRequest* request, ::Mira::Rpc::FileManager::MkdirResponse* response)
             {
                 return ::grpc::Status::OK;
             }
