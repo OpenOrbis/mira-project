@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+using namespace grpc;
+
 namespace Mira
 {
     namespace Rpc
@@ -23,7 +25,7 @@ namespace Mira
             };
 
         public:
-            virtual ::grpc::Status Echo(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::EchoRequest* request, ::Mira::Rpc::FileManager::EmptyReply* response) override
+            Status Echo(ServerContext* context, const ::Mira::Rpc::FileManager::EchoRequest* request, ::Mira::Rpc::FileManager::EmptyReply* response) override
             {
                 printf("asdasdasdas echo ech ehco\n");
                 auto s_Message = request->message();
@@ -38,7 +40,7 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            ::grpc::Status Open(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::OpenRequest* request, ::Mira::Rpc::FileManager::OpenResponse* response)
+            ::grpc::Status Open(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::OpenRequest* request, ::Mira::Rpc::FileManager::OpenResponse* response) override
             {
                 // Open the file handle
                 auto s_Descriptor = open(request->path().c_str(), request->flags(), request->mode());
@@ -59,7 +61,7 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            ::grpc::Status Close(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::CloseRequest* request, ::Mira::Rpc::FileManager::CloseResponse* response)
+            ::grpc::Status Close(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::CloseRequest* request, ::Mira::Rpc::FileManager::CloseResponse* response) override
             {
                 auto s_Descriptor = request->handle();
                 if (s_Descriptor < 0)
@@ -70,7 +72,7 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            ::grpc::Status Read(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ReadRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ReadResponse>* writer)
+            ::grpc::Status Read(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ReadRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ReadResponse>* writer) override
             {
                 Mira::Rpc::FileManager::ReadResponse s_Response;
 
@@ -196,16 +198,16 @@ namespace Mira
                 return ::grpc::Status::OK;
             }
 
-            ::grpc::Status List(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ListRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ListResponse>* writer)
+            ::grpc::Status List(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::ListRequest* request, ::grpc::ServerWriter< ::Mira::Rpc::FileManager::ListResponse>* writer) override
             {
                 return ::grpc::Status::OK;
             }
 
-            ::grpc::Status Stat(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::StatRequest* request, ::Mira::Rpc::FileManager::StatResponse* response)
+            ::grpc::Status Stat(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::StatRequest* request, ::Mira::Rpc::FileManager::StatResponse* response) override
             {
                 return ::grpc::Status::OK;
             }
-            ::grpc::Status Mkdir(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::MkdirRequest* request, ::Mira::Rpc::FileManager::MkdirResponse* response)
+            ::grpc::Status Mkdir(::grpc::ServerContext* context, const ::Mira::Rpc::FileManager::MkdirRequest* request, ::Mira::Rpc::FileManager::MkdirResponse* response) override
             {
                 return ::grpc::Status::OK;
             }

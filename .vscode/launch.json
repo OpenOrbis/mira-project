@@ -11,7 +11,8 @@
             "program": "${workspaceFolder}/daemon/x64/Debug/MiraDaemon.elf",
             "args": [],
             "cwd": "${workspaceFolder}",
-            "preLaunchTask": "Build Daemon (PC)"
+            "preLaunchTask": "Build Daemon (PC)",
+            "env": { "GRPC_VERBOSITY": "DEBUG" }
         }
     ]
 }
