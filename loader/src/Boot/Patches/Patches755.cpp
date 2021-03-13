@@ -24,11 +24,8 @@ void Mira::Boot::Patches::install_prerunPatches_755()
 
 	// Patch sys_dynlib_dlsym: Allow from anywhere
 	kmem = (uint8_t *)&gKernelBase[0x004523C4];
-	kmem[0] = 0xE9;
-	kmem[1] = 0xC8;
-	kmem[2] = 0x01;
-	kmem[3] = 0x00;
-	kmem[4] = 0x00;
+	kmem[0] = 0x90;
+	kmem[1] = 0xE9;
 
 	kmem = (uint8_t *)&gKernelBase[0x00029A30];
 	kmem[0] = 0x31;
