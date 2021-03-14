@@ -100,7 +100,7 @@
 #define kdlsym_addr_pfind                                  0x0012E7F0
 #define kdlsym_addr_pmap_activate                          0x001B27F0
 #define kdlsym_addr_printf                                 0x0026F740
-#define kdlsym_addr_prison0                                0x0158DC60
+#define kdlsym_addr_prison0                                0x0113B728
 #define kdlsym_addr_proc0                                  0x021AF840
 #define kdlsym_addr_proc_reparent                          0x0024A230
 #define kdlsym_addr_proc_rwmem                             0x00361310
