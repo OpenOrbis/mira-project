@@ -114,6 +114,7 @@ bool PluginManager::OnLoad()
             break;
         }
 
+#if 0
         // Initialize Substitute
         m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
@@ -122,6 +123,7 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
+#endif
 
         // Initialize BrowserActivator
         m_BrowserActivator = new Mira::Plugins::BrowserActivator();
@@ -158,6 +160,7 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
+	break;
     } while (false);
 
     if (m_Debugger)

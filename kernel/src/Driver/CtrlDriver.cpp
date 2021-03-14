@@ -442,7 +442,7 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         s_CurrentThreadCred->cr_rgid = 0;
         s_CurrentThreadCred->cr_groups[0] = 0;
 
-        s_CurrentThreadCred->cr_prison = *(struct prison**)kdlsym(prison0);
+        s_CurrentThreadCred->cr_prison = (struct prison*)kdlsym(prison0);
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
@@ -596,7 +596,7 @@ int32_t CtrlDriver::OnMiraUnmountInSandbox(struct cdev* p_Device, u_long p_Comma
         s_CurrentThreadCred->cr_rgid = 0;
         s_CurrentThreadCred->cr_groups[0] = 0;
 
-        s_CurrentThreadCred->cr_prison = *(struct prison**)kdlsym(prison0);
+        s_CurrentThreadCred->cr_prison = (struct prison*)kdlsym(prison0);
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Unmount folder if the folder exist
@@ -944,7 +944,7 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
 
                     // prison
                     if (p_Input.Prison == MiraThreadCredentials::_MiraThreadCredentialsPrison::Root)
-                        l_ThreadCredential->cr_prison = *(struct prison**)kdlsym(prison0);
+                        l_ThreadCredential->cr_prison = (struct prison*)kdlsym(prison0);
 
                     l_ThreadCredential->cr_sceAuthID = p_Input.SceAuthId;
 
@@ -1033,7 +1033,7 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
                 s_Credentials->SavedGroupId = l_ThreadCredential->cr_svgid;
 
                 // Check if this prison is rooted
-                if (*(struct prison**)kdlsym(prison0) == l_ThreadCredential->cr_prison)
+                if ((struct prison*)kdlsym(prison0) == l_ThreadCredential->cr_prison)
                     s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Root;
                 else
                     s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Default;

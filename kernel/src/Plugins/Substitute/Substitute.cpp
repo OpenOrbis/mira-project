@@ -1106,7 +1106,7 @@ bool Substitute::OnProcessExecEnd(struct proc *p)
     curthread_cred->cr_rgid = 0;
     curthread_cred->cr_groups[0] = 0;
 
-    curthread_cred->cr_prison = *(struct prison**)kdlsym(prison0);
+    curthread_cred->cr_prison = (struct prison*)kdlsym(prison0);
     curthread_fd->fd_rdir = curthread_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
     // Mounting substitute folder into the process

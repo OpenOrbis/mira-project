@@ -705,7 +705,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
         s_MainThread->td_ucred->cr_groups[0] = 0;
 
 		if (s_MainThread->td_ucred->cr_prison)
-			s_MainThread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
+			s_MainThread->td_ucred->cr_prison = (struct prison*)kdlsym(prison0);
 
 		if (s_MainThread->td_proc->p_fd)
 			s_MainThread->td_proc->p_fd->fd_rdir = s_MainThread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
@@ -733,7 +733,7 @@ void FileManager::OnDecryptSelf(Messaging::Rpc::Connection* p_Connection, const 
         curthread->td_ucred->cr_groups[0] = 0;
 
 		if (curthread->td_ucred->cr_prison)
-			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
+			curthread->td_ucred->cr_prison = (struct prison*)kdlsym(prison0);
 
 		if (curthread->td_proc->p_fd)
 			curthread->td_proc->p_fd->fd_rdir = s_MainThread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);

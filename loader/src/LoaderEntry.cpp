@@ -101,7 +101,7 @@ void mira_escape(struct thread* td, void* uap)
 	cred->cr_rgid = 0;
 	cred->cr_groups[0] = 0;
 
-	cred->cr_prison = *(struct prison**)kdlsym(prison0);
+	cred->cr_prison = (struct prison*)kdlsym(prison0);
 	fd->fd_rdir = fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
 	// set diag auth ID flags

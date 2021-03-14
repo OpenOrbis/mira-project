@@ -146,7 +146,7 @@ extern "C" void mira_entry(void* args)
 		curthread->td_ucred->cr_ruid = 0;
 
 		if (curthread->td_ucred->cr_prison)
-			curthread->td_ucred->cr_prison = *(struct prison**)kdlsym(prison0);
+			curthread->td_ucred->cr_prison = (struct prison*)kdlsym(prison0);
 
 		if (curthread->td_proc->p_fd)
 			curthread->td_proc->p_fd->fd_rdir = curthread->td_proc->p_fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
