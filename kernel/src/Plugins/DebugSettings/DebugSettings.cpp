@@ -38,7 +38,7 @@ static int sysctl_hook(thread* td, sysctl_uap* uap)
     int name[2];
     if(copyin(uap->name, &name, sizeof(name)))
         goto passthrough;
-    if(name[0] != 7 || (name[1] != 276 && name[1] != 286))
+    if(name[0] != 7 || (name[1] != DebugSettingsActivator::SYSCTL_DEBUG_1 && name[1] != DebugSettingsActivator::SYSCTL_DEBUG_2))
         goto passthrough;
     size_t old_len;
     if(copyin(uap->old_len, &old_len, sizeof(old_len)) || old_len != sizeof(fake_ans))
