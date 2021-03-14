@@ -715,7 +715,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         kclose_t(s_DirectoryHandle, s_MainThread);
 
         // Create the new folder inside of the sandbox
-        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0511, s_MainThread);
+        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0777, s_MainThread);
         if (s_Result < 0)
         {
 			// Skip if the directory already exists

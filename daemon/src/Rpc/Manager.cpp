@@ -1,79 +1,32 @@
 #include "Manager.hpp"
-#include "FileManagerImpl.hpp"
 
 #include <string>
 
-#include <grpcpp/grpcpp.h>
-#include <grpcpp/health_check_service_interface.h>
-#include <grpcpp/ext/proto_server_reflection_plugin.h>
-
-using namespace Mira::Rpc;
-using grpc::Server;
-using grpc::ServerBuilder;
-using grpc::ServerContext;
-using grpc::Status;
-
-
 #include "Protos/Rpc.pb.h"
-#include "Protos/FileManager.grpc.pb.h"
 #include "Connection.hpp"
 #include "FileManagerListener.hpp"
 #include "Status.hpp"
 
 #include <Utils/Logger.hpp>
-        
+
+extern "C"
+{
+    #include <unistd.h>
+}
+
+using namespace Mira::Rpc;
+
 Manager::Manager() :
     m_Socket(-1),
-    m_Address { 0 }
+    m_Port(0),
+    m_Address { 0 },
+    m_NextConnectionId(0)
 {
-    /*std::string s_ServerAddress("0.0.0.0:9999");
-    FileManagerImpl s_Service;
-    ServerBuilder s_Builder;
-
-    s_Builder.AddListeningPort(s_ServerAddress, grpc::InsecureServerCredentials());
-    s_Builder.RegisterService(&s_Service);
-
-    s_Builder.BuildAndStart();
-
-    auto s_Server = s_Builder.BuildAndStart();
-
-    s_Server->Wait();*/
-
+    // Add default listeners
     m_Listeners.push_back(std::move(std::make_shared<FileManagerListener>(&m_Arena)));
 
+    // Make this baby prrrr
     Startup();
-    return;
-
-    FileManager::ReadRequest s_Request;
-    s_Request.set_handle(2);
-    s_Request.set_size(1337);
-
-    // The arena owns the returned memory and will free it on its own destruction.
-    auto s_Any = google::protobuf::Arena::CreateMessage<google::protobuf::Any>(&m_Arena);
-    s_Any->PackFrom(s_Request);
-
-    RpcMessage s_Message;
-    s_Message.set_magic(RpcMessage_Magic_V3);
-    s_Message.set_error(0);
-    s_Message.set_allocated_inner_message(s_Any);
-
-    if (s_Any->Is<FileManager::CloseRequest>())
-    {
-        WriteLog(LL_Info, "CloseRequest.");
-    }
-
-    if (s_Any->Is<FileManager::ReadRequest>())
-    {
-        WriteLog(LL_Info, "ReadRequest.");
-    }
-
-    std::string s_Data;
-    if (!s_Message.SerializeToString(&s_Data))
-    {
-        WriteLog(LL_Error, "could not serialize message.");
-    }
-
-    WriteLog(LL_Debug, "data: %p, 0x%lx.", s_Data.data(), s_Data.size());
 }
 
 Manager::~Manager()
@@ -147,7 +100,7 @@ bool Manager::Startup()
     }
 
     // Set up the new client pump loop
-    m_ServerThread = std::thread([&]()
+    m_ServerThread = std::thread([=]()
     {
         struct timeval s_Timeout
         {
@@ -182,7 +135,7 @@ bool Manager::Startup()
                                 (l_Address >> 24) & 0xFF);
             
             // Create the connection which handles the message pump
-            auto l_Connection = std::make_shared<Connection>(++m_NextConnectionId, s_ClientSocket, s_ClientAddress, std::bind(&Manager::OnConnectionDisconnect, this, std::placeholders::_1));
+            auto l_Connection = std::make_shared<Connection>(s_ClientSocket, s_ClientSocket, s_ClientAddress, std::bind(&Manager::OnConnectionDisconnect, this, std::placeholders::_1));
             if (l_Connection == nullptr)
             {
                 WriteLog(LL_Error, "could not allocate connection.");
@@ -197,12 +150,11 @@ bool Manager::Startup()
             }
 
             // Create a new client thread
-            std::thread l_ConnectionThread([&]()
+            std::thread l_ConnectionThread([=]()
             {
-                WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%p), thread_id: (%d).",
+                WriteLog(LL_Info, "rpc connection thread created socket: (%d), addr: (%p)",
                                     l_Connection->GetSocket(),
-                                    l_Connection.get(),
-                                    l_ConnectionThread.get_id());
+                                    l_Connection.get());
                 
                 auto s_Socket = l_Connection->GetSocket();
 
@@ -352,6 +304,7 @@ void Manager::OnConnectionDisconnect(uint64_t p_ConnectionId)
         close(s_Connection->GetSocket());
 
         m_Connections.erase(s_Found);
+
         WriteLog(LL_Debug, "client removed from connections list.");
     }
 }
