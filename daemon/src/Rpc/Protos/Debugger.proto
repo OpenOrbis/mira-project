@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+service DebuggerService {
+    //
+    // Debugger
+    //
+    rpc Attach (AttachRequest) returns (AttachResponse);
+    rpc Detach (DetachRequest) returns (DetachResponse);
+    rpc Reparent (ReparentRequest) returns (ReparentResponse);
+
+    //
+    // Breakpoints
+    //
+    rpc SetBreakpoint (SetBreakpointRequest) returns (SetBreakpointResponse);
+    rpc DeleteBreakpoint (DeleteBreakpointRequest) returns (DeleteBreakpointResponse);
+    rpc GetBreakpoint (GetBreakpointRequest) returns (GetBreakpointResponse);
+    rpc GetAllBreakpoints (GetAllBreakpointsRequest) returns (stream Breakpoint);
+
+    //
+    // Flow control
+    //
+    rpc Run (RunRequest) returns (RunResponse);
+    rpc Break (BreakRequest) returns (BreakResponse);
+    rpc Step (StepRequest) returns (StepResponse);
+
+
+    //
+    // Process & Thread info
+    //
+
+    rpc GetProcessList (GetProcessListRequest) returns (stream GetP);
+
+}
+
+//
+// Debugger
+//
+
+message AttachRequest {
+    // Process id to attach
+    int32 process_id = 1;
+
+    // Should we pause the process on attach
+    bool break_on_attach = 2;
+}
+
+message AttachResponse {
+    int32 error = 1;
+}
+
+message DetachRequest {
+    int32 process_id = 1;
+
+    bool run_on_detach = 2;
+
+    bool should_reparent = 3;
+
+    int32 reparent_id = 4;
+}
+
+message DetachResponse {
+    int32 error = 1;
+}
+
+message ReparentRequest {
+    int32 process_id = 1;
+
+    int32 reparent_id = 2;
+}
+
+message ReparentResponse {
+    int32 error = 1;
+}
+
+//
+// Breakpoints
+//
+message Breakpoint {
+    // Breakpoint id
+    uint64 id = 1;
+
+    // Is this a hardware breakpoint (you only have 4)
+    bool is_hardware = 2;
+
+    // Is this breakpoint enabled
+    bool is_enabled = 3;
+
+    // Address of the breakpoint
+    uint64 address = 4;
+
+    // Breakpoint size, (1, 2, 4, 8?, are only valid)
+    uint32 length = 5;
+
+    // Current hit count
+    uint64 hit_count = 6;
+
+    // Bytes backed up
+    bytes backup = 7;
+}
+
+message SetBreakpointRequest {
+    bool is_hardware = 1;
+
+    bool is_enabled = 2;
+
+    uint64 address = 3;
+
+    uint32 length = 4;
+}
+
+message SetBreakpointResponse {
+    int32 error = 1;
+
+    uint64 id = 2;
+}
+
+message GetBreakpointRequest {
+    uint64 id = 1;
+}
+
+message GetBreakpointResponse {
+    int32 error = 1;
+
+    Breakpoint breakpoint = 2;
+}
+
+message GetAllBreakpointsRequest {
+
+}
+
+//
+// Flow control
+//
+message RunRequest {
+}
+
+message RunResponse {
+    int32 error = 1;
+}
+
+message BreakRequest {
+}
+
+message BreakResponse {
+    int32 error = 1;
+}
+
+message StepRequest {
+}

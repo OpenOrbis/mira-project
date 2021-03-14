@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
+#include <Utils/Logger.hpp>
+
 using namespace grpc;
 
 namespace Mira
@@ -32,7 +34,7 @@ namespace Mira
                 auto s_Message = request->message();
                 if (s_Message.length() > 1024)
                 {
-                    fprintf(stderr, "message max length past.\n");
+                    WriteLog(LL_Error, "message length too long.");
                     return Status::CANCELLED;
                 }
 
@@ -229,14 +231,14 @@ namespace Mira
                 auto s_Path = request->path();
                 if (s_Path.length() <= 1)
                 {
-                    fprintf(stderr, "invalid path.\n");
+                    WriteLog(LL_Error, "invalid path.");
                     return Status::CANCELLED;
                 }
 
                 auto s_Dir = opendir(s_Path.c_str());
                 if (s_Dir == nullptr)
                 {
-                    fprintf(stderr, "could not opendir() (%d).\n", errno);
+                    WriteLog(LL_Error, "opendir(%s) failed (%d).", s_Path.c_str(), errno);
                     return Status::CANCELLED;
                 }
 
@@ -285,7 +287,7 @@ namespace Mira
                 auto s_Ret = closedir(s_Dir);
                 if (s_Ret == -1)
                 {
-                    // TODO: Logging
+                    WriteLog(LL_Error, "closedir failed (%d).", errno);
                     return Status::CANCELLED;
                 }
                 

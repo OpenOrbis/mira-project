@@ -3,8 +3,7 @@
 #include <Rpc/Manager.hpp>
 
 #include <Debugging/Debugger.hpp>
-
-#include <cstdio>
+#include <Utils/Logger.hpp>
 
 using namespace Mira;
 
@@ -50,7 +49,7 @@ bool Daemon::OnLoad()
     // Load the debugger
     if (!m_Debugger->OnLoad())
     {
-        fprintf(stderr, "err: could not load debugger.\n");
+        WriteLog(LL_Error, "could not load debugger.");
         return false;
     }
 

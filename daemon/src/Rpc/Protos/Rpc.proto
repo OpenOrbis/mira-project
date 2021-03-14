@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package Mira.Rpc;
+
+import "google/protobuf/any.proto";
+
+message RpcMessage {
+    enum Magic {
+        NO_MAGIC = 0;
+        V1 = 1;
+        V2 = 2;
+        V3 = 3;
+        MAGIC_COUNT = 4;
+    }
+
+    enum RpcCategory {
+        NO_CATEGORY = 0;
+        SYSTEM = 1;
+        LOG = 2;
+        DEBUG = 3;
+        FILE = 4;
+        COMMAND = 5;
+        RPC_COUNT = 6;
+    }
+
+    Magic magic = 1;
+    RpcCategory category = 2;
+    google.protobuf.Any inner_message = 3;
+    int32 error = 5;
+}
