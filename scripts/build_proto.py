@@ -93,6 +93,10 @@ if __name__== "__main__":
 
     if noMvPbcFiles is False:
         # Move fixed protobuf files
+        if not os.path.exists("src/"):
+            os.makedirs("src/Plugins/Debugger/")
+            os.makedirs("src/Plugins/FileManager/")
+            os.makedirs("src/Messaging/Rpc/")
         for file in pbcFileList:
             sourcePath = os.path.join(inputDirectory, file)
             destinationPath = ""
