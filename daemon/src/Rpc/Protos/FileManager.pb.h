@@ -47,7 +47,7 @@ struct TableStruct_FileManager_2eproto {
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::AuxiliaryParseTableField aux[]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
-  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[23]
+  static const ::PROTOBUF_NAMESPACE_ID::internal::ParseTable schema[24]
     PROTOBUF_SECTION_VARIABLE(protodesc_cold);
   static const ::PROTOBUF_NAMESPACE_ID::internal::FieldMetadata field_metadata[];
   static const ::PROTOBUF_NAMESPACE_ID::internal::SerializationTable serialization_table[];
@@ -69,6 +69,9 @@ extern EchoRequestDefaultTypeInternal _EchoRequest_default_instance_;
 class EmptyReply;
 class EmptyReplyDefaultTypeInternal;
 extern EmptyReplyDefaultTypeInternal _EmptyReply_default_instance_;
+class ListEntry;
+class ListEntryDefaultTypeInternal;
+extern ListEntryDefaultTypeInternal _ListEntry_default_instance_;
 class ListRequest;
 class ListRequestDefaultTypeInternal;
 extern ListRequestDefaultTypeInternal _ListRequest_default_instance_;
@@ -134,6 +137,7 @@ template<> ::Mira::Rpc::FileManager::CloseRequest* Arena::CreateMaybeMessage<::M
 template<> ::Mira::Rpc::FileManager::CloseResponse* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::CloseResponse>(Arena*);
 template<> ::Mira::Rpc::FileManager::EchoRequest* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::EchoRequest>(Arena*);
 template<> ::Mira::Rpc::FileManager::EmptyReply* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::EmptyReply>(Arena*);
+template<> ::Mira::Rpc::FileManager::ListEntry* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::ListEntry>(Arena*);
 template<> ::Mira::Rpc::FileManager::ListRequest* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::ListRequest>(Arena*);
 template<> ::Mira::Rpc::FileManager::ListResponse* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::ListResponse>(Arena*);
 template<> ::Mira::Rpc::FileManager::MkdirRequest* Arena::CreateMaybeMessage<::Mira::Rpc::FileManager::MkdirRequest>(Arena*);
@@ -734,19 +738,9 @@ class OpenResponse PROTOBUF_FINAL :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kErrorFieldNumber = 1,
-    kFdFieldNumber = 2,
+    kFdFieldNumber = 1,
   };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
-  // int32 fd = 2;
+  // int32 fd = 1;
   void clear_fd();
   ::PROTOBUF_NAMESPACE_ID::int32 fd() const;
   void set_fd(::PROTOBUF_NAMESPACE_ID::int32 value);
@@ -762,7 +756,6 @@ class OpenResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   ::PROTOBUF_NAMESPACE_ID::int32 fd_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
@@ -1016,18 +1009,6 @@ class CloseResponse PROTOBUF_FINAL :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kErrorFieldNumber = 1,
-  };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.CloseResponse)
  private:
   class _Internal;
@@ -1035,7 +1016,6 @@ class CloseResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -1310,18 +1290,6 @@ class SeekResponse PROTOBUF_FINAL :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kErrorFieldNumber = 1,
-  };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.SeekResponse)
  private:
   class _Internal;
@@ -1329,7 +1297,6 @@ class SeekResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -1594,11 +1561,9 @@ class ReadResponse PROTOBUF_FINAL :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kDataFieldNumber = 3,
-    kOffsetFieldNumber = 2,
-    kErrorFieldNumber = 1,
+    kDataFieldNumber = 1,
   };
-  // bytes data = 3;
+  // bytes data = 1;
   void clear_data();
   const std::string& data() const;
   void set_data(const std::string& value);
@@ -1614,24 +1579,6 @@ class ReadResponse PROTOBUF_FINAL :
   std::string* _internal_mutable_data();
   public:
 
-  // uint64 offset = 2;
-  void clear_offset();
-  ::PROTOBUF_NAMESPACE_ID::uint64 offset() const;
-  void set_offset(::PROTOBUF_NAMESPACE_ID::uint64 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::uint64 _internal_offset() const;
-  void _internal_set_offset(::PROTOBUF_NAMESPACE_ID::uint64 value);
-  public:
-
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.ReadResponse)
  private:
   class _Internal;
@@ -1640,8 +1587,6 @@ class ReadResponse PROTOBUF_FINAL :
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
   ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr data_;
-  ::PROTOBUF_NAMESPACE_ID::uint64 offset_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -1912,18 +1857,6 @@ class WriteResponse PROTOBUF_FINAL :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kErrorFieldNumber = 1,
-  };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.WriteResponse)
  private:
   class _Internal;
@@ -1931,7 +1864,6 @@ class WriteResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -2080,6 +2012,182 @@ class ListRequest PROTOBUF_FINAL :
 };
 // -------------------------------------------------------------------
 
+class ListEntry PROTOBUF_FINAL :
+    public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Mira.Rpc.FileManager.ListEntry) */ {
+ public:
+  inline ListEntry() : ListEntry(nullptr) {}
+  virtual ~ListEntry();
+
+  ListEntry(const ListEntry& from);
+  ListEntry(ListEntry&& from) noexcept
+    : ListEntry() {
+    *this = ::std::move(from);
+  }
+
+  inline ListEntry& operator=(const ListEntry& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ListEntry& operator=(ListEntry&& from) noexcept {
+    if (GetArena() == from.GetArena()) {
+      if (this != &from) InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Descriptor* GetDescriptor() {
+    return GetMetadataStatic().descriptor;
+  }
+  static const ::PROTOBUF_NAMESPACE_ID::Reflection* GetReflection() {
+    return GetMetadataStatic().reflection;
+  }
+  static const ListEntry& default_instance();
+
+  static inline const ListEntry* internal_default_instance() {
+    return reinterpret_cast<const ListEntry*>(
+               &_ListEntry_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages =
+    13;
+
+  friend void swap(ListEntry& a, ListEntry& b) {
+    a.Swap(&b);
+  }
+  inline void Swap(ListEntry* other) {
+    if (other == this) return;
+    if (GetArena() == other->GetArena()) {
+      InternalSwap(other);
+    } else {
+      ::PROTOBUF_NAMESPACE_ID::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ListEntry* other) {
+    if (other == this) return;
+    GOOGLE_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  inline ListEntry* New() const final {
+    return CreateMaybeMessage<ListEntry>(nullptr);
+  }
+
+  ListEntry* New(::PROTOBUF_NAMESPACE_ID::Arena* arena) const final {
+    return CreateMaybeMessage<ListEntry>(arena);
+  }
+  void CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) final;
+  void CopyFrom(const ListEntry& from);
+  void MergeFrom(const ListEntry& from);
+  PROTOBUF_ATTRIBUTE_REINITIALIZES void Clear() final;
+  bool IsInitialized() const final;
+
+  size_t ByteSizeLong() const final;
+  const char* _InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) final;
+  ::PROTOBUF_NAMESPACE_ID::uint8* _InternalSerialize(
+      ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const final;
+  int GetCachedSize() const final { return _cached_size_.Get(); }
+
+  private:
+  inline void SharedCtor();
+  inline void SharedDtor();
+  void SetCachedSize(int size) const final;
+  void InternalSwap(ListEntry* other);
+  friend class ::PROTOBUF_NAMESPACE_ID::internal::AnyMetadata;
+  static ::PROTOBUF_NAMESPACE_ID::StringPiece FullMessageName() {
+    return "Mira.Rpc.FileManager.ListEntry";
+  }
+  protected:
+  explicit ListEntry(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  private:
+  static void ArenaDtor(void* object);
+  inline void RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena* arena);
+  public:
+
+  ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadata() const final;
+  private:
+  static ::PROTOBUF_NAMESPACE_ID::Metadata GetMetadataStatic() {
+    ::PROTOBUF_NAMESPACE_ID::internal::AssignDescriptors(&::descriptor_table_FileManager_2eproto);
+    return ::descriptor_table_FileManager_2eproto.file_level_metadata[kIndexInFileMessages];
+  }
+
+  public:
+
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+
+  enum : int {
+    kNameFieldNumber = 4,
+    kOffsetFieldNumber = 2,
+    kInodeFieldNumber = 1,
+    kTypeFieldNumber = 3,
+  };
+  // string name = 4;
+  void clear_name();
+  const std::string& name() const;
+  void set_name(const std::string& value);
+  void set_name(std::string&& value);
+  void set_name(const char* value);
+  void set_name(const char* value, size_t size);
+  std::string* mutable_name();
+  std::string* release_name();
+  void set_allocated_name(std::string* name);
+  private:
+  const std::string& _internal_name() const;
+  void _internal_set_name(const std::string& value);
+  std::string* _internal_mutable_name();
+  public:
+
+  // int64 offset = 2;
+  void clear_offset();
+  ::PROTOBUF_NAMESPACE_ID::int64 offset() const;
+  void set_offset(::PROTOBUF_NAMESPACE_ID::int64 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int64 _internal_offset() const;
+  void _internal_set_offset(::PROTOBUF_NAMESPACE_ID::int64 value);
+  public:
+
+  // int32 inode = 1;
+  void clear_inode();
+  ::PROTOBUF_NAMESPACE_ID::int32 inode() const;
+  void set_inode(::PROTOBUF_NAMESPACE_ID::int32 value);
+  private:
+  ::PROTOBUF_NAMESPACE_ID::int32 _internal_inode() const;
+  void _internal_set_inode(::PROTOBUF_NAMESPACE_ID::int32 value);
+  public:
+
+  // .Mira.Rpc.FileManager.ListTypes type = 3;
+  void clear_type();
+  ::Mira::Rpc::FileManager::ListTypes type() const;
+  void set_type(::Mira::Rpc::FileManager::ListTypes value);
+  private:
+  ::Mira::Rpc::FileManager::ListTypes _internal_type() const;
+  void _internal_set_type(::Mira::Rpc::FileManager::ListTypes value);
+  public:
+
+  // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.ListEntry)
+ private:
+  class _Internal;
+
+  template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
+  typedef void InternalArenaConstructable_;
+  typedef void DestructorSkippable_;
+  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
+  ::PROTOBUF_NAMESPACE_ID::int64 offset_;
+  ::PROTOBUF_NAMESPACE_ID::int32 inode_;
+  int type_;
+  mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
+  friend struct ::TableStruct_FileManager_2eproto;
+};
+// -------------------------------------------------------------------
+
 class ListResponse PROTOBUF_FINAL :
     public ::PROTOBUF_NAMESPACE_ID::Message /* @@protoc_insertion_point(class_definition:Mira.Rpc.FileManager.ListResponse) */ {
  public:
@@ -2121,7 +2229,7 @@ class ListResponse PROTOBUF_FINAL :
                &_ListResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    13;
+    14;
 
   friend void swap(ListResponse& a, ListResponse& b) {
     a.Swap(&b);
@@ -2192,53 +2300,25 @@ class ListResponse PROTOBUF_FINAL :
   // accessors -------------------------------------------------------
 
   enum : int {
-    kNameFieldNumber = 4,
-    kOffsetFieldNumber = 2,
-    kInodeFieldNumber = 1,
-    kTypeFieldNumber = 3,
+    kEntriesFieldNumber = 1,
   };
-  // string name = 4;
-  void clear_name();
-  const std::string& name() const;
-  void set_name(const std::string& value);
-  void set_name(std::string&& value);
-  void set_name(const char* value);
-  void set_name(const char* value, size_t size);
-  std::string* mutable_name();
-  std::string* release_name();
-  void set_allocated_name(std::string* name);
+  // repeated .Mira.Rpc.FileManager.ListEntry entries = 1;
+  int entries_size() const;
   private:
-  const std::string& _internal_name() const;
-  void _internal_set_name(const std::string& value);
-  std::string* _internal_mutable_name();
+  int _internal_entries_size() const;
   public:
-
-  // int64 offset = 2;
-  void clear_offset();
-  ::PROTOBUF_NAMESPACE_ID::int64 offset() const;
-  void set_offset(::PROTOBUF_NAMESPACE_ID::int64 value);
+  void clear_entries();
+  ::Mira::Rpc::FileManager::ListEntry* mutable_entries(int index);
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Mira::Rpc::FileManager::ListEntry >*
+      mutable_entries();
   private:
-  ::PROTOBUF_NAMESPACE_ID::int64 _internal_offset() const;
-  void _internal_set_offset(::PROTOBUF_NAMESPACE_ID::int64 value);
+  const ::Mira::Rpc::FileManager::ListEntry& _internal_entries(int index) const;
+  ::Mira::Rpc::FileManager::ListEntry* _internal_add_entries();
   public:
-
-  // int32 inode = 1;
-  void clear_inode();
-  ::PROTOBUF_NAMESPACE_ID::int32 inode() const;
-  void set_inode(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_inode() const;
-  void _internal_set_inode(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
-  // .Mira.Rpc.FileManager.ListTypes type = 3;
-  void clear_type();
-  ::Mira::Rpc::FileManager::ListTypes type() const;
-  void set_type(::Mira::Rpc::FileManager::ListTypes value);
-  private:
-  ::Mira::Rpc::FileManager::ListTypes _internal_type() const;
-  void _internal_set_type(::Mira::Rpc::FileManager::ListTypes value);
-  public:
+  const ::Mira::Rpc::FileManager::ListEntry& entries(int index) const;
+  ::Mira::Rpc::FileManager::ListEntry* add_entries();
+  const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Mira::Rpc::FileManager::ListEntry >&
+      entries() const;
 
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.ListResponse)
  private:
@@ -2247,10 +2327,7 @@ class ListResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr name_;
-  ::PROTOBUF_NAMESPACE_ID::int64 offset_;
-  ::PROTOBUF_NAMESPACE_ID::int32 inode_;
-  int type_;
+  ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Mira::Rpc::FileManager::ListEntry > entries_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -2297,7 +2374,7 @@ class StatRequest PROTOBUF_FINAL :
                &_StatRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    14;
+    15;
 
   friend void swap(StatRequest& a, StatRequest& b) {
     a.Swap(&b);
@@ -2451,7 +2528,7 @@ class Time PROTOBUF_FINAL :
                &_Time_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    15;
+    16;
 
   friend void swap(Time& a, Time& b) {
     a.Swap(&b);
@@ -2598,7 +2675,7 @@ class StatResponse PROTOBUF_FINAL :
                &_StatResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    16;
+    17;
 
   friend void swap(StatResponse& a, StatResponse& b) {
     a.Swap(&b);
@@ -2893,7 +2970,7 @@ class MkdirRequest PROTOBUF_FINAL :
                &_MkdirRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    17;
+    18;
 
   friend void swap(MkdirRequest& a, MkdirRequest& b) {
     a.Swap(&b);
@@ -3047,7 +3124,7 @@ class MkdirResponse PROTOBUF_FINAL :
                &_MkdirResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    18;
+    19;
 
   friend void swap(MkdirResponse& a, MkdirResponse& b) {
     a.Swap(&b);
@@ -3117,18 +3194,6 @@ class MkdirResponse PROTOBUF_FINAL :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kErrorFieldNumber = 1,
-  };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.MkdirResponse)
  private:
   class _Internal;
@@ -3136,7 +3201,6 @@ class MkdirResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -3183,7 +3247,7 @@ class RmdirRequest PROTOBUF_FINAL :
                &_RmdirRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    19;
+    20;
 
   friend void swap(RmdirRequest& a, RmdirRequest& b) {
     a.Swap(&b);
@@ -3326,7 +3390,7 @@ class RmdirResponse PROTOBUF_FINAL :
                &_RmdirResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    20;
+    21;
 
   friend void swap(RmdirResponse& a, RmdirResponse& b) {
     a.Swap(&b);
@@ -3396,18 +3460,6 @@ class RmdirResponse PROTOBUF_FINAL :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kErrorFieldNumber = 1,
-  };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.RmdirResponse)
  private:
   class _Internal;
@@ -3415,7 +3467,6 @@ class RmdirResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -3462,7 +3513,7 @@ class UnlinkRequest PROTOBUF_FINAL :
                &_UnlinkRequest_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    21;
+    22;
 
   friend void swap(UnlinkRequest& a, UnlinkRequest& b) {
     a.Swap(&b);
@@ -3605,7 +3656,7 @@ class UnlinkResponse PROTOBUF_FINAL :
                &_UnlinkResponse_default_instance_);
   }
   static constexpr int kIndexInFileMessages =
-    22;
+    23;
 
   friend void swap(UnlinkResponse& a, UnlinkResponse& b) {
     a.Swap(&b);
@@ -3675,18 +3726,6 @@ class UnlinkResponse PROTOBUF_FINAL :
 
   // accessors -------------------------------------------------------
 
-  enum : int {
-    kErrorFieldNumber = 1,
-  };
-  // int32 error = 1;
-  void clear_error();
-  ::PROTOBUF_NAMESPACE_ID::int32 error() const;
-  void set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  private:
-  ::PROTOBUF_NAMESPACE_ID::int32 _internal_error() const;
-  void _internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value);
-  public:
-
   // @@protoc_insertion_point(class_scope:Mira.Rpc.FileManager.UnlinkResponse)
  private:
   class _Internal;
@@ -3694,7 +3733,6 @@ class UnlinkResponse PROTOBUF_FINAL :
   template <typename T> friend class ::PROTOBUF_NAMESPACE_ID::Arena::InternalHelper;
   typedef void InternalArenaConstructable_;
   typedef void DestructorSkippable_;
-  ::PROTOBUF_NAMESPACE_ID::int32 error_;
   mutable ::PROTOBUF_NAMESPACE_ID::internal::CachedSize _cached_size_;
   friend struct ::TableStruct_FileManager_2eproto;
 };
@@ -3883,27 +3921,7 @@ inline void OpenRequest::set_allocated_path(std::string* path) {
 
 // OpenResponse
 
-// int32 error = 1;
-inline void OpenResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 OpenResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 OpenResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.OpenResponse.error)
-  return _internal_error();
-}
-inline void OpenResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void OpenResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.OpenResponse.error)
-}
-
-// int32 fd = 2;
+// int32 fd = 1;
 inline void OpenResponse::clear_fd() {
   fd_ = 0;
 }
@@ -3950,26 +3968,6 @@ inline void CloseRequest::set_handle(::PROTOBUF_NAMESPACE_ID::int32 value) {
 // -------------------------------------------------------------------
 
 // CloseResponse
-
-// int32 error = 1;
-inline void CloseResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 CloseResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 CloseResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.CloseResponse.error)
-  return _internal_error();
-}
-inline void CloseResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void CloseResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.CloseResponse.error)
-}
 
 // -------------------------------------------------------------------
 
@@ -4039,26 +4037,6 @@ inline void SeekRequest::set_whence(::PROTOBUF_NAMESPACE_ID::int32 value) {
 
 // SeekResponse
 
-// int32 error = 1;
-inline void SeekResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 SeekResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 SeekResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.SeekResponse.error)
-  return _internal_error();
-}
-inline void SeekResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void SeekResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.SeekResponse.error)
-}
-
 // -------------------------------------------------------------------
 
 // ReadRequest
@@ -4107,47 +4085,7 @@ inline void ReadRequest::set_size(::PROTOBUF_NAMESPACE_ID::uint64 value) {
 
 // ReadResponse
 
-// int32 error = 1;
-inline void ReadResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 ReadResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 ReadResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ReadResponse.error)
-  return _internal_error();
-}
-inline void ReadResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void ReadResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ReadResponse.error)
-}
-
-// uint64 offset = 2;
-inline void ReadResponse::clear_offset() {
-  offset_ = PROTOBUF_ULONGLONG(0);
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint64 ReadResponse::_internal_offset() const {
-  return offset_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::uint64 ReadResponse::offset() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ReadResponse.offset)
-  return _internal_offset();
-}
-inline void ReadResponse::_internal_set_offset(::PROTOBUF_NAMESPACE_ID::uint64 value) {
-  
-  offset_ = value;
-}
-inline void ReadResponse::set_offset(::PROTOBUF_NAMESPACE_ID::uint64 value) {
-  _internal_set_offset(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ReadResponse.offset)
-}
-
-// bytes data = 3;
+// bytes data = 1;
 inline void ReadResponse::clear_data() {
   data_.ClearToEmpty();
 }
@@ -4297,26 +4235,6 @@ inline void WriteRequest::set_allocated_data(std::string* data) {
 
 // WriteResponse
 
-// int32 error = 1;
-inline void WriteResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 WriteResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 WriteResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.WriteResponse.error)
-  return _internal_error();
-}
-inline void WriteResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void WriteResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.WriteResponse.error)
-}
-
 // -------------------------------------------------------------------
 
 // ListRequest
@@ -4384,119 +4302,119 @@ inline void ListRequest::set_allocated_path(std::string* path) {
 
 // -------------------------------------------------------------------
 
-// ListResponse
+// ListEntry
 
 // int32 inode = 1;
-inline void ListResponse::clear_inode() {
+inline void ListEntry::clear_inode() {
   inode_ = 0;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 ListResponse::_internal_inode() const {
+inline ::PROTOBUF_NAMESPACE_ID::int32 ListEntry::_internal_inode() const {
   return inode_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int32 ListResponse::inode() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListResponse.inode)
+inline ::PROTOBUF_NAMESPACE_ID::int32 ListEntry::inode() const {
+  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListEntry.inode)
   return _internal_inode();
 }
-inline void ListResponse::_internal_set_inode(::PROTOBUF_NAMESPACE_ID::int32 value) {
+inline void ListEntry::_internal_set_inode(::PROTOBUF_NAMESPACE_ID::int32 value) {
   
   inode_ = value;
 }
-inline void ListResponse::set_inode(::PROTOBUF_NAMESPACE_ID::int32 value) {
+inline void ListEntry::set_inode(::PROTOBUF_NAMESPACE_ID::int32 value) {
   _internal_set_inode(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListResponse.inode)
+  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListEntry.inode)
 }
 
 // int64 offset = 2;
-inline void ListResponse::clear_offset() {
+inline void ListEntry::clear_offset() {
   offset_ = PROTOBUF_LONGLONG(0);
 }
-inline ::PROTOBUF_NAMESPACE_ID::int64 ListResponse::_internal_offset() const {
+inline ::PROTOBUF_NAMESPACE_ID::int64 ListEntry::_internal_offset() const {
   return offset_;
 }
-inline ::PROTOBUF_NAMESPACE_ID::int64 ListResponse::offset() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListResponse.offset)
+inline ::PROTOBUF_NAMESPACE_ID::int64 ListEntry::offset() const {
+  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListEntry.offset)
   return _internal_offset();
 }
-inline void ListResponse::_internal_set_offset(::PROTOBUF_NAMESPACE_ID::int64 value) {
+inline void ListEntry::_internal_set_offset(::PROTOBUF_NAMESPACE_ID::int64 value) {
   
   offset_ = value;
 }
-inline void ListResponse::set_offset(::PROTOBUF_NAMESPACE_ID::int64 value) {
+inline void ListEntry::set_offset(::PROTOBUF_NAMESPACE_ID::int64 value) {
   _internal_set_offset(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListResponse.offset)
+  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListEntry.offset)
 }
 
 // .Mira.Rpc.FileManager.ListTypes type = 3;
-inline void ListResponse::clear_type() {
+inline void ListEntry::clear_type() {
   type_ = 0;
 }
-inline ::Mira::Rpc::FileManager::ListTypes ListResponse::_internal_type() const {
+inline ::Mira::Rpc::FileManager::ListTypes ListEntry::_internal_type() const {
   return static_cast< ::Mira::Rpc::FileManager::ListTypes >(type_);
 }
-inline ::Mira::Rpc::FileManager::ListTypes ListResponse::type() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListResponse.type)
+inline ::Mira::Rpc::FileManager::ListTypes ListEntry::type() const {
+  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListEntry.type)
   return _internal_type();
 }
-inline void ListResponse::_internal_set_type(::Mira::Rpc::FileManager::ListTypes value) {
+inline void ListEntry::_internal_set_type(::Mira::Rpc::FileManager::ListTypes value) {
   
   type_ = value;
 }
-inline void ListResponse::set_type(::Mira::Rpc::FileManager::ListTypes value) {
+inline void ListEntry::set_type(::Mira::Rpc::FileManager::ListTypes value) {
   _internal_set_type(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListResponse.type)
+  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListEntry.type)
 }
 
 // string name = 4;
-inline void ListResponse::clear_name() {
+inline void ListEntry::clear_name() {
   name_.ClearToEmpty();
 }
-inline const std::string& ListResponse::name() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListResponse.name)
+inline const std::string& ListEntry::name() const {
+  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListEntry.name)
   return _internal_name();
 }
-inline void ListResponse::set_name(const std::string& value) {
+inline void ListEntry::set_name(const std::string& value) {
   _internal_set_name(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListResponse.name)
+  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.ListEntry.name)
 }
-inline std::string* ListResponse::mutable_name() {
-  // @@protoc_insertion_point(field_mutable:Mira.Rpc.FileManager.ListResponse.name)
+inline std::string* ListEntry::mutable_name() {
+  // @@protoc_insertion_point(field_mutable:Mira.Rpc.FileManager.ListEntry.name)
   return _internal_mutable_name();
 }
-inline const std::string& ListResponse::_internal_name() const {
+inline const std::string& ListEntry::_internal_name() const {
   return name_.Get();
 }
-inline void ListResponse::_internal_set_name(const std::string& value) {
+inline void ListEntry::_internal_set_name(const std::string& value) {
   
   name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, value, GetArena());
 }
-inline void ListResponse::set_name(std::string&& value) {
+inline void ListEntry::set_name(std::string&& value) {
   
   name_.Set(
     ::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, ::std::move(value), GetArena());
-  // @@protoc_insertion_point(field_set_rvalue:Mira.Rpc.FileManager.ListResponse.name)
+  // @@protoc_insertion_point(field_set_rvalue:Mira.Rpc.FileManager.ListEntry.name)
 }
-inline void ListResponse::set_name(const char* value) {
+inline void ListEntry::set_name(const char* value) {
   GOOGLE_DCHECK(value != nullptr);
   
   name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, ::std::string(value), GetArena());
-  // @@protoc_insertion_point(field_set_char:Mira.Rpc.FileManager.ListResponse.name)
+  // @@protoc_insertion_point(field_set_char:Mira.Rpc.FileManager.ListEntry.name)
 }
-inline void ListResponse::set_name(const char* value,
+inline void ListEntry::set_name(const char* value,
     size_t size) {
   
   name_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, ::std::string(
       reinterpret_cast<const char*>(value), size), GetArena());
-  // @@protoc_insertion_point(field_set_pointer:Mira.Rpc.FileManager.ListResponse.name)
+  // @@protoc_insertion_point(field_set_pointer:Mira.Rpc.FileManager.ListEntry.name)
 }
-inline std::string* ListResponse::_internal_mutable_name() {
+inline std::string* ListEntry::_internal_mutable_name() {
   
   return name_.Mutable(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, GetArena());
 }
-inline std::string* ListResponse::release_name() {
-  // @@protoc_insertion_point(field_release:Mira.Rpc.FileManager.ListResponse.name)
+inline std::string* ListEntry::release_name() {
+  // @@protoc_insertion_point(field_release:Mira.Rpc.FileManager.ListEntry.name)
   return name_.Release(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
 }
-inline void ListResponse::set_allocated_name(std::string* name) {
+inline void ListEntry::set_allocated_name(std::string* name) {
   if (name != nullptr) {
     
   } else {
@@ -4504,7 +4422,50 @@ inline void ListResponse::set_allocated_name(std::string* name) {
   }
   name_.SetAllocated(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), name,
       GetArena());
-  // @@protoc_insertion_point(field_set_allocated:Mira.Rpc.FileManager.ListResponse.name)
+  // @@protoc_insertion_point(field_set_allocated:Mira.Rpc.FileManager.ListEntry.name)
+}
+
+// -------------------------------------------------------------------
+
+// ListResponse
+
+// repeated .Mira.Rpc.FileManager.ListEntry entries = 1;
+inline int ListResponse::_internal_entries_size() const {
+  return entries_.size();
+}
+inline int ListResponse::entries_size() const {
+  return _internal_entries_size();
+}
+inline void ListResponse::clear_entries() {
+  entries_.Clear();
+}
+inline ::Mira::Rpc::FileManager::ListEntry* ListResponse::mutable_entries(int index) {
+  // @@protoc_insertion_point(field_mutable:Mira.Rpc.FileManager.ListResponse.entries)
+  return entries_.Mutable(index);
+}
+inline ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Mira::Rpc::FileManager::ListEntry >*
+ListResponse::mutable_entries() {
+  // @@protoc_insertion_point(field_mutable_list:Mira.Rpc.FileManager.ListResponse.entries)
+  return &entries_;
+}
+inline const ::Mira::Rpc::FileManager::ListEntry& ListResponse::_internal_entries(int index) const {
+  return entries_.Get(index);
+}
+inline const ::Mira::Rpc::FileManager::ListEntry& ListResponse::entries(int index) const {
+  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.ListResponse.entries)
+  return _internal_entries(index);
+}
+inline ::Mira::Rpc::FileManager::ListEntry* ListResponse::_internal_add_entries() {
+  return entries_.Add();
+}
+inline ::Mira::Rpc::FileManager::ListEntry* ListResponse::add_entries() {
+  // @@protoc_insertion_point(field_add:Mira.Rpc.FileManager.ListResponse.entries)
+  return _internal_add_entries();
+}
+inline const ::PROTOBUF_NAMESPACE_ID::RepeatedPtrField< ::Mira::Rpc::FileManager::ListEntry >&
+ListResponse::entries() const {
+  // @@protoc_insertion_point(field_list:Mira.Rpc.FileManager.ListResponse.entries)
+  return entries_;
 }
 
 // -------------------------------------------------------------------
@@ -5178,26 +5139,6 @@ inline void MkdirRequest::set_allocated_path(std::string* path) {
 
 // MkdirResponse
 
-// int32 error = 1;
-inline void MkdirResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 MkdirResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 MkdirResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.MkdirResponse.error)
-  return _internal_error();
-}
-inline void MkdirResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void MkdirResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.MkdirResponse.error)
-}
-
 // -------------------------------------------------------------------
 
 // RmdirRequest
@@ -5266,26 +5207,6 @@ inline void RmdirRequest::set_allocated_path(std::string* path) {
 // -------------------------------------------------------------------
 
 // RmdirResponse
-
-// int32 error = 1;
-inline void RmdirResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 RmdirResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 RmdirResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.RmdirResponse.error)
-  return _internal_error();
-}
-inline void RmdirResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void RmdirResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.RmdirResponse.error)
-}
 
 // -------------------------------------------------------------------
 
@@ -5356,29 +5277,11 @@ inline void UnlinkRequest::set_allocated_path(std::string* path) {
 
 // UnlinkResponse
 
-// int32 error = 1;
-inline void UnlinkResponse::clear_error() {
-  error_ = 0;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 UnlinkResponse::_internal_error() const {
-  return error_;
-}
-inline ::PROTOBUF_NAMESPACE_ID::int32 UnlinkResponse::error() const {
-  // @@protoc_insertion_point(field_get:Mira.Rpc.FileManager.UnlinkResponse.error)
-  return _internal_error();
-}
-inline void UnlinkResponse::_internal_set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  
-  error_ = value;
-}
-inline void UnlinkResponse::set_error(::PROTOBUF_NAMESPACE_ID::int32 value) {
-  _internal_set_error(value);
-  // @@protoc_insertion_point(field_set:Mira.Rpc.FileManager.UnlinkResponse.error)
-}
-
 #ifdef __GNUC__
   #pragma GCC diagnostic pop
 #endif  // __GNUC__
+// -------------------------------------------------------------------
+
 // -------------------------------------------------------------------
 
 // -------------------------------------------------------------------

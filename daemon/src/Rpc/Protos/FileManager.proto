@@ -30,8 +30,7 @@ message OpenRequest {
 }
 
 message OpenResponse {
-    int32 error = 1;
-    int32 fd = 2;
+    int32 fd = 1;
 }
 
 //
@@ -42,7 +41,6 @@ message CloseRequest {
 }
 
 message CloseResponse {
-    int32 error = 1;
 }
 
 //
@@ -55,7 +53,6 @@ message SeekRequest {
 }
 
 message SeekResponse {
-    int32 error = 1;
 }
 
 //
@@ -67,9 +64,7 @@ message ReadRequest {
 }
 
 message ReadResponse {
-    int32 error = 1;
-    uint64 offset = 2;
-    bytes data = 3;
+    bytes data = 1;
 }
 
 //
@@ -81,7 +76,6 @@ message WriteRequest {
 }
 
 message WriteResponse {
-    int32 error = 1;
 }
 
 //
@@ -101,7 +95,7 @@ enum ListTypes {
     SOCKET = 6;
     UNKNOWN = 7;
 }
-message ListResponse {
+message ListEntry {
     int32 inode = 1;
     
     // Not an offset
@@ -112,6 +106,10 @@ message ListResponse {
 
     // Name
     string name = 4;
+}
+
+message ListResponse {
+    repeated ListEntry entries = 1;
 }
 
 //
@@ -177,7 +175,6 @@ message MkdirRequest {
 }
 
 message MkdirResponse {
-    int32 error = 1;
 }
 
 //
@@ -188,7 +185,6 @@ message RmdirRequest {
 }
 
 message RmdirResponse {
-    int32 error = 1;
 }
 
 //
@@ -199,5 +195,4 @@ message UnlinkRequest {
 }
 
 message UnlinkResponse {
-    int32 error = 1;
 }

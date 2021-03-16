@@ -58,7 +58,7 @@ LIBS	:= -lc -lkernel -lc++ -lSceNet
 C_DEFS	:= -D_DEBUG -DPS4 -D__BSD_VISIBLE -D_BSD_SOURCE
 
 # C++ Flags
-CFLAGS	:= -cc1 -triple x86_64-pc-freebsd-elf -munwind-tables $(I_DIRS) $(C_DEFS) -fuse-init-array -emit-obj
+CFLAGS	:= -triple x86_64-pc-freebsd-elf -funwind-tables $(I_DIRS) $(C_DEFS) -fuse-init-array -femit-obj
 
 # Assembly flags
 SFLAGS	:= -m64 -nodefaultlibs -nostdlib

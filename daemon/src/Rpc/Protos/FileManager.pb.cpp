@@ -14,6 +14,7 @@
 #include <google/protobuf/wire_format.h>
 // @@protoc_insertion_point(includes)
 #include <google/protobuf/port_def.inc>
+extern PROTOBUF_INTERNAL_EXPORT_FileManager_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_ListEntry_FileManager_2eproto;
 extern PROTOBUF_INTERNAL_EXPORT_FileManager_2eproto ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_Time_FileManager_2eproto;
 namespace Mira {
 namespace Rpc {
@@ -70,6 +71,10 @@ class ListRequestDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ListRequest> _instance;
 } _ListRequest_default_instance_;
+class ListEntryDefaultTypeInternal {
+ public:
+  ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ListEntry> _instance;
+} _ListEntry_default_instance_;
 class ListResponseDefaultTypeInternal {
  public:
   ::PROTOBUF_NAMESPACE_ID::internal::ExplicitlyConstructed<ListResponse> _instance;
@@ -165,6 +170,19 @@ static void InitDefaultsscc_info_EmptyReply_FileManager_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_EmptyReply_FileManager_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_EmptyReply_FileManager_2eproto}, {}};
 
+static void InitDefaultsscc_info_ListEntry_FileManager_2eproto() {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
+
+  {
+    void* ptr = &::Mira::Rpc::FileManager::_ListEntry_default_instance_;
+    new (ptr) ::Mira::Rpc::FileManager::ListEntry();
+    ::PROTOBUF_NAMESPACE_ID::internal::OnShutdownDestroyMessage(ptr);
+  }
+}
+
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_ListEntry_FileManager_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_ListEntry_FileManager_2eproto}, {}};
+
 static void InitDefaultsscc_info_ListRequest_FileManager_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -188,8 +206,9 @@ static void InitDefaultsscc_info_ListResponse_FileManager_2eproto() {
   }
 }
 
-::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_ListResponse_FileManager_2eproto =
-    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_ListResponse_FileManager_2eproto}, {}};
+::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<1> scc_info_ListResponse_FileManager_2eproto =
+    {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 1, 0, InitDefaultsscc_info_ListResponse_FileManager_2eproto}, {
+      &scc_info_ListEntry_FileManager_2eproto.base,}};
 
 static void InitDefaultsscc_info_MkdirRequest_FileManager_2eproto() {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -413,7 +432,7 @@ static void InitDefaultsscc_info_WriteResponse_FileManager_2eproto() {
 ::PROTOBUF_NAMESPACE_ID::internal::SCCInfo<0> scc_info_WriteResponse_FileManager_2eproto =
     {{ATOMIC_VAR_INIT(::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase::kUninitialized), 0, 0, InitDefaultsscc_info_WriteResponse_FileManager_2eproto}, {}};
 
-static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_FileManager_2eproto[23];
+static ::PROTOBUF_NAMESPACE_ID::Metadata file_level_metadata_FileManager_2eproto[24];
 static const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* file_level_enum_descriptors_FileManager_2eproto[1];
 static constexpr ::PROTOBUF_NAMESPACE_ID::ServiceDescriptor const** file_level_service_descriptors_FileManager_2eproto = nullptr;
 
@@ -442,7 +461,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::OpenResponse, error_),
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::OpenResponse, fd_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::CloseRequest, _internal_metadata_),
@@ -455,7 +473,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::CloseResponse, error_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::SeekRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -469,7 +486,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::SeekResponse, error_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ReadRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -482,8 +498,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ReadResponse, error_),
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ReadResponse, offset_),
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ReadResponse, data_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::WriteRequest, _internal_metadata_),
@@ -497,7 +511,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::WriteResponse, error_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -505,14 +518,20 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _weak_field_map_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListRequest, path_),
   ~0u,  // no _has_bits_
+  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListEntry, _internal_metadata_),
+  ~0u,  // no _extensions_
+  ~0u,  // no _oneof_case_
+  ~0u,  // no _weak_field_map_
+  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListEntry, inode_),
+  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListEntry, offset_),
+  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListEntry, type_),
+  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListEntry, name_),
+  ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListResponse, _internal_metadata_),
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListResponse, inode_),
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListResponse, offset_),
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListResponse, type_),
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListResponse, name_),
+  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::ListResponse, entries_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::StatRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -557,7 +576,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::MkdirResponse, error_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::RmdirRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -569,7 +587,6 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::RmdirResponse, error_),
   ~0u,  // no _has_bits_
   PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::UnlinkRequest, _internal_metadata_),
   ~0u,  // no _extensions_
@@ -581,32 +598,32 @@ const ::PROTOBUF_NAMESPACE_ID::uint32 TableStruct_FileManager_2eproto::offsets[]
   ~0u,  // no _extensions_
   ~0u,  // no _oneof_case_
   ~0u,  // no _weak_field_map_
-  PROTOBUF_FIELD_OFFSET(::Mira::Rpc::FileManager::UnlinkResponse, error_),
 };
 static const ::PROTOBUF_NAMESPACE_ID::internal::MigrationSchema schemas[] PROTOBUF_SECTION_VARIABLE(protodesc_cold) = {
   { 0, -1, sizeof(::Mira::Rpc::FileManager::EmptyReply)},
   { 5, -1, sizeof(::Mira::Rpc::FileManager::EchoRequest)},
   { 11, -1, sizeof(::Mira::Rpc::FileManager::OpenRequest)},
   { 19, -1, sizeof(::Mira::Rpc::FileManager::OpenResponse)},
-  { 26, -1, sizeof(::Mira::Rpc::FileManager::CloseRequest)},
-  { 32, -1, sizeof(::Mira::Rpc::FileManager::CloseResponse)},
-  { 38, -1, sizeof(::Mira::Rpc::FileManager::SeekRequest)},
-  { 46, -1, sizeof(::Mira::Rpc::FileManager::SeekResponse)},
-  { 52, -1, sizeof(::Mira::Rpc::FileManager::ReadRequest)},
-  { 59, -1, sizeof(::Mira::Rpc::FileManager::ReadResponse)},
-  { 67, -1, sizeof(::Mira::Rpc::FileManager::WriteRequest)},
-  { 74, -1, sizeof(::Mira::Rpc::FileManager::WriteResponse)},
-  { 80, -1, sizeof(::Mira::Rpc::FileManager::ListRequest)},
-  { 86, -1, sizeof(::Mira::Rpc::FileManager::ListResponse)},
+  { 25, -1, sizeof(::Mira::Rpc::FileManager::CloseRequest)},
+  { 31, -1, sizeof(::Mira::Rpc::FileManager::CloseResponse)},
+  { 36, -1, sizeof(::Mira::Rpc::FileManager::SeekRequest)},
+  { 44, -1, sizeof(::Mira::Rpc::FileManager::SeekResponse)},
+  { 49, -1, sizeof(::Mira::Rpc::FileManager::ReadRequest)},
+  { 56, -1, sizeof(::Mira::Rpc::FileManager::ReadResponse)},
+  { 62, -1, sizeof(::Mira::Rpc::FileManager::WriteRequest)},
+  { 69, -1, sizeof(::Mira::Rpc::FileManager::WriteResponse)},
+  { 74, -1, sizeof(::Mira::Rpc::FileManager::ListRequest)},
+  { 80, -1, sizeof(::Mira::Rpc::FileManager::ListEntry)},
+  { 89, -1, sizeof(::Mira::Rpc::FileManager::ListResponse)},
   { 95, -1, sizeof(::Mira::Rpc::FileManager::StatRequest)},
   { 102, -1, sizeof(::Mira::Rpc::FileManager::Time)},
   { 109, -1, sizeof(::Mira::Rpc::FileManager::StatResponse)},
   { 127, -1, sizeof(::Mira::Rpc::FileManager::MkdirRequest)},
   { 134, -1, sizeof(::Mira::Rpc::FileManager::MkdirResponse)},
-  { 140, -1, sizeof(::Mira::Rpc::FileManager::RmdirRequest)},
-  { 146, -1, sizeof(::Mira::Rpc::FileManager::RmdirResponse)},
-  { 152, -1, sizeof(::Mira::Rpc::FileManager::UnlinkRequest)},
-  { 158, -1, sizeof(::Mira::Rpc::FileManager::UnlinkResponse)},
+  { 139, -1, sizeof(::Mira::Rpc::FileManager::RmdirRequest)},
+  { 145, -1, sizeof(::Mira::Rpc::FileManager::RmdirResponse)},
+  { 150, -1, sizeof(::Mira::Rpc::FileManager::UnlinkRequest)},
+  { 156, -1, sizeof(::Mira::Rpc::FileManager::UnlinkResponse)},
 };
 
 static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] = {
@@ -623,6 +640,7 @@ static ::PROTOBUF_NAMESPACE_ID::Message const * const file_default_instances[] =
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_WriteRequest_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_WriteResponse_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_ListRequest_default_instance_),
+  reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_ListEntry_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_ListResponse_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_StatRequest_default_instance_),
   reinterpret_cast<const ::PROTOBUF_NAMESPACE_ID::Message*>(&::Mira::Rpc::FileManager::_Time_default_instance_),
@@ -639,62 +657,62 @@ const char descriptor_table_protodef_FileManager_2eproto[] PROTOBUF_SECTION_VARI
   "\n\021FileManager.proto\022\024Mira.Rpc.FileManage"
   "r\"\014\n\nEmptyReply\"\036\n\013EchoRequest\022\017\n\007messag"
   "e\030\001 \001(\t\"8\n\013OpenRequest\022\r\n\005flags\030\001 \001(\005\022\014\n"
-  "\004mode\030\002 \001(\005\022\014\n\004path\030\003 \001(\t\")\n\014OpenRespons"
-  "e\022\r\n\005error\030\001 \001(\005\022\n\n\002fd\030\002 \001(\005\"\036\n\014CloseReq"
-  "uest\022\016\n\006handle\030\001 \001(\005\"\036\n\rCloseResponse\022\r\n"
-  "\005error\030\001 \001(\005\"=\n\013SeekRequest\022\016\n\006handle\030\001 "
-  "\001(\005\022\016\n\006offset\030\002 \001(\003\022\016\n\006whence\030\003 \001(\005\"\035\n\014S"
-  "eekResponse\022\r\n\005error\030\001 \001(\005\"+\n\013ReadReques"
-  "t\022\016\n\006handle\030\001 \001(\005\022\014\n\004size\030\002 \001(\004\";\n\014ReadR"
-  "esponse\022\r\n\005error\030\001 \001(\005\022\016\n\006offset\030\002 \001(\004\022\014"
-  "\n\004data\030\003 \001(\014\",\n\014WriteRequest\022\016\n\006handle\030\001"
-  " \001(\005\022\014\n\004data\030\002 \001(\014\"\036\n\rWriteResponse\022\r\n\005e"
-  "rror\030\001 \001(\005\"\033\n\013ListRequest\022\014\n\004path\030\001 \001(\t\""
-  "j\n\014ListResponse\022\r\n\005inode\030\001 \001(\005\022\016\n\006offset"
-  "\030\002 \001(\003\022-\n\004type\030\003 \001(\0162\037.Mira.Rpc.FileMana"
-  "ger.ListTypes\022\014\n\004name\030\004 \001(\t\"+\n\013StatReque"
-  "st\022\016\n\006handle\030\001 \001(\005\022\014\n\004path\030\002 \001(\t\",\n\004Time"
-  "\022\017\n\007seconds\030\001 \001(\003\022\023\n\013nanoseconds\030\002 \001(\005\"\321"
-  "\002\n\014StatResponse\022\016\n\006device\030\001 \001(\005\022\r\n\005inode"
-  "\030\002 \001(\005\022\022\n\nprotection\030\003 \001(\005\022\026\n\016num_hard_l"
-  "inks\030\004 \001(\005\022\017\n\007user_id\030\005 \001(\005\022\020\n\010group_id\030"
-  "\006 \001(\005\022\021\n\tdevice_id\030\007 \001(\005\022\014\n\004size\030\010 \001(\003\022\022"
-  "\n\nblock_size\030\t \001(\003\022\016\n\006blocks\030\n \001(\005\022/\n\013ac"
-  "cess_time\030\013 \001(\0132\032.Mira.Rpc.FileManager.T"
-  "ime\022,\n\010mod_time\030\014 \001(\0132\032.Mira.Rpc.FileMan"
-  "ager.Time\022/\n\013status_time\030\r \001(\0132\032.Mira.Rp"
-  "c.FileManager.Time\"*\n\014MkdirRequest\022\014\n\004mo"
-  "de\030\001 \001(\005\022\014\n\004path\030\002 \001(\t\"\036\n\rMkdirResponse\022"
-  "\r\n\005error\030\001 \001(\005\"\034\n\014RmdirRequest\022\014\n\004path\030\001"
-  " \001(\t\"\036\n\rRmdirResponse\022\r\n\005error\030\001 \001(\005\"\035\n\r"
-  "UnlinkRequest\022\014\n\004path\030\001 \001(\t\"\037\n\016UnlinkRes"
-  "ponse\022\r\n\005error\030\001 \001(\005*\213\001\n\tListTypes\022\020\n\014BL"
-  "OCK_DEVICE\020\000\022\024\n\020CHARACTER_DEVICE\020\001\022\r\n\tDI"
-  "RECTORY\020\002\022\016\n\nNAMED_PIPE\020\003\022\021\n\rSYMBOLIC_LI"
-  "NK\020\004\022\013\n\007REGULAR\020\005\022\n\n\006SOCKET\020\006\022\013\n\007UNKNOWN"
-  "\020\0072\305\004\n\022FileManagerService\022K\n\004Echo\022!.Mira"
-  ".Rpc.FileManager.EchoRequest\032 .Mira.Rpc."
-  "FileManager.EmptyReply\022M\n\004Open\022!.Mira.Rp"
-  "c.FileManager.OpenRequest\032\".Mira.Rpc.Fil"
-  "eManager.OpenResponse\022P\n\005Close\022\".Mira.Rp"
-  "c.FileManager.CloseRequest\032#.Mira.Rpc.Fi"
-  "leManager.CloseResponse\022O\n\004Read\022!.Mira.R"
-  "pc.FileManager.ReadRequest\032\".Mira.Rpc.Fi"
-  "leManager.ReadResponse0\001\022O\n\004List\022!.Mira."
-  "Rpc.FileManager.ListRequest\032\".Mira.Rpc.F"
-  "ileManager.ListResponse0\001\022M\n\004Stat\022!.Mira"
-  ".Rpc.FileManager.StatRequest\032\".Mira.Rpc."
-  "FileManager.StatResponse\022P\n\005Mkdir\022\".Mira"
-  ".Rpc.FileManager.MkdirRequest\032#.Mira.Rpc"
-  ".FileManager.MkdirResponseb\006proto3"
+  "\004mode\030\002 \001(\005\022\014\n\004path\030\003 \001(\t\"\032\n\014OpenRespons"
+  "e\022\n\n\002fd\030\001 \001(\005\"\036\n\014CloseRequest\022\016\n\006handle\030"
+  "\001 \001(\005\"\017\n\rCloseResponse\"=\n\013SeekRequest\022\016\n"
+  "\006handle\030\001 \001(\005\022\016\n\006offset\030\002 \001(\003\022\016\n\006whence\030"
+  "\003 \001(\005\"\016\n\014SeekResponse\"+\n\013ReadRequest\022\016\n\006"
+  "handle\030\001 \001(\005\022\014\n\004size\030\002 \001(\004\"\034\n\014ReadRespon"
+  "se\022\014\n\004data\030\001 \001(\014\",\n\014WriteRequest\022\016\n\006hand"
+  "le\030\001 \001(\005\022\014\n\004data\030\002 \001(\014\"\017\n\rWriteResponse\""
+  "\033\n\013ListRequest\022\014\n\004path\030\001 \001(\t\"g\n\tListEntr"
+  "y\022\r\n\005inode\030\001 \001(\005\022\016\n\006offset\030\002 \001(\003\022-\n\004type"
+  "\030\003 \001(\0162\037.Mira.Rpc.FileManager.ListTypes\022"
+  "\014\n\004name\030\004 \001(\t\"@\n\014ListResponse\0220\n\007entries"
+  "\030\001 \003(\0132\037.Mira.Rpc.FileManager.ListEntry\""
+  "+\n\013StatRequest\022\016\n\006handle\030\001 \001(\005\022\014\n\004path\030\002"
+  " \001(\t\",\n\004Time\022\017\n\007seconds\030\001 \001(\003\022\023\n\013nanosec"
+  "onds\030\002 \001(\005\"\321\002\n\014StatResponse\022\016\n\006device\030\001 "
+  "\001(\005\022\r\n\005inode\030\002 \001(\005\022\022\n\nprotection\030\003 \001(\005\022\026"
+  "\n\016num_hard_links\030\004 \001(\005\022\017\n\007user_id\030\005 \001(\005\022"
+  "\020\n\010group_id\030\006 \001(\005\022\021\n\tdevice_id\030\007 \001(\005\022\014\n\004"
+  "size\030\010 \001(\003\022\022\n\nblock_size\030\t \001(\003\022\016\n\006blocks"
+  "\030\n \001(\005\022/\n\013access_time\030\013 \001(\0132\032.Mira.Rpc.F"
+  "ileManager.Time\022,\n\010mod_time\030\014 \001(\0132\032.Mira"
+  ".Rpc.FileManager.Time\022/\n\013status_time\030\r \001"
+  "(\0132\032.Mira.Rpc.FileManager.Time\"*\n\014MkdirR"
+  "equest\022\014\n\004mode\030\001 \001(\005\022\014\n\004path\030\002 \001(\t\"\017\n\rMk"
+  "dirResponse\"\034\n\014RmdirRequest\022\014\n\004path\030\001 \001("
+  "\t\"\017\n\rRmdirResponse\"\035\n\rUnlinkRequest\022\014\n\004p"
+  "ath\030\001 \001(\t\"\020\n\016UnlinkResponse*\213\001\n\tListType"
+  "s\022\020\n\014BLOCK_DEVICE\020\000\022\024\n\020CHARACTER_DEVICE\020"
+  "\001\022\r\n\tDIRECTORY\020\002\022\016\n\nNAMED_PIPE\020\003\022\021\n\rSYMB"
+  "OLIC_LINK\020\004\022\013\n\007REGULAR\020\005\022\n\n\006SOCKET\020\006\022\013\n\007"
+  "UNKNOWN\020\0072\305\004\n\022FileManagerService\022K\n\004Echo"
+  "\022!.Mira.Rpc.FileManager.EchoRequest\032 .Mi"
+  "ra.Rpc.FileManager.EmptyReply\022M\n\004Open\022!."
+  "Mira.Rpc.FileManager.OpenRequest\032\".Mira."
+  "Rpc.FileManager.OpenResponse\022P\n\005Close\022\"."
+  "Mira.Rpc.FileManager.CloseRequest\032#.Mira"
+  ".Rpc.FileManager.CloseResponse\022O\n\004Read\022!"
+  ".Mira.Rpc.FileManager.ReadRequest\032\".Mira"
+  ".Rpc.FileManager.ReadResponse0\001\022O\n\004List\022"
+  "!.Mira.Rpc.FileManager.ListRequest\032\".Mir"
+  "a.Rpc.FileManager.ListResponse0\001\022M\n\004Stat"
+  "\022!.Mira.Rpc.FileManager.StatRequest\032\".Mi"
+  "ra.Rpc.FileManager.StatResponse\022P\n\005Mkdir"
+  "\022\".Mira.Rpc.FileManager.MkdirRequest\032#.M"
+  "ira.Rpc.FileManager.MkdirResponseb\006proto"
+  "3"
   ;
 static const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable*const descriptor_table_FileManager_2eproto_deps[1] = {
 };
-static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_FileManager_2eproto_sccs[23] = {
+static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_FileManager_2eproto_sccs[24] = {
   &scc_info_CloseRequest_FileManager_2eproto.base,
   &scc_info_CloseResponse_FileManager_2eproto.base,
   &scc_info_EchoRequest_FileManager_2eproto.base,
   &scc_info_EmptyReply_FileManager_2eproto.base,
+  &scc_info_ListEntry_FileManager_2eproto.base,
   &scc_info_ListRequest_FileManager_2eproto.base,
   &scc_info_ListResponse_FileManager_2eproto.base,
   &scc_info_MkdirRequest_FileManager_2eproto.base,
@@ -717,10 +735,10 @@ static ::PROTOBUF_NAMESPACE_ID::internal::SCCInfoBase*const descriptor_table_Fil
 };
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_FileManager_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_FileManager_2eproto = {
-  false, false, descriptor_table_protodef_FileManager_2eproto, "FileManager.proto", 2034,
-  &descriptor_table_FileManager_2eproto_once, descriptor_table_FileManager_2eproto_sccs, descriptor_table_FileManager_2eproto_deps, 23, 0,
+  false, false, descriptor_table_protodef_FileManager_2eproto, "FileManager.proto", 1961,
+  &descriptor_table_FileManager_2eproto_once, descriptor_table_FileManager_2eproto_sccs, descriptor_table_FileManager_2eproto_deps, 24, 0,
   schemas, file_default_instances, TableStruct_FileManager_2eproto::offsets,
-  file_level_metadata_FileManager_2eproto, 23, file_level_enum_descriptors_FileManager_2eproto, file_level_service_descriptors_FileManager_2eproto,
+  file_level_metadata_FileManager_2eproto, 24, file_level_enum_descriptors_FileManager_2eproto, file_level_service_descriptors_FileManager_2eproto,
 };
 
 // Force running AddDescriptors() at dynamic initialization time.
@@ -1400,17 +1418,12 @@ OpenResponse::OpenResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 OpenResponse::OpenResponse(const OpenResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  ::memcpy(&error_, &from.error_,
-    static_cast<size_t>(reinterpret_cast<char*>(&fd_) -
-    reinterpret_cast<char*>(&error_)) + sizeof(fd_));
+  fd_ = from.fd_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.OpenResponse)
 }
 
 void OpenResponse::SharedCtor() {
-  ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-      reinterpret_cast<char*>(&error_) - reinterpret_cast<char*>(this)),
-      0, static_cast<size_t>(reinterpret_cast<char*>(&fd_) -
-      reinterpret_cast<char*>(&error_)) + sizeof(fd_));
+  fd_ = 0;
 }
 
 OpenResponse::~OpenResponse() {
@@ -1444,9 +1457,7 @@ void OpenResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  ::memset(&error_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&fd_) -
-      reinterpret_cast<char*>(&error_)) + sizeof(fd_));
+  fd_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1457,16 +1468,9 @@ const char* OpenResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // int32 error = 1;
+      // int32 fd = 1;
       case 1:
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // int32 fd = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
           fd_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
           CHK_(ptr);
         } else goto handle_unusual;
@@ -1499,16 +1503,10 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
-
-  // int32 fd = 2;
+  // int32 fd = 1;
   if (this->fd() != 0) {
     target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(2, this->_internal_fd(), target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_fd(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -1527,14 +1525,7 @@ size_t OpenResponse::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
-
-  // int32 fd = 2;
+  // int32 fd = 1;
   if (this->fd() != 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
@@ -1572,9 +1563,6 @@ void OpenResponse::MergeFrom(const OpenResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
   if (from.fd() != 0) {
     _internal_set_fd(from._internal_fd());
   }
@@ -1601,12 +1589,7 @@ bool OpenResponse::IsInitialized() const {
 void OpenResponse::InternalSwap(OpenResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(OpenResponse, fd_)
-      + sizeof(OpenResponse::fd_)
-      - PROTOBUF_FIELD_OFFSET(OpenResponse, error_)>(
-          reinterpret_cast<char*>(&error_),
-          reinterpret_cast<char*>(&other->error_));
+  swap(fd_, other->fd_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata OpenResponse::GetMetadata() const {
@@ -1823,12 +1806,10 @@ CloseResponse::CloseResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 CloseResponse::CloseResponse(const CloseResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  error_ = from.error_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.CloseResponse)
 }
 
 void CloseResponse::SharedCtor() {
-  error_ = 0;
 }
 
 CloseResponse::~CloseResponse() {
@@ -1862,7 +1843,6 @@ void CloseResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  error_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -1872,16 +1852,6 @@ const char* CloseResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
-    switch (tag >> 3) {
-      // int32 error = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
         if ((tag & 7) == 4 || tag == 0) {
           ctx->SetLastTag(tag);
           goto success;
@@ -1891,8 +1861,6 @@ const char* CloseResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
             ptr, ctx);
         CHK_(ptr != nullptr);
         continue;
-      }
-    }  // switch
   }  // while
 success:
   return ptr;
@@ -1907,12 +1875,6 @@ failure:
   // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.CloseResponse)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -1929,13 +1891,6 @@ size_t CloseResponse::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
@@ -1968,9 +1923,6 @@ void CloseResponse::MergeFrom(const CloseResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void CloseResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -1994,7 +1946,6 @@ bool CloseResponse::IsInitialized() const {
 void CloseResponse::InternalSwap(CloseResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  swap(error_, other->error_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata CloseResponse::GetMetadata() const {
@@ -2269,12 +2220,10 @@ SeekResponse::SeekResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 SeekResponse::SeekResponse(const SeekResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  error_ = from.error_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.SeekResponse)
 }
 
 void SeekResponse::SharedCtor() {
-  error_ = 0;
 }
 
 SeekResponse::~SeekResponse() {
@@ -2308,7 +2257,6 @@ void SeekResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  error_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2318,16 +2266,6 @@ const char* SeekResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
-    switch (tag >> 3) {
-      // int32 error = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
         if ((tag & 7) == 4 || tag == 0) {
           ctx->SetLastTag(tag);
           goto success;
@@ -2337,8 +2275,6 @@ const char* SeekResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
             ptr, ctx);
         CHK_(ptr != nullptr);
         continue;
-      }
-    }  // switch
   }  // while
 success:
   return ptr;
@@ -2353,12 +2289,6 @@ failure:
   // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.SeekResponse)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -2375,13 +2305,6 @@ size_t SeekResponse::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
@@ -2414,9 +2337,6 @@ void SeekResponse::MergeFrom(const SeekResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void SeekResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -2440,7 +2360,6 @@ bool SeekResponse::IsInitialized() const {
 void SeekResponse::InternalSwap(SeekResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  swap(error_, other->error_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata SeekResponse::GetMetadata() const {
@@ -2697,19 +2616,12 @@ ReadResponse::ReadResponse(const ReadResponse& from)
     data_.Set(::PROTOBUF_NAMESPACE_ID::internal::ArenaStringPtr::EmptyDefault{}, from._internal_data(), 
       GetArena());
   }
-  ::memcpy(&offset_, &from.offset_,
-    static_cast<size_t>(reinterpret_cast<char*>(&error_) -
-    reinterpret_cast<char*>(&offset_)) + sizeof(error_));
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.ReadResponse)
 }
 
 void ReadResponse::SharedCtor() {
   ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ReadResponse_FileManager_2eproto.base);
   data_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
-  ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-      reinterpret_cast<char*>(&offset_) - reinterpret_cast<char*>(this)),
-      0, static_cast<size_t>(reinterpret_cast<char*>(&error_) -
-      reinterpret_cast<char*>(&offset_)) + sizeof(error_));
 }
 
 ReadResponse::~ReadResponse() {
@@ -2745,9 +2657,6 @@ void ReadResponse::Clear() {
   (void) cached_has_bits;
 
   data_.ClearToEmpty();
-  ::memset(&offset_, 0, static_cast<size_t>(
-      reinterpret_cast<char*>(&error_) -
-      reinterpret_cast<char*>(&offset_)) + sizeof(error_));
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -2758,23 +2667,9 @@ const char* ReadResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
     switch (tag >> 3) {
-      // int32 error = 1;
+      // bytes data = 1;
       case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // uint64 offset = 2;
-      case 2:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 16)) {
-          offset_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      // bytes data = 3;
-      case 3:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 26)) {
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
           auto str = _internal_mutable_data();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
           CHK_(ptr);
@@ -2808,22 +2703,10 @@ failure:
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
-
-  // uint64 offset = 2;
-  if (this->offset() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteUInt64ToArray(2, this->_internal_offset(), target);
-  }
-
-  // bytes data = 3;
+  // bytes data = 1;
   if (this->data().size() > 0) {
     target = stream->WriteBytesMaybeAliased(
-        3, this->_internal_data(), target);
+        1, this->_internal_data(), target);
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2842,25 +2725,11 @@ size_t ReadResponse::ByteSizeLong() const {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  // bytes data = 3;
+  // bytes data = 1;
   if (this->data().size() > 0) {
     total_size += 1 +
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::BytesSize(
         this->_internal_data());
-  }
-
-  // uint64 offset = 2;
-  if (this->offset() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::UInt64Size(
-        this->_internal_offset());
-  }
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
   }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
@@ -2897,12 +2766,6 @@ void ReadResponse::MergeFrom(const ReadResponse& from) {
   if (from.data().size() > 0) {
     _internal_set_data(from._internal_data());
   }
-  if (from.offset() != 0) {
-    _internal_set_offset(from._internal_offset());
-  }
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void ReadResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -2927,12 +2790,6 @@ void ReadResponse::InternalSwap(ReadResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
   data_.Swap(&other->data_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ReadResponse, error_)
-      + sizeof(ReadResponse::error_)
-      - PROTOBUF_FIELD_OFFSET(ReadResponse, offset_)>(
-          reinterpret_cast<char*>(&offset_),
-          reinterpret_cast<char*>(&other->offset_));
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata ReadResponse::GetMetadata() const {
@@ -3183,12 +3040,10 @@ WriteResponse::WriteResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 WriteResponse::WriteResponse(const WriteResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  error_ = from.error_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.WriteResponse)
 }
 
 void WriteResponse::SharedCtor() {
-  error_ = 0;
 }
 
 WriteResponse::~WriteResponse() {
@@ -3222,7 +3077,6 @@ void WriteResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  error_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -3232,16 +3086,6 @@ const char* WriteResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
-    switch (tag >> 3) {
-      // int32 error = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
         if ((tag & 7) == 4 || tag == 0) {
           ctx->SetLastTag(tag);
           goto success;
@@ -3251,8 +3095,6 @@ const char* WriteResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
             ptr, ctx);
         CHK_(ptr != nullptr);
         continue;
-      }
-    }  // switch
   }  // while
 success:
   return ptr;
@@ -3267,12 +3109,6 @@ failure:
   // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.WriteResponse)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -3289,13 +3125,6 @@ size_t WriteResponse::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
@@ -3328,9 +3157,6 @@ void WriteResponse::MergeFrom(const WriteResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void WriteResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -3354,7 +3180,6 @@ bool WriteResponse::IsInitialized() const {
 void WriteResponse::InternalSwap(WriteResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  swap(error_, other->error_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata WriteResponse::GetMetadata() const {
@@ -3570,17 +3395,17 @@ void ListRequest::InternalSwap(ListRequest* other) {
 
 // ===================================================================
 
-class ListResponse::_Internal {
+class ListEntry::_Internal {
  public:
 };
 
-ListResponse::ListResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+ListEntry::ListEntry(::PROTOBUF_NAMESPACE_ID::Arena* arena)
   : ::PROTOBUF_NAMESPACE_ID::Message(arena) {
   SharedCtor();
   RegisterArenaDtor(arena);
-  // @@protoc_insertion_point(arena_constructor:Mira.Rpc.FileManager.ListResponse)
+  // @@protoc_insertion_point(arena_constructor:Mira.Rpc.FileManager.ListEntry)
 }
-ListResponse::ListResponse(const ListResponse& from)
+ListEntry::ListEntry(const ListEntry& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
   name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
@@ -3591,11 +3416,11 @@ ListResponse::ListResponse(const ListResponse& from)
   ::memcpy(&offset_, &from.offset_,
     static_cast<size_t>(reinterpret_cast<char*>(&type_) -
     reinterpret_cast<char*>(&offset_)) + sizeof(type_));
-  // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.ListResponse)
+  // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.ListEntry)
 }
 
-void ListResponse::SharedCtor() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ListResponse_FileManager_2eproto.base);
+void ListEntry::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ListEntry_FileManager_2eproto.base);
   name_.UnsafeSetDefault(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
   ::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
       reinterpret_cast<char*>(&offset_) - reinterpret_cast<char*>(this)),
@@ -3603,34 +3428,34 @@ void ListResponse::SharedCtor() {
       reinterpret_cast<char*>(&offset_)) + sizeof(type_));
 }
 
-ListResponse::~ListResponse() {
-  // @@protoc_insertion_point(destructor:Mira.Rpc.FileManager.ListResponse)
+ListEntry::~ListEntry() {
+  // @@protoc_insertion_point(destructor:Mira.Rpc.FileManager.ListEntry)
   SharedDtor();
   _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-void ListResponse::SharedDtor() {
+void ListEntry::SharedDtor() {
   GOOGLE_DCHECK(GetArena() == nullptr);
   name_.DestroyNoArena(&::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited());
 }
 
-void ListResponse::ArenaDtor(void* object) {
-  ListResponse* _this = reinterpret_cast< ListResponse* >(object);
+void ListEntry::ArenaDtor(void* object) {
+  ListEntry* _this = reinterpret_cast< ListEntry* >(object);
   (void)_this;
 }
-void ListResponse::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+void ListEntry::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
 }
-void ListResponse::SetCachedSize(int size) const {
+void ListEntry::SetCachedSize(int size) const {
   _cached_size_.Set(size);
 }
-const ListResponse& ListResponse::default_instance() {
-  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ListResponse_FileManager_2eproto.base);
+const ListEntry& ListEntry::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ListEntry_FileManager_2eproto.base);
   return *internal_default_instance();
 }
 
 
-void ListResponse::Clear() {
-// @@protoc_insertion_point(message_clear_start:Mira.Rpc.FileManager.ListResponse)
+void ListEntry::Clear() {
+// @@protoc_insertion_point(message_clear_start:Mira.Rpc.FileManager.ListEntry)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
@@ -3642,7 +3467,7 @@ void ListResponse::Clear() {
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
-const char* ListResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+const char* ListEntry::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
 #define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
   while (!ctx->Done(&ptr)) {
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
@@ -3676,7 +3501,7 @@ const char* ListResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_I
         if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 34)) {
           auto str = _internal_mutable_name();
           ptr = ::PROTOBUF_NAMESPACE_ID::internal::InlineGreedyStringParser(str, ptr, ctx);
-          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "Mira.Rpc.FileManager.ListResponse.name"));
+          CHK_(::PROTOBUF_NAMESPACE_ID::internal::VerifyUTF8(str, "Mira.Rpc.FileManager.ListEntry.name"));
           CHK_(ptr);
         } else goto handle_unusual;
         continue;
@@ -3702,9 +3527,9 @@ failure:
 #undef CHK_
 }
 
-::PROTOBUF_NAMESPACE_ID::uint8* ListResponse::_InternalSerialize(
+::PROTOBUF_NAMESPACE_ID::uint8* ListEntry::_InternalSerialize(
     ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.ListResponse)
+  // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.ListEntry)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
@@ -3732,7 +3557,7 @@ failure:
     ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::VerifyUtf8String(
       this->_internal_name().data(), static_cast<int>(this->_internal_name().length()),
       ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::SERIALIZE,
-      "Mira.Rpc.FileManager.ListResponse.name");
+      "Mira.Rpc.FileManager.ListEntry.name");
     target = stream->WriteStringMaybeAliased(
         4, this->_internal_name(), target);
   }
@@ -3741,12 +3566,12 @@ failure:
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
         _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
   }
-  // @@protoc_insertion_point(serialize_to_array_end:Mira.Rpc.FileManager.ListResponse)
+  // @@protoc_insertion_point(serialize_to_array_end:Mira.Rpc.FileManager.ListEntry)
   return target;
 }
 
-size_t ListResponse::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:Mira.Rpc.FileManager.ListResponse)
+size_t ListEntry::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Mira.Rpc.FileManager.ListEntry)
   size_t total_size = 0;
 
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
@@ -3789,6 +3614,223 @@ size_t ListResponse::ByteSizeLong() const {
   return total_size;
 }
 
+void ListEntry::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_merge_from_start:Mira.Rpc.FileManager.ListEntry)
+  GOOGLE_DCHECK_NE(&from, this);
+  const ListEntry* source =
+      ::PROTOBUF_NAMESPACE_ID::DynamicCastToGenerated<ListEntry>(
+          &from);
+  if (source == nullptr) {
+  // @@protoc_insertion_point(generalized_merge_from_cast_fail:Mira.Rpc.FileManager.ListEntry)
+    ::PROTOBUF_NAMESPACE_ID::internal::ReflectionOps::Merge(from, this);
+  } else {
+  // @@protoc_insertion_point(generalized_merge_from_cast_success:Mira.Rpc.FileManager.ListEntry)
+    MergeFrom(*source);
+  }
+}
+
+void ListEntry::MergeFrom(const ListEntry& from) {
+// @@protoc_insertion_point(class_specific_merge_from_start:Mira.Rpc.FileManager.ListEntry)
+  GOOGLE_DCHECK_NE(&from, this);
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from.name().size() > 0) {
+    _internal_set_name(from._internal_name());
+  }
+  if (from.offset() != 0) {
+    _internal_set_offset(from._internal_offset());
+  }
+  if (from.inode() != 0) {
+    _internal_set_inode(from._internal_inode());
+  }
+  if (from.type() != 0) {
+    _internal_set_type(from._internal_type());
+  }
+}
+
+void ListEntry::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
+// @@protoc_insertion_point(generalized_copy_from_start:Mira.Rpc.FileManager.ListEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+void ListEntry::CopyFrom(const ListEntry& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:Mira.Rpc.FileManager.ListEntry)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+bool ListEntry::IsInitialized() const {
+  return true;
+}
+
+void ListEntry::InternalSwap(ListEntry* other) {
+  using std::swap;
+  _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
+  name_.Swap(&other->name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
+  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ListEntry, type_)
+      + sizeof(ListEntry::type_)
+      - PROTOBUF_FIELD_OFFSET(ListEntry, offset_)>(
+          reinterpret_cast<char*>(&offset_),
+          reinterpret_cast<char*>(&other->offset_));
+}
+
+::PROTOBUF_NAMESPACE_ID::Metadata ListEntry::GetMetadata() const {
+  return GetMetadataStatic();
+}
+
+
+// ===================================================================
+
+class ListResponse::_Internal {
+ public:
+};
+
+ListResponse::ListResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
+  : ::PROTOBUF_NAMESPACE_ID::Message(arena),
+  entries_(arena) {
+  SharedCtor();
+  RegisterArenaDtor(arena);
+  // @@protoc_insertion_point(arena_constructor:Mira.Rpc.FileManager.ListResponse)
+}
+ListResponse::ListResponse(const ListResponse& from)
+  : ::PROTOBUF_NAMESPACE_ID::Message(),
+      entries_(from.entries_) {
+  _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
+  // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.ListResponse)
+}
+
+void ListResponse::SharedCtor() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&scc_info_ListResponse_FileManager_2eproto.base);
+}
+
+ListResponse::~ListResponse() {
+  // @@protoc_insertion_point(destructor:Mira.Rpc.FileManager.ListResponse)
+  SharedDtor();
+  _internal_metadata_.Delete<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+void ListResponse::SharedDtor() {
+  GOOGLE_DCHECK(GetArena() == nullptr);
+}
+
+void ListResponse::ArenaDtor(void* object) {
+  ListResponse* _this = reinterpret_cast< ListResponse* >(object);
+  (void)_this;
+}
+void ListResponse::RegisterArenaDtor(::PROTOBUF_NAMESPACE_ID::Arena*) {
+}
+void ListResponse::SetCachedSize(int size) const {
+  _cached_size_.Set(size);
+}
+const ListResponse& ListResponse::default_instance() {
+  ::PROTOBUF_NAMESPACE_ID::internal::InitSCC(&::scc_info_ListResponse_FileManager_2eproto.base);
+  return *internal_default_instance();
+}
+
+
+void ListResponse::Clear() {
+// @@protoc_insertion_point(message_clear_start:Mira.Rpc.FileManager.ListResponse)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  entries_.Clear();
+  _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
+}
+
+const char* ListResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_ID::internal::ParseContext* ctx) {
+#define CHK_(x) if (PROTOBUF_PREDICT_FALSE(!(x))) goto failure
+  while (!ctx->Done(&ptr)) {
+    ::PROTOBUF_NAMESPACE_ID::uint32 tag;
+    ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
+    CHK_(ptr);
+    switch (tag >> 3) {
+      // repeated .Mira.Rpc.FileManager.ListEntry entries = 1;
+      case 1:
+        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 10)) {
+          ptr -= 1;
+          do {
+            ptr += 1;
+            ptr = ctx->ParseMessage(_internal_add_entries(), ptr);
+            CHK_(ptr);
+            if (!ctx->DataAvailable(ptr)) break;
+          } while (::PROTOBUF_NAMESPACE_ID::internal::ExpectTag<10>(ptr));
+        } else goto handle_unusual;
+        continue;
+      default: {
+      handle_unusual:
+        if ((tag & 7) == 4 || tag == 0) {
+          ctx->SetLastTag(tag);
+          goto success;
+        }
+        ptr = UnknownFieldParse(tag,
+            _internal_metadata_.mutable_unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(),
+            ptr, ctx);
+        CHK_(ptr != nullptr);
+        continue;
+      }
+    }  // switch
+  }  // while
+success:
+  return ptr;
+failure:
+  ptr = nullptr;
+  goto success;
+#undef CHK_
+}
+
+::PROTOBUF_NAMESPACE_ID::uint8* ListResponse::_InternalSerialize(
+    ::PROTOBUF_NAMESPACE_ID::uint8* target, ::PROTOBUF_NAMESPACE_ID::io::EpsCopyOutputStream* stream) const {
+  // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.ListResponse)
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  // repeated .Mira.Rpc.FileManager.ListEntry entries = 1;
+  for (unsigned int i = 0,
+      n = static_cast<unsigned int>(this->_internal_entries_size()); i < n; i++) {
+    target = stream->EnsureSpace(target);
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::
+      InternalWriteMessage(1, this->_internal_entries(i), target, stream);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
+        _internal_metadata_.unknown_fields<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(::PROTOBUF_NAMESPACE_ID::UnknownFieldSet::default_instance), target, stream);
+  }
+  // @@protoc_insertion_point(serialize_to_array_end:Mira.Rpc.FileManager.ListResponse)
+  return target;
+}
+
+size_t ListResponse::ByteSizeLong() const {
+// @@protoc_insertion_point(message_byte_size_start:Mira.Rpc.FileManager.ListResponse)
+  size_t total_size = 0;
+
+  ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  // repeated .Mira.Rpc.FileManager.ListEntry entries = 1;
+  total_size += 1UL * this->_internal_entries_size();
+  for (const auto& msg : this->entries_) {
+    total_size +=
+      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::MessageSize(msg);
+  }
+
+  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+    return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
+        _internal_metadata_, total_size, &_cached_size_);
+  }
+  int cached_size = ::PROTOBUF_NAMESPACE_ID::internal::ToCachedSize(total_size);
+  SetCachedSize(cached_size);
+  return total_size;
+}
+
 void ListResponse::MergeFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
 // @@protoc_insertion_point(generalized_merge_from_start:Mira.Rpc.FileManager.ListResponse)
   GOOGLE_DCHECK_NE(&from, this);
@@ -3811,18 +3853,7 @@ void ListResponse::MergeFrom(const ListResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.name().size() > 0) {
-    _internal_set_name(from._internal_name());
-  }
-  if (from.offset() != 0) {
-    _internal_set_offset(from._internal_offset());
-  }
-  if (from.inode() != 0) {
-    _internal_set_inode(from._internal_inode());
-  }
-  if (from.type() != 0) {
-    _internal_set_type(from._internal_type());
-  }
+  entries_.MergeFrom(from.entries_);
 }
 
 void ListResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -3846,13 +3877,7 @@ bool ListResponse::IsInitialized() const {
 void ListResponse::InternalSwap(ListResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  name_.Swap(&other->name_, &::PROTOBUF_NAMESPACE_ID::internal::GetEmptyStringAlreadyInited(), GetArena());
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ListResponse, type_)
-      + sizeof(ListResponse::type_)
-      - PROTOBUF_FIELD_OFFSET(ListResponse, offset_)>(
-          reinterpret_cast<char*>(&offset_),
-          reinterpret_cast<char*>(&other->offset_));
+  entries_.InternalSwap(&other->entries_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata ListResponse::GetMetadata() const {
@@ -5104,12 +5129,10 @@ MkdirResponse::MkdirResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 MkdirResponse::MkdirResponse(const MkdirResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  error_ = from.error_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.MkdirResponse)
 }
 
 void MkdirResponse::SharedCtor() {
-  error_ = 0;
 }
 
 MkdirResponse::~MkdirResponse() {
@@ -5143,7 +5166,6 @@ void MkdirResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  error_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -5153,16 +5175,6 @@ const char* MkdirResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
-    switch (tag >> 3) {
-      // int32 error = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
         if ((tag & 7) == 4 || tag == 0) {
           ctx->SetLastTag(tag);
           goto success;
@@ -5172,8 +5184,6 @@ const char* MkdirResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
             ptr, ctx);
         CHK_(ptr != nullptr);
         continue;
-      }
-    }  // switch
   }  // while
 success:
   return ptr;
@@ -5188,12 +5198,6 @@ failure:
   // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.MkdirResponse)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -5210,13 +5214,6 @@ size_t MkdirResponse::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
@@ -5249,9 +5246,6 @@ void MkdirResponse::MergeFrom(const MkdirResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void MkdirResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -5275,7 +5269,6 @@ bool MkdirResponse::IsInitialized() const {
 void MkdirResponse::InternalSwap(MkdirResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  swap(error_, other->error_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata MkdirResponse::GetMetadata() const {
@@ -5504,12 +5497,10 @@ RmdirResponse::RmdirResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 RmdirResponse::RmdirResponse(const RmdirResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  error_ = from.error_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.RmdirResponse)
 }
 
 void RmdirResponse::SharedCtor() {
-  error_ = 0;
 }
 
 RmdirResponse::~RmdirResponse() {
@@ -5543,7 +5534,6 @@ void RmdirResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  error_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -5553,16 +5543,6 @@ const char* RmdirResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
-    switch (tag >> 3) {
-      // int32 error = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
         if ((tag & 7) == 4 || tag == 0) {
           ctx->SetLastTag(tag);
           goto success;
@@ -5572,8 +5552,6 @@ const char* RmdirResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE_
             ptr, ctx);
         CHK_(ptr != nullptr);
         continue;
-      }
-    }  // switch
   }  // while
 success:
   return ptr;
@@ -5588,12 +5566,6 @@ failure:
   // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.RmdirResponse)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -5610,13 +5582,6 @@ size_t RmdirResponse::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
@@ -5649,9 +5614,6 @@ void RmdirResponse::MergeFrom(const RmdirResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void RmdirResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -5675,7 +5637,6 @@ bool RmdirResponse::IsInitialized() const {
 void RmdirResponse::InternalSwap(RmdirResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  swap(error_, other->error_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata RmdirResponse::GetMetadata() const {
@@ -5904,12 +5865,10 @@ UnlinkResponse::UnlinkResponse(::PROTOBUF_NAMESPACE_ID::Arena* arena)
 UnlinkResponse::UnlinkResponse(const UnlinkResponse& from)
   : ::PROTOBUF_NAMESPACE_ID::Message() {
   _internal_metadata_.MergeFrom<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(from._internal_metadata_);
-  error_ = from.error_;
   // @@protoc_insertion_point(copy_constructor:Mira.Rpc.FileManager.UnlinkResponse)
 }
 
 void UnlinkResponse::SharedCtor() {
-  error_ = 0;
 }
 
 UnlinkResponse::~UnlinkResponse() {
@@ -5943,7 +5902,6 @@ void UnlinkResponse::Clear() {
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
 
-  error_ = 0;
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
 }
 
@@ -5953,16 +5911,6 @@ const char* UnlinkResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE
     ::PROTOBUF_NAMESPACE_ID::uint32 tag;
     ptr = ::PROTOBUF_NAMESPACE_ID::internal::ReadTag(ptr, &tag);
     CHK_(ptr);
-    switch (tag >> 3) {
-      // int32 error = 1;
-      case 1:
-        if (PROTOBUF_PREDICT_TRUE(static_cast<::PROTOBUF_NAMESPACE_ID::uint8>(tag) == 8)) {
-          error_ = ::PROTOBUF_NAMESPACE_ID::internal::ReadVarint64(&ptr);
-          CHK_(ptr);
-        } else goto handle_unusual;
-        continue;
-      default: {
-      handle_unusual:
         if ((tag & 7) == 4 || tag == 0) {
           ctx->SetLastTag(tag);
           goto success;
@@ -5972,8 +5920,6 @@ const char* UnlinkResponse::_InternalParse(const char* ptr, ::PROTOBUF_NAMESPACE
             ptr, ctx);
         CHK_(ptr != nullptr);
         continue;
-      }
-    }  // switch
   }  // while
 success:
   return ptr;
@@ -5988,12 +5934,6 @@ failure:
   // @@protoc_insertion_point(serialize_to_array_start:Mira.Rpc.FileManager.UnlinkResponse)
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::WriteInt32ToArray(1, this->_internal_error(), target);
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     target = ::PROTOBUF_NAMESPACE_ID::internal::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -6010,13 +5950,6 @@ size_t UnlinkResponse::ByteSizeLong() const {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   // Prevent compiler warnings about cached_has_bits being unused
   (void) cached_has_bits;
-
-  // int32 error = 1;
-  if (this->error() != 0) {
-    total_size += 1 +
-      ::PROTOBUF_NAMESPACE_ID::internal::WireFormatLite::Int32Size(
-        this->_internal_error());
-  }
 
   if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
     return ::PROTOBUF_NAMESPACE_ID::internal::ComputeUnknownFieldsSize(
@@ -6049,9 +5982,6 @@ void UnlinkResponse::MergeFrom(const UnlinkResponse& from) {
   ::PROTOBUF_NAMESPACE_ID::uint32 cached_has_bits = 0;
   (void) cached_has_bits;
 
-  if (from.error() != 0) {
-    _internal_set_error(from._internal_error());
-  }
 }
 
 void UnlinkResponse::CopyFrom(const ::PROTOBUF_NAMESPACE_ID::Message& from) {
@@ -6075,7 +6005,6 @@ bool UnlinkResponse::IsInitialized() const {
 void UnlinkResponse::InternalSwap(UnlinkResponse* other) {
   using std::swap;
   _internal_metadata_.Swap<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>(&other->_internal_metadata_);
-  swap(error_, other->error_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata UnlinkResponse::GetMetadata() const {
@@ -6126,6 +6055,9 @@ template<> PROTOBUF_NOINLINE ::Mira::Rpc::FileManager::WriteResponse* Arena::Cre
 }
 template<> PROTOBUF_NOINLINE ::Mira::Rpc::FileManager::ListRequest* Arena::CreateMaybeMessage< ::Mira::Rpc::FileManager::ListRequest >(Arena* arena) {
   return Arena::CreateMessageInternal< ::Mira::Rpc::FileManager::ListRequest >(arena);
+}
+template<> PROTOBUF_NOINLINE ::Mira::Rpc::FileManager::ListEntry* Arena::CreateMaybeMessage< ::Mira::Rpc::FileManager::ListEntry >(Arena* arena) {
+  return Arena::CreateMessageInternal< ::Mira::Rpc::FileManager::ListEntry >(arena);
 }
 template<> PROTOBUF_NOINLINE ::Mira::Rpc::FileManager::ListResponse* Arena::CreateMaybeMessage< ::Mira::Rpc::FileManager::ListResponse >(Arena* arena) {
   return Arena::CreateMessageInternal< ::Mira::Rpc::FileManager::ListResponse >(arena);
