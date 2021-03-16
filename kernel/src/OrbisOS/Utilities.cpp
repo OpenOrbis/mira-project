@@ -6,8 +6,9 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
-#include <Plugins/Substitute/Substitute.hpp>
 
+#include <Plugins/PluginManager.hpp>
+#include <Plugins/Debugging/Debugger.hpp>
 #include <Mira.hpp>
 
 extern "C"
@@ -415,12 +416,22 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 		return -2;
 	}
 
-	// Got substitute plugin
-	Plugins::Substitute* substitute = Mira::Plugins::Substitute::GetPlugin();
-	if (!substitute) {
-		WriteLog(LL_Error, "Substitute dependency is required.");
-		return -3;
-	}
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira framework.");
+        return -4;
+    }
+
+	auto s_PluginManager = s_Framework->GetPluginManager();
+
+	// Got debugger plugin
+    auto s_Debugger = static_cast<Mira::Plugins::Debugger*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger.");
+        return -3;
+    }
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
@@ -429,10 +440,10 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) ...", s_TitleId, entrypoint);
 
 	// Resolve all addresses
-	void* s_scePthreadAttrInit = substitute->FindOriginalAddress(p, "scePthreadAttrInit", 0);
-	void* s_scePthreadAttrSetstacksize = substitute->FindOriginalAddress(p, "scePthreadAttrSetstacksize", 0);
-	void* s_scePthreadCreate = substitute->FindOriginalAddress(p, "scePthreadCreate", 0);
-	void* s_pthread_getthreadid_np = substitute->FindOriginalAddress(p, "pthread_getthreadid_np", 0);
+	void* s_scePthreadAttrInit = s_Debugger->ResolveFuncAddress(p, "scePthreadAttrInit", 0);
+	void* s_scePthreadAttrSetstacksize = s_Debugger->ResolveFuncAddress(p, "scePthreadAttrSetstacksize", 0);
+	void* s_scePthreadCreate = s_Debugger->ResolveFuncAddress(p, "scePthreadCreate", 0);
+	void* s_pthread_getthreadid_np = s_Debugger->ResolveFuncAddress(p, "pthread_getthreadid_np", 0);
 
 	if (!s_scePthreadAttrInit || !s_scePthreadAttrSetstacksize || !s_scePthreadCreate || !s_pthread_getthreadid_np) {
 		WriteLog(LL_Error, "[%s] Unable to resolve addresses !", s_TitleId);
@@ -543,12 +554,22 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 		return -1;
 	}
 
-	// Got substitute plugin
-	Plugins::Substitute* substitute = Mira::Plugins::Substitute::GetPlugin();
-	if (!substitute) {
-		WriteLog(LL_Error, "Substitute dependency is required.");
-		return -2;
-	}
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira framework.");
+        return -4;
+    }
+
+	auto s_PluginManager = s_Framework->GetPluginManager();
+	
+	// Got debugger plugin
+    auto s_Debugger = static_cast<Mira::Plugins::Debugger*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger.");
+        return -2;
+    }
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
@@ -557,7 +578,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX ...", s_TitleId, prx_path);
 
     // Find sceKernelLoadStartModule address
-    void* s_LoadStartModule = substitute->FindOriginalAddress(p, "sceKernelLoadStartModule", 0);
+    void* s_LoadStartModule = s_Debugger->ResolveFuncAddress(p, "sceKernelLoadStartModule", 0);
     if (!s_LoadStartModule) {
         WriteLog(LL_Error, "[%s] could not find sceKernelLoadStartModule !", s_TitleId);
         return -3;
