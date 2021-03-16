@@ -341,6 +341,67 @@ off_t klseek(int fd, off_t offset, int whence)
 }
 
 //
+// 15: sys_chmod
+//
+int kchmod_internal(const char *path, int mode, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_chmod = (int(*)(struct thread*, struct chmod_args*))sysents[SYS_CHMOD].sy_call;
+	if (!sys_chmod)
+		return -1;
+
+	int error;
+	struct chmod_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.path = (char*)path;
+	uap.mode = mode;
+	error = sys_chmod(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int kchmod_t(const char *path, int mode, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kchmod_internal(path, mode, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
+
+int kchmod(const char *path, int mode)
+{
+	return kchmod_t(path, mode, curthread);
+}
+
+//
 // 73: sys_munmap
 //
 int kmunmap_internal(void *addr, size_t len, struct thread* td)

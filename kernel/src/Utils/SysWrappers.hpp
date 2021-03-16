@@ -49,6 +49,8 @@ extern "C"
     //extern void kclose(int socket);
     extern void kclose_t(int socket, struct thread* td);
 
+    extern int kchmod_t(const char *path, int mode, struct thread* td);
+
     //extern int ksocket(int, int, int);
     extern int ksocket_t(int, int, int, struct thread* td);
 

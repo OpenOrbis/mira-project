@@ -215,5 +215,13 @@ void Mira::Boot::Patches::install_prerunPatches_505()
 	kmem[2] = 0x00;
 	kmem[3] = 0x00;
 
+	// Test fstatfs and statfs
+	kmem = (uint8_t *)&gKernelBase[0x0033A48E];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
+
+	kmem = (uint8_t *)&gKernelBase[0x0033A75E];
+	kmem[0] = 0x31;
+	kmem[1] = 0xC0;
 #endif
 }

@@ -7,8 +7,8 @@
 #include <Plugins/Debugging/Debugger.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
-#include <Plugins/Substitute/Substitute.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
+#include <Plugins/LogServer/LogManager.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -23,13 +23,13 @@ using namespace Mira::Plugins;
 
 PluginManager::PluginManager() :
     m_Debugger(nullptr),
+    m_Logger(nullptr),
     m_FakeSelfManager(nullptr),
     m_FakePkgManager(nullptr),
     m_EmuRegistry(nullptr),
-    m_Substitute(nullptr),
     m_SyscallGuard(nullptr)
 {
-
+    m_Logger = nullptr;
 }
 
 PluginManager::~PluginManager()
@@ -52,6 +52,16 @@ bool PluginManager::OnLoad()
             break;
         }
 
+        // Initialize Logger
+        m_Logger = new Mira::Plugins::LogManagerExtent::LogManager();
+        if (m_Logger == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate log manager.");
+            return false;
+        }
+        if (!m_Logger->OnLoad())
+            WriteLog(LL_Error, "could not load logmanager");
+
         // Initialize the fself manager
         m_FakeSelfManager = new Mira::Plugins::FakeSelfManager();
         if (m_FakeSelfManager == nullptr)
@@ -66,15 +76,6 @@ bool PluginManager::OnLoad()
         if (m_FakePkgManager == nullptr)
         {
             WriteLog(LL_Error, "could not allocate fake pkg manager.");
-            s_Success = false;
-            break;
-        }
-
-        // Initialize Substitute
-        m_Substitute = new Mira::Plugins::Substitute();
-        if (m_Substitute == nullptr)
-        {
-            WriteLog(LL_Error, "could not allocate substitute.");
             s_Success = false;
             break;
         }
@@ -102,12 +103,6 @@ bool PluginManager::OnLoad()
     {
         if (!m_EmuRegistry->OnLoad())
             WriteLog(LL_Error, "could not load emulated registry.");
-    }
-
-    if (m_Substitute)
-    {
-        if (!m_Substitute->OnLoad())
-            WriteLog(LL_Error, "could not load substitute.");
     }
 
     return s_Success;
@@ -193,16 +188,17 @@ bool PluginManager::OnUnload()
         m_SyscallGuard = nullptr;
     }
 
-    // Delete Substitute
-    if (m_Substitute)
+    // Delete the log server
+    if (m_Logger)
     {
-        WriteLog(LL_Debug, "unloading substitute");
-        if (!m_Substitute->OnUnload())
-            WriteLog(LL_Error, "substitute could not unload");
+        WriteLog(LL_Debug, "unloading log manager");
 
-        // Free Substitute
-        delete m_Substitute;
-        m_Substitute = nullptr;
+        if (!m_Logger->OnUnload())
+            WriteLog(LL_Error, "logmanager could not unload");
+
+        // Free the file manager
+        delete m_Logger;
+        m_Logger = nullptr;
     }
 
     // Delete the debugger
@@ -259,11 +255,11 @@ bool PluginManager::OnSuspend()
             WriteLog(LL_Error, "emuRegistry suspend failed");
     }
 
-    // Suspend substitute (currently does nothing)
-    if (m_Substitute)
+    // Suspend both of the loggers (cleans up the sockets)
+    if (m_Logger)
     {
-        if (!m_Substitute->OnSuspend())
-            WriteLog(LL_Error, "substitute suspend failed");
+        if (!m_Logger->OnSuspend())
+            WriteLog(LL_Error, "log manager suspend failed");
     }
 
     // Nota: Don't suspend before the debugger for catch error if something when wrong
@@ -291,18 +287,19 @@ bool PluginManager::OnResume()
             WriteLog(LL_Error, "debugger resume failed");
     }
 
+    // Resume both of the loggers (up the sockets)
+    WriteLog(LL_Debug, "resuming log manager");
+    if (m_Logger)
+    {
+        if (!m_Logger->OnResume())
+            WriteLog(LL_Error, "log manager resume failed");
+    }
+
     WriteLog(LL_Debug, "resuming emuRegistry");
     if (m_EmuRegistry)
     {
         if (!m_EmuRegistry->OnResume())
             WriteLog(LL_Error, "emuRegistry resume failed");
-    }
-
-    WriteLog(LL_Debug, "resuming substitute");
-    if (m_Substitute)
-    {
-        if (!m_Substitute->OnResume())
-            WriteLog(LL_Error, "substitute resume failed");
     }
 
     // Iterate through all of the plugins
@@ -344,12 +341,6 @@ bool PluginManager::OnProcessExec(struct proc* p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
-    if (m_Substitute)
-    {
-        if (!m_Substitute->OnProcessExec(p_Process))
-            WriteLog(LL_Error, "substitute process exec failed.");
-    }
 
     if (m_Debugger)
     {
@@ -364,12 +355,6 @@ bool PluginManager::OnProcessExecEnd(struct proc* p_Process)
 {
     if (p_Process == nullptr)
         return false;
-    
-    if (m_Substitute)
-    {
-        /*if (!m_Substitute->OnProcessExecEnd(p_Process))
-            WriteLog(LL_Error, "substitute process exec end failed.");*/
-    }
 
     return true;
 }
@@ -379,12 +364,6 @@ bool PluginManager::OnProcessExit(struct proc* p_Process)
     if (p_Process == nullptr)
         return false;
     
-    if (m_Substitute)
-    {
-        if (!m_Substitute->OnProcessExit(p_Process))
-            WriteLog(LL_Error, "substitute process exit failed.");
-    }
-
     if (m_Debugger)
     {
         if (!m_Debugger->OnProcessExit(p_Process))

@@ -163,6 +163,8 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
 int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
+
     //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     p_Command = p_Command & 0xFFFFFFFF; // Clear the upper32
 
@@ -231,6 +233,9 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                     return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 case MIRA_SET_CONFIG:
                     return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                default:
+                    WriteLog(LL_Debug, "mira base unknown command: (0x%llx).", p_Command);
+                    break;
             }
         }
 

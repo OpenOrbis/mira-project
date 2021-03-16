@@ -388,7 +388,7 @@ int Utilities::MountNullFS(char* where, char* what, int flags)
 
     if (ma == NULL) {
     	WriteLog(LL_Error, "Something is wrong, ma value is null after argument");
-    	return 50;
+    	return -50;
     }
 
     return kernel_mount(ma, flags);
@@ -708,7 +708,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
 		WriteLog(LL_Debug, "RealPath: (%s).", s_RealSprxFolderPath);
 
         // Check to see if the real path directory actually exists
-        auto s_DirectoryHandle = kopen_t(s_RealSprxFolderPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
+        auto s_DirectoryHandle = kopen_t(s_RealSprxFolderPath, O_RDONLY | O_DIRECTORY, 0511, s_MainThread);
         if (s_DirectoryHandle < 0)
         {
 			WriteLog(LL_Error, "could not open directory (%s) (%d).", s_RealSprxFolderPath, s_DirectoryHandle);
@@ -719,7 +719,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         kclose_t(s_DirectoryHandle, s_MainThread);
 
         // Create the new folder inside of the sandbox
-        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0511, s_MainThread);
+        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0777, s_MainThread);
         if (s_Result < 0)
         {
 			// Skip if the directory already exists
@@ -745,7 +745,6 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         // Save backups of the original fd and credentials
 		struct ucred s_OriginalCreds = { 0 };
 		memcpy(&s_OriginalCreds, s_CurrentThreadCred, sizeof(s_OriginalCreds));
-		gid_t s_OriginalGroups = s_CurrentThreadCred->cr_groups[0];
 
         struct filedesc s_OriginalDesc = { 0 };
 		memcpy(&s_OriginalDesc, s_CurrentThreadFd, sizeof(s_OriginalDesc));
@@ -760,22 +759,19 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
-        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SubstituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY);
+        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SubstituteFullMountPath, s_RealSprxFolderPath, 0);
         if (s_Result < 0)
         {
             WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SubstituteFullMountPath, s_Result);
             krmdir_t(s_SandboxPath, s_MainThread);
         }
 
-        // Restore credentials and fd
-		s_CurrentThreadCred->cr_uid = s_OriginalCreds.cr_uid;
-        s_CurrentThreadCred->cr_ruid = s_OriginalCreds.cr_ruid;
-        s_CurrentThreadCred->cr_rgid = s_OriginalCreds.cr_rgid;
-        s_CurrentThreadCred->cr_groups[0] = s_OriginalGroups;
-        s_CurrentThreadCred->cr_prison = s_OriginalCreds.cr_prison;
+		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0555, s_MainThread);
+        WriteLog(LL_Debug, "kchmod_tbuildnew(%s, 0555). (%d).", s_SubstituteFullMountPath, s_ResultChmod);
 
-        s_CurrentThreadFd->fd_rdir = s_OriginalDesc.fd_rdir;
-		s_CurrentThreadFd->fd_jdir = s_OriginalDesc.fd_jdir;
+        // Restore credentials and fd
+		memcpy(s_CurrentThreadCred, &s_OriginalCreds, sizeof(s_OriginalCreds));
+		memcpy(s_CurrentThreadFd, &s_OriginalDesc, sizeof(s_OriginalDesc));
 
 		// Copy out the path
 		if (p_OutPath != nullptr)
