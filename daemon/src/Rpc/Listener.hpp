@@ -1,41 +1,43 @@
 #pragma once
-#include <External/flatbuffers/rpc_generated.h>
+#include "Status.hpp"
 
-#include <functional>
-#include <memory>
+#include "Protos/Rpc.pb.h"
+#include <Utils/Logger.hpp>
 
 namespace Mira
 {
     namespace Rpc
     {
-        class Connection;
+        enum class Status;
 
         class Listener
         {
-        private:
-            RpcCategory m_Category;
-            uint32_t m_Type;
-            std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)> m_Callback;
+        protected:
+            google::protobuf::Arena* m_Arena;
 
         public:
-            Listener(RpcCategory p_Category, uint32_t p_Type, std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)> p_Callback) :
-                m_Category(p_Category),
-                m_Type(p_Type),
-                m_Callback(p_Callback)
+            Listener(google::protobuf::Arena* p_Arena) :
+                m_Arena(p_Arena)
             {
-
+                
             }
 
-            ~Listener()
-            {
-                m_Category = RpcCategory_NONE;
-                m_Type = 0;
-                m_Callback = nullptr;
-            }
+            virtual Status OnMessage(RpcMessage* p_Request, RpcMessage* p_Response) = 0;
 
-            RpcCategory GetCategory() const { return m_Category; }
-            uint32_t GetType() const { return m_Type; }
-            auto GetCallback() const { return m_Callback; }
+            template<typename T>
+            void SetInnerMessage(RpcMessage* p_Message, T& p_InnerMessage)
+            {
+                auto s_Any = google::protobuf::Arena::CreateMessage<google::protobuf::Any>(m_Arena);
+                if (!s_Any)
+                {
+                    WriteLog(LL_Error, "could not create new any.");
+                    return;
+                }
+
+                s_Any->PackFrom(p_InnerMessage);
+
+                p_Message->set_allocated_inner_message(s_Any);
+            }
         };
     }
 }

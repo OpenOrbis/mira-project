@@ -71,6 +71,7 @@ namespace Mira
                 MaxShmIdLength = 10,
                 MaxShms = 16,
                 MaxTrainerProcInfos = 10,
+                MaxProcessBufferSize = 0x8000,
             };
 
             typedef struct TrainerShm_t
@@ -91,7 +92,7 @@ namespace Mira
             MiraTrainerProcessInfo m_ProcessInfo[MaxTrainerProcInfos];
 
             // Total amount of proxied shm's
-            TrainerShm Shms[MaxShms];
+            TrainerShm m_Shms[MaxShms];
 
             // Sleep lock
             struct mtx m_Mutex;
@@ -118,6 +119,8 @@ namespace Mira
             void* GetEntryPoint(int32_t p_ProcessId);
 
             static bool DirectoryExists(struct thread* p_Thread, const char* p_Path);
+
+            int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
         protected:
             // Get HDD Trainers Folder (ex: /user/mira/trainers )

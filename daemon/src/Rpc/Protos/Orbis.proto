@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package Mira.Rpc.Orbis;
+
+service OrbisService {
+    rpc DecryptSelf (DecryptSelfRequest) returns (stream DecryptSelfResponse);
+    rpc DecryptPup (DecryptPupRequest) returns (stream DecryptPupResponse);
+
+    // Console Information
+    rpc GetConsoleInfo (ConsoleInfoRequest) returns (ConsoleInfoResponse);
+}
+
+message DecryptSelfRequest {
+    string path = 1;
+}
+
+message DecryptSelfResponse {
+    int32 error = 1;
+    uint64 offset = 2;
+    bytes data = 3;
+}
+
+message DecryptPupRequest {
+    string path = 1;
+}
+
+message DecryptPupResponse {
+    int32 error = 1;
+    uint64 offset = 2;
+    bytes data = 3;
+}
+
+message ConsoleInfoRequest {
+}
+
+message ConsoleInfoResponse {
+    int32 error = 1;
+    uint64 firmware_version = 2;
+    string logged_in_username = 3;
+    bytes hdd_encryption_key = 4;
+    bytes psid = 5;
+}

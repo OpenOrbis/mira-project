@@ -1,47 +1,68 @@
 #pragma once
-#include <External/flatbuffers/rpc_generated.h>
 #include <vector>
 #include <cstddef>
 #include <limits>
+#include <memory>
 #include <mutex>
+#include <thread>
+
+#include <google/protobuf/arena.h>
+
+extern "C"
+{
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+};
 
 namespace Mira
 {
     namespace Rpc
     {
-        struct RpcHeader;
-        class Connection;
         class Listener;
+        class Connection;
 
         class Manager
         {
         private:
-            enum
+            enum class Options
             {
-                Manager_MaxCategories = std::numeric_limits<uint32_t>::max() - 1,
-                Manager_MaxListeners = 64,
+                DefaultPort = 9999,
+                MaxDefaultPort = 10020,
+                MaxConnections = 8,
 
-                // Maximum message size (4MB)
-                Manager_MaxMessageSize = 0x4000000,
+                MaxIncomingMessageSize = 0x4000000, // 64 Megabytes
+                MaxOutgoingMessageSize = 0x4000000, // 64 Megabytes
             };
+            //
+            // Server socket code
+            //
+            int32_t m_Socket;
+            int16_t m_Port;
+            struct sockaddr_in m_Address;
 
-            std::vector<std::shared_ptr<Rpc::Listener>> m_Listeners;
-            std::mutex m_Lock;
+            google::protobuf::Arena m_Arena;
+            std::mutex m_Mutex;
 
+            // Internal tracker for the listeners
+            std::vector<std::shared_ptr<Listener>> m_Listeners;
+
+            uint64_t m_NextConnectionId;
+            std::vector<std::shared_ptr<Connection>> m_Connections;
+
+            std::thread m_ServerThread;
         public:
             Manager();
             virtual ~Manager();
 
-            bool Register(RpcCategory p_Category, uint32_t p_Type, std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)>);
-            bool Unregister(RpcCategory p_Category, uint32_t p_Type, std::function<void(Rpc::Connection*, const Rpc::RpcHeader*)>);
+        protected:
+            bool Startup();
 
-            void Clear();
+        private:
+            void OnIncomingMessage();
+            void OnConnectionDisconnect(uint64_t p_ConnectionId);
 
-            void SendErrorResponse(std::shared_ptr<Rpc::Connection> p_Connection, RpcCategory p_Category, int32_t p_Error);
-            
-            void SendResponse(std::shared_ptr<Rpc::Connection> p_Connection, RpcCategory p_Category, uint32_t p_Type, int64_t p_Error, std::vector<uint8_t> p_Data);
-
-            void OnRequest(Rpc::Connection* p_Connection, const Mira::Rpc::RpcHeader* p_Message);
+            // Internal functions do not lock, be warned!
+            void Internal_CloseSocket();
         };
     }
 }

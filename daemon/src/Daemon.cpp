@@ -1,14 +1,9 @@
 #include "Daemon.hpp"
 
-#include <flatbuffers/flatbuffers.h>
-#include <External/flatbuffers/rpc_generated.h>
-
 #include <Rpc/Manager.hpp>
-#include <Rpc/Server.hpp>
 
 #include <Debugging/Debugger.hpp>
-
-#include <cstdio>
+#include <Utils/Logger.hpp>
 
 using namespace Mira;
 
@@ -21,17 +16,18 @@ std::shared_ptr<Daemon> Daemon::GetInstance()
 Daemon::Daemon() :
     m_Debugger(nullptr),
     m_FtpServer(nullptr),
-    m_MessageManager(nullptr),
-    m_RpcServer(nullptr)
+    m_RpcManager(nullptr)
 {
+#if defined(PS4)
     // Initialize the networking
     sceNetInit();
+#endif
 }
 
 Daemon::~Daemon()
 {
-    if (m_RpcServer)
-        m_RpcServer.reset();
+    if (m_RpcManager)
+        m_RpcManager.reset();
     
     if (m_Debugger)
         m_Debugger.reset();
@@ -43,8 +39,8 @@ Daemon::~Daemon()
 bool Daemon::OnLoad()
 {
     // Create the message manager if it isn't already
-    if (!m_MessageManager)
-        m_MessageManager = std::make_shared<Rpc::Manager>();
+    if (!m_RpcManager)
+        m_RpcManager = std::make_shared<Rpc::Manager>();
     
     // Create the debugger if it isn't already
     if (!m_Debugger)
@@ -53,18 +49,7 @@ bool Daemon::OnLoad()
     // Load the debugger
     if (!m_Debugger->OnLoad())
     {
-        fprintf(stderr, "err: could not load debugger.\n");
-        return false;
-    }
-
-    // Create a new rpc server instance if it hasn't already
-    if (!m_RpcServer)
-        m_RpcServer = std::make_shared<Rpc::Server>();
-
-    // Load the rpc server instance
-    if (!m_RpcServer->OnLoad())
-    {
-        fprintf(stderr, "err: could not load rpc server.\n");
+        WriteLog(LL_Error, "could not load debugger.");
         return false;
     }
 

@@ -203,56 +203,56 @@ bool FakePkgManager::ShellCorePatch()
     WriteLog(LL_Debug, "wait4 returned (%d)", s_Ret);*/
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchA");
         return false;
     }
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchB");
         return false;
     }
     
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchC");
         return false;
     }
     
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchD");
         return false;
     }
     
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchA");
         return false;
     }
     
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchB");
         return false;
     }
     
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchC");
         return false;
     }
     
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchD");
         return false;
@@ -260,7 +260,7 @@ bool FakePkgManager::ShellCorePatch()
 
 #if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_505
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x96\x00\x00\x00\x90\x90\x90", nullptr, true);
-	if (s_Ret < 0)
+	if (s_Ret != 0)
 	{
 		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
 		return false;
@@ -268,7 +268,7 @@ bool FakePkgManager::ShellCorePatch()
 #endif
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_fake_to_free_patch), 4, (void*)"free", nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssc_fake_to_free_patch");
         return false;
@@ -349,14 +349,14 @@ bool FakePkgManager::ShellUIPatch()
     uint8_t mov__eax_1__ret[6] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3 };
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch");
         return false;
     }
 
     s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsStoreMode_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
-    if (s_Ret < 0)
+    if (s_Ret != 0)
     {
         WriteLog(LL_Error, "ssu_sceSblRcMgrIsStoreMode_patch");
         return false;

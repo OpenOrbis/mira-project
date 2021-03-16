@@ -1,0 +1,20 @@
+#pragma once
+#ifndef %%HEADER_GUARD%%
+#define %%HEADER_GUARD%%
+
+// Params should go here....
+
+// code goes here
+// example ABI_SYSV int test(int input);
+
+#ifdef __cplusplus 
+extern "C" {
+#endif
+
+%%PROTOTYPE_LIST%%
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // %%HEADER_GUARD%%

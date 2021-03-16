@@ -10,7 +10,6 @@
         {
             "label": "Build Mira",
             "type": "shell",
-            
             "command": "MIRA_PLATFORM=$platform make clean;MIRA_PLATFORM=$platform make create;MIRA_PLATFORM=$platform MIRA_CHECKS=$checks pvs-studio-analyzer trace -- make",
             "group": "build",
             "problemMatcher": [
@@ -19,7 +18,9 @@
             "options": {
                 "cwd": "${workspaceFolder}/kernel"
             },
-            "dependsOn": [ "Build trainer_loader" ]
+            "dependsOn": [
+                "Build trainer_loader"
+            ]
         },
         {
             "label": "Build MiraLoader",
@@ -32,7 +33,9 @@
             "options": {
                 "cwd": "${workspaceFolder}/loader"
             },
-            "dependsOn": [ "Build Mira" ]
+            "dependsOn": [
+                "Build Mira"
+            ]
         },
         {
             "label": "Build trainer_loader",
@@ -62,6 +65,18 @@
             "label": "Build Daemon",
             "type": "shell",
             "command": "make clean; make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/daemon"
+            }
+        },
+        {
+            "label": "Build Daemon (PC)",
+            "type": "shell",
+            "command": "PLATFORM=Linux make clean; PLATFORM=Linux make",
             "group": "build",
             "problemMatcher": [
                 "$gcc"

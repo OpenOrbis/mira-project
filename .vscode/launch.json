@@ -7,10 +7,12 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Launch",
-            "program": "${workspaceFolder}/maneja/Build/maneja_pc.elf",
+            "name": "Debug",
+            "program": "${workspaceFolder}/daemon/x64/Debug/MiraDaemon.elf",
             "args": [],
-            "cwd": "${workspaceFolder}/maneja"
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Daemon (PC)",
+            "env": { "GRPC_VERBOSITY": "DEBUG" }
         }
     ]
 }

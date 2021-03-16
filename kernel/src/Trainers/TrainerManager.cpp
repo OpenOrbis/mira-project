@@ -52,13 +52,20 @@ TrainerManager::TrainerManager()
     // Initialize process info space
     memset(&m_ProcessInfo, 0, sizeof(m_ProcessInfo));
 
+    // Initalize all of the shared memorys
+    memset(&m_Shms, 0, sizeof(m_Shms));
+
     // Initialize the mutex
     mtx_init(&m_Mutex, "MiraTM", MTX_DEF, 0);
 }
 
 TrainerManager::~TrainerManager()
 {
+    memset(&m_ProcessInfo, 0, sizeof(m_ProcessInfo));
+    memset(&m_Shms, 0, sizeof(m_Shms));
 
+    auto mtx_destroy = (void(*)(struct mtx* mutex))kdlsym(mtx_destroy);
+	mtx_destroy(&m_Mutex);
 }
 
 bool TrainerManager::OnLoad()
@@ -88,7 +95,7 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
     do
     {
         // Debug print
-        WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
+        //WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
 
         auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
         if (s_TrainerManager != nullptr)
@@ -105,7 +112,7 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
 
 int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp)
 {
-    WriteLog(LL_Debug, "OnSvFixup called.");
+    //WriteLog(LL_Debug, "OnSvFixup called.");
 	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
     if (g_sv_fixup == nullptr)
@@ -128,9 +135,9 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
             break;
         }
 
-        WriteLog(LL_Debug, "execPath: (%s), execPath2: (%s).", imgp->execpath, imgp->execpath2);
+        //WriteLog(LL_Debug, "execPath: (%s), execPath2: (%s).", imgp->execpath, imgp->execpath2);
 
-        WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
+        //WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
 
         auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
         if (s_TrainerManager == nullptr)
@@ -141,7 +148,7 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
 
         // Get the original entry point
         Elf64_Auxargs* s_AuxArgs = static_cast<Elf64_Auxargs*>(imgp->auxargs);
-        WriteLog(LL_Debug, "auxArgs: %p.", s_AuxArgs);
+        //WriteLog(LL_Debug, "auxArgs: %p.", s_AuxArgs);
         if (s_AuxArgs == nullptr)
         {
             WriteLog(LL_Error, "could not get auxargs.");
@@ -153,6 +160,13 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
         if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
         {
             WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);
+            break;
+        }
+
+        auto s_EbootShortPath = "eboot.bin";
+        if (strcmp(s_EbootShortPath, s_Process->p_comm) != 0)
+        {
+            WriteLog(LL_Error, "p_comm != eboot.bin");
             break;
         }
 
@@ -632,8 +646,7 @@ void TrainerManager::RemoveEntryPoint(int32_t p_ProcessId)
 
     _mtx_unlock_flags(&m_Mutex, 0);
 
-    if (!s_Removed)
-        WriteLog(LL_Error, "could not remove Entrypoint for (%d).", p_ProcessId);
+    //WriteLog(LL_Error, "could not remove Entrypoint for (%d).", p_ProcessId);
 }
 
 void* TrainerManager::GetEntryPoint(int32_t p_ProcessId)
@@ -838,4 +851,20 @@ void* TrainerManager::FindJmpslotAddress(struct proc* p_Process, const char* p_M
         _mtx_unlock_flags(&p_Process->p_mtx, 0);
 
     return s_NidsOffsetFound;
+}
+
+int TrainerManager::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    if (p_Device == nullptr)
+    {
+        WriteLog(LL_Error, "invalid device.");
+        return 0;
+    }
+
+    if (p_Thread == nullptr)
+    {
+        WriteLog(LL_Error, "invalid thread.");
+        return 0;
+    }
+    return 0;
 }

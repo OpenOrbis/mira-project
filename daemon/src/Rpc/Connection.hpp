@@ -1,63 +1,38 @@
 #pragma once
-#include <cstdint>
-#include <memory>
+#include <functional>
 
 extern "C"
 {
     #include <netinet/in.h>
-};
-
-#include <orbis/libkernel.h>
+}
 
 namespace Mira
 {
     namespace Rpc
     {
-        class Server;
-
         class Connection
         {
         private:
-            enum
-            {
-                RpcConnection_MaxMessageSize = 0x400000,
-            };
-
-            // Client socket
+            uint64_t m_Id;
             int32_t m_Socket;
-
-            // Client id
-            uint32_t m_ClientId;
-
-            // Is the client connection still running
-            volatile bool m_Running;
-
-            // Thread
-            OrbisPthread m_Thread;
-
-            // Client address
             struct sockaddr_in m_Address;
 
-            // Reference to the server class
-            Rpc::Server* m_Server;
-
-            // TODO: mutex
+            std::function<void(uint64_t)> OnDisconnectCallback;
 
         public:
-            Connection(Rpc::Server* p_Server, uint32_t p_ClientId, int32_t p_Socket, struct sockaddr_in& p_Address);
-            ~Connection();
+            Connection(uint64_t p_Id, int32_t p_Socket, struct sockaddr_in& p_Address, std::function<void(uint64_t)> p_DisconnectCallback) :
+                m_Id(p_Id),
+                m_Socket(p_Socket),
+                m_Address { 0 },
+                OnDisconnectCallback(p_DisconnectCallback)
+            {
+                // Copy over our client address
+                memcpy(&m_Address, &p_Address, sizeof(m_Address));
+            }
 
-            void Disconnect();
-
+            uint64_t GetId() const { return m_Id; }
             int32_t GetSocket() const { return m_Socket; }
-            uint32_t GetId() const { return m_ClientId; }
-            bool IsRunning() const { return m_Running; }
-
-            struct sockaddr_in& GetAddress() { return m_Address; }
-            
-            OrbisPthread* GetThreadPointer() { return &m_Thread; }
-        
-            static void* ConnectionThread(void* p_ConnectionInstance);
+            const struct sockaddr_in& GetAddress() const { return m_Address; }
         };
     }
 }
