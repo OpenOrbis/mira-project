@@ -116,7 +116,7 @@ bool PluginManager::OnLoad()
             break;
         }
 
-#if 0
+#if 1
         // Initialize Substitute
         m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
