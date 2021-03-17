@@ -93,10 +93,6 @@ if __name__== "__main__":
 
     if noMvPbcFiles is False:
         # Move fixed protobuf files
-        if not os.path.exists("src/"):
-            os.makedirs("src/Plugins/Debugger/")
-            os.makedirs("src/Plugins/FileManager/")
-            os.makedirs("src/Messaging/Rpc/")
         for file in pbcFileList:
             sourcePath = os.path.join(inputDirectory, file)
             destinationPath = ""
@@ -108,6 +104,10 @@ if __name__== "__main__":
             elif "rpc" in file:
                 destinationPath = os.path.join(miraDirectory, ("src/Messaging/Rpc/" + file))
 
+            #Create destination paths dynamicly
+            if not os.path.exists(os.path.dirname(destinationPath)):
+                 os.makedirs(os.path.dirname(destinationPath))
+            
             os.replace(sourcePath, destinationPath)
 
     print("completed")
