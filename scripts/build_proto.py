@@ -104,6 +104,10 @@ if __name__== "__main__":
             elif "rpc" in file:
                 destinationPath = os.path.join(miraDirectory, ("src/Messaging/Rpc/" + file))
 
+            #Create destination paths dynamicly
+            if not os.path.exists(os.path.dirname(destinationPath)):
+                 os.makedirs(os.path.dirname(destinationPath))
+            
             os.replace(sourcePath, destinationPath)
 
     print("completed")
