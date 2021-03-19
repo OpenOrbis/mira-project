@@ -2,6 +2,14 @@
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
 
+extern "C"
+{
+    #include <vm/vm.h>
+    #include <sys/conf.h>
+    #include <sys/param.h>
+    #include <sys/proc.h>
+}
+
 namespace Mira
 {
     namespace Plugins
@@ -33,8 +41,26 @@ namespace Mira
             ProcPriv m_Privs[MaxProcPrivs];
 
         protected:
-            void SetBit(uint32_t p_BitIndex, bool p_Value);
-            bool GetBit(uint32_t p_BitIndex);
+            void SetBit(int32_t p_ProcessId, uint32_t p_BitIndex, bool p_Value);
+            bool GetBit(int32_t p_ProcessId, uint32_t p_BitIndex);
+
+            bool SetMask(int32_t p_ProcessId, uint8_t p_Mask[MaskSizeInBytes]);
+
+            /**
+             * @brief This will search the currently tracked privs and see if one matches the pid
+             * 
+             * @param p_ProcessId ProcessId
+             * @return ProcPriv* nullptr if not found, otherwise privs
+             */
+            ProcPriv* FindPrivByProcessId(int32_t p_ProcessId);
+
+            /**
+             * @brief This is a helper function that will get or create the priv
+             * 
+             * @param p_ProcessId 
+             * @return ProcPriv* nullptr on error
+             */
+            ProcPriv* GetOrCreatePrivByProcessId(int32_t p_ProcessId);
             
         public:
             PrivCheckPlugin();
@@ -46,7 +72,7 @@ namespace Mira
             // Hooked function for priv_check_cred
             static int PrivCheckCredHook(struct thread* td, int priv);
 
-            
+            static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
         };
     }
 }

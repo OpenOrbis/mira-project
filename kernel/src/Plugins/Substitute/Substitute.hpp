@@ -5,7 +5,7 @@
 #include <Driver/CtrlDriver.hpp>
 
 // This is ussed in both kernel and userland
-#include <mira/Trainer/Substitute/SubstituteDefs.hpp>
+#include <mira/Trainers/Substitute/SubstituteDefs.hpp>
 
 extern "C"
 {

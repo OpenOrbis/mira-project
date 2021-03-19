@@ -45,6 +45,7 @@ namespace Mira
             Mira::Utils::IModule* GetEmulatedRegistry() { return m_EmuRegistry; }
             Mira::Utils::IModule* GetSubstitute() { return m_Substitute; }
             Mira::Utils::IModule* GetSyscallGuard() { return m_SyscallGuard; }
+            Mira::Utils::IModule* GetPrivCheck() { return m_PrivCheck; }
         };
     }
 }

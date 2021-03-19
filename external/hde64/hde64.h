@@ -20,14 +20,18 @@
 *   #include "pstdint.h"
 */
 
+// Kernel Mode
 #if defined(_KERNEL) || defined(MIRA_PLATFORM)
 #include <Utils/Types.hpp>
 #else
+// User mode
 #if defined(__cplusplus)
 #include <cstdint>
-#else
+#else // defined(__cplusplus)
 #include <stdint.h>
-#endif
+#endif // defined(__cplusplus)
+
+#endif // defined(_KERNEL) || defined(MIRA_PLATFORM)
 
 #define F_MODRM         0x00000001
 #define F_SIB           0x00000002
