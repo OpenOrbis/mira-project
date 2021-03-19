@@ -1,6 +1,7 @@
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
+#include <Utils/Hook.hpp>
 
 extern "C"
 {
@@ -40,6 +41,9 @@ namespace Mira
             // The proc's we are overriding
             ProcPriv m_Privs[MaxProcPrivs];
 
+            Utils::Hook* m_PrivCheckHook;
+            Utils::Hook* m_PrivCheckCredHook;
+
         protected:
             void SetBit(int32_t p_ProcessId, uint32_t p_BitIndex, bool p_Value);
             bool GetBit(int32_t p_ProcessId, uint32_t p_BitIndex);
@@ -73,6 +77,9 @@ namespace Mira
             static int PrivCheckCredHook(struct thread* td, int priv);
 
             static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+
+            bool OnLoad() override;
+            bool OnUnload() override;
         };
     }
 }
