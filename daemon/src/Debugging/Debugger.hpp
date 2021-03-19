@@ -10,6 +10,7 @@ namespace Mira
             public Utils::IModule
         {
         private:
+            uint64_t m_Registers[REGS_COUNT];
             
         public:
             Debugger();

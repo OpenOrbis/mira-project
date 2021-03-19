@@ -7,7 +7,7 @@
 #include <Plugins/Debugging/Debugger.hpp>
 #include <Plugins/FakeSelf/FakeSelfManager.hpp>
 #include <Plugins/FakePkg/FakePkgManager.hpp>
-#include <Plugins/Substitute/Substitute.hpp>
+#include <Plugins/PrivCheck/PrivCheckPlugin.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
 
 // Utility functions
@@ -27,7 +27,8 @@ PluginManager::PluginManager() :
     m_FakePkgManager(nullptr),
     m_EmuRegistry(nullptr),
     m_Substitute(nullptr),
-    m_SyscallGuard(nullptr)
+    m_SyscallGuard(nullptr),
+    m_PrivCheck(nullptr)
 {
 
 }
@@ -78,6 +79,13 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }*/
+        m_PrivCheck = new Mira::Plugins::PrivCheckPlugin();
+        if (m_PrivCheck == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate priv check plugin.");
+            s_Success = false;
+            break;
+        }
     } while (false);
 
     if (m_Debugger)
@@ -108,6 +116,12 @@ bool PluginManager::OnLoad()
     {
         if (!m_Substitute->OnLoad())
             WriteLog(LL_Error, "could not load substitute.");
+    }
+
+    if (m_PrivCheck)
+    {
+        if (!m_PrivCheck->OnLoad())
+            WriteLog(LL_Error, "could not load priv check.");
     }
 
     return s_Success;
@@ -216,6 +230,16 @@ bool PluginManager::OnUnload()
         // Free the debugger
         delete m_Debugger;
         m_Debugger = nullptr;
+    }
+
+    if (m_PrivCheck)
+    {
+        WriteLog(LL_Error, "unloading priv check.");
+        if (!m_PrivCheck->OnUnload())
+            WriteLog(LL_Error, "could not unload priv check.");
+        
+        delete m_PrivCheck;
+        m_PrivCheck = nullptr;
     }
 
     WriteLog(LL_Debug, "All Plugins Unloaded %s.", s_AllUnloadSuccess ? "successfully" : "un-successfully");

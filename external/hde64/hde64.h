@@ -19,8 +19,15 @@
 * and change next line to:
 *   #include "pstdint.h"
 */
-//#include <stdint.h>
+
+#if defined(_KERNEL) || defined(MIRA_PLATFORM)
 #include <Utils/Types.hpp>
+#else
+#if defined(__cplusplus)
+#include <cstdint>
+#else
+#include <stdint.h>
+#endif
 
 #define F_MODRM         0x00000001
 #define F_SIB           0x00000002

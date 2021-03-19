@@ -49,6 +49,7 @@ enum MiraIoctlCmds
     CMD_SetConfig,                  // Set mira's kernel configuration
 
     CMD_MountInSandbox,             // Mount full unescaped sandbox path into the current sandbox
+    CMD_PrivMask,                   // Gets/Sets the priv mask
     CMD_MIRA_END = 90,
     CMD_MAX
 #if defined(__cplusplus)
@@ -87,3 +88,5 @@ enum MiraIoctlCmds
 // Configuration
 #define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetConfig), 0)
 #define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SetConfig), sizeof(MiraConfig))
+
+#define MIRA_PRIV_CHECK _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_PrivMask), sizeof(MiraPrivCheck))

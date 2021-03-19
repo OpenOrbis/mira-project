@@ -41,7 +41,8 @@ namespace Mira
                 R14,
                 R15,
                 FS,
-                GS
+                GS,
+                REGS_COUNT
             };
             
             int32_t m_Socket;

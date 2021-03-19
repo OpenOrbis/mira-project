@@ -209,3 +209,14 @@ typedef struct _MiraWriteProcessMemory
     // Data to write
     uint8_t Data[];
 } MiraWriteProcessMemory;
+
+typedef struct _MiraPrivCheck
+{
+    // Get or set the mask?
+    int32_t ProcessId;
+
+    uint32_t IsGet;
+
+    // Override mask
+    uint8_t Mask[128]; // This must match MaskSizeInBytes in PrivCheckPlugin.hpp
+} MiraPrivCheck;

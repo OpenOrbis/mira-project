@@ -93,7 +93,7 @@
             "name": "Daemon (PC)",
             "includePath": [
                 "${workspaceFolder}/daemon/src",
-                "${workspaceFolder}/daemon/src/External/include"
+                "${workspaceFolder}/external"
             ],
             "defines": [
                 "_DEBUG",

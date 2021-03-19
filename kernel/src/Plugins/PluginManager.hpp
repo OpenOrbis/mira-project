@@ -37,6 +37,7 @@ namespace Mira
             Mira::Utils::IModule* m_EmuRegistry;
             Mira::Utils::IModule* m_Substitute;
             Mira::Utils::IModule* m_SyscallGuard;
+            Mira::Utils::IModule* m_PrivCheck;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }

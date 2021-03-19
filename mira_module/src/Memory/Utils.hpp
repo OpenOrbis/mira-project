@@ -86,6 +86,10 @@ namespace Mira
              * @param p_Callback Callback function
              */
             void IterateMemoryRanges(std::function<void(MemoryRange&)> p_Callback);
+
+
+            // Process Memory
+            
         };
     }
 }
