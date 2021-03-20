@@ -200,41 +200,6 @@ int32_t Debugger::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Dat
 
             return s_Ret;
         }
-
-        case MIRA_GET_JMPSLOT_ADDR:
-        {
-            MiraGetJmpslotAddress s_getJmpslotAddress;
-
-            // Copy in the structure from userland
-            auto s_Ret = copyin(p_Data, &s_getJmpslotAddress, sizeof(s_getJmpslotAddress));
-            if (s_Ret != 0)
-            {
-                WriteLog(LL_Error, "copyin failed (%d).", s_Ret);
-                return ENOMEM;
-            }
-
-            // Get the proc, the proc is locked at this point
-            auto s_Proc = pfind(s_getJmpslotAddress.ProcessId);
-            if (s_Proc == nullptr)
-            {
-                WriteLog(LL_Error, "could not find pid (%d).", s_getJmpslotAddress.ProcessId);
-                return ESRCH;
-            }
-
-            do 
-            {
-                void* s_Jmpslot_Address = s_Debugger->FindJmpslotAddress(s_Proc, s_getJmpslotAddress.ModuleName, s_getJmpslotAddress.Name, s_getJmpslotAddress.IsNids);
-                if (!s_Jmpslot_Address) {
-                    s_Ret = ESRCH;
-                    break;
-                } 
-
-                copyout(&s_Jmpslot_Address, (void*)s_getJmpslotAddress.ReturnAddress, sizeof(void*));
-            } while (false);
-
-            _mtx_unlock_flags(&s_Proc->p_mtx, 0);
-            return s_Ret;
-        }
     }
 
     return 0;

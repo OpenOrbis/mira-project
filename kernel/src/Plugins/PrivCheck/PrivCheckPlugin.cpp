@@ -9,11 +9,10 @@
 using namespace Mira::Plugins;
 
 PrivCheckPlugin::PrivCheckPlugin() :
-    m_Privs { 0 },
     m_PrivCheckHook(nullptr),
     m_PrivCheckCredHook(nullptr)
 {
-
+    memset(m_Privs, 0, sizeof(m_Privs));
 }
 
 PrivCheckPlugin::~PrivCheckPlugin()

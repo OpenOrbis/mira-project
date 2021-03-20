@@ -106,6 +106,8 @@
 #define kdlsym_addr_pmap_activate                          0x0005A280
 #define kdlsym_addr_printf                                 0x00123280
 #define kdlsym_addr_prison0                                0x0113E518
+#define kdlsym_addr_priv_check                             0x000CDBB0
+#define kdlsym_addr_priv_check_cred                        0x000CDA90
 #define kdlsym_addr_proc0                                  0x022BFA40
 #define kdlsym_addr_proc_reparent                          0x004066F0
 #define kdlsym_addr_proc_rwmem                             0x0010EE10

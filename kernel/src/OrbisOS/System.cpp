@@ -68,12 +68,17 @@ uint8_t* System::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size, 
     return reinterpret_cast<uint8_t*>(s_Address);
 }
 
+void System::FreeProcessMemory(struct proc* p_Process, void* p_Pointer)
+{
+    // TODO: Implement
+}
+
 UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct proc* p_RequestingProcess)
 {
     auto _vm_map_lock_read = (void(*)(vm_map_t map, const char *file, int line))kdlsym(_vm_map_lock_read);
 	auto _vm_map_unlock_read = (void(*)(vm_map_t map, const char *file, int line))kdlsym(_vm_map_unlock_read);
     auto _vm_map_lookup_entry = (boolean_t(*)(vm_map_t, vm_offset_t, vm_map_entry_t *))kdlsym(vm_map_lookup_entry);
-    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
 
     // Validate process
     if (p_Process == nullptr)
@@ -176,4 +181,22 @@ UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct pro
     _vm_map_unlock_read(s_VmMap, __FILE__, __LINE__);
     
     return s_ReturnData;
+}
+
+bool System::ReadProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength)
+{
+    // TODO: Implement
+    return true;
+}
+
+bool System::WriteProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength)
+{
+    // TODO: Implement
+    return true;
+}
+
+bool System::CopyProcessMemory(struct proc* p_SourceProcess, void* p_SourceAddress, struct proc* p_DestProcess, void* p_DestAddress, uint32_t p_Size)
+{
+    // TODO: Implement
+    return true;
 }

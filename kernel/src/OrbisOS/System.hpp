@@ -1,13 +1,21 @@
 #pragma once
 #include <Utils/Types.hpp>
+#include <Utils/Kernel.hpp>
 
 extern "C"
 {
     #include <sys/param.h>
     #include <sys/proc.h>
+
     #include <vm/vm.h>
+    #include <vm/vm_page.h>
+    #include <vm/pmap.h>
     #include <vm/vm_map.h>
+    #include <vm/vm_param.h>
+    
 };
+
+struct proc;
 
 namespace Mira
 {

@@ -1,9 +1,18 @@
 #pragma once
 #include <Utils/Types.hpp>
 
-struct cdev;
-struct thread;
-struct proc;
+extern "C"
+{
+    #include <sys/param.h>
+    #include <sys/proc.h>
+
+    #include <vm/vm.h>
+    #include <vm/vm_page.h>
+    #include <vm/pmap.h>
+    #include <vm/vm_map.h>
+    #include <vm/vm_param.h>
+    
+};
 
 namespace Mira
 {
