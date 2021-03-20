@@ -189,7 +189,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 case MIRA_WRITE_PROCESS_MEMORY:
                 case MIRA_GET_PROC_INFORMATION:
                 case MIRA_GET_PID_LIST:
-                    return Mira::Driver::SystemDriverCtl::OnSystemDriverCtlIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                    return SystemDriverCtl::OnSystemDriverCtlIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 case MIRA_MOUNT_IN_SANDBOX:
                     return OnMiraMountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
 

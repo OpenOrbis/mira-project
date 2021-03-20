@@ -27,7 +27,7 @@ int SystemDriverCtl::OnSystemDriverCtlIoctl(struct cdev* p_Device, u_long p_Comm
     return EINVAL;
 }
 
-int32_t SystemDriverCtl::OnReadProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t SystemDriverCtl::OnSystemReadProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
@@ -75,7 +75,7 @@ int32_t SystemDriverCtl::OnReadProcessMemory(struct cdev* p_Device, u_long p_Com
     return 0;
 }
 
-int32_t SystemDriverCtl::OnWriteProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t SystemDriverCtl::OnSystemWriteProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);

@@ -25,8 +25,8 @@ namespace Mira
             // Driver Callbacks
         protected:
             // Memory
-            static int32_t OnReadProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
-            static int32_t OnWriteProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnSystemReadProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnSystemWriteProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Proc
             static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
