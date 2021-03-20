@@ -2,6 +2,11 @@
 #include <Utils/Logger.hpp>
 #include <Utils/Kdlsym.hpp>
 
+extern "C"
+{
+    #include <sys/uio.h>
+};
+
 using namespace Mira::Utils;
 
 uint8_t* System::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size, uint32_t p_Protection)
@@ -68,9 +73,31 @@ uint8_t* System::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size, 
     return reinterpret_cast<uint8_t*>(s_Address);
 }
 
-void System::FreeProcessMemory(struct proc* p_Process, void* p_Pointer)
+void System::FreeProcessMemory(struct proc* p_Process, void* p_Pointer, uint32_t p_Size)
 {
-    // TODO: Implement
+    auto _vm_map_lock = (void(*)(vm_map_t map, const char* file, int line))kdlsym(_vm_map_lock);
+    //auto _vm_map_findspace = (int(*)(vm_map_t map, vm_offset_t start, vm_size_t length, vm_offset_t *addr))kdlsym(_vm_map_findspace);
+    //auto _vm_map_insert = (int(*)(vm_map_t map, vm_object_t object, vm_ooffset_t offset,vm_offset_t start, vm_offset_t end, vm_prot_t prot, vm_prot_t max, int cow))kdlsym(_vm_map_insert);
+    auto _vm_map_unlock = (void(*)(vm_map_t map))kdlsym(_vm_map_unlock);
+    auto _vm_map_delete = (int(*)(vm_map_t, vm_offset_t, vm_offset_t))kdlsym(_vm_map_delete);
+
+    struct vmspace* s_VmSpace = p_Process->p_vmspace;
+    if (s_VmSpace == nullptr)
+    {
+        WriteLog(LL_Error, "could not get vmspace.");
+        return;
+    }
+
+    struct vm_map* s_VmMap = &s_VmSpace->vm_map;
+
+    _vm_map_lock(s_VmMap, __FILE__, __LINE__);
+
+    auto s_Ret = _vm_map_delete(s_VmMap, reinterpret_cast<uint64_t>(p_Pointer), p_Size);
+
+    _vm_map_unlock(s_VmMap);
+
+    if (s_Ret != 0)
+        WriteLog(LL_Error, "could not delete from vm map (%d).", s_Ret);
 }
 
 UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct proc* p_RequestingProcess)
@@ -166,7 +193,7 @@ UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct pro
         {
             WriteLog(LL_Error, "could not write to userland memory.");
             delete [] s_UserMap;
-            FreeProcessMemory(p_RequestingProcess, s_Allocation);
+            FreeProcessMemory(p_RequestingProcess, s_Allocation, s_AllocationSize);
             break;
         }
 
@@ -183,20 +210,169 @@ UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct pro
     return s_ReturnData;
 }
 
-bool System::ReadProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength)
+bool System::ReadWriteProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength, bool p_Write)
 {
     // TODO: Implement
+    auto proc_rwmem = (int (*)(struct proc *p, struct uio *uio))kdlsym(proc_rwmem);
+
+    // Validate process
+    if (p_TargetProcess == nullptr)
+    {
+        WriteLog(LL_Error, "invalid process.");
+        return false;
+    }
+
+    struct thread* s_ProcMainThread = p_TargetProcess->p_singlethread ? p_TargetProcess->p_singlethread : p_TargetProcess->p_threads.tqh_first;
+    if (s_ProcMainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get process main thread.");
+        return false;
+    }
+
+    // Validate the target address
+    if (p_TargetAddress == nullptr)
+    {
+        WriteLog(LL_Error, "invalid target address.");
+        return false;
+    }
+
+    // Validate the data
+    if (p_Data == nullptr ||
+        p_DataLength == 0)
+    {
+        WriteLog(LL_Error, "invalid data.");
+        return false;
+    }
+
+    struct iovec s_Vec;
+    memset(&s_Vec, 0, sizeof(s_Vec));
+    s_Vec.iov_base = p_Data;
+    s_Vec.iov_len = p_DataLength;
+    
+    struct uio s_Uio;
+    memset(&s_Uio, 0, sizeof(s_Uio));
+    s_Uio.uio_iov = &s_Vec;
+	s_Uio.uio_iovcnt = 1;
+	s_Uio.uio_offset = (uint64_t)p_TargetAddress;
+	s_Uio.uio_resid = (uint64_t)p_DataLength;
+	s_Uio.uio_segflg = UIO_SYSSPACE;
+	s_Uio.uio_rw = p_Write ? UIO_WRITE : UIO_READ;
+	s_Uio.uio_td = s_ProcMainThread;
+
+	auto s_Ret = proc_rwmem(p_TargetProcess, &s_Uio);
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "could not proc_rwmem (%d).", s_Ret);
+        return false;
+    }
+
     return true;
+}
+
+bool System::ReadProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength)
+{
+    return ReadWriteProcessMemory(p_TargetProcess, p_TargetAddress, p_Data, p_DataLength, false);
 }
 
 bool System::WriteProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength)
 {
-    // TODO: Implement
-    return true;
+    return ReadWriteProcessMemory(p_TargetProcess, p_TargetAddress, p_Data, p_DataLength, true);
 }
 
 bool System::CopyProcessMemory(struct proc* p_SourceProcess, void* p_SourceAddress, struct proc* p_DestProcess, void* p_DestAddress, uint32_t p_Size)
 {
-    // TODO: Implement
+    // Validate source
+    if (p_SourceProcess == nullptr ||
+        p_SourceAddress == nullptr)
+    {
+        WriteLog(LL_Error, "invalid source.");
+        return false;
+    }
+
+    // Validate destination
+    if (p_DestProcess == nullptr ||
+        p_DestAddress == nullptr)
+    {
+        WriteLog(LL_Error, "invalid destination.");
+        return false;
+    }
+
+    // Validate size
+    if (p_Size == 0)
+    {
+        WriteLog(LL_Error, "invalid size.");
+        return false;
+    }
+
+    // Allocate a new temporary buffer
+    auto s_Buffer = new uint8_t[p_Size];
+    if (s_Buffer == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate buffer of size (0x%x).", p_Size);
+        return false;
+    }
+    memset(s_Buffer, 0, p_Size);
+
+    // Read the memory into our buffer
+    if (!ReadProcessMemory(p_SourceProcess, p_SourceAddress, s_Buffer, p_Size))
+    {
+        WriteLog(LL_Error, "failed to read process memory.");
+        delete [] s_Buffer;
+        return false;
+    }
+
+    // Write the buffer into the destination process
+    if (!WriteProcessMemory(p_DestProcess, p_DestAddress, s_Buffer, p_Size))
+    {
+        WriteLog(LL_Error, "failed to write process memory.");
+        delete [] s_Buffer;
+        return false;
+    }
+
+    // Free the buffer we allocated
+    delete [] s_Buffer;
+
+    return true;
+}
+
+bool System::ProtectMemory(struct proc* p_Process, void* p_Address, uint32_t p_Size, int32_t p_Protection)
+{
+    auto vm_map_protect = (int(*)(vm_map_t, vm_offset_t, vm_offset_t, vm_prot_t, boolean_t))kdlsym(_vm_map_protect);
+
+    // Validate process
+    if (p_Process == nullptr)
+    {
+        WriteLog(LL_Error, "invalid process.");
+        return false;
+    }
+
+    uint64_t s_StartAddress = reinterpret_cast<uint64_t>(p_Address);
+    uint64_t s_EndAddress = s_StartAddress + p_Size;
+
+    struct vmspace* s_VmSpace = p_Process->p_vmspace;
+    if (s_VmSpace == nullptr)
+    {
+        WriteLog(LL_Error, "could not get vmspace.");
+        return false;
+    }
+
+    struct vm_map* s_VmMap = &s_VmSpace->vm_map;
+
+    // Update the maximum protection
+    auto s_Ret = vm_map_protect(s_VmMap, s_StartAddress, s_EndAddress, p_Protection, 1);
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "could not update max protection (%d).", s_Ret);
+        return false;
+    }
+
+    // Set the new protection
+    s_Ret = vm_map_protect(s_VmMap, s_StartAddress, s_EndAddress, p_Protection, 0);
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "could not set the new protection (%d).", s_Ret);
+        return false;
+    }
+
     return true;
 }

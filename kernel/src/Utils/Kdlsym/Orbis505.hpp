@@ -25,6 +25,7 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr__sx_xlock                              0x000F5E10
 #define kdlsym_addr__sx_xunlock                            0x000F5FD0
 #define kdlsym_addr__thread_lock_flags                     0x00402420
+#define kdlsym_addr__vm_map_delete                         0x001A19D0
 #define kdlsym_addr__vm_map_findspace                      0x001A1F60
 #define kdlsym_addr__vm_map_insert                         0x001A0280
 #define kdlsym_addr__vm_map_lock                           0x0019EFF0

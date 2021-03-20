@@ -25,10 +25,12 @@
 #define kdlsym_addr__sx_xlock                              0x000426C0
 #define kdlsym_addr__sx_xunlock                            0x00042880
 #define kdlsym_addr__thread_lock_flags                     0x00496C90
+#define kdlsym_addr__vm_map_delete                         0xDEADBEEF
 #define kdlsym_addr__vm_map_findspace                      0x0044FE60
 #define kdlsym_addr__vm_map_insert                         0x0044DEF0
 #define kdlsym_addr__vm_map_lock                           0x0044CBF0
 #define kdlsym_addr__vm_map_lock_read                      0x0044CD40
+#define kdlsym_addr__vm_map_protect                        0xDEADBEEF
 #define kdlsym_addr__vm_map_unlock                         0x0044CC60
 #define kdlsym_addr__vm_map_unlock_read                    0x0044CD90
 #define kdlsym_addr_AesCbcCfb128Decrypt                    0x003C0550

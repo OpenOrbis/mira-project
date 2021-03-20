@@ -47,7 +47,16 @@ namespace Mira
              */
             static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size, uint32_t p_Protection = VM_PROT_ALL);
 
-            static void FreeProcessMemory(struct proc* p_Process, void* p_Address);
+            /**
+             * @brief Frees previously allocated memory with the specified size
+             * 
+             * NOTE: This function assumes that the proc is already locked
+             * @param p_Process Locked process
+             * @param p_Address Address to free
+             * @param p_Size Size to free
+             */
+            static void FreeProcessMemory(struct proc* p_Process, void* p_Address, uint32_t p_Size);
+            
             /**
              * @brief Allocates and writes out a process vm map.
              * 
@@ -62,7 +71,20 @@ namespace Mira
             static bool WriteProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength);
             static bool CopyProcessMemory(struct proc* p_SourceProcess, void* p_SourceAddress, struct proc* p_DestProcess, void* p_DestAddress, uint32_t p_Size);
 
-            
+            static bool ProtectMemory(struct proc* p_Process, void* p_Address, uint32_t p_Size, int32_t p_Protection);
+
+        private:
+            /**
+             * @brief Port of flatz ReadWriteProc
+             * 
+             * @param p_TargetProcess Target process to read/write memory from
+             * @param p_TargetAddres Address in target process to read/write memory from
+             * @param p_Data Kernel in/out buffer
+             * @param p_DataLength Length of kernel in/out buffer
+             * @param p_Write Is this a write or read?
+             * @return true Success, false otherwise
+             */
+            static bool ReadWriteProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddres, void* p_Data, uint32_t p_DataLength, bool p_Write);
         };
     }
 }
