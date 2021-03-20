@@ -13,7 +13,6 @@
 
 #include <Plugins/PluginManager.hpp>
 #include <Plugins/PrivCheck/PrivCheckPlugin.hpp>
-#include <Plugins/Substitute/Substitute.hpp>
 #include <Plugins/Debugging/Debugger.hpp>
 
 #include <Trainers/TrainerManager.hpp>
@@ -167,6 +166,8 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
 int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyinstr = (int(*)(const void *uaddr, void *kaddr, size_t len, size_t *done))kdlsym(copyinstr);
+
     //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     p_Command = p_Command & 0xFFFFFFFF; // Clear the upper32
 
@@ -185,8 +186,6 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     // just do it similar to how the debugger works
     switch (IOCGROUP(p_Command)) 
     {
-        case SUBSTITUTE_IOCTL_BASE:
-            return Mira::Plugins::Substitute::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
         case MIRA_IOCTL_BASE:
         {
             // If we are handling Mira specific ioctl's
@@ -250,6 +249,9 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                     return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 case MIRA_PRIV_CHECK:             
                     return Plugins::PrivCheckPlugin::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                default:
+                    WriteLog(LL_Debug, "mira base unknown command: (0x%llx).", p_Command);
+                    break;
             }
         }
 

@@ -6,8 +6,9 @@
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
-#include <Plugins/Substitute/Substitute.hpp>
 
+#include <Plugins/PluginManager.hpp>
+#include <Plugins/Debugging/Debugger.hpp>
 #include <Mira.hpp>
 
 extern "C"
@@ -384,7 +385,7 @@ int Utilities::MountNullFS(char* where, char* what, int flags)
 
     if (ma == NULL) {
     	WriteLog(LL_Error, "Something is wrong, ma value is null after argument");
-    	return 50;
+    	return -50;
     }
 
     return kernel_mount(ma, flags);
@@ -415,12 +416,22 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 		return -2;
 	}
 
-	// Got substitute plugin
-	Plugins::Substitute* substitute = Mira::Plugins::Substitute::GetPlugin();
-	if (!substitute) {
-		WriteLog(LL_Error, "Substitute dependency is required.");
-		return -3;
-	}
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira framework.");
+        return -4;
+    }
+
+	auto s_PluginManager = s_Framework->GetPluginManager();
+
+	// Got debugger plugin
+    auto s_Debugger = static_cast<Mira::Plugins::Debugger*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger.");
+        return -3;
+    }
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
@@ -429,10 +440,10 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) ...", s_TitleId, entrypoint);
 
 	// Resolve all addresses
-	void* s_scePthreadAttrInit = substitute->FindOriginalAddress(p, "scePthreadAttrInit", 0);
-	void* s_scePthreadAttrSetstacksize = substitute->FindOriginalAddress(p, "scePthreadAttrSetstacksize", 0);
-	void* s_scePthreadCreate = substitute->FindOriginalAddress(p, "scePthreadCreate", 0);
-	void* s_pthread_getthreadid_np = substitute->FindOriginalAddress(p, "pthread_getthreadid_np", 0);
+	void* s_scePthreadAttrInit = s_Debugger->ResolveFuncAddress(p, "scePthreadAttrInit", 0);
+	void* s_scePthreadAttrSetstacksize = s_Debugger->ResolveFuncAddress(p, "scePthreadAttrSetstacksize", 0);
+	void* s_scePthreadCreate = s_Debugger->ResolveFuncAddress(p, "scePthreadCreate", 0);
+	void* s_pthread_getthreadid_np = s_Debugger->ResolveFuncAddress(p, "pthread_getthreadid_np", 0);
 
 	if (!s_scePthreadAttrInit || !s_scePthreadAttrSetstacksize || !s_scePthreadCreate || !s_pthread_getthreadid_np) {
 		WriteLog(LL_Error, "[%s] Unable to resolve addresses !", s_TitleId);
@@ -543,12 +554,22 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 		return -1;
 	}
 
-	// Got substitute plugin
-	Plugins::Substitute* substitute = Mira::Plugins::Substitute::GetPlugin();
-	if (!substitute) {
-		WriteLog(LL_Error, "Substitute dependency is required.");
-		return -2;
-	}
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mira framework.");
+        return -4;
+    }
+
+	auto s_PluginManager = s_Framework->GetPluginManager();
+	
+	// Got debugger plugin
+    auto s_Debugger = static_cast<Mira::Plugins::Debugger*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger.");
+        return -2;
+    }
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
@@ -557,7 +578,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX ...", s_TitleId, prx_path);
 
     // Find sceKernelLoadStartModule address
-    void* s_LoadStartModule = substitute->FindOriginalAddress(p, "sceKernelLoadStartModule", 0);
+    void* s_LoadStartModule = s_Debugger->ResolveFuncAddress(p, "sceKernelLoadStartModule", 0);
     if (!s_LoadStartModule) {
         WriteLog(LL_Error, "[%s] could not find sceKernelLoadStartModule !", s_TitleId);
         return -3;
@@ -704,7 +725,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
 		WriteLog(LL_Debug, "RealPath: (%s).", s_RealSprxFolderPath);
 
         // Check to see if the real path directory actually exists
-        auto s_DirectoryHandle = kopen_t(s_RealSprxFolderPath, O_RDONLY | O_DIRECTORY, 0777, s_MainThread);
+        auto s_DirectoryHandle = kopen_t(s_RealSprxFolderPath, O_RDONLY | O_DIRECTORY, 0511, s_MainThread);
         if (s_DirectoryHandle < 0)
         {
 			WriteLog(LL_Error, "could not open directory (%s) (%d).", s_RealSprxFolderPath, s_DirectoryHandle);
@@ -741,7 +762,6 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         // Save backups of the original fd and credentials
 		struct ucred s_OriginalCreds = { 0 };
 		memcpy(&s_OriginalCreds, s_CurrentThreadCred, sizeof(s_OriginalCreds));
-		gid_t s_OriginalGroups = s_CurrentThreadCred->cr_groups[0];
 
         struct filedesc s_OriginalDesc = { 0 };
 		memcpy(&s_OriginalDesc, s_CurrentThreadFd, sizeof(s_OriginalDesc));
@@ -756,22 +776,19 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
 
         // Try and mount using the current credentials
-        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SubstituteFullMountPath, s_RealSprxFolderPath, MNT_RDONLY);
+        s_Result = Mira::OrbisOS::Utilities::MountNullFS(s_SubstituteFullMountPath, s_RealSprxFolderPath, 0);
         if (s_Result < 0)
         {
             WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SubstituteFullMountPath, s_Result);
             krmdir_t(s_SandboxPath, s_MainThread);
         }
 
-        // Restore credentials and fd
-		s_CurrentThreadCred->cr_uid = s_OriginalCreds.cr_uid;
-        s_CurrentThreadCred->cr_ruid = s_OriginalCreds.cr_ruid;
-        s_CurrentThreadCred->cr_rgid = s_OriginalCreds.cr_rgid;
-        s_CurrentThreadCred->cr_groups[0] = s_OriginalGroups;
-        s_CurrentThreadCred->cr_prison = s_OriginalCreds.cr_prison;
+		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0555, s_MainThread);
+        WriteLog(LL_Debug, "kchmod_tbuildnew(%s, 0555). (%d).", s_SubstituteFullMountPath, s_ResultChmod);
 
-        s_CurrentThreadFd->fd_rdir = s_OriginalDesc.fd_rdir;
-		s_CurrentThreadFd->fd_jdir = s_OriginalDesc.fd_jdir;
+        // Restore credentials and fd
+		memcpy(s_CurrentThreadCred, &s_OriginalCreds, sizeof(s_OriginalCreds));
+		memcpy(s_CurrentThreadFd, &s_OriginalDesc, sizeof(s_OriginalDesc));
 
 		// Copy out the path
 		if (p_OutPath != nullptr)
