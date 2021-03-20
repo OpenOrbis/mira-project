@@ -2,7 +2,9 @@
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
 #include <Utils/SysWrappers.hpp>
+
 #include <OrbisOS/Utilities.hpp>
+#include <OrbisOS/System.hpp>
 
 #include <Driver/CtrlDriver.hpp>
 
@@ -313,7 +315,7 @@ uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
     WriteLog(LL_Debug, "TrainerLoaderStart: %p, End: %p, Size: %x", &_trainer_loader_start, &_trainer_loader_end, s_Size);
 
     // Allocate new memory inside of our target process
-    auto s_Address = AllocateProcessMemory(p_TargetProcess, s_Size);
+    auto s_Address = Utils::System::AllocateProcessMemory(p_TargetProcess, s_Size);
     if (s_Address == nullptr)
     {
         WriteLog(LL_Error, "could not allocate process memory (%x).", s_Size);
@@ -486,74 +488,6 @@ bool TrainerManager::DirectoryExists(struct thread* p_Thread, const char* p_Path
 
     return S_ISDIR(s_Stat.st_mode);
 }
-
-// This function assumes that the process is already locked
-uint8_t* TrainerManager::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size)
-{
-    auto _vm_map_lock = (void(*)(vm_map_t map, const char* file, int line))kdlsym(_vm_map_lock);
-    //auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-	//auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-    auto _vm_map_findspace = (int(*)(vm_map_t map, vm_offset_t start, vm_size_t length, vm_offset_t *addr))kdlsym(_vm_map_findspace);
-    auto _vm_map_insert = (int(*)(vm_map_t map, vm_object_t object, vm_ooffset_t offset,vm_offset_t start, vm_offset_t end, vm_prot_t prot, vm_prot_t max, int cow))kdlsym(_vm_map_insert);
-    auto _vm_map_unlock = (void(*)(vm_map_t map))kdlsym(_vm_map_unlock);
-
-    if (p_Process == nullptr)
-        return nullptr;
-    
-    WriteLog(LL_Info, "Requested Size: (%x).", p_Size);
-    p_Size = round_page(p_Size);
-    WriteLog(LL_Info, "Adjusted Size (%x).", p_Size);
-
-    vm_offset_t s_Address = 0;
-
-    // Get the vmspace
-    auto s_VmSpace = p_Process->p_vmspace;
-    if (s_VmSpace == nullptr)
-    {
-        WriteLog(LL_Info, "invalid vmspace.");
-        return nullptr;
-    }
-
-    // Get the vmmap
-    vm_map_t s_VmMap = &s_VmSpace->vm_map;
-
-    // Lock the vmmap
-    _vm_map_lock(s_VmMap, __FILE__, __LINE__);
-
-    do
-    {
-        // Find some free space to allocate memory
-        auto s_Result = _vm_map_findspace(s_VmMap, s_VmMap->header.start, p_Size, &s_Address);
-        if (s_Result != 0)
-        {
-            WriteLog(LL_Error, "vm_map_findspace returned (%d).", s_Result);
-            break;
-        }
-
-        WriteLog(LL_Debug, "_vm_map_findspace returned address (%p).", s_Address);
-
-        // Validate the address
-        if (s_Address == 0)
-        {
-            WriteLog(LL_Error, "allocated address is invalid (%p).", s_Address);
-            break;
-        }
-
-        // Insert the new stuff map
-        s_Result = _vm_map_insert(s_VmMap, NULL, 0, s_Address, s_Address + p_Size, VM_PROT_ALL, VM_PROT_ALL, 0);
-        if (s_Result != 0)
-        {
-            WriteLog(LL_Error, "vm_map_insert returned (%d).", s_Result);
-            break;
-        }
-
-    } while (false);
-
-    _vm_map_unlock(s_VmMap);
-
-    return reinterpret_cast<uint8_t*>(s_Address);
-}
-
 
 void TrainerManager::AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint)
 {

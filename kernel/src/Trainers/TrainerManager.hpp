@@ -149,8 +149,6 @@ namespace Mira
 
             static uint8_t* AllocateTrainerLoader(struct proc* p_TargetProcess);
 
-            static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size);
-
             void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
             void RemoveEntryPoint(int32_t p_ProcessId);
 
