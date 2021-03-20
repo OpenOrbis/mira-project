@@ -1,13 +1,14 @@
 #pragma once
+
+#ifdef _KERNEL
+#include <Utils/Kernel.hpp>
+
 extern "C"
 {
     #include <sys/types.h>
     #include <sys/param.h>
     #include <sys/proc.h>
 };
-
-#ifdef _KERNEL
-#include <Utils/Kernel.hpp>
 #else
 typedef uint64_t SceAuthenticationId;
 typedef uint64_t SceCapabilites;

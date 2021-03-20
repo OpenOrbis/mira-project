@@ -15,6 +15,8 @@
 #include <Plugins/PrivCheck/PrivCheckPlugin.hpp>
 #include <Plugins/Debugging/Debugger.hpp>
 
+#include <Trainers/TrainerManager.hpp>
+
 #include <Mira.hpp>
 
 extern "C"
@@ -201,7 +203,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 case MIRA_TRAINERS_GET_SHM:
                 case MIRA_TRAINERS_LOAD:
                 case MIRA_TRAINERS_ORIG_EP:
-                    return 0; // Mira::Trainers::TrainerManager::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                    return Mira::Trainers::TrainerManager::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
 
                 case MIRA_GET_CONFIG:
                     return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);

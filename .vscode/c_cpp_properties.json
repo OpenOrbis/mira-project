@@ -121,15 +121,18 @@
             "intelliSenseMode": "clang-x64"
         },
         {
-            "name": "Maneja",
+            "name": "mira_module",
             "includePath": [
-                "${workspaceFolder}/maneja/Source/**",
+                "${workspaceFolder}/mira_module/src",
                 "${env:OO_PS4_TOOLCHAIN}/include",
-                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1"
+                "${env:OO_PS4_TOOLCHAIN}/include/c++/v1",
+                "${workspaceFolder}/external"
             ],
             "defines": [
                 "_DEBUG",
-                "PS4"
+                "PS4",
+                "__FreeBSD__",
+                "__BSD_VISIBLE"
             ],
             "compilerPath": "/usr/bin/clang++",
             "cStandard": "c11",
