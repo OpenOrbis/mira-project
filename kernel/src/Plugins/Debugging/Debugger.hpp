@@ -75,9 +75,6 @@ namespace Mira
             static void OnTrapFatal(struct trapframe* p_Frame, vm_offset_t p_Eva);
             static bool IsStackSpace(void* p_Address);
 
-            int32_t ReadProcessMemory(struct proc* p_Process, void* p_Address, uint8_t* p_Data, uint32_t p_DataLength);
-            int32_t WriteProcessMemory(struct proc* p_Process, void* p_Address, uint8_t* p_Data, uint32_t p_DataLength);
-
         public:
             static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
         };

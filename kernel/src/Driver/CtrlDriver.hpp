@@ -20,6 +20,8 @@ extern "C"
 #include <mira/MiraConfig.hpp>
 #include <mira/Driver/DriverCmds.hpp>
 
+#include <Driver/System/SystemDriverCtl.hpp>
+
 namespace Mira
 {
     namespace Driver
@@ -43,16 +45,10 @@ namespace Mira
             static void OnProcessExec(void*, struct proc *p);
         protected:
             // Callback functions
-            static int32_t OnMiraGetProcInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
-            static int32_t OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraGetConfig(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraSetConfig(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
-
-            // Helper functions
-            static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
-            static bool GetProcessList(MiraProcessList*& p_List);
 
             static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);
             static bool SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input);

@@ -90,7 +90,7 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         return (uint64_t)s_Desc.piod_len;
 }
 
-// Credits: flatz (https://github.com/flatz)
+/* // Credits: flatz (https://github.com/flatz)
 int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_BytesReadWrote, bool p_Write)
 {
 	if (p_Process == nullptr)
@@ -143,7 +143,7 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 
 	return s_Ret;
 }
-
+ */
 // Credits: flatz
 struct proc* Utilities::FindProcessByName(const char* p_Name) 
 {
@@ -187,7 +187,7 @@ struct proc* Utilities::FindProcessByName(const char* p_Name)
 	return s_FoundProc;
 }
 
-
+/* 
 // Credits: flatz
 int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries) 
 {
@@ -302,7 +302,7 @@ error:
 
 	return ret;
 }
-
+ *//* 
 // Allow / Disallow to write on a executable
 int Utilities::ExecutableWriteProtection(struct proc* p, bool write_allowed) {
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
@@ -369,7 +369,7 @@ int Utilities::ExecutableWriteProtection(struct proc* p, bool write_allowed) {
     delete [] s_Entries;
     s_Entries = nullptr;
     return 0;
-}
+} */
 
 // Mount NullFS folder
 int Utilities::MountNullFS(char* where, char* what, int flags)

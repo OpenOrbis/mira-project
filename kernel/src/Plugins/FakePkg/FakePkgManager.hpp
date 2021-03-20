@@ -47,11 +47,6 @@ namespace Mira
             FakePkgManager();
             virtual ~FakePkgManager();
 
-            virtual bool OnLoad() override;
-            virtual bool OnUnload() override;
-            virtual bool OnSuspend() override;
-            virtual bool OnResume() override;
-
         private:
             // Helper functions
             static void GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[OrbisOS::PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[OrbisOS::PFS_FINAL_KEY_SIZE]);

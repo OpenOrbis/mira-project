@@ -67,8 +67,33 @@ namespace Mira
              */
             static UserProcessVmMap* GetUserProcessVmMap(struct proc* p_Process, struct proc* p_RequestingProcess = nullptr);
 
+            /**
+             * @brief 
+             * 
+             * NOTE: Assumes the proc is already locked
+             * @param p_TargetProcess 
+             * @param p_TargetAddress 
+             * @param p_Data 
+             * @param p_DataLength 
+             * @return true 
+             * @return false 
+             */
             static bool ReadProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength);
             static bool WriteProcessMemory(struct proc* p_TargetProcess, void* p_TargetAddress, void* p_Data, uint32_t p_DataLength);
+            
+            /**
+             * @brief 
+             * 
+             * NOTE: Assumes the proc is already locked
+             * 
+             * @param p_SourceProcess 
+             * @param p_SourceAddress 
+             * @param p_DestProcess 
+             * @param p_DestAddress 
+             * @param p_Size 
+             * @return true 
+             * @return false 
+             */
             static bool CopyProcessMemory(struct proc* p_SourceProcess, void* p_SourceAddress, struct proc* p_DestProcess, void* p_DestAddress, uint32_t p_Size);
 
             static bool ProtectMemory(struct proc* p_Process, void* p_Address, uint32_t p_Size, int32_t p_Protection);

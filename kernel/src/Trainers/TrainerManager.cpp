@@ -2,9 +2,9 @@
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
 #include <Utils/SysWrappers.hpp>
+#include <Utils/System.hpp>
 
 #include <OrbisOS/Utilities.hpp>
-#include <OrbisOS/System.hpp>
 
 #include <Driver/CtrlDriver.hpp>
 
@@ -612,6 +612,8 @@ void* TrainerManager::GetEntryPoint(int32_t p_ProcessId)
 
 int TrainerManager::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+
     if (p_Device == nullptr)
     {
         WriteLog(LL_Error, "invalid device.");
@@ -622,6 +624,46 @@ int TrainerManager::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     {
         WriteLog(LL_Error, "invalid thread.");
         return 0;
+    }
+
+    switch (p_Command)
+    {
+    case MIRA_TRAINERS_LOAD:
+        {
+            WriteLog(LL_Debug, "tid: (%d) requesting trainer loading...", p_Thread->td_tid);
+            (void)Mira::Framework::GetFramework()->GetTrainerManager()->LoadTrainers(p_Thread);
+            
+            return 0;
+        }
+    case MIRA_TRAINERS_ORIG_EP:
+        {
+            WriteLog(LL_Debug, "Got Trainer Orig EP request");
+            auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
+            if (s_TrainerManager == nullptr)
+            {
+                WriteLog(LL_Error, "cannot get driver instance.");
+                return ENOMEM;
+            }
+            
+            auto s_Proc = p_Thread->td_proc;
+            if (s_Proc == nullptr)
+            {
+                WriteLog(LL_Error, "could not get thread (%d) proc.", p_Thread->td_tid);
+                return EPROCUNAVAIL;
+            }
+            
+            auto s_EntryPoint = s_TrainerManager->GetEntryPoint(s_Proc->p_pid);
+            if (s_EntryPoint == nullptr)
+            {
+                WriteLog(LL_Error, "entry point not found for proc (%d).", s_Proc->p_pid);
+                return ESRCH;
+            }
+            
+            WriteLog(LL_Debug, "Found EntryPoint (%p).", s_EntryPoint);
+
+            copyout(&s_EntryPoint, p_Data, sizeof(s_EntryPoint));
+            return 0;
+        }
     }
     return 0;
 }

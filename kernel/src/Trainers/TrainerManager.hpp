@@ -7,6 +7,7 @@
 extern "C"
 {
     #include <sys/param.h>
+    #include <sys/proc.h>
     #include <sys/lock.h>
     #include <sys/mutex.h>
     #include <sys/imgact.h>
@@ -120,7 +121,7 @@ namespace Mira
 
             static bool DirectoryExists(struct thread* p_Thread, const char* p_Path);
 
-            int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
         protected:
             // Get HDD Trainers Folder (ex: /user/mira/trainers )
