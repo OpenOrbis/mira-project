@@ -121,7 +121,7 @@ endif
 post-build: main-build
 	@echo "Post-Build"
 	@echo "Linking $(PROJ_NAME)..."
-	$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(TARGET) $(LFLAGS) $(LIBS)
+	@$(LNK) $(ALL_OBJ) -o $(OUT_DIR)/$(TARGET) $(LFLAGS) $(LIBS)
 
 main-build: pre-build
 	@echo "Building for Firmware $(MIRA_PLATFORM)..."
