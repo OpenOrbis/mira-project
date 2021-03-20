@@ -25,6 +25,7 @@ extern "C"
     #include <machine/pmap.h>      
     #include <vm/vm_map.h>
     #include <vm/vm.h>
+    #include <sys/dynlib.h>
 };
 
 using namespace Mira::Trainers;
@@ -211,7 +212,8 @@ bool TrainerManager::GetUsbTrainerPath(char* p_OutputString, uint32_t p_OutputSt
     {
         // Construct the usb folder path
         char l_UsbPath[PATH_MAX] = { 0 };
-        auto l_Length = snprintf(l_UsbPath, sizeof(l_UsbPath), "/mnt/usb%d/mira/trainers", l_UsbIndex);
+        // /mnt/usb%d/mira/trainers 
+        auto l_Length = snprintf(l_UsbPath, sizeof(l_UsbPath), "/data/mira/trainers", l_UsbIndex);
 
         // Check if the directory exists
         if (!DirectoryExists(l_UsbPath))
@@ -379,7 +381,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         return false;
     }
 
-    auto s_ProcessTitleId = "CUSA00001"; // ((char*)p_TargetProcess) + 0x390;
+    auto s_ProcessTitleId = ((char*)s_CallingProc) + 0x390; // "CUSA00001";
 
     // /mnt/usbN/mira/trainers/CUSA00001
     char s_TitleIdPath[c_PathLength];

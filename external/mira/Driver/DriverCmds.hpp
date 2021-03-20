@@ -40,7 +40,6 @@ enum MiraIoctlCmds
     CMD_ReadProcessMemory,          // Read process memory
     CMD_WriteProcessMemory,         // Write process memory
     CMD_ThreadCredentials,          // Get/Set thread credentials
-
     CMD_DEBUGGER_END = 60,
 
     // 61-90 = Mira Reserved
