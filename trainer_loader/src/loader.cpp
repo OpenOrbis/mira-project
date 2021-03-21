@@ -1,6 +1,8 @@
 #include "_syscalls.hpp"
 #include <mira/Driver/DriverCmds.hpp>
 
+#include <sys/types.h>
+
 // struct LoaderGlobals
 // {
 //     bool EntryBP;
@@ -133,7 +135,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     stub_debug_log("Hello from Loader land !\n");
 
     // Request for original start point
-    void* s_EntryPoint = (void*)NULL;
+    void* s_EntryPoint = (void*)nullptr;
     int s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
     if (s_Ret != 0)
     {
@@ -142,7 +144,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     }
 
     // Validate the entry point
-    if (s_EntryPoint == NULL)
+    if (s_EntryPoint == nullptr)
     {
         stub_debug_log("Entry point is null 2!\n");
         return;
@@ -187,7 +189,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         stub_debug_log("sceKernelLoadStartModule found ! loading libc ...\n");
 
         // Load the libc module
-        int32_t s_LibcModuleId = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, NULL, 0, 0, 0);
+        int32_t s_LibcModuleId = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, nullptr, 0, 0, 0);
         if (s_LibcModuleId == -1) {
             stub_debug_log("Libc not found !\n");
             return;
@@ -245,7 +247,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
             }
             
             // Load the trainer
-            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, NULL, 0, 0, 0);
+            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
             stub_debug_log("_mira: loading prx ...\n");
 
             int32_t(*trainer_load)() = nullptr;
@@ -282,7 +284,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
             }
             
             // Load the trainer
-            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, NULL, 0, 0, 0);
+            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
             stub_debug_log("_substitute: loading prx ...\n");
 
             int32_t(*trainer_load)() = nullptr;

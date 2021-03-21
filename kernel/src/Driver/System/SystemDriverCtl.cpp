@@ -329,7 +329,7 @@ bool SystemDriverCtl::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation
 
         // Copy over all of the process information
         auto s_Result = reinterpret_cast<MiraProcessInformation*>(s_Output);
-        s_Result->Size = s_TotalSize;
+        s_Result->StructureSize = s_TotalSize;
         s_Result->ProcessId = s_ProcessId;
         s_Result->OpPid = s_OpPid;
         s_Result->DebugChild = s_DebugChild;

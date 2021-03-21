@@ -13,10 +13,10 @@ int testLibraryFunction()
 
 extern "C" bool trainer_load()
 {
-
+    return true;
 }
 
 extern "C" bool trainer_unload()
 {
-    
+    return true;
 }
