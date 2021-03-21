@@ -10,6 +10,7 @@ extern "C"
     #include <sys/proc.h>
 };
 #else
+
 typedef uint64_t SceAuthenticationId;
 typedef uint64_t SceCapabilites;
 #endif
@@ -121,11 +122,11 @@ typedef struct _MiraProcessInformation
         int32_t ThreadId;
         int32_t ErrNo;
         int64_t RetVal;
-        char Name[sizeof(((struct thread*)0)->td_name)];
+        char Name[36];
     } ThreadResult;
 
     // Structure size
-    uint32_t Size;
+    uint32_t StructureSize;
     int32_t ProcessId;
     int32_t OpPid;
     int32_t DebugChild;
@@ -135,16 +136,17 @@ typedef struct _MiraProcessInformation
     uint32_t Code;
     uint32_t Stops;
     uint32_t SType;
-    char Name[sizeof(((struct proc*)0)->p_comm)];
-    char ElfPath[sizeof(((struct proc*)0)->p_elfpath)];
-    char RandomizedPath[sizeof(((struct proc*)0)->p_randomized_path)];
+    char Name[32];
+    char ElfPath[1024];
+    char RandomizedPath[256];
+    uint64_t ThreadCount;
     ThreadResult Threads[];
 } MiraProcessInformation;
 
 typedef struct _MiraProcessList
 {
     // Structure size
-    uint32_t Size;
+    uint32_t StructureSize;
 
     // Pid array
     int32_t Pids[];

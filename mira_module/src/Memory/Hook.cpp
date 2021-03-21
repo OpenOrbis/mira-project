@@ -92,7 +92,7 @@ uint32_t Hook::GetTemplateHookSize(HookType p_HookType)
     }
 }
 
-bool Hook::ProtectMemory(void* p_Address, uint32_t p_Size, uint32_t p_Protection, uint32_t& p_OldProtection)
+bool Hook::ProtectMemory(void* p_Address, uint32_t p_Size, uint32_t p_Protection)
 {
     // Validate arguments
     if (p_Address == nullptr || p_Size == 0)

@@ -50,6 +50,18 @@
             }
         },
         {
+            "label": "Build mira_module",
+            "type": "shell",
+            "command": "MIRA_PLATFORM=$platform make clean;MIRA_PLATFORM=$platform make create;MIRA_PLATFORM=$platform MIRA_CHECKS=$checks make",
+            "group": "build",
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/mira_module"
+            }
+        },
+        {
             "label": "Build debugger",
             "type": "shell",
             "command": "make clean;make create;MIRA_CHECKS=$checks make",

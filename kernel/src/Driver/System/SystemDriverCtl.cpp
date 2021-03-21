@@ -151,14 +151,14 @@ int32_t SystemDriverCtl::OnMiraGetProcList(struct cdev* p_Device, u_long p_Comma
         return (ENOMEM);
     }
 
-    if (s_Input.Size < s_Output->Size)
+    if (s_Input.StructureSize < s_Output->StructureSize)
     {
-        WriteLog(LL_Error, "input size (%d) < output size (%d).", s_Input.Size, s_Output->Size);
+        WriteLog(LL_Error, "input size (%d) < output size (%d).", s_Input.StructureSize, s_Output->StructureSize);
         delete [] s_Output;
         return (EMSGSIZE);
     }
 
-    s_Result = copyout(s_Output, p_Data, s_Output->Size);
+    s_Result = copyout(s_Output, p_Data, s_Output->StructureSize);
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyuout data (%d).", s_Result);
@@ -212,7 +212,7 @@ bool SystemDriverCtl::GetProcessList(MiraProcessList*& p_List)
     memset(s_Buffer, 0, s_OutputSize);
 
     auto s_Output = reinterpret_cast<MiraProcessList*>(s_Buffer);
-    s_Output->Size = s_OutputSize;
+    s_Output->StructureSize = s_OutputSize;
 
     for (auto i = 0; i < s_Count; ++i)
     {
@@ -344,6 +344,7 @@ bool SystemDriverCtl::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation
         memcpy(s_Result->ElfPath, s_ElfPath, sizeof(s_Result->ElfPath));
         memcpy(s_Result->RandomizedPath, s_RandomizedPath, sizeof(s_Result->RandomizedPath));
 
+        s_Result->ThreadCount = s_Count;
         for (auto i = 0; i < s_Count; ++i)
         {
             auto l_Thread = s_Threads[i];
@@ -407,15 +408,15 @@ int32_t SystemDriverCtl::OnMiraGetProcInformation(struct cdev* p_Device, u_long 
     }
 
     // Check the output size
-    if (s_Input.Size < s_Output->Size)
+    if (s_Input.StructureSize < s_Output->StructureSize)
     {
-        WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.Size, s_Output->Size);
+        WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.StructureSize, s_Output->StructureSize);
         delete [] s_Output;
         return (EMSGSIZE);
     }
     
     // Copy out the data if the size is large enough
-    s_Result = copyout(s_Output, p_Data, s_Output->Size);
+    s_Result = copyout(s_Output, p_Data, s_Output->StructureSize);
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not copyout (%d).", s_Result);

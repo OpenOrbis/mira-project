@@ -1,6 +1,4 @@
 #include "SystemApi.hpp"
-#include <mira/Driver/DriverCmds.hpp>
-#include <mira/Driver/DriverStructs.hpp>
 
 #include <cstring>
 #include <fcntl.h>
@@ -88,5 +86,74 @@ bool SystemApi::WriteProcessMemory(int32_t p_ProcessId, void* p_ProcessAddress, 
     delete [] s_Allocation;
     close(s_Device);
 
+    return true;
+}
+
+bool SystemApi::GetProcessList(int32_t* p_ProcessList, uint32_t p_ProcessListCount)
+{
+    // Validate our output parameters
+    if (p_ProcessList == nullptr ||
+        p_ProcessListCount == 0)
+        return false;
+    
+    // Zero the output process list
+    auto s_ProcessListSize = sizeof(*p_ProcessList) * p_ProcessListCount;
+    memset(p_ProcessList, 0, s_ProcessListSize);
+
+    auto s_Device = open("/dev/mira", O_RDWR);
+    if (s_Device == -1)
+        return false;
+    
+    auto s_AllocationSize = sizeof(MiraProcessList) + s_ProcessListSize;
+    auto s_Allocation = new uint8_t[s_AllocationSize];
+    if (s_Allocation == nullptr)
+    {
+        close(s_Device);
+        return false;
+    }
+    memset(s_Allocation, 0, s_AllocationSize);
+
+    auto s_Request = reinterpret_cast<MiraProcessList*>(s_Allocation);
+    s_Request->StructureSize = s_AllocationSize;
+
+    auto s_Ret = ioctl(s_Device, MIRA_GET_PID_LIST, s_Request);
+    if (s_Ret != 0)
+    {
+        close(s_Device);
+        delete [] s_Allocation;
+        return false;
+    }
+
+    memcpy(p_ProcessList, s_Request->Pids, s_ProcessListSize);
+
+    delete [] s_Allocation;
+    close(s_Device);
+
+    return true;
+}
+
+bool SystemApi::GetProcInformation(int32_t p_ProcessId, MiraProcessInformation* p_ProcessInfo)
+{
+    if (p_ProcessId <= 0)
+        return false;
+    
+    if (p_ProcessInfo == nullptr)
+        return false;
+    
+    if (p_ProcessInfo->StructureSize <= sizeof(*p_ProcessInfo))
+        return false;
+    
+    auto s_Device = open("/dev/mira", O_RDWR);
+    if (s_Device == -1)
+        return false;
+    
+    auto s_Ret = ioctl(s_Device, MIRA_GET_PROC_INFORMATION, p_ProcessInfo);
+    if (s_Ret != 0)
+    {
+        close(s_Device);
+        return false;
+    }
+
+    close(s_Device);
     return true;
 }

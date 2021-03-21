@@ -44,19 +44,14 @@ endif
 # Source directory
 SRC_DIR	:=	src
 
-# Set up a path for the external directory
-ifeq ($(EXTERNAL_INC),)
-EXTERNAL_INC := ../external/mira
-endif
-
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(EXTERNAL_INC)" -I$(TOOLCHAIN)/include
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"../external/mira" -I../external -I$(TOOLCHAIN)/include -I$(TOOLCHAIN)/include/c++/v1
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib -L$(TOOLCHAIN)/lib
 
 # Included libraries
-LIBS	:= -lSceLibcInternal -lkernel
+LIBS	:= -lSceLibcInternal -lkernel -lc++
 
 # C Defines
 C_DEFS	:= -DPS4
@@ -125,7 +120,7 @@ $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.cpp
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@clang-tidy -checks=clang-analyzer-*,bugprone-*,portability-*,cert-* $< -- $(I_DIRS) $(C_DEFS)
 endif
-	@$(CPPC) $(CFLAGS) $(I_DIRS) -o $@ $<
+	$(CPPC) $(CFLAGS) $(I_DIRS) -o $@ $<
 
 $(OUT_DIR)/$(SRC_DIR)/%.o: $(SRC_DIR)/%.s
 	@echo "Assembling $< ..."

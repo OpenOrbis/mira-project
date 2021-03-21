@@ -14,3 +14,5 @@ report.tasks
 strace_out
 maneja/**
 .vscode/*
+*.prx
+*.oprx

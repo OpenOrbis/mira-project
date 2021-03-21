@@ -59,7 +59,7 @@ namespace Mira
              * @param p_OldProtection Old protection before changing
              * @return bool true on success, failure otherwise
              */
-            bool ProtectMemory(void* p_Address, uint32_t p_Size, uint32_t p_Protection, uint32_t& p_OldProtection);
+            bool ProtectMemory(void* p_Address, uint32_t p_Size, uint32_t p_Protection);
 
             /**
              * @brief Create a Trampoline
