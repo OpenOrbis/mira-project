@@ -41,7 +41,7 @@ namespace Mira
             // The proc's we are overriding
             ProcPriv m_Privs[MaxProcPrivs];
 
-            Utils::Hook* m_PrivCheckHook;
+            //Utils::Hook* m_PrivCheckHook;
             Utils::Hook* m_PrivCheckCredHook;
 
         protected:
