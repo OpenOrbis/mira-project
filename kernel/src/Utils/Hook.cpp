@@ -59,7 +59,10 @@ Hook::Hook(void* p_TargetAddress, void* p_HookAddress) :
     m_BackupData = s_BackupData;
     m_BackupLength = s_BackupDataLength;
 
-    m_TrampolineAddress = CreateTrampoline(&m_TrampolineSize);
+    if (!CreateTrampoline(m_TrampolineAddress, m_TrampolineSize))
+    {
+        WriteLog(LL_Error, "error creating trampoline.");
+    }
 }
 
 Hook::~Hook()
@@ -165,7 +168,7 @@ void* Hook::GetHookedFunctionAddress()
     return m_HookAddress;
 }
 
-void* Hook::GetTrampolineFunctionAddress(uint32_t* p_OutSize)
+void* Hook::GetTrampoline(uint32_t* p_OutSize)
 {
     if (p_OutSize != nullptr)
         *p_OutSize = m_TrampolineSize;
@@ -198,6 +201,54 @@ int32_t Hook::GetMinimumHookSize(void* p_Target)
 	return totalLength;
 }
 
+bool Hook::CreateTrampoline(void*& p_OutTrampoline, uint32_t& p_OutTrampolineSize)
+{
+    // Set our output variable defaults
+    p_OutTrampoline = nullptr;
+    p_OutTrampolineSize = 0;
+
+    // First we calculate the min backup size (overwritten bytes by hook + correct ending)
+    auto s_BackupBytesSize = GetMinimumHookSize(m_TargetAddress);
+    if (s_BackupBytesSize <= HOOK_LENGTH)
+    {
+        WriteLog(LL_Error, "min bytes not large enough.");
+        return false;
+    }
+
+    // Allocate a new trampoline using RWX memory
+    auto s_TrampolineSize = s_BackupBytesSize + HOOK_LENGTH;
+    uint8_t* s_Trampoline = static_cast<uint8_t*>(k_malloc(s_TrampolineSize));
+    if (s_Trampoline == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate trampoline.");
+        return false;
+    }
+    memset(s_Trampoline, 0, s_TrampolineSize);
+
+    // Create a temporary jump buffer to hold our jmp rip
+    uint8_t s_JumpBuffer[] = {
+		0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,				// # jmp    QWORD PTR [rip+0x0]
+		0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41,	// # DQ: AbsoluteAddress
+	}; // Shit takes 14 bytes
+
+    // Get the offset to write the address
+    uint64_t* s_JumpBufferAddress = (uint64_t*)(&s_JumpBuffer[6]);
+
+    // Write the midfunction address into the jump buffer
+    *s_JumpBufferAddress = reinterpret_cast<uint64_t>(m_TargetAddress) + s_BackupBytesSize;
+
+    // Copy over the prologue from the original function to our trampoline
+    memcpy(s_Trampoline, m_TargetAddress, s_BackupBytesSize);
+
+    // Copy the jump back to midfunction
+    memcpy(s_Trampoline + s_BackupBytesSize, s_JumpBuffer, sizeof(s_JumpBuffer));
+
+    // Set our output trampoline and size
+    p_OutTrampoline = s_Trampoline;
+    p_OutTrampolineSize = s_TrampolineSize;
+
+    return true;
+}
 uint8_t* Hook::CreateTrampoline(uint32_t* p_OutTrampolineSize)
 {
     if (m_TargetAddress == nullptr || m_HookAddress == nullptr)

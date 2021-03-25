@@ -215,9 +215,10 @@ typedef struct _MiraWriteProcessMemory
 
 typedef struct _MiraPrivCheck
 {
-    // Get or set the mask?
-    int32_t ProcessId;
+    // Thread id
+    int32_t ThreadId;
 
+    // Get or set the mask?
     uint32_t IsGet;
 
     // Override mask

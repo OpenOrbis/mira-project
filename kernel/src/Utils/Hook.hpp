@@ -1,6 +1,11 @@
 #pragma once
 #include <Utils/Types.hpp>
 
+
+#define MIRA_DECLARE_HOOK(returnValue, functionName, ...) \
+        typedef returnValue (*functionName##_t)(__VA_ARGS__); \
+        static functionName##_t o_##functionName;
+
 namespace Mira
 {
     namespace Utils
@@ -25,6 +30,9 @@ namespace Mira
 
             bool m_Enabled;
 
+            typedef void (*MyFunctionName_t)(int argc, char** argv);
+            static MyFunctionName_t o_MyFunctionName;
+
         public:
             Hook(void* p_TargetAddress, void* p_HookAddress);
             Hook();
@@ -36,7 +44,7 @@ namespace Mira
 
             void* GetOriginalFunctionAddress();
             void* GetHookedFunctionAddress();
-            void* GetTrampolineFunctionAddress(uint32_t* p_OutSize);
+            void* GetTrampoline(uint32_t* p_OutSize = nullptr);
 
             static int32_t GetMinimumHookSize(void* p_Target);
 
@@ -44,6 +52,7 @@ namespace Mira
 
         private:
             uint8_t* CreateTrampoline(uint32_t* p_OutTrampolineSize);
+            bool CreateTrampoline(void*& p_OutTrampoline, uint32_t& p_OutTrampolineSize);
 
             void* k_malloc(size_t p_Size);
             void k_free(void* p_Address);

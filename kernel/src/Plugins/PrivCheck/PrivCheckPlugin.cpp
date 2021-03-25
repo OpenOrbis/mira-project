@@ -8,62 +8,55 @@
 
 using namespace Mira::Plugins;
 
+PrivCheckPlugin::priv_check_t PrivCheckPlugin::o_priv_check = nullptr;
+
 PrivCheckPlugin::PrivCheckPlugin() :
-    //m_PrivCheckHook(nullptr),
-    m_PrivCheckCredHook(nullptr)
+    m_PrivCheckHook(nullptr)
 {
     memset(m_Privs, 0, sizeof(m_Privs));
 }
 
 PrivCheckPlugin::~PrivCheckPlugin()
 {
-    
 }
 
 bool PrivCheckPlugin::OnLoad()
 {
-    /* if (m_PrivCheckHook == nullptr)
-        m_PrivCheckHook = new Utils::Hook(kdlsym(priv_check), reinterpret_cast<void*>(PrivCheckHook)); */
+    if (m_PrivCheckHook == nullptr)
+        m_PrivCheckHook = new Utils::Hook(kdlsym(priv_check), reinterpret_cast<void*>(PrivCheckHook));
     
-    if (m_PrivCheckCredHook == nullptr)
-        m_PrivCheckCredHook = new Utils::Hook(kdlsym(priv_check_cred), reinterpret_cast<void*>(PrivCheckCredHook));
-    
-    /* if (!m_PrivCheckHook->Enable())
+    o_priv_check = reinterpret_cast<priv_check_t>(m_PrivCheckHook->GetTrampoline());
+    if (o_priv_check == nullptr)
+    {
+        WriteLog(LL_Error, "priv check broke.");
+        return false;
+    }
+
+    if (!m_PrivCheckHook->Enable())
     {
         WriteLog(LL_Error, "could not enable priv check hook.");
         return false;
-    } */
-
-    if (!m_PrivCheckCredHook->Enable())
-    {
-        WriteLog(LL_Error, "could not enable priv check cred hook.");
-        return false;
     }
+
+
     return true;
 }
 
 bool PrivCheckPlugin::OnUnload()
 {
-    /* if (m_PrivCheckHook)
+    if (m_PrivCheckHook)
     {
         m_PrivCheckHook->Disable();
         delete m_PrivCheckHook;
         m_PrivCheckHook = nullptr;
-    } */
-
-    if (m_PrivCheckCredHook)
-    {
-        m_PrivCheckCredHook->Disable();
-        delete m_PrivCheckCredHook;
-        m_PrivCheckCredHook = nullptr;
     }
     
     return true;
 }
 
-bool PrivCheckPlugin::SetMask(int32_t p_ProcessId, uint8_t p_Mask[MaskSizeInBytes])
+bool PrivCheckPlugin::SetMask(int32_t p_ThreadId, uint8_t p_Mask[MaskSizeInBytes])
 {
-    auto s_Priv = FindPrivByProcessId(p_ProcessId);
+    auto s_Priv = FindPrivByThreadId(p_ThreadId);
     if (s_Priv == nullptr)
         return false;
     
@@ -99,19 +92,19 @@ int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_
         return s_Ret;
     
     // Check to see if we are using the "current proc"
-    // NOTE: This happens if incoming pid is <= 0 or if the specified process id matches current pid
-    if (s_PrivCheck.ProcessId <= 0 ||
-        p_Thread->td_proc->p_pid == s_PrivCheck.ProcessId)
+    // NOTE: This happens if incoming pid is <= 0 or if the specified thread id matches current pid
+    if (s_PrivCheck.ThreadId <= 0 ||
+        p_Thread->td_tid == s_PrivCheck.ThreadId)
     {
-        // Set the output process id
-        s_PrivCheck.ProcessId = p_Thread->td_proc->p_pid;
+        // Set the output thread id
+        s_PrivCheck.ThreadId = p_Thread->td_tid;
     }
 
     // Handle getting
     if (s_PrivCheck.IsGet)
     {
         // Attempt to find the privs
-        auto s_Priv = s_PrivCheckPlugin->FindPrivByProcessId(s_PrivCheck.ProcessId);
+        auto s_Priv = s_PrivCheckPlugin->FindPrivByThreadId(s_PrivCheck.ThreadId);
         if (s_Priv == nullptr)
         {
             // If no privs are being tracked/found
@@ -127,7 +120,7 @@ int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_
     else
     {
         // Handle setting the privs
-        auto s_Priv = s_PrivCheckPlugin->GetOrCreatePrivByProcessId(s_PrivCheck.ProcessId);
+        auto s_Priv = s_PrivCheckPlugin->GetOrCreatePrivByThreadId(s_PrivCheck.ThreadId);
         if (s_Priv == nullptr)
         {
             WriteLog(LL_Error, "could not get or create priv by pid.");
@@ -145,34 +138,34 @@ int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_
     return s_Ret;
 }
 
-PrivCheckPlugin::ProcPriv* PrivCheckPlugin::FindPrivByProcessId(int32_t p_ProcessId)
+PrivCheckPlugin::ThreadPriv* PrivCheckPlugin::FindPrivByThreadId(int32_t p_ThreadId)
 {
-    if (p_ProcessId <= 0)
+    if (p_ThreadId <= 0)
         return nullptr;
     
     for (auto l_Index = 0; l_Index < ARRAYSIZE(m_Privs); ++l_Index)
     {
-        PrivCheckPlugin::ProcPriv* l_Priv = &m_Privs[l_Index];
-        if (l_Priv->ProcessId == p_ProcessId)
+        PrivCheckPlugin::ThreadPriv* l_Priv = &m_Privs[l_Index];
+        if (l_Priv->ThreadId == p_ThreadId)
             return l_Priv;
     }
 
     return nullptr;
 }
 
-PrivCheckPlugin::ProcPriv* PrivCheckPlugin::GetOrCreatePrivByProcessId(int32_t p_ProcessId)
+PrivCheckPlugin::ThreadPriv* PrivCheckPlugin::GetOrCreatePrivByThreadId(int32_t p_ThreadId)
 {
-    // Find an existing priv by process id
-    auto l_Priv = FindPrivByProcessId(p_ProcessId);
+    // Find an existing priv by thread id
+    auto l_Priv = FindPrivByThreadId(p_ThreadId);
     if (l_Priv == nullptr)
     {
         // Iterate all of the privs looking for a free slot
         for (auto l_Index = 0; l_Index < ARRAYSIZE(m_Privs); ++l_Index)
         {
-            // If the process id <= 0
-            if (m_Privs[l_Index].ProcessId <= 0)
+            // If the thread id <= 0
+            if (m_Privs[l_Index].ThreadId <= 0)
             {
-                m_Privs[l_Index].ProcessId = p_ProcessId;
+                m_Privs[l_Index].ThreadId = p_ThreadId;
                 return &m_Privs[l_Index];
             }
         }
@@ -184,77 +177,46 @@ PrivCheckPlugin::ProcPriv* PrivCheckPlugin::GetOrCreatePrivByProcessId(int32_t p
     return l_Priv;
 }
 
-int PrivCheckPlugin::PrivCheckCredHook(struct thread* td, int priv)
+int PrivCheckPlugin::PrivCheckHook(struct thread* td, int priv)
 {
-    PrivCheckPlugin* s_PrivCheckPlugin = nullptr;
-    do
-    {
-        auto s_Framaework = Mira::Framework::GetFramework();
-        if (s_Framaework == nullptr)
-            break;
-        
-        auto s_PluginManager = s_Framaework->GetPluginManager();
-        if (s_PluginManager == nullptr)
-            break;
-        
-        s_PrivCheckPlugin = reinterpret_cast<PrivCheckPlugin*>(s_PluginManager->GetPrivCheck());
-        if (s_PrivCheckPlugin == nullptr)
-            break;
-        
-        auto s_Priv = s_PrivCheckPlugin->FindPrivByProcessId(td->td_proc->p_pid);
-        if (s_Priv == nullptr)
-            break;
+    // Call the original
+    auto s_Ret = o_priv_check(td, priv);
 
-
-        const uint8_t* s_Mask = s_Priv->Mask;
-        // Calculate where in the mask we need to check
-        uint32_t s_Index = priv / 8;
-        uint32_t s_BitShift = priv % 8;
-        if (s_Index >= ARRAYSIZE(s_Priv->Mask))
-        {
-            WriteLog(LL_Error, "attempted to index out of bounds idx: (%d).", s_Index);
-            break;;
-        }
-
-        // Not sure if this is correct
-        uint8_t s_Bit = (s_Mask[s_Index] >> s_BitShift) & 1;
-        
-        // If the bit is set to override we force return true here
-        if (s_Bit == 1)
-            return 0;
- 
-    } while (false);
+    auto s_Framaework = Mira::Framework::GetFramework();
+    if (s_Framaework == nullptr)
+        return s_Ret;
     
-    // If there was no override found then call the original
+    auto s_PluginManager = s_Framaework->GetPluginManager();
+    if (s_PluginManager == nullptr)
+        return s_Ret;
+    
+    auto s_PrivCheckPlugin = reinterpret_cast<PrivCheckPlugin*>(s_PluginManager->GetPrivCheck());
     if (s_PrivCheckPlugin == nullptr)
-        return 0;
+        return s_Ret;
     
-    auto s_Hook = s_PrivCheckPlugin->m_PrivCheckCredHook;
-    if (s_Hook == nullptr)
-        return 0;
-    
-    // Get original function address
-    auto s_Address = s_Hook->GetOriginalFunctionAddress();
-    auto s_Function = (int(*)(struct thread*, int))s_Address;
-    if (s_Function == nullptr)
-        return 0;
-    
-    // Disable the hook
-    if (!s_Hook->Disable())
-    {
-        WriteLog(LL_Error, "failed to disable priv check cred hook.");
-        return 0;
-    }
-    
-    // Call original
-    auto s_Ret = s_Function(td, priv);
+    auto s_Priv = s_PrivCheckPlugin->FindPrivByThreadId(td->td_tid);
+    if (s_Priv == nullptr)
+        return s_Ret;
 
-    // Re-enable the hook
-    if (!s_Hook->Enable())
+
+    const uint8_t* s_Mask = s_Priv->Mask;
+    // Calculate where in the mask we need to check
+    uint32_t s_Index = priv / 8;
+    uint32_t s_BitShift = priv % 8;
+    if (s_Index >= ARRAYSIZE(s_Priv->Mask))
     {
-        WriteLog(LL_Error, "failed to enable priv check cred hook.");
-        return 0;
+        WriteLog(LL_Error, "attempted to index out of bounds idx: (%d).", s_Index);
+        return s_Ret;
     }
+
+    // Not sure if this is correct
+    uint8_t s_Bit = (s_Mask[s_Index] >> s_BitShift) & 1;
+    
+    // If the bit is set to override we force return true here
+    if (s_Bit == 1)
+        return 0;
+
+    WriteLog(LL_Error, "o_priv_check ret: (%d).", s_Ret);
     
     // Return the result
     return s_Ret;
