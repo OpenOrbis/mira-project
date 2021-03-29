@@ -41,10 +41,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # Additional include directories
 include_directories("${OO_PS4_TOOLCHAIN}/include" "${OO_PS4_TOOLCHAIN}/include/c++/v1" "${PROJECT_SOURCE_DIR}")
 
-add_link_options(-nostdlib)
-add_link_options(-pie)
-add_link_options(-Xlinker --eh-frame-hdr)
-add_link_options(-Xlinker -T ${OO_PS4_TOOLCHAIN}/link.x)
+add_link_options(-Wl,-nostdlib)
+add_link_options(-Wl,-pie)
+add_link_options(-Wl,--eh-frame-hdr)
+add_link_options(-Wl,-T ${OO_PS4_TOOLCHAIN}/link.x)
 
 link_libraries("${OO_PS4_TOOLCHAIN}/lib/crt1.o")
 
