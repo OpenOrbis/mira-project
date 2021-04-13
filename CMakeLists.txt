@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 # Set verbosity
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # set the project name
 project(mira-project)
@@ -20,11 +20,11 @@ project(mira-project)
 
 
 
-#add_subdirectory(mira_module)
+add_subdirectory(mira_module)
 #add_subdirectory(daemon)
 
 # This is required for all other steps to succeeed
-add_subdirectory(trainer_loader)
+#add_subdirectory(trainer_loader)
 
 # Kernel depends on trainer_loader
 #add_subdirectory(kernel)
