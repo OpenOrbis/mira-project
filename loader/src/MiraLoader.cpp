@@ -670,8 +670,8 @@ void* k_malloc(size_t size)
 	if (!size)
 		size = sizeof(uint64_t);
 	
-	auto kmem_alloc = (vm_offset_t(*)(vm_map_t map, vm_size_t size))kdlsym(kmem_alloc);
-	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
+	auto kmem_alloc = (vm_offset_t(*)(struct vm_map * map, vm_size_t size))kdlsym(kmem_alloc);
+	struct vm_map * map = (struct vm_map *)(*(uint64_t *)(kdlsym(kernel_map)));
 
 	uint8_t* data = (uint8_t*)kmem_alloc(map, size);
 	if (!data)
@@ -689,7 +689,7 @@ void k_free(void* address)
 	if (!address)
 		return;
 
-	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
+	struct vm_map * map = (struct vm_map *)(*(uint64_t *)(kdlsym(kernel_map)));
 	auto kmem_free = (void(*)(void* map, void* addr, size_t size))kdlsym(kmem_free);
 
 	

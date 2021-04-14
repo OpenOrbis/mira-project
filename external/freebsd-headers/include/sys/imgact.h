@@ -33,7 +33,7 @@
 #define	_SYS_IMGACT_H_
 
 #include <sys/uio.h>
-
+#include <sys/types.h>
 #include <vm/vm.h>
 
 #define MAXSHELLCMDLEN	PAGE_SIZE
@@ -119,8 +119,10 @@ struct image_params {
 	//2 bytes implicit padding?
 };
 
+#if defined(_KERNEL)
 static_assert(offsetof(struct image_params, unkF0) == 0xF0, "unkF0 invalid offset");
 static_assert(offsetof(struct image_params, unk178) == 0x178, "unk178 invalid offset");
+#endif
 
 #ifdef _KERNEL
 struct sysentvec;

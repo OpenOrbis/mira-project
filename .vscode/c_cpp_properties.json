@@ -29,9 +29,9 @@
         {
             "name": "MiraLoader",
             "includePath": [
-                "${workspaceFolder}/kernel/**",
                 "${workspaceFolder}/loader",
-                "${workspaceFolder}/external/freebsd-headers/include"
+                "${workspaceFolder}/external/freebsd-headers/include",
+                "${workspaceFolder}/external/mira/**"
             ],
             "defines": [
                 "_KERNEL",

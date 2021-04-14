@@ -1,7 +1,7 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
 
-#include "Kernel.hpp"
+#include <Utils/Kernel.hpp>
 #include <Mira.hpp>
 #include <Utils/Logger.hpp>
 #include <Utils/Types.hpp>

@@ -3,8 +3,6 @@
 
 #include <Utils/Logger.hpp>
 #include <Utils/Kdlsym.hpp>
-#include <Utils/SysWrappers.hpp>
-#include <Mira.hpp>
 
 extern "C"
 {
@@ -39,11 +37,8 @@ Logger::Logger() :
 	memset(m_FinalBuffer, 0, sizeof(m_FinalBuffer));
 
 	// Initialize a mutex to prevent overlapping spam
-	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto sx_init_flags = (void(*)(struct sx* sx, const char* description, int opts))kdlsym(_sx_init_flags);
 	sx_init_flags(&m_Mutex, "logsx", 0);
-
-	printf("post sx init flags\n");
 }
 
 Logger::~Logger()

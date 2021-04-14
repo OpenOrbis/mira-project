@@ -149,7 +149,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         stub_debug_log("Entry point is null 2!\n");
         return;
     }
-    MiraPrivCheck s_Privs = 
+    /*MiraPrivCheck s_Privs = 
     {
         .IsGet = true,
         .Mask = { 0 },
@@ -164,7 +164,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     else
     {
         //s_Privs.Mask
-    }
+    }*/
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
     s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);

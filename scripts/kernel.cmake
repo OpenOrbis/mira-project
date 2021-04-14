@@ -13,8 +13,8 @@ set(CMAKE_SYSTEM_PROCESSOR x86_64)
 set(CMAKE_SYSTEM_VERSION 9)
 
 #set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER) # search for programs in the build host directories
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)  # for libraries and headers in the target directories
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY NEVER)  # for libraries and headers in the target directories
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE NEVER)
 
 # Set all of the default CFLAGS
 set(CMAKE_C_COMPILER clang)
@@ -29,8 +29,8 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_link_options(-Wl -nostdlib)
-add_link_options(-Wl -pie)
+add_link_options(-Wl,-nostdlib)
+add_link_options(-Wl,-pie)
 
 # Set the C/C++ compiler flags
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

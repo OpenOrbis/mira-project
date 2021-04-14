@@ -7,8 +7,10 @@
 extern "C" {
 #endif
 
+#if defined(_KERNEL)
 #ifndef MIRA_PLATFORM
 #error MIRA_PLATFORM not set
+#endif
 #endif
 
 #if MIRA_PLATFORM==ONI_UNKNOWN_PLATFORM

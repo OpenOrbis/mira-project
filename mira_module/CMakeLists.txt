@@ -13,7 +13,7 @@ include(${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)
 enable_language(ASM)
 
 # Set the include directories
-include_directories(${CMAKE_SOURCE_DIR}/external ${CMAKE_SOURCE_DIR}/external/mira src)
+include_directories(${CMAKE_SOURCE_DIR}/external ${CMAKE_SOURCE_DIR}/external/mira ${PROJECT_SOURCE_DIR}/src)
 
 # Get all of the source files that need to be compiled
 file(GLOB_RECURSE MIRA_MODULE_SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.cc ${PROJECT_SOURCE_DIR}/*.cxx ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.hpp ${PROJECT_SOURCE_DIR}/*.hxx)
