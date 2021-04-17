@@ -21,4 +21,7 @@ file(GLOB_RECURSE MIRA_MODULE_S_FILES ${PROJECT_SOURCE_DIR}/*.s ${PROJECT_SOURCE
 # Set all assembler flags
 set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
-add_library(loader SHARED ${MIRA_MODULE_SRC_FILES})
+set(MIRA_ELF_PATH ${CMAKE_BINARY_DIR}/kernel/libkernel.so)
+add_compile_definitions(MIRA_ELF_PATH="${MIRA_ELF_PATH}")
+
+add_library(loader SHARED ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})

@@ -54,8 +54,8 @@ link_directories(${OO_PS4_TOOLCHAIN}/lib)
 # Set the C/C++ compiler flags
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fuse-ld=lld -funwind-tables -fuse-init-array -Xclang -debug-info-kind=limited -Xclang -debugger-tuning=gdb -Xclang -emit-obj")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-ld=lld -funwind-tables -fuse-init-array -Xclang -debug-info-kind=limited -Xclang -debugger-tuning=gdb -Xclang -emit-obj")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -funwind-tables -fuse-init-array -Xclang -debug-info-kind=limited -Xclang -debugger-tuning=gdb -Xclang -emit-obj")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funwind-tables -fuse-init-array -Xclang -debug-info-kind=limited -Xclang -debugger-tuning=gdb -Xclang -emit-obj")
 
 # Add the default compiler defines
 add_compile_definitions(PS4=1 __BSD_VISIBLE=1 _BSD_SOURCE=1)

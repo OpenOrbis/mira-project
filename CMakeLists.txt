@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 # Set verbosity
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # set the project name
 project(mira-project)
@@ -22,10 +22,10 @@ set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 
 
 # Build the userland common module which gets injected into each process
-add_subdirectory(mira_module)
+#add_subdirectory(mira_module)
 
 # Build the daemon
-add_subdirectory(daemon)
+#add_subdirectory(daemon)
 
 # This is required for all other steps to succeeed
 add_subdirectory(trainer_loader)

@@ -18,10 +18,4 @@ file(GLOB_RECURSE MIRA_MODULE_S_FILES ${PROJECT_SOURCE_DIR}/*.s ${PROJECT_SOURCE
 # Set all assembler flags
 set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
-#message("SrcFiles")
-#message("${MIRA_MODULE_SRC_FILES}")
-
-#message("SFiles")
-#message("${MIRA_MODULE_S_FILES}")
-
-add_library(trainer_loader SHARED ${MIRA_MODULE_SRC_FILES})
+add_library(trainer_loader SHARED ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})

@@ -52,11 +52,11 @@ endif
 
 # Set up a path for the external directory
 ifeq ($(EXTERNAL_INC),)
-EXTERNAL_INC := ../external
+EXTERNAL_INC := $(abspath ../external)
 endif
 
 # Include directory paths
-I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC)
+I_DIRS	:=	-I. -I$(SRC_DIR) -I"$(BSD_INC)" -I$(EXTERNAL_INC) -I"$(EXTERNAL_INC)/mira/Kernel"
 
 # Library directory paths
 L_DIRS	:=	-L.	-Llib
@@ -78,7 +78,7 @@ SFLAGS	:= -m64 -nodefaultlibs -nostdlib
 LFLAGS	:= -v $(L_DIRS) -nostdlib -entry="mira_entry" -pie -T $(SRC_DIR)/link.ld
 
 # Calculate the listing of all file paths
-ALL_CPP 	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp'))
+ALL_CPP 	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.cpp')) $(sort $(shell find $(EXTERNAL_INC)/mira/Kernel -type f -name '*.cpp'))
 ALL_C		:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.c'))
 ALL_S		:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.s'))
 ALL_CAPS	:= $(sort $(shell find $(SRC_DIR)/ -type f -name '*.S'))
@@ -112,6 +112,8 @@ all: post-build
 
 pre-build:
 	@echo "Pre-Build"
+	@echo $(ALL_CPP)
+	@echo $(CFLAGS)
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@cppcheck $(SRC_DIR) $(I_DIRS) $(C_DEFS) --enable=information --check-config
 endif
@@ -133,7 +135,6 @@ endif
 ifneq ($(strip $(MIRA_CHECKS)),)
 	@scan-build $(MAKE) --no-print-directory $(ALL_OBJ)
 else
-	echo external $(EXTERNAL_INC)
 	@$(MAKE) --no-print-directory $(ALL_OBJ)
 endif
 

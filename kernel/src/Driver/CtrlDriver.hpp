@@ -22,6 +22,23 @@ extern "C"
 
 #include <Driver/System/SystemDriverCtl.hpp>
 
+/**
+ * @brief Mira Control Driver
+ * 
+ * This driver is used for safely accessing kernel features while in usermode.
+ * The idea behind this is to get rid of the kexec syscall all together once Mira is installed and allow only safe and tested access to kernel
+ * 
+ * Control Driver Design Decisions:
+ * 
+ * All inputs must be wrapped in a struct found in external/mira/Driver/DriverStructs.hpp
+ * All outputs must be wrapped in a struct found in external/mira/Driver/DriverStructs.hpp
+ * 
+ * Each input if allowing get and set, must have a boolean/some kind of flag in the input structure for get or set
+ * 
+ * Each output if it's dynamic sized, will allocate process memory in the driver, and return a pointer back to the user to use
+ * 
+ * This can be freed with munmap after use
+ */
 namespace Mira
 {
     namespace Driver
