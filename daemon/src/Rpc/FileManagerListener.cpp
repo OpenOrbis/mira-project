@@ -3,10 +3,9 @@
 
 extern "C"
 {
-    #include <sys/fcntl.h>
-    #include <sys/unistd.h>
-    #include <sys/dir.h>
-    #include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <dirent.h>
 }
 using namespace Mira::Rpc;
 

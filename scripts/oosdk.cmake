@@ -25,10 +25,17 @@ set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_AR llvm-ar)
 
-#message("ree: ${CMAKE_CXX_LINK_EXECUTABLE}")
+set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES "")
+set(CMAKE_C_STANDARD_LIBRARIES "")
 
-#SET(CMAKE_C_LINK_EXECUTABLE "ld.lld -m elf_x86_64 -pie --eh-frame-hdr --script=\"${OO_PS4_TOOLCHAIN}/link.x\" -L${OO_PS4_TOOLCHAIN}/lib <OBJECTS> -o <TARGET> \"${OO_PS4_TOOLCHAIN}/lib/crt1.o\" <LINK_LIBRARIES> ")
-#SET(CMAKE_CXX_LINK_EXECUTABLE "ld.lld -m elf_x86_64 -pie --eh-frame-hdr --script=\"${OO_PS4_TOOLCHAIN}/link.x\" -L${OO_PS4_TOOLCHAIN}/lib <OBJECTS> -o <TARGET> \"${OO_PS4_TOOLCHAIN}/lib/crt1.o\" <LINK_LIBRARIES> ")
+set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES "")
+set(CMAKE_CXX_STANDARD_LIBRARIES "")
+
+set(CMAKE_ASM_STANDARD_INCLUDE_DIRECTORIES "")
+set(CMAKE_ASM_STANDARD_LIBRARIES "")
+
+set(CMAKE_CXX_LINK_EXECUTABLE "ld.lld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
+set(CMAKE_C_LINK_EXECUTABLE "ld.lld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
 
 # Set the C standard to c11
 set(CMAKE_C_STANDARD 11)
@@ -42,9 +49,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 include_directories("${OO_PS4_TOOLCHAIN}/include" "${OO_PS4_TOOLCHAIN}/include/c++/v1" "${PROJECT_SOURCE_DIR}")
 
 add_link_options(-Wl,-nostdlib)
-#add_link_options(-Wl,-pie)
+add_link_options(-Wl,-pie)
 add_link_options(-Wl,--eh-frame-hdr)
-add_link_options(-Wl,-T ${OO_PS4_TOOLCHAIN}/link.x)
+add_link_options(-Wl,--script ${OO_PS4_TOOLCHAIN}/link.x)
 
 link_libraries("${OO_PS4_TOOLCHAIN}/lib/crt1.o")
 

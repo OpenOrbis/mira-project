@@ -69,7 +69,6 @@ int(*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 
 void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap);
 
-
 void WriteNotificationLog(const char* text)
 {
 	if (!text)

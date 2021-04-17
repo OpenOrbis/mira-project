@@ -33,8 +33,8 @@ set(CMAKE_CXX_STANDARD_LIBRARIES "")
 set(CMAKE_ASM_STANDARD_INCLUDE_DIRECTORIES "")
 set(CMAKE_ASM_STANDARD_LIBRARIES "")
 
-add_link_options(-Wl,-nostdlib)
-add_link_options(-Wl,-pie)
+set(CMAKE_CXX_LINK_EXECUTABLE "ld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
+set(CMAKE_C_LINK_EXECUTABLE "ld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
 
 # Set the C/C++ compiler flags
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -45,9 +45,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -m64 -std=c++17 -O0 -fno-builtin -
 #add_link_options(-fuse-ld=ld.lld)
 # Add the default compiler defines
 add_compile_definitions(_STANDALONE MIRA_PLATFORM=${MIRA_PLATFORM} MIRA_UNSUPPORTED_PLATFORMS=1 __LP64__ _M_X64 __amd64__ __BSD_VISIBLE)
-add_link_options(-Wl,-pie)
-add_link_options(-Wl,-nostdlib)
-add_link_options(-Wl,-fuse-ld=lld)
+add_link_options(-pie)
+add_link_options(-nostdlib)
+add_link_options(-gc-sections)
+add_link_options(-nmagic)
+#add_link_options(-fuse-ld=lld)
 
 # If we are compiling for debug mode enable the flag
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

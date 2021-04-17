@@ -186,6 +186,7 @@
 #define kdlsym_addr_vmspace_alloc                          0x0044C710
 #define kdlsym_addr_vmspace_free                           0x0044C9C0
 #define kdlsym_addr_vn_fullpath                            0x002F0C40
+#define kdlsym_addr_vprintf                                0x001232F0
 #define kdlsym_addr_vsnprintf                              0x00123630
 #define kdlsym_addr_wakeup                                 0x0022A0A0
 #define kdlsym_addr_Xfast_syscall                          0x000001C0

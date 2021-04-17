@@ -55,6 +55,7 @@ extern "C"
 	#include <machine/segments.h>
 	#include <machine/trap.h>
 	#include <sys/systm.h>
+	#include <sys/sx.h>
 }
 
 const char* gNull = "(null)";
@@ -75,6 +76,42 @@ Mira::Framework* Mira::Framework::GetFramework()
 
 	return m_Instance;
 }
+#include <stdarg.h>
+
+int OnVPrintf(const char* fmt, va_list list)
+{
+	// Fix sony's dumbass bullshit
+	auto __sx_xlock = (int (*)(struct sx *sx, int opts, const char* file, int line))kdlsym(_sx_xlock);
+	auto __sx_xunlock = (int (*)(struct sx *sx, const char* file, int line))kdlsym(_sx_xunlock);
+	auto vprintf = (int(*)(const char* fmt, va_list list))kdlsym(vprintf);
+
+	// Get instance of the framework
+	auto s_Framework = Mira::Framework::GetFramework();
+	if (s_Framework == nullptr)
+		return 0;
+	
+	// Get the hook
+	auto s_Hook = s_Framework->m_PrintfHook;
+	if (s_Hook == nullptr)
+		return 0;
+
+	auto s_Ret = 0;
+	
+	__sx_xlock(&s_Framework->m_PrintfLock, 0, __FILE__, __LINE__);
+	do
+	{
+		// Disable the hook
+		s_Hook->Disable();
+		
+		// Call the original function
+		s_Ret = vprintf(fmt, list);
+
+		s_Hook->Enable();
+	} while (false);
+	__sx_xunlock(&s_Framework->m_PrintfLock, __FILE__, __LINE__);
+
+	return s_Ret;
+}
 
 Mira::Framework::Framework() :
 	m_InitParams(),
@@ -91,6 +128,12 @@ Mira::Framework::Framework() :
 	m_CtrlDriver(nullptr)
 {
 	InitializeMiraConfig(&m_Configuration);
+
+	// Initialize a mutex to prevent overlapping spam
+	auto sx_init_flags = (void(*)(struct sx* sx, const char* description, int opts))kdlsym(_sx_init_flags);
+	sx_init_flags(&m_PrintfLock, "fcksony", 0);
+
+	m_PrintfHook = new Utils::Hook(kdlsym(printf), (void*)OnVPrintf);
 }
 
 Mira::Framework::~Framework()

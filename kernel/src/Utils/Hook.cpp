@@ -59,10 +59,10 @@ Hook::Hook(void* p_TargetAddress, void* p_HookAddress) :
     m_BackupData = s_BackupData;
     m_BackupLength = s_BackupDataLength;
 
-    if (!CreateTrampoline(m_TrampolineAddress, m_TrampolineSize))
-    {
-        WriteLog(LL_Error, "error creating trampoline.");
-    }
+    // if (!CreateTrampoline(m_TrampolineAddress, m_TrampolineSize))
+    // {
+    //     WriteLog(LL_Error, "error creating trampoline.");
+    // }
 }
 
 Hook::~Hook()
@@ -209,7 +209,8 @@ bool Hook::CreateTrampoline(void*& p_OutTrampoline, uint32_t& p_OutTrampolineSiz
 
     // First we calculate the min backup size (overwritten bytes by hook + correct ending)
     auto s_BackupBytesSize = GetMinimumHookSize(m_TargetAddress);
-    if (s_BackupBytesSize <= HOOK_LENGTH)
+    WriteLog(LL_Debug, "BackupBytesSize: (%d).", s_BackupBytesSize);
+    if (s_BackupBytesSize < HOOK_LENGTH)
     {
         WriteLog(LL_Error, "min bytes not large enough.");
         return false;

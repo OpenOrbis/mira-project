@@ -3,13 +3,11 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project to be a C CXX ASM
 project(mira_module)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Include all of the OOSDK defaults
 include(${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)
 
-#enable_language(C)
-#enable_language(CXX)
 enable_language(ASM)
 
 # Set the include directories
@@ -22,12 +20,7 @@ file(GLOB_RECURSE MIRA_MODULE_S_FILES ${PROJECT_SOURCE_DIR}/*.s ${PROJECT_SOURCE
 # Set all assembler flags
 set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
-#message("SrcFiles")
-#message("${MIRA_MODULE_SRC_FILES}")
-
-#message("SFiles")
-#message("${MIRA_MODULE_S_FILES}")
-
 link_libraries(-lSceLibcInternal -lkernel -lc++)
 
-add_library(mira_module SHARED ${MIRA_MODULE_SRC_FILES})
+# This is busted...
+add_library(mira_module ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})

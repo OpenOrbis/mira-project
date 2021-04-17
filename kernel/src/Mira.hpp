@@ -91,6 +91,11 @@ namespace Mira
         Mira::Driver::CtrlDriver* m_CtrlDriver;
 
     public:
+        // Fixing sony's bullshit
+        struct sx m_PrintfLock;
+        Utils::Hook* m_PrintfHook;
+
+    public:
         static Framework* GetFramework();
 
     protected:
