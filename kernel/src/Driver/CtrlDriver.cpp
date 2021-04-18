@@ -323,7 +323,7 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
 
     switch (s_Input.State)
     {
-    case MiraThreadCredentials::GSState::Get:
+    case GSState::Get:
     {
         // Get the thread credentials
         if (!GetThreadCredentials(s_Input.ProcessId, s_Input.ThreadId, s_Output))
@@ -347,7 +347,7 @@ int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Comm
 
         return (s_Result < 0 ? -s_Result : s_Result);
     }
-    case MiraThreadCredentials::GSState::Set:
+    case GSState::Set:
     {
         // Set the thread credentials
         if (!SetThreadCredentials(s_Input.ProcessId, s_Input.ThreadId, s_Input))
@@ -374,7 +374,7 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
     // Make sure that we are setting threads
-    if (p_Input.State != MiraThreadCredentials::_State::Set)
+    if (p_Input.State != GSState::Set)
         return false;
     
     // Get the process, this returns locked
@@ -505,7 +505,7 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
                     break;
                 }
 
-                s_Credentials->State = MiraThreadCredentials::_State::Get;
+                s_Credentials->State = GSState::Get;
                 s_Credentials->ProcessId = p_ProcessId;
                 s_Credentials->ThreadId = p_ThreadId;
                 

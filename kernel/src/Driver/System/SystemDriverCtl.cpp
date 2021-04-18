@@ -241,55 +241,55 @@ int32_t SystemDriverCtl::OnMiraGetProcList(struct cdev* p_Device, u_long p_Comma
     return 0;
 }
 
-bool SystemDriverCtl::GetProcessListInProc(int32_t p_ProcessId, MiraProcessList*& p_OutputList)
-{
-    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
-	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+// bool SystemDriverCtl::GetProcessListInProc(int32_t p_ProcessId, MiraProcessList*& p_OutputList)
+// {
+//     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+//     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+//     auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+// 	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
 
-    if (p_List != nullptr)
-        WriteLog(LL_Warn, "process list already filled in, is this a bug?");
+//     if (p_List != nullptr)
+//         WriteLog(LL_Warn, "process list already filled in, is this a bug?");
     
-    Vector<int32_t> s_Pids;
+//     Vector<int32_t> s_Pids;
 
-    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
-    struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+//     struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+//     struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
 
-    struct proc* p = NULL;
-    _sx_slock(allproclock, 0, __FILE__, __LINE__);
-    FOREACH_PROC_IN_SYSTEM(p)
-    {
-        _mtx_lock_flags(&p->p_mtx, 0);
-        s_Pids.push_back(p->p_pid);
-        _mtx_unlock_flags(&p->p_mtx, 0);
-    }
-    _sx_sunlock(allproclock, __FILE__, __LINE__);
+//     struct proc* p = NULL;
+//     _sx_slock(allproclock, 0, __FILE__, __LINE__);
+//     FOREACH_PROC_IN_SYSTEM(p)
+//     {
+//         _mtx_lock_flags(&p->p_mtx, 0);
+//         s_Pids.push_back(p->p_pid);
+//         _mtx_unlock_flags(&p->p_mtx, 0);
+//     }
+//     _sx_sunlock(allproclock, __FILE__, __LINE__);
 
-    auto s_Count = s_Pids.size();
-    if (s_Count == 0 || s_Count > 200)
-    {
-        WriteLog(LL_Error, "invalid count of pids (%d).", s_Count);
-        return false;
-    }
+//     auto s_Count = s_Pids.size();
+//     if (s_Count == 0 || s_Count > 200)
+//     {
+//         WriteLog(LL_Error, "invalid count of pids (%d).", s_Count);
+//         return false;
+//     }
 
-    // Create a temporary buffer so we only need one copyout
-    auto s_ListSize = sizeof(MiraProcessList) + (sizeof(int32_t) * s_Count);
-    MiraProcessList* s_List = reinterpret_cast<MiraProcessList*>(new uint8_t[s_ListSize]);
-    if (s_List == nullptr)
-    {
-        WriteLog(LL_Error, "could not allocate output process list.");
-        return false;
-    }
-    WriteLog(LL_Debug, "process list kernel: (%p).", s_List);
+//     // Create a temporary buffer so we only need one copyout
+//     auto s_ListSize = sizeof(MiraProcessList) + (sizeof(int32_t) * s_Count);
+//     MiraProcessList* s_List = reinterpret_cast<MiraProcessList*>(new uint8_t[s_ListSize]);
+//     if (s_List == nullptr)
+//     {
+//         WriteLog(LL_Error, "could not allocate output process list.");
+//         return false;
+//     }
+//     WriteLog(LL_Debug, "process list kernel: (%p).", s_List);
 
-    s_List->StructureSize = s_ListSize;
-    for (auto l_Index = 0; l_Index < s_Count; ++l_Index)
-        s_List->Pids[l_Index] = s_Pids[l_Index];
+//     s_List->StructureSize = s_ListSize;
+//     for (auto l_Index = 0; l_Index < s_Count; ++l_Index)
+//         s_List->Pids[l_Index] = s_Pids[l_Index];
 
-    // Allocate in process
-    return true;
-}
+//     // Allocate in process
+//     return true;
+// }
 
 bool SystemDriverCtl::GetProcessList(MiraProcessList*& p_List)
 {	
