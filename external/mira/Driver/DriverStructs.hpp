@@ -23,9 +23,16 @@ typedef uint64_t SceCapabilites;
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 #endif
 
+typedef enum class _State : uint32_t
+{
+    Get,
+    Set,
+    COUNT
+} GSState;
+
 // Process Handler Information
 // "safe" way in order to modify kernel ucred externally
-typedef struct _MiraThreadCredentials {
+typedef struct __attribute__((packed)) _MiraThreadCredentials {
     typedef enum class _MiraThreadCredentialsPrison : uint32_t
     {
         // Non-root prison
@@ -37,13 +44,6 @@ typedef struct _MiraThreadCredentials {
         // Total options count
         COUNT
     } MiraThreadCredentialsPrison;
-
-    typedef enum class _State : uint32_t
-    {
-        Get,
-        Set,
-        COUNT
-    } GSState;
 
     // Is this a get or set operation
     GSState State;
@@ -86,7 +86,7 @@ typedef enum class _MiraLoadPluginType : uint8_t
 } MiraLoadPluginType;
 
 // This is the requesting structure provided to the ioctl, on return a u64 as ID is returned
-typedef struct _MiraLoadPlugin 
+typedef struct __attribute__((packed)) _MiraLoadPlugin 
 {
     // The plugin type to load
     MiraLoadPluginType PluginType;
@@ -95,7 +95,7 @@ typedef struct _MiraLoadPlugin
     char PluginPath[_MAX_PATH];
 } MiraLoadPlugin;
 
-typedef struct _MiraUnloadPlugin 
+typedef struct __attribute__((packed)) _MiraUnloadPlugin 
 {
     // The returned plugin id from the plugin manager
     uint64_t PluginId;
@@ -119,9 +119,9 @@ typedef enum class _MiraProcessInformationType : uint8_t
     COUNT
 } MiraProcessInformationType;
 
-typedef struct _MiraProcessInformation
+typedef struct __attribute__((packed)) _MiraProcessInformation
 {
-    typedef struct _ThreadResult
+    typedef struct __attribute__((packed)) _ThreadResult
     {
         int32_t ThreadId;
         int32_t ErrNo;
@@ -147,7 +147,7 @@ typedef struct _MiraProcessInformation
     ThreadResult Threads[];
 } MiraProcessInformation;
 
-typedef struct _MiraProcessList
+typedef struct __attribute__((packed)) _MiraProcessList
 {
     // Structure size
     uint32_t StructureSize;
@@ -156,27 +156,27 @@ typedef struct _MiraProcessList
     int32_t Pids[];
 } MiraProcessList;
 
-typedef struct _MiraMountInSandbox
+typedef struct __attribute__((packed)) _MiraMountInSandbox
 {
     int32_t Permissions;
     char HostPath[_MAX_PATH];
     char SandboxPath[_MAX_PATH];
 } MiraMountInSandbox;
 
-typedef struct _MiraCreateTrainerShm
+typedef struct __attribute__((packed)) _MiraCreateTrainerShm
 {
     struct thread* Thread;
     void* TrainerHeader;
     uint64_t TrainerHeaderMapSize; // 1MB default
 } MiraCreateTrainerShm;
 
-typedef struct _MiraTrainerShm
+typedef struct __attribute__((packed)) _MiraTrainerShm
 {
     // shm name
     char ShmName[16];
 } MiraTrainerShm;
 
-typedef struct _MiraGetTrainersShm
+typedef struct __attribute__((packed)) _MiraGetTrainersShm
 {
     // Size of this structure including Shms[]
     uint32_t StructureSize;
@@ -202,7 +202,7 @@ typedef struct __attribute__((packed)) _MiraReadProcessMemory
     uint8_t Data[];
 } MiraReadProcessMemory;
 
-typedef struct _MiraWriteProcessMemory
+typedef struct __attribute__((packed)) _MiraWriteProcessMemory
 {
     // Size of the structure
     uint32_t StructureSize;
@@ -217,7 +217,7 @@ typedef struct _MiraWriteProcessMemory
     uint8_t Data[];
 } MiraWriteProcessMemory;
 
-typedef struct _MiraPrivCheck
+typedef struct __attribute__((packed)) _MiraPrivCheck
 {
     // Thread id
     int32_t ThreadId;
@@ -258,3 +258,27 @@ typedef struct _MiraPrivCheck
     }
     
 } MiraPrivCheck;
+
+typedef struct _MiraAllocateMemory
+{
+    // Process id to allocate memory in (<= 0 for current process)
+    int32_t ProcessId;
+
+    // Allocation size
+    uint32_t Size;
+
+    // Protection to set (RWX allowed)
+    int32_t Protection;
+
+    // Output pointer (should be set to nullptr on request, will be filled or nullptr on return)
+    uint8_t* Pointer;
+} MiraAllocateMemory;
+
+typedef struct _MiraFreeMemory
+{
+    int32_t ProcessId;
+
+    uint32_t Size;
+
+    void* Pointer;
+} MiraFreeMemory;

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdint>
 
-int testLibraryFunction()
+extern "C" int testLibraryFunction()
 {
     printf("This is a print from a test library function!");
 

@@ -48,6 +48,18 @@ namespace Mira
             static uint8_t* AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size, uint32_t p_Protection = VM_PROT_ALL);
 
             /**
+             * @brief Wrapper for allocating process memory via process id
+             * For more documentation see AllocateProcessMemory(struct proc*, ...)
+             * Process must be unlocked first
+             * 
+             * @param p_ProcessId ProcessId
+             * @param p_Size Size
+             * @param p_Protection Protection
+             * @return uint8_t* nullptr on error, pointer to allocated memory otherwise
+             */
+            static uint8_t* AllocateProcessMemory(int32_t p_ProcessId, uint32_t p_Size, uint32_t p_Protection = VM_PROT_ALL);
+
+            /**
              * @brief Frees previously allocated memory with the specified size
              * 
              * NOTE: This function assumes that the proc is already locked
@@ -56,6 +68,17 @@ namespace Mira
              * @param p_Size Size to free
              */
             static void FreeProcessMemory(struct proc* p_Process, void* p_Address, uint32_t p_Size);
+            
+            /**
+             * @brief Wrapper for freeing process memory via process id
+             * For more documentation see FreeProcessMemory(struct proc*, ...)
+             * Process must be unlocked first
+             * 
+             * @param p_ProcessId Process id
+             * @param p_Pointer Pointer to free
+             * @param p_Size Size of pointer
+             */
+            static void FreeProcessMemory(int32_t p_ProcessId, void* p_Pointer, uint32_t p_Size);
             
             /**
              * @brief Allocates and writes out a process vm map.

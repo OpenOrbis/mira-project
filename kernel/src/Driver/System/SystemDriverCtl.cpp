@@ -9,12 +9,16 @@ using namespace Mira::Driver;
 
 int SystemDriverCtl::OnSystemDriverCtlIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    /*switch (p_Command)
+    switch (p_Command)
     {
+    case MIRA_ALLOCATE_PROCESS_MEMORY:
+        return OnSystemAllocateProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    case MIRA_FREE_PROCESS_MEMORY:
+        return OnSystemFreeProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     case MIRA_READ_PROCESS_MEMORY:
-        return OnReadProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+        return OnSystemReadProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     case MIRA_WRITE_PROCESS_MEMORY:
-        return OnWriteProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+        return OnSystemWriteProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     case MIRA_GET_PROC_INFORMATION:
         return OnMiraGetProcInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     case MIRA_GET_PID_LIST:
@@ -22,9 +26,62 @@ int SystemDriverCtl::OnSystemDriverCtlIoctl(struct cdev* p_Device, u_long p_Comm
     default:
         WriteLog(LL_Debug, "invalid ioctl command (%x).", p_Command);
         break;
-    }*/
+    }
 
     return EINVAL;
+}
+
+/*
+    Memory
+*/
+int32_t SystemDriverCtl::OnSystemAllocateProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    MiraAllocateMemory s_AllocateMemory = { 0 };
+
+    auto s_Ret = copyin(p_Data, &s_AllocateMemory, sizeof(s_AllocateMemory));
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "could not copyin allocation request.");
+        return EINVAL;
+    }
+
+    // Add this default behavior where if its <= 0 then assume current pid
+    if (s_AllocateMemory.ProcessId <= 0)
+        s_AllocateMemory.ProcessId = p_Thread->td_proc->p_pid;
+
+    s_AllocateMemory.Pointer = Utils::System::AllocateProcessMemory(s_AllocateMemory.ProcessId, s_AllocateMemory.Size, s_AllocateMemory.Protection);
+
+    s_Ret = copyout(&s_AllocateMemory, p_Data, sizeof(s_AllocateMemory));
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "could not copyout allocation request.");
+        return EFAULT;
+    }
+
+    return 0;
+}
+
+int32_t SystemDriverCtl::OnSystemFreeProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    MiraFreeMemory s_FreeMemory = { 0 };
+
+    auto s_Ret = copyin(p_Data, &s_FreeMemory, sizeof(s_FreeMemory));
+    if (s_Ret != 0)
+    {
+        WriteLog(LL_Error, "could not copyin free memory request.");
+        return EINVAL;
+    }
+
+    // Default behavior where <= 0 is current proc
+    if (s_FreeMemory.ProcessId <= 0)
+        s_FreeMemory.ProcessId = p_Thread->td_proc->p_pid;
+    
+    Utils::System::FreeProcessMemory(s_FreeMemory.ProcessId, s_FreeMemory.Pointer, s_FreeMemory.Size);
+
+    return 0;
 }
 
 int32_t SystemDriverCtl::OnSystemReadProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
@@ -130,6 +187,20 @@ int32_t SystemDriverCtl::OnMiraGetProcList(struct cdev* p_Device, u_long p_Comma
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 
+    // Check data
+    // This will be a pointer to an output pointer
+    // example: MiraProcessList* s_OutputAddress = nullptr;
+    // example: ioctl(device, ioctl code, &s_OutputAddress, 0);
+    // on success, there will be a pointer filled allocated by mmap
+    // to free, call munmap
+
+    // Validate the output pointer
+    if (p_Data == nullptr)
+    {
+        WriteLog(LL_Error, "invalid output data");
+        return (EINVAL);
+    }
+
     MiraProcessList s_Input;
     auto s_Result = copyin(p_Data, &s_Input, sizeof(MiraProcessList));
     if (s_Result != 0)
@@ -168,6 +239,56 @@ int32_t SystemDriverCtl::OnMiraGetProcList(struct cdev* p_Device, u_long p_Comma
 
     delete [] s_Output;
     return 0;
+}
+
+bool SystemDriverCtl::GetProcessListInProc(int32_t p_ProcessId, MiraProcessList*& p_OutputList)
+{
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+
+    if (p_List != nullptr)
+        WriteLog(LL_Warn, "process list already filled in, is this a bug?");
+    
+    Vector<int32_t> s_Pids;
+
+    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+    struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+
+    struct proc* p = NULL;
+    _sx_slock(allproclock, 0, __FILE__, __LINE__);
+    FOREACH_PROC_IN_SYSTEM(p)
+    {
+        _mtx_lock_flags(&p->p_mtx, 0);
+        s_Pids.push_back(p->p_pid);
+        _mtx_unlock_flags(&p->p_mtx, 0);
+    }
+    _sx_sunlock(allproclock, __FILE__, __LINE__);
+
+    auto s_Count = s_Pids.size();
+    if (s_Count == 0 || s_Count > 200)
+    {
+        WriteLog(LL_Error, "invalid count of pids (%d).", s_Count);
+        return false;
+    }
+
+    // Create a temporary buffer so we only need one copyout
+    auto s_ListSize = sizeof(MiraProcessList) + (sizeof(int32_t) * s_Count);
+    MiraProcessList* s_List = reinterpret_cast<MiraProcessList*>(new uint8_t[s_ListSize]);
+    if (s_List == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate output process list.");
+        return false;
+    }
+    WriteLog(LL_Debug, "process list kernel: (%p).", s_List);
+
+    s_List->StructureSize = s_ListSize;
+    for (auto l_Index = 0; l_Index < s_Count; ++l_Index)
+        s_List->Pids[l_Index] = s_Pids[l_Index];
+
+    // Allocate in process
+    return true;
 }
 
 bool SystemDriverCtl::GetProcessList(MiraProcessList*& p_List)

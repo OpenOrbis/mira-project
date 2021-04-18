@@ -73,6 +73,25 @@ uint8_t* System::AllocateProcessMemory(struct proc* p_Process, uint32_t p_Size, 
     return reinterpret_cast<uint8_t*>(s_Address);
 }
 
+uint8_t* System::AllocateProcessMemory(int32_t p_ProcessId, uint32_t p_Size, uint32_t p_Protection)
+{
+    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    // Find the process, pfind returns a locked proc
+    auto s_Process = pfind(p_ProcessId);
+    if (s_Process == nullptr)
+        return nullptr;
+    
+    // Allocate the memory using the locked proc
+    auto s_Result = AllocateProcessMemory(s_Process, p_Size, p_Protection);
+
+    // Unlock the process
+    _mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+    return s_Result;
+}
+
 void System::FreeProcessMemory(struct proc* p_Process, void* p_Pointer, uint32_t p_Size)
 {
     auto _vm_map_lock = (void(*)(vm_map_t map, const char* file, int line))kdlsym(_vm_map_lock);
@@ -98,6 +117,23 @@ void System::FreeProcessMemory(struct proc* p_Process, void* p_Pointer, uint32_t
 
     if (s_Ret != 0)
         WriteLog(LL_Error, "could not delete from vm map (%d).", s_Ret);
+}
+
+void System::FreeProcessMemory(int32_t p_ProcessId, void* p_Pointer, uint32_t p_Size)
+{
+    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    // Find the process, pfind returns a locked proc
+    auto s_Process = pfind(p_ProcessId);
+    if (s_Process == nullptr)
+        return;
+    
+    // Free the memory using the locked proc
+    FreeProcessMemory(s_Process, p_Pointer, p_Size);
+
+    // Unlock the process
+    _mtx_unlock_flags(&s_Process->p_mtx, 0);
 }
 
 UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct proc* p_RequestingProcess)

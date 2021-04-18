@@ -47,8 +47,6 @@ enum MiraIoctlCmds
     CMD_DEBUGGER_START = 41,
     CMD_ProcessList,                // Get process list
     CMD_ProcessInformation,         // Get process information
-    CMD_ReadProcessMemory,          // Read process memory
-    CMD_WriteProcessMemory,         // Write process memory
     CMD_ThreadCredentials,          // Get/Set thread credentials
     CMD_DEBUGGER_END = 60,
 
@@ -59,6 +57,14 @@ enum MiraIoctlCmds
 
     CMD_MountInSandbox,             // Mount full unescaped sandbox path into the current sandbox
     CMD_PrivMask,                   // Gets/Sets the priv mask
+    
+    // System
+    CMD_SystemAllocateMemory,       // Allocate memory by pid
+    CMD_SystemFreeMemory,           // Free memory by pid
+    CMD_SystemReadProcessMemory,    // Read process memory by pid
+    CMD_SystemWriteProcessMemory,   // Write process memory by pid
+    CMD_SystemProcessList,          // Get process list
+
     CMD_MIRA_END = 90,
     CMD_MAX
 #if defined(__cplusplus)
@@ -90,9 +96,17 @@ enum MiraIoctlCmds
 #define MIRA_TRAINERS_LOAD _IOC(IOC_VOID, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_LoadTrainers), 0)
 #define MIRA_TRAINERS_ORIG_EP _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetOriginalEntryPoint), sizeof(uint64_t))
 
+/*
+    System
+*/
+
+// Allocate/Free process memory
+#define MIRA_ALLOCATE_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SystemAllocateMemory), sizeof(MiraAllocateMemory))
+#define MIRA_FREE_PROCESS_MEMORY _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SystemFreeMemory), sizeof(MiraFreeMemory))
+
 // Read/Write process memory
-#define MIRA_READ_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ReadProcessMemory), sizeof(MiraReadProcessMemory))
-#define MIRA_WRITE_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_WriteProcessMemory), sizeof(MiraWriteProcessMemory))
+#define MIRA_READ_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SystemReadProcessMemory), sizeof(MiraReadProcessMemory))
+#define MIRA_WRITE_PROCESS_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SystemWriteProcessMemory), sizeof(MiraWriteProcessMemory))
 
 // Configuration
 #define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetConfig), 0)
