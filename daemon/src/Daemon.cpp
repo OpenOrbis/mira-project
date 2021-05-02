@@ -5,10 +5,6 @@
 #include <Debugging/Debugger.hpp>
 #include <Utils/Logger.hpp>
 
-#if defined(PS4)
-#include <orbis/Net.h>
-#endif
-
 using namespace Mira;
 
 std::shared_ptr<Daemon> Daemon::GetInstance()
@@ -22,10 +18,7 @@ Daemon::Daemon() :
     m_FtpServer(nullptr),
     m_RpcManager(nullptr)
 {
-#if defined(PS4)
-    // Initialize the networking
-    sceNetInit();
-#endif
+
 }
 
 Daemon::~Daemon()

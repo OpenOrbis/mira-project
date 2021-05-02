@@ -3,10 +3,12 @@ cmake_minimum_required(VERSION 3.10)
 # Set the project to be a C CXX ASM
 project(daemon)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Include all of the OOSDK defaults
 include(${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)
+
+add_link_options(-L/home/kuser/grpc/cmake/build -L/home/kuser/grpc/cmake/build/third_party/protobuf)
 
 enable_language(ASM)
 
@@ -20,7 +22,7 @@ file(GLOB_RECURSE MIRA_MODULE_S_FILES ${PROJECT_SOURCE_DIR}/*.s ${PROJECT_SOURCE
 # Set all assembler flags
 set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
-link_libraries(-lSceLibcInternal -lkernel -lc++)
+link_libraries(-lSceLibcInternal -lkernel -lc++ -lssl -lcrypto -lprotobufd -lpthread)
 
 # TODO: Fix this project
-add_library(daemon ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
+add_executable(daemon ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})

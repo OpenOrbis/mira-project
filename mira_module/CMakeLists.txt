@@ -23,4 +23,4 @@ set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x 
 link_libraries(-lSceLibcInternal -lkernel -lc++)
 
 # This is busted...
-add_library(mira_module ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
+add_executable(mira_module ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
