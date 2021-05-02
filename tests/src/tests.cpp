@@ -99,3 +99,41 @@ bool Tests::RunAll()
 
     return true;
 }
+
+bool Tests::TestThreadCredentials()
+{
+    return false;
+}
+
+bool Tests::TestPidList()
+{
+    return false;
+}
+bool Tests::TestProcInformation()
+{
+    return false;
+}
+bool Tests::TestMountInSandbox()
+{
+    return false;
+}
+bool Tests::TestTrainerShm()
+{
+    return false;
+}
+bool Tests::TestTrainers()
+{
+    return false;
+}
+bool Tests::TestMemory()
+{
+    return false;
+}
+bool Tests::TestConfig()
+{
+    return false;
+}
+bool Tests::TestPrivCheck()
+{
+    return false;
+}
