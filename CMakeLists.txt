@@ -28,13 +28,13 @@ set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 #add_subdirectory(daemon)
 
 # This is required for all other steps to succeeed
-#add_subdirectory(trainer_loader)
+add_subdirectory(trainer_loader)
 
 # Kernel depends on trainer_loader
-#add_subdirectory(kernel)
+add_subdirectory(kernel)
 
 # Make trainer_loader a dependency of kernel
-#add_dependencies(kernel trainer_loader)
+add_dependencies(kernel trainer_loader)
 
 # Loader depends on kernel
 #add_subdirectory(loader)
@@ -43,7 +43,7 @@ set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 #add_dependencies(loader kernel)
 
 # Make the standalone tests
-add_subdirectory(tests)
+#add_subdirectory(tests)
 
 # Add the dependency on mira_module
 #\add_dependencies(tests mira_module)

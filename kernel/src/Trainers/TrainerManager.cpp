@@ -213,7 +213,7 @@ bool TrainerManager::GetUsbTrainerPath(char* p_OutputString, uint32_t p_OutputSt
         // Construct the usb folder path
         char l_UsbPath[PATH_MAX] = { 0 };
         // /mnt/usb%d/mira/trainers 
-        auto l_Length = snprintf(l_UsbPath, sizeof(l_UsbPath), "/data/mira/trainers", l_UsbIndex);
+        auto l_Length = snprintf(l_UsbPath, sizeof(l_UsbPath), "/mnt/usb%d/mira/trainers", l_UsbIndex);
 
         // Check if the directory exists
         if (!DirectoryExists(l_UsbPath))
@@ -225,6 +225,31 @@ bool TrainerManager::GetUsbTrainerPath(char* p_OutputString, uint32_t p_OutputSt
     }
 
     return false;
+}
+
+bool TrainerManager::GetHddTrainerPath(char* p_OutputString, uint32_t p_OutputStringLength)
+{
+    auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
+
+    // TODO: Get from the configuration
+    if (!DirectoryExists("/user/mira/trainers"))
+    {
+        if (!DirectoryExists("/data/mira/trainers"))
+            return false;
+        
+        auto s_Length = snprintf(p_OutputString, p_OutputStringLength, "/data/mira/trainers");
+        if (s_Length <= 0)
+        {
+            WriteLog(LL_Error, "could not get the /data/mira/trainers path.");
+            return false;
+        }
+
+        return true;
+    }
+
+    (void)snprintf(p_OutputString, p_OutputStringLength, "/user/mira/trainers");
+
+    return true;
 }
 
 bool TrainerManager::GenerateShmId(char* p_OutputString, uint32_t p_OutputStringLength)
@@ -368,28 +393,48 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
     // We will get the title id and version information
     // The flash drive/hdd should be formatted as such
 
-    // /mira/trainers/<TitleId>/<Version>/blah.prx
-    // /mira/trainers/<ProcName>/blah.prx
+    // <path_prefix>/mira/trainers/all/*.prx
+    // <path_prefix>/mira/trainers/<TitleId>/*.prx
 
     // /mnt/usbN/mira/trainers
+    // /data/mira/trainers
+    // /user/mira/trainers
     const uint32_t c_PathLength = 260;
     char s_BasePath[c_PathLength];
-    uint32_t s_BasePathLength = sizeof(s_BasePath);
-    if (!GetUsbTrainerPath(s_BasePath, s_BasePathLength))
+    if (!GetUsbTrainerPath(s_BasePath, c_PathLength))
     {
         WriteLog(LL_Error, "could not find usb trainers directory...");
-        return false;
+        if (!GetHddTrainerPath(s_BasePath, c_PathLength))
+        {
+            WriteLog(LL_Error, "could not find hdd trainers directory..");
+            return false;
+        }
     }
+    WriteLog(LL_Debug, "Got Trainer Path: (%s).", s_BasePath);
 
+    // TODO: Find a proper way to get the title id
     auto s_ProcessTitleId = ((char*)s_CallingProc) + 0x390; // "CUSA00001";
+    WriteLog(LL_Info, "Loading Trainers for TID: (%s).", s_ProcessTitleId);
 
     // /mnt/usbN/mira/trainers/CUSA00001
     char s_TitleIdPath[c_PathLength];
-    snprintf(s_TitleIdPath, sizeof(s_TitleIdPath), "%s/%s", s_BasePath, s_ProcessTitleId);
+    snprintf(s_TitleIdPath, c_PathLength, "%s/%s", s_BasePath, s_ProcessTitleId);
+
+    // Check to see if there exists a folder with the title id
     if (!DirectoryExists(s_TitleIdPath))
     {
         WriteLog(LL_Error, "could not find trainers directory for title id (%s).", s_ProcessTitleId);
-        return false;
+        // Check to see if the all directory exists
+        memset(s_TitleIdPath, 0, c_PathLength);
+        // /mnt/usbN/mira/trainers/all
+        snprintf(s_TitleIdPath, c_PathLength, "%s/all", s_BasePath);
+
+        // Check to see if there exists a "all" folder
+        if (!DirectoryExists(s_TitleIdPath))
+        {
+            WriteLog(LL_Error, "could not find /mira/trainers/all path.");
+            return false;
+        }
     }
 
     // Determine if we need to mount the _stubstitute path into the sandbox
@@ -410,7 +455,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
     }
 
-    // Get the _mira folder on the usb path
+    /*// Get the _mira folder on the usb path
     char s_MiraModulePath[c_PathLength];
     snprintf(s_MiraModulePath, sizeof(s_MiraModulePath), "%s/_mira", s_BasePath);
     if (!DirectoryExists(s_MiraModulePath))
@@ -435,7 +480,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
 
         // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
         WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
-    }
+    }*/
     return true;
 }
 

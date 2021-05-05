@@ -125,7 +125,13 @@ namespace Mira
             static int OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
         protected:
-            // Get HDD Trainers Folder (ex: /user/mira/trainers )
+            /**
+             * @brief Get HDD Trainers Folder (ex: /user/mira/trainers )
+             * 
+             * @param p_OutputString Pointer to output buffer
+             * @param p_OutputStringLength Length of the output buffer
+             * @return true On success, false otherwise 
+             */
             bool GetHddTrainerPath(char* p_OutputString, uint32_t p_OutputStringLength);
 
             // Get USB Trainers Folder (ex: /dev/usb/usb0/mira/trainers )
