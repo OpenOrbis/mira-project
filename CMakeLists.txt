@@ -37,10 +37,10 @@ add_subdirectory(kernel)
 add_dependencies(kernel trainer_loader)
 
 # Loader depends on kernel
-#add_subdirectory(loader)
+add_subdirectory(loader)
 
 # Make kernel a dependency of loader
-#add_dependencies(loader kernel)
+add_dependencies(loader kernel)
 
 # Make the standalone tests
 #add_subdirectory(tests)

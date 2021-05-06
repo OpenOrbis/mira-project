@@ -97,17 +97,17 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load debugger.");
     }
 
-    // if (m_FakeSelfManager)
-    // {
-    //     if (!m_FakeSelfManager->OnLoad())
-    //         WriteLog(LL_Error, "could not load fake self manager.");
-    // }
+    /*if (m_FakeSelfManager)
+    {
+        if (!m_FakeSelfManager->OnLoad())
+            WriteLog(LL_Error, "could not load fake self manager.");
+    }
 
-    // if (m_FakePkgManager)
-    // {
-    //     if (!m_FakePkgManager->OnLoad())
-    //         WriteLog(LL_Error, "could not load fake pkg manager.");
-    // }
+    if (m_FakePkgManager)
+    {
+        if (!m_FakePkgManager->OnLoad())
+            WriteLog(LL_Error, "could not load fake pkg manager.");
+    }*/
 
     if (m_EmuRegistry)
     {

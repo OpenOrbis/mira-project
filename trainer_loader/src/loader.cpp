@@ -31,6 +31,7 @@ struct dirent {
 DIR *(*opendir)(const char *filename) = nullptr;
 struct dirent *(*readdir)(DIR *dirp) = nullptr;
 int (*closedir)(DIR *dirp) = nullptr;
+int (*printf)(const char * format, ...) = nullptr;
 int (*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 size_t (*strlen)(const char *s) = nullptr;
 int (*strcmp)(const char *s1, const char *s2) = nullptr;
@@ -85,6 +86,9 @@ int64_t stub_unload_prx(int64_t p_PrxId)
 }
 
 int64_t stub_debug_log(const char* debug_message) {
+    if (printf)
+        printf(debug_message);
+    
     return (int64_t)syscall3(601, (void*)0x7, reinterpret_cast<void*>(const_cast<char*>(debug_message)), (void*)0x0);
 }
 
@@ -216,6 +220,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         stub_dlsym(s_LibcModuleId, "readdir", &readdir);
         stub_dlsym(s_LibcModuleId, "closedir", &closedir);
         stub_dlsym(s_LibcModuleId, "snprintf", &snprintf);
+        stub_dlsym(s_LibcModuleId, "printf", &printf);
         stub_dlsym(s_LibcModuleId, "strlen", &strlen);
         stub_dlsym(s_LibcModuleId, "strcmp", &strcmp);
 
