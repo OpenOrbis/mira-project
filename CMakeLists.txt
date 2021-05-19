@@ -6,6 +6,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 # set the project name
 project(mira-project)
 
+# Set the firmware version
 set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 
 # mira-project's required build order

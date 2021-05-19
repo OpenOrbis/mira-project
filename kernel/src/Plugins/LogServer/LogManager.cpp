@@ -219,11 +219,9 @@ void LogManager::ServerThread(void* p_UserArgs)
     // Loop and try to accept a client
     while ((s_ClientSocket = kaccept_t(s_LogManager->m_Socket, reinterpret_cast<struct sockaddr*>(&s_ClientAddress), &s_ClientAddressLen, s_MainThread)) > 0)
     {
-        WriteLog(LL_Error, "here");
         if (!s_LogManager->m_Running)
             break;
 
-        WriteLog(LL_Error, "here");
         // SO_LINGER
         s_Timeout.tv_sec = 0;
         auto result = ksetsockopt_t(s_ClientSocket, SOL_SOCKET, SO_LINGER, (caddr_t)&s_Timeout, sizeof(s_Timeout), s_MainThread);
@@ -235,8 +233,7 @@ void LogManager::ServerThread(void* p_UserArgs)
             continue;
         }
 
-        WriteLog(LL_Error, "here");
-
+#if _DEBUG
         uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
 
         WriteLog(LL_Debug, "got new log connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
@@ -244,6 +241,7 @@ void LogManager::ServerThread(void* p_UserArgs)
             (l_Addr >> 8) & 0xFF,
             (l_Addr >> 16) & 0xFF,
             (l_Addr >> 24) & 0xFF);
+#endif
 
         // Loop reading the data from the klog
         auto bytesRead = 0;
@@ -255,8 +253,6 @@ void LogManager::ServerThread(void* p_UserArgs)
             memset(s_Buffer, 0, sizeof(s_Buffer));
         }
 
-        WriteLog(LL_Error, "here");
-
         WriteLog(LL_Debug, "log connection (%d) disconnected from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
             (l_Addr & 0xFF),
             (l_Addr >> 8) & 0xFF,
@@ -267,7 +263,6 @@ void LogManager::ServerThread(void* p_UserArgs)
         kshutdown_t(s_ClientSocket, SHUT_RDWR, s_MainThread);
         kclose_t(s_ClientSocket, s_MainThread);
 
-        WriteLog(LL_Error, "here");
     }
 
 cleanup:

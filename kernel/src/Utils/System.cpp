@@ -155,13 +155,11 @@ UserProcessVmMap* System::GetUserProcessVmMap(struct proc* p_Process, struct pro
     if (p_RequestingProcess == nullptr)
         p_RequestingProcess = p_Process;
     
-    int32_t s_ProcessId = p_Process->p_pid;
-    
     // Try to get the target process vmspace
     struct vmspace* s_VmSpace = p_Process->p_vmspace;
     if (s_VmSpace == nullptr)
     {
-        WriteLog(LL_Error, "could not get vmspace of pid (%d).", s_ProcessId);
+        WriteLog(LL_Error, "could not get vmspace of pid (%d).", p_Process->p_pid);
         return nullptr;
     }
 

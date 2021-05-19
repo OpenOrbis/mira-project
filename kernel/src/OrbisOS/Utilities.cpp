@@ -436,6 +436,8 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	size_t s_Size = 0;
 	int s_Ret = 0;
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+	if (s_TitleId == nullptr)
+		return -4;
 
 	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) ...", s_TitleId, entrypoint);
 
@@ -452,7 +454,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 		WriteLog(LL_Error, "[%s] scePthreadCreate: %p", s_TitleId, s_scePthreadCreate);
 		WriteLog(LL_Error, "[%s] pthread_getthreadid_np: %p", s_TitleId, s_pthread_getthreadid_np);
 
-		return -4;
+		return -5;
 	}
 
 	// Determine thr_initial by finding the first instruction *cmp* and got the relative address
@@ -461,12 +463,12 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	s_Ret = proc_rw_mem(p, s_pthread_getthreadid_np, s_Size, s_ValidInstruction, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_pthread_getthreadid_np);
-		return -5;
+		return -6;
 	}
 
 	if ( !(s_ValidInstruction[0] == 0x48 && s_ValidInstruction[1] == 0x83 && s_ValidInstruction[2] == 0x3D) ) {
 		WriteLog(LL_Error, "[%s] Invalid instruction detected ! Abord.", s_TitleId);
-		return -6;
+		return -7;
 	} 
 
 	uint64_t s_RelativeAddress = 0;
@@ -474,7 +476,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	s_Ret = proc_rw_mem(p, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3), s_Size, &s_RelativeAddress, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3));
-		return -7;
+		return -8;
 	}
 
 	void* s_thr_initial = (void*)((uint64_t)s_pthread_getthreadid_np + s_RelativeAddress + 0x8);
@@ -497,7 +499,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	auto s_PayloadSpace = kmmap_t(nullptr, s_PayloadSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PREFAULT_READ, -1, 0, s_ProcessThread);
 	if (s_PayloadSpace == nullptr || s_PayloadSpace == MAP_FAILED || (uint64_t)s_PayloadSpace < 0) {
 		WriteLog(LL_Error, "[%s] Unable to allocate remote process memory (%llx size) (ret: %llx)", s_TitleId, s_PayloadSize, s_PayloadSpace);
-		return -8;
+		return -9;
 	}
 
 	// Copy payload to process
@@ -506,7 +508,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to write process memory at %p !", s_TitleId, (void*)(s_PayloadSpace));
 		kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
-		return -9;
+		return -10;
 	}
 
 	// Define stack address
@@ -518,7 +520,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	if (s_Ret) {
 		WriteLog(LL_Error, "[%s] Unable to launch thread ! (ret: %d)", s_TitleId, s_Ret);
 		kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
-		return -10;
+		return -11;
 	}
 
 	// Wait until it's done
@@ -574,6 +576,10 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 	size_t s_Size = 0;
 	int s_Ret = 0;
 	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+
+	// Shuts up retail builds, this line is useless
+	if (s_TitleId == nullptr)
+		WriteLog(LL_Info, "titleid invalid.");
 
 	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX ...", s_TitleId, prx_path);
 
@@ -784,6 +790,9 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         }
 
 		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0555, s_MainThread);
+		if (s_ResultChmod != 0)
+			WriteLog(LL_Warn, "chmod failed on (%s) (%d).", s_SubstituteFullMountPath, s_ResultChmod);
+
         WriteLog(LL_Debug, "kchmod_tbuildnew(%s, 0555). (%d).", s_SubstituteFullMountPath, s_ResultChmod);
 
         // Restore credentials and fd

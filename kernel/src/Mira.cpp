@@ -246,10 +246,14 @@ extern "C" void mira_entry(void* args)
 	// Because we have now forked into a new realm of fuckery
 	// We need to reserve the first 3 file descriptors in our process
 	WriteLog(LL_Debug, "Creating initial 3 file descriptors (0, 1, 2).");
-	int descriptor = kopen_t(const_cast<char*>("/dev/console"), 1, 0, curthread);
-	WriteLog(LL_Debug, "/dev/console descriptor: %d", descriptor);
-	WriteLog(LL_Info, "dup2(desc, 1) result: %d", kdup2_t(descriptor, 1, curthread));
-	WriteLog(LL_Info, "dup2(1, 2) result: %d", kdup2_t(1, 2, curthread));
+	int s_Descriptor = kopen_t(const_cast<char*>("/dev/console"), 1, 0, curthread);
+	WriteLog(LL_Debug, "/dev/console descriptor: %d", s_Descriptor);
+
+	int s_Ret = kdup2_t(s_Descriptor, 1, curthread);
+	WriteLog(LL_Info, "dup2(desc, 1) result: %d", s_Ret);
+	
+	s_Ret = kdup2_t(1, 2, curthread);
+	WriteLog(LL_Info, "dup2(1, 2) result: %d", s_Ret);
 
 	// Show over UART that we are running in a new process
 	WriteLog(LL_Info, "oni_kernelInitialization in new process!\n");

@@ -89,6 +89,11 @@ void* Debugger::FindJmpslotAddress(struct proc* p_Process, const char* p_ModuleN
     }
 
     char* s_TitleId = (char*)((uint64_t)p_Process + 0x390);
+    if (s_TitleId == nullptr)
+    {
+        WriteLog(LL_Warn, "Invalid title id.");
+        return 0;
+    }
 
     // Get the nids of the function
     char s_Nids[0xD] = { 0 };
@@ -259,6 +264,11 @@ void* Debugger::ResolveFuncAddress(struct proc* p_Process, const char* p_Name, i
 
     // TODO: Fix this structure within proc
     char* s_TitleId = (char*)((uint64_t)p_Process + 0x390);
+
+    // Line shuts up retail builds
+    if (s_TitleId == nullptr)
+        return nullptr;
+    
     void* s_Address = nullptr;
 
     WriteLog(LL_Info, "TitleId: (%s).", s_TitleId);

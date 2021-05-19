@@ -301,6 +301,7 @@ void Server::ServerThread(void* p_UserArgs)
             continue;
         }
 
+#if _DEBUG
         uint32_t l_Addr = (uint32_t)s_ClientAddress.sin_addr.s_addr;
 
         WriteLog(LL_Debug, "got new rpc connection (%d) from IP (%03d.%03d.%03d.%03d).", s_ClientSocket, 
@@ -309,6 +310,8 @@ void Server::ServerThread(void* p_UserArgs)
             (l_Addr >> 16) & 0xFF,
             (l_Addr >> 24) & 0xFF);
         
+#endif
+
         auto l_Connection = new Rpc::Connection(s_Server, s_Server->m_NextConnectionId, s_ClientSocket, s_ClientAddress);
         if (!l_Connection)
         {
