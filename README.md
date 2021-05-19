@@ -221,11 +221,13 @@ This project would not be possible without these people (no paticluar order):
 * [qwertyoruiop] - Security (4.55-5.05 kernel exploits)
 * CTurt - Security (Initial payload PS4 SDK and 1.76 kernel exploit)
 * [m0rph3us1987] - Developer (Code examples, kernel SDK, overall general help)
+* [sleirsgoevy] - Developer
 * [eeply] - Developer (UART)
 * [zecoxao] - RE (4.74 Port)
 * [aerosoul] - Developer (Everything elf related, loaders, etc)
-* [maxton] - Developer (Everything pkg related, etc)
-* [ChendoChap] - RE (Bug hunting, general kernel help)
+* [therootlord] - Developer
+* [maxton] - Developer (Everything pkg related, etc) (Rest In Peace)
+* [ChendoChap] - RE, Development, Trainers (Bug hunting, general kernel help)
 * [sugarleaf] - Initial 4.55 private exploit, inital help with Mira dev (retired/left)
 * [kozarovv] - RE (4.05 offsets)
 * [LM] - RE (Research on System-Library-Loading), assembler and linker script help
@@ -237,6 +239,7 @@ This project would not be possible without these people (no paticluar order):
 * [idc] - Developer
 * [lordfriky] - MacOS support and script fixes
 * [ethylamine] - Developer
+
 
 ### Special Thanks
 * [bigboss] - liborbis with examples and orbisdev (and complaining a lot)
@@ -305,4 +308,6 @@ GPLv3
    [idc]: <https://github.com/idc>
    [lordfriky]: <https://github.com/lordfriky>
    [ethylamine]: <https://github.com/ethylamine>
+   [sleirsgoevy]: <https://github.com/sleirsgoevy>
+   [therootlord]: <https://github.com/therootlord>
    [Open Orbis Discord]: <https://discord.com/invite/GQr8ydn>
