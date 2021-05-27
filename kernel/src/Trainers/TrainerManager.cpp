@@ -165,12 +165,12 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
             break;
         }
 
-        auto s_EbootShortPath = "eboot.bin";
+        /*auto s_EbootShortPath = "eboot.bin";
         if (strcmp(s_EbootShortPath, s_Process->p_comm) != 0)
         {
             WriteLog(LL_Error, "p_comm (%s) != eboot.bin.", s_Process->p_comm);
             //break;
-        }
+        }*/
 
         // Allocate the trainer loader inside of the process
         auto s_TrainerLoaderEntry = AllocateTrainerLoader(s_Process);

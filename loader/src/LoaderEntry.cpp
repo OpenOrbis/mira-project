@@ -311,14 +311,11 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 
 	// Fill the kernel base address
 	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
-	//void(*critical_enter)(void) = kdlsym(critical_enter);
-	//void(*crtical_exit)(void) = kdlsym(critical_exit);
 	auto kmem_alloc = (vm_offset_t(*)(vm_map_t map, vm_size_t size))kdlsym(kmem_alloc);
 	auto kmem_free = (void(*)(void* map, void* addr, size_t size))kdlsym(kmem_free);
 	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 	auto kproc_create = (int(*)(void(*func)(void*), void* arg, struct proc** newpp, int flags, int pages, const char* fmt, ...))kdlsym(kproc_create);
 	vm_map_t map = (vm_map_t)(*(uint64_t *)(kdlsym(kernel_map)));
-	//auto memset = (void* (*)(void *s, int c, size_t n))kdlsym(memset);
 	auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 	auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
@@ -389,7 +386,7 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	WriteLog(LL_Debug, "elf header: %X\n", magic);
 
 	// Launch ELF
-	MiraLoader::Loader* loader = new MiraLoader::Loader(kernelElf, payloadSize, ElfLoaderType_t::KernelProc); //malloc(sizeof(ElfLoader_t), M_LINKER, M_WAITOK);
+	MiraLoader::Loader* loader = new MiraLoader::Loader(kernelElf, payloadSize, ElfLoaderType_t::KernelProc);
 	if (!loader)
 	{
 		printf("could not allocate loader\n");
