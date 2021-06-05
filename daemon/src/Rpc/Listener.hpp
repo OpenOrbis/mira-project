@@ -22,6 +22,7 @@ namespace Mira
                 
             }
 
+            virtual ~Listener() { }
             virtual Status OnMessage(RpcMessage* p_Request, RpcMessage* p_Response) = 0;
 
             template<typename T>

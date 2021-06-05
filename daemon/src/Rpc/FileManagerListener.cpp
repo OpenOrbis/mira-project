@@ -15,6 +15,11 @@ FileManagerListener::FileManagerListener(google::protobuf::Arena* p_Arena) :
 
 }
 
+FileManagerListener::~FileManagerListener()
+{
+    
+}
+
 Status FileManagerListener::OnMessage(RpcMessage* p_Request, RpcMessage* p_Response)
 {
     if (p_Request->inner_message().Is<FileManager::EchoRequest>())

@@ -77,6 +77,11 @@ void* Hook::AllocateNearAddress(void* p_NearAddress, uint32_t p_Size)
 
 uint32_t Hook::GetTemplateHookSize(HookType p_HookType)
 {
+    // These 3 lines below are just to shut up the warning
+    memcmp(c_JumpRelativeTemplate, c_JumpRelativeTemplate, ARRAYSIZE(c_JumpRelativeTemplate));
+    memcmp(c_JumpRaxTemplate, c_JumpRaxTemplate, ARRAYSIZE(c_JumpRaxTemplate));
+    memcmp(c_Call32Relative, c_Call32Relative, ARRAYSIZE(c_Call32Relative));
+
     switch (p_HookType)
     {
     case HookType::JumpRip:

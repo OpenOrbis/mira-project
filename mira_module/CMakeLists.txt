@@ -17,10 +17,20 @@ include_directories(${CMAKE_SOURCE_DIR}/external ${CMAKE_SOURCE_DIR}/external/mi
 file(GLOB_RECURSE MIRA_MODULE_SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.cc ${PROJECT_SOURCE_DIR}/*.cxx ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.hpp ${PROJECT_SOURCE_DIR}/*.hxx)
 file(GLOB_RECURSE MIRA_MODULE_S_FILES ${PROJECT_SOURCE_DIR}/*.s ${PROJECT_SOURCE_DIR}/*.S)
 
+# Prebuilt objects
+set(PREBUILT_OBJS 
+    ${OO_PS4_TOOLCHAIN}/lib/crtlib.o
+)
+
 # Set all assembler flags
 set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
 
-link_libraries(-lSceLibcInternal -lkernel -lc++)
+set_source_files_properties(${PREBUILT_OBJS} PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+
+link_libraries(-lSceLibcInternal -lkernel -lc -lc++)
 
 # This is busted...
-add_executable(mira_module ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
+add_executable(mira_module ${PREBUILT_OBJS} ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
+
+set(MODULE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/mira_module)
+add_custom_command(TARGET mira_module POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-lib -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --paid 0x3800000000000011)

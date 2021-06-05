@@ -22,7 +22,7 @@ set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 # /daemon (OOSDK dep, none local)
 
 # Build the userland common module which gets injected into each process
-#add_subdirectory(mira_module)
+add_subdirectory(mira_module)
 
 # Build the daemon
 #add_subdirectory(daemon)

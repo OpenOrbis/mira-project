@@ -22,7 +22,7 @@
 
 // Kernel Mode
 #if defined(_KERNEL) || defined(MIRA_PLATFORM)
-#include <Utils/Types.hpp>
+#include <mira/Kernel/Utils/Types.hpp>
 #else
 // User mode
 #if defined(__cplusplus)

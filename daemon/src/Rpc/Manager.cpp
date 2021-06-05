@@ -23,7 +23,7 @@ Manager::Manager() :
     m_NextConnectionId(0)
 {
     // Add default listeners
-    m_Listeners.push_back(std::move(std::make_shared<FileManagerListener>(&m_Arena)));
+    m_Listeners.push_back(std::make_shared<FileManagerListener>(&m_Arena));
 
     // Make this baby prrrr
     Startup();
