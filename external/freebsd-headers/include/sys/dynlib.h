@@ -1,8 +1,8 @@
 #ifndef __DYNLIB_H__
 #define __DYNLIB_H__
 
-#include <Utils/Kdlsym.hpp>
 #ifdef _KERNEL
+#include <mira/Kernel/Utils/Kdlsym.hpp>
 #include <sys/types.h>
 #include <sys/lock.h>
 #include <sys/sx.h>

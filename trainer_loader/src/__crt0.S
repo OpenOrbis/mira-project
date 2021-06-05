@@ -1,7 +1,7 @@
 .intel_syntax noprefix
 .text
 
-.global _start, _g_rdi, _g_rsi
+.global _start, _g_rdi, _g_rsi, _g_consoleHandle
 
 .org 0
 _start:
@@ -17,6 +17,7 @@ _padding:
 
 _g_rdi: .quad 0
 _g_rsi: .quad 0
+_g_consoleHandle: .int 0
 
 #_mira_elf_start:
 #.incbin MIRA_ELF_PATH

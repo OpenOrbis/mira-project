@@ -25,7 +25,7 @@ add_link_options(-entry=mira_entry)
 add_link_options(-T ${PROJECT_SOURCE_DIR}/src/link.ld)
 add_link_options(-v)
 
-set(TRAINER_LOADER_BIN ${CMAKE_BINARY_DIR}/trainer_loader/trainer_loader)
+set(TRAINER_LOADER_BIN ${CMAKE_BINARY_DIR}/trainer_loader/trainer_loader.bin)
 add_compile_definitions(TRAINER_LOADER_BIN_PATH="${TRAINER_LOADER_BIN}")
 
 add_executable(kernel ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})

@@ -9,7 +9,7 @@ include(${CMAKE_SOURCE_DIR}/scripts/payload.cmake)
 enable_language(ASM)
 
 # Set the include directories
-message("${PROJECT_SOURCE_DIR}/src")
+#message("${PROJECT_SOURCE_DIR}/src")
 include_directories(${CMAKE_SOURCE_DIR}/external ${CMAKE_SOURCE_DIR}/external/mira ${CMAKE_SOURCE_DIR}/external/mira/Kernel ${CMAKE_SOURCE_DIR}/external/freebsd-headers/include ${PROJECT_SOURCE_DIR}/src)
 
 add_compile_definitions(_KERNEL)

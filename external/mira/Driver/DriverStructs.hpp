@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef _KERNEL
-#include <Utils/Kernel.hpp>
+#include <mira/Kernel/Utils/Kernel.hpp>
 
 extern "C"
 {

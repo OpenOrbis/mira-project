@@ -1,7 +1,7 @@
 #pragma once
 //#include <Utils/Types.hpp>
 #include <sys/types.h>
-#include <Boot/Config.hpp>
+#include <mira/Kernel/Boot/Config.hpp>
 
 #ifdef __cplusplus
 extern "C" {

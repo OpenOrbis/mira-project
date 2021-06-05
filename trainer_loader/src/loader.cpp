@@ -14,6 +14,7 @@
 
 extern "C" uint64_t _g_rsi;
 extern "C" uint64_t _g_rdi;
+extern "C" uint32_t _g_consoleHandle;
 
 // Libkernel
 int (*sceKernelLoadStartModule)(const char *name, size_t argc, const void *argv, unsigned int flags, int, int) = nullptr;
@@ -85,10 +86,24 @@ int64_t stub_unload_prx(int64_t p_PrxId)
     return (int64_t)syscall1(595, (void*)p_PrxId);
 }
 
+unsigned int my_strlen(const char *s)
+{
+    unsigned int count = 0;
+    while(*s!='\0')
+    {
+        count++;
+        s++;
+    }
+    return count;
+}
+
 int64_t stub_debug_log(const char* debug_message) {
     if (printf)
         printf(debug_message);
     
+    if (_g_consoleHandle >= 0)
+        syscall3(3, (void*)(int64_t)_g_consoleHandle, (void*)debug_message, (void*)(int64_t)my_strlen(debug_message));
+
     return (int64_t)syscall3(601, (void*)0x7, reinterpret_cast<void*>(const_cast<char*>(debug_message)), (void*)0x0);
 }
 
@@ -125,63 +140,58 @@ static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)
 
 extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 {
+    *(uint8_t*)0x1338 = 0;
+    
     _g_rdi = p_Rdi;
     _g_rsi = p_Rsi;
+
+    int32_t s_LibKernelHandle = -1;
+    int32_t s_LibcModuleId = -1;
+    int32_t s_RetOpenPoint = -1;
+    int32_t s_Ret = -1;
+    _g_consoleHandle = -1;
+    void* s_EntryPoint = (void*)nullptr;
+    char data[100];
+
+    // Open up stdout
+    _g_consoleHandle = stub_open("/dev/console", 0x0002, 0);
 
     // Open Mira driver
     int s_DriverDescriptor = stub_open("/dev/mira", 0, 0);
     if (s_DriverDescriptor < 0)
     {
         *(uint8_t*)0x1337 = 0x0;
-        return;
+        goto jmp_orig;
     }
 
     stub_debug_log("Hello from Loader land !\n");
 
     // Request for original start point
-    void* s_EntryPoint = (void*)nullptr;
-    int s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
+    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
     if (s_Ret != 0)
     {
         stub_debug_log("No entry point found ?\n");
-        return;
+        goto jmp_orig;
     }
 
     // Validate the entry point
     if (s_EntryPoint == nullptr)
     {
         stub_debug_log("Entry point is null 2!\n");
-        return;
+        goto jmp_orig;
     }
-    /*MiraPrivCheck s_Privs = 
-    {
-        .IsGet = true,
-        .Mask = { 0 },
-        .ThreadId = -1
-    };
-
-    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_PRIV_CHECK, reinterpret_cast<unsigned long long>(&s_Privs));
-    if (s_Ret != 0)
-    {
-        stub_debug_log("[-] unable to get privs!\n");
-    }
-    else
-    {
-        //s_Privs.Mask
-    }*/
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
     s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
     if (s_Ret != 0)
     {
         stub_debug_log("Unable to load trainer !\n");
-        return;
+        goto jmp_orig;
     }
 
     stub_debug_log("Loading kernel library ...\n");
 
     // Resolve libkernel.sprx
-    int32_t s_LibKernelHandle = -1;
     stub_load_prx("libkernel.sprx", &s_LibKernelHandle);
     if (s_LibKernelHandle == -1)
     {
@@ -199,134 +209,134 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     if (__error == nullptr)
     {
         stub_debug_log("__error is nullptr !\n");
-        return;
+        goto jmp_orig;
     }
     
     // Resolve sceKernelLoadStartModule
     stub_dlsym(s_LibKernelHandle, "sceKernelLoadStartModule", &sceKernelLoadStartModule);
-    if (sceKernelLoadStartModule)
+    if (sceKernelLoadStartModule == nullptr)
     {
-        stub_debug_log("sceKernelLoadStartModule found ! loading libc ...\n");
+        stub_debug_log("sceKernelLoadStartModule is null !\n");
+        goto jmp_orig;
+    }
 
-        // Load the libc module
-        int32_t s_LibcModuleId = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, nullptr, 0, 0, 0);
-        if (s_LibcModuleId == -1) {
-            stub_debug_log("Libc not found !\n");
+    stub_debug_log("sceKernelLoadStartModule found ! loading libc ...\n");
+
+    // Load the libc module
+    s_LibcModuleId = sceKernelLoadStartModule("libSceLibcInternal.sprx", 0, nullptr, 0, 0, 0);
+    if (s_LibcModuleId == -1) {
+        stub_debug_log("Libc not found !\n");
+        goto jmp_orig;
+    }
+
+    // Resolve the needed functions to iterate
+    stub_dlsym(s_LibcModuleId, "opendir", &opendir);
+    stub_dlsym(s_LibcModuleId, "readdir", &readdir);
+    stub_dlsym(s_LibcModuleId, "closedir", &closedir);
+    stub_dlsym(s_LibcModuleId, "snprintf", &snprintf);
+    stub_dlsym(s_LibcModuleId, "printf", &printf);
+    stub_dlsym(s_LibcModuleId, "strlen", &strlen);
+    stub_dlsym(s_LibcModuleId, "strcmp", &strcmp);
+
+    stub_debug_log("Iterate over '.' ...\n");
+
+    s_RetOpenPoint = stub_open(".", 0x200000, 0);
+    snprintf(data, 100, "open(., o_directory): %d \n", s_RetOpenPoint);
+    stub_debug_log(data);
+
+    IterateDirectory(".", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+    {
+        stub_debug_log("'.': OK.\n");
+    });
+
+
+    stub_debug_log("Iterate over / ...\n");
+
+    IterateDirectory("/", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+    {
+        stub_debug_log("/: OK.\n");
+    });
+
+    stub_debug_log("Iterate over _mira ...\n");
+
+    // Iterate _mira directory
+    IterateDirectory("/_mira", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+    {
+        // Get the fullpath
+        char s_PrxPath[260];
+        snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
+
+        // Check to make sure the file name ends in .prx
+        auto s_Length = strlen(s_PrxPath);
+        if (s_Length < 4) {
+            stub_debug_log("_mira: lowen than 4 characters.\n");
             return;
         }
+        
+        // Check if the end file path ends with ".prx"
+        if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0) {
+            stub_debug_log("_mira:not a prx.\n");
+            return;
+        }
+        
+        // Load the trainer
+        int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
+        stub_debug_log("_mira: loading prx ...\n");
 
-        // Resolve the needed functions to iterate
-        stub_dlsym(s_LibcModuleId, "opendir", &opendir);
-        stub_dlsym(s_LibcModuleId, "readdir", &readdir);
-        stub_dlsym(s_LibcModuleId, "closedir", &closedir);
-        stub_dlsym(s_LibcModuleId, "snprintf", &snprintf);
-        stub_dlsym(s_LibcModuleId, "printf", &printf);
-        stub_dlsym(s_LibcModuleId, "strlen", &strlen);
-        stub_dlsym(s_LibcModuleId, "strcmp", &strcmp);
+        int32_t(*trainer_load)() = nullptr;
+        stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
 
-        char data[100];
+        if (trainer_load != nullptr) {
+            (void)trainer_load();
+            stub_debug_log("_mira: trainer launched :D.\n");
+        }
+    });
 
-        stub_debug_log("Iterate over '.' ...\n");
+    stub_debug_log("Iterate over _substitute ...\n");
 
-        int ret_open_point = stub_open(".", 0x200000, 0);
-        snprintf(data, 100, "open(., o_directory): %d \n", ret_open_point);
-        stub_debug_log(data);
+    // Iterate _substitute directory
+    IterateDirectory("/_substitute", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
+    {
+        // Get the fullpath
+        char s_PrxPath[260];
+        snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
 
-        IterateDirectory(".", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
-        {
-            stub_debug_log("'.': OK.\n");
-        });
+        // s_PrxPath = /_substitute/whatever.prx
 
+        // Check to make sure the file name ends in .prx
+        auto s_Length = strlen(s_PrxPath);
+        if (s_Length < 4) {
+            stub_debug_log("_substitute: lowen than 4 characters.\n");
+            return;
+        }
+        
+        // Check if the end file path ends with ".prx"
+        if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0) {
+            stub_debug_log("_substitute: not a prx.\n");
+            return;
+        }
+        
+        // Load the trainer
+        int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
+        stub_debug_log("_substitute: loading prx ...\n");
 
-        stub_debug_log("Iterate over / ...\n");
+        int32_t(*trainer_load)() = nullptr;
+        stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
 
-        IterateDirectory("/", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
-        {
-            stub_debug_log("/: OK.\n");
-        });
+        if (trainer_load != nullptr) {
+            (void)trainer_load();
+            stub_debug_log("_substitute: trainer launched ! :D\n");
+        }
+    });
 
-        stub_debug_log("Iterate over _mira ...\n");
-
-        // Iterate _mira directory
-        IterateDirectory("/_mira", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
-        {
-            // Get the fullpath
-            char s_PrxPath[260];
-            snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
-
-            // Check to make sure the file name ends in .prx
-            auto s_Length = strlen(s_PrxPath);
-            if (s_Length < 4) {
-                stub_debug_log("_mira: lowen than 4 characters.\n");
-                return;
-            }
-            
-            // Check if the end file path ends with ".prx"
-            if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0) {
-                stub_debug_log("_mira:not a prx.\n");
-                return;
-            }
-            
-            // Load the trainer
-            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
-            stub_debug_log("_mira: loading prx ...\n");
-
-            int32_t(*trainer_load)() = nullptr;
-            stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
-
-            if (trainer_load != nullptr) {
-                (void)trainer_load();
-                stub_debug_log("_mira: trainer launched :D.\n");
-            }
-        });
-
-        stub_debug_log("Iterate over _substitute ...\n");
-
-        // Iterate _substitute directory
-        IterateDirectory("/_substitute", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
-        {
-            // Get the fullpath
-            char s_PrxPath[260];
-            snprintf(s_PrxPath, sizeof(s_PrxPath), "%s/%s", p_BasePath, p_Name);
-
-            // s_PrxPath = /_substitute/whatever.prx
-
-            // Check to make sure the file name ends in .prx
-            auto s_Length = strlen(s_PrxPath);
-            if (s_Length < 4) {
-                stub_debug_log("_substitute: lowen than 4 characters.\n");
-                return;
-            }
-            
-            // Check if the end file path ends with ".prx"
-            if (strcmp(&s_PrxPath[s_Length - 4], ".prx") != 0) {
-                stub_debug_log("_substitute: not a prx.\n");
-                return;
-            }
-            
-            // Load the trainer
-            int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
-            stub_debug_log("_substitute: loading prx ...\n");
-
-            int32_t(*trainer_load)() = nullptr;
-            stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
-
-            if (trainer_load != nullptr) {
-                (void)trainer_load();
-                stub_debug_log("_substitute: trainer launched ! :D\n");
-            }
-        });
-
-        stub_debug_log("End of PRX search !\n");
-
-    } else {
-        stub_debug_log("sceKernelLoadStartModule is null !\n");
-    }
+    stub_debug_log("End of PRX search !\n");
 
     stub_debug_log("Goodbye ! Return to entrypoint :D\n");
 
     // Close access to the driver
     stub_close(s_DriverDescriptor);
 
-    ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
+jmp_orig:
+    if (s_EntryPoint != nullptr)
+        ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
 }
