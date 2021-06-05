@@ -139,9 +139,7 @@ static void IterateDirectory(const char* p_Path, void* p_Args, void(*p_Callback)
 }
 
 extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
-{
-    *(uint8_t*)0x1338 = 0;
-    
+{    
     _g_rdi = p_Rdi;
     _g_rsi = p_Rsi;
 
