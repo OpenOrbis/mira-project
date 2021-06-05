@@ -135,6 +135,8 @@
 
 #define MIRA_PLATFORM_ORBIS_BSD_751     751
 
+#define MIRA_PLATFORM_ORBIS_BSD_755     755
+
 // Unknown device
 #define ONI_UNKNOWN_PLATFORM		-1
 
