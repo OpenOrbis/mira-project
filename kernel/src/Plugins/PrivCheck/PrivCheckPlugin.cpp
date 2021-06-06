@@ -54,7 +54,7 @@ bool PrivCheckPlugin::OnUnload()
     return true;
 }
 
-bool PrivCheckPlugin::SetMask(int32_t p_ThreadId, uint8_t p_Mask[MaskSizeInBytes])
+bool PrivCheckPlugin::SetMask(int32_t p_ThreadId, uint8_t p_Mask[MaxPrivCount])
 {
     auto s_Priv = FindPrivByThreadId(p_ThreadId);
     if (s_Priv == nullptr)
@@ -64,6 +64,30 @@ bool PrivCheckPlugin::SetMask(int32_t p_ThreadId, uint8_t p_Mask[MaskSizeInBytes
     memcpy(s_Priv->Mask, p_Mask, ARRAYSIZE(s_Priv->Mask));
 
     return true;
+}
+
+void PrivCheckPlugin::SetBit(int32_t p_ThreadId, uint32_t p_PrivIndex, bool p_Value)
+{
+    auto s_Priv = FindPrivByThreadId(p_ThreadId);
+    if (s_Priv == nullptr)
+        return;
+    
+    if (p_PrivIndex >= ARRAYSIZE(s_Priv->Mask))
+        return;
+    
+    s_Priv->Mask[p_PrivIndex] = p_Value;
+}
+
+bool PrivCheckPlugin::GetBit(int32_t p_ThreadId, uint32_t p_PrivIndex)
+{
+    auto s_Priv = FindPrivByThreadId(p_ThreadId);
+    if (s_Priv == nullptr)
+        return false;
+    
+    if (p_PrivIndex >= ARRAYSIZE(s_Priv->Mask))
+        return false;
+    
+    return s_Priv->Mask[p_PrivIndex] != 0;
 }
 
 int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
@@ -177,10 +201,10 @@ PrivCheckPlugin::ThreadPriv* PrivCheckPlugin::GetOrCreatePrivByThreadId(int32_t 
     return l_Priv;
 }
 
-int PrivCheckPlugin::PrivCheckHook(struct thread* td, int priv)
+int PrivCheckPlugin::PrivCheckHook(struct thread* p_Thread, int p_Priv)
 {
     // Call the original
-    auto s_Ret = o_priv_check(td, priv);
+    auto s_Ret = o_priv_check(p_Thread, p_Priv);
 
     auto s_Framaework = Mira::Framework::GetFramework();
     if (s_Framaework == nullptr)
@@ -194,26 +218,23 @@ int PrivCheckPlugin::PrivCheckHook(struct thread* td, int priv)
     if (s_PrivCheckPlugin == nullptr)
         return s_Ret;
     
-    auto s_Priv = s_PrivCheckPlugin->FindPrivByThreadId(td->td_tid);
+    auto s_Priv = s_PrivCheckPlugin->FindPrivByThreadId(p_Thread->td_tid);
     if (s_Priv == nullptr)
         return s_Ret;
 
 
     const uint8_t* s_Mask = s_Priv->Mask;
-    // Calculate where in the mask we need to check
-    uint32_t s_Index = priv / 8;
-    uint32_t s_BitShift = priv % 8;
-    if (s_Index >= ARRAYSIZE(s_Priv->Mask))
+    if (p_Priv >= ARRAYSIZE(s_Priv->Mask))
     {
-        WriteLog(LL_Error, "attempted to index out of bounds idx: (%d).", s_Index);
+        WriteLog(LL_Error, "attempted to priv index out of bounds idx: (%d).", p_Priv);
         return s_Ret;
     }
 
     // Not sure if this is correct
-    uint8_t s_Bit = (s_Mask[s_Index] >> s_BitShift) & 1;
+    uint8_t s_Bit = s_Mask[p_Priv];
     
-    // If the bit is set to override we force return true here
-    if (s_Bit == 1)
+    // If the bit is set to override we force return success here
+    if (s_Bit != 0)
         return 0;
 
     WriteLog(LL_Error, "o_priv_check ret: (%d).", s_Ret);

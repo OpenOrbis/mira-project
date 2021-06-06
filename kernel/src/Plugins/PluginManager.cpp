@@ -115,11 +115,11 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load emulated registry.");
     }
 
-    // if (m_PrivCheck)
-    // {
-    //     if (!m_PrivCheck->OnLoad())
-    //         WriteLog(LL_Error, "could not load priv check.");
-    // }
+    if (m_PrivCheck)
+    {
+        if (!m_PrivCheck->OnLoad())
+            WriteLog(LL_Error, "could not load priv check.");
+    }
 
     return s_Success;
 }

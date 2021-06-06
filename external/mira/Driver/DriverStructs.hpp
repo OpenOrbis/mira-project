@@ -226,34 +226,25 @@ typedef struct __attribute__((packed)) _MiraPrivCheck
     uint32_t IsGet;
 
     // Override mask
-    uint8_t Mask[128]; // This must match MaskSizeInBytes in PrivCheckPlugin.hpp
+    uint8_t Mask[1024]; // This must match MaskSizeInBytes in PrivCheckPlugin.hpp
 
     inline bool SetBit(uint32_t p_Index, bool p_Override)
     {
-        uint32_t s_IndexInMask = p_Index / 8;
-        uint32_t s_BitShift = p_Index % 8;
-        if (s_IndexInMask >= ARRAYSIZE(Mask))
+        if (p_Index >= ARRAYSIZE(Mask))
             return false;
         
         // eh?
         
-        uint8_t s_MaskVal = Mask[s_IndexInMask];
-
-        if (p_Override)
-            s_MaskVal |= (1 << s_BitShift);
-        else
-            s_MaskVal &= ~(1 << (8 - s_BitShift));
+        Mask[p_Index] = p_Override;
 
         return true;
     }
     inline bool GetBit(uint32_t p_Index, bool& p_Overridden)
     {
-        uint32_t s_IndexInMask = p_Index / 8;
-        uint32_t s_BitShift = p_Index % 8;
-        if (s_IndexInMask >= ARRAYSIZE(Mask))
+        if (p_Index >= ARRAYSIZE(Mask))
             return false;
         
-        p_Overridden = ((Mask[s_IndexInMask] >> s_BitShift) & 1) != 0;
+        p_Overridden = Mask[p_Index] != 0;
         return true;
     }
     

@@ -390,21 +390,13 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         return false;
     }
 
-    // We will get the title id and version information
-    // The flash drive/hdd should be formatted as such
 
-    // <path_prefix>/mira/trainers/all/*.prx
-    // <path_prefix>/mira/trainers/<TitleId>/*.prx
-
-    // /mnt/usbN/mira/trainers
-    // /data/mira/trainers
-    // /user/mira/trainers
     const uint32_t c_PathLength = 260;
     char s_BasePath[c_PathLength];
-    if (!GetUsbTrainerPath(s_BasePath, c_PathLength))
+    if (!GetUsbTrainerPath(s_BasePath, c_PathLength)) // returns /mnt/usb%d/mira/trainers
     {
         WriteLog(LL_Error, "could not find usb trainers directory...");
-        if (!GetHddTrainerPath(s_BasePath, c_PathLength))
+        if (!GetHddTrainerPath(s_BasePath, c_PathLength)) // returns "/user/mira/trainers" or  "/data/mira/trainers"
         {
             WriteLog(LL_Error, "could not find hdd trainers directory..");
             return false;

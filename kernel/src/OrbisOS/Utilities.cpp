@@ -742,7 +742,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         kclose_t(s_DirectoryHandle, s_MainThread);
 
         // Create the new folder inside of the sandbox
-        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0777, s_MainThread);
+        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0777, p_TargetThread);
         if (s_Result < 0)
         {
 			// Skip if the directory already exists
@@ -786,10 +786,10 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         if (s_Result < 0)
         {
             WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SubstituteFullMountPath, s_Result);
-            krmdir_t(s_SandboxPath, s_MainThread);
+            krmdir_t(s_SandboxPath, p_TargetThread);
         }
 
-		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0555, s_MainThread);
+		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0555, p_TargetThread);
 		if (s_ResultChmod != 0)
 			WriteLog(LL_Warn, "chmod failed on (%s) (%d).", s_SubstituteFullMountPath, s_ResultChmod);
 
