@@ -35,7 +35,6 @@
 #include <Utils/Logger.hpp>
 #include <Utils/SysWrappers.hpp>
 #include <Utils/Types.hpp>
-#include <Utils/Hook.hpp>
 #include <OrbisOS/Utilities.hpp>
 
 //
@@ -58,9 +57,13 @@ extern "C"
 	#include <sys/sx.h>
 }
 
+#include <stdarg.h>
+
 const char* gNull = "(null)";
 uint8_t* gKernelBase = nullptr;
 struct logger_t* gLogger = nullptr;
+
+Mira::Framework::vprintf_t Mira::Framework::o_vprintf = nullptr;
 
 Mira::Framework* Mira::Framework::m_Instance = nullptr;
 Mira::Framework* Mira::Framework::GetFramework()
@@ -76,14 +79,13 @@ Mira::Framework* Mira::Framework::GetFramework()
 
 	return m_Instance;
 }
-#include <stdarg.h>
+
 
 int OnVPrintf(const char* fmt, va_list list)
 {
 	// Fix sony's dumbass bullshit
 	auto __sx_xlock = (int (*)(struct sx *sx, int opts, const char* file, int line))kdlsym(_sx_xlock);
 	auto __sx_xunlock = (int (*)(struct sx *sx, const char* file, int line))kdlsym(_sx_xunlock);
-	auto vprintf = (int(*)(const char* fmt, va_list list))kdlsym(vprintf);
 
 	// Get instance of the framework
 	auto s_Framework = Mira::Framework::GetFramework();
@@ -100,13 +102,9 @@ int OnVPrintf(const char* fmt, va_list list)
 	__sx_xlock(&s_Framework->m_PrintfLock, 0, __FILE__, __LINE__);
 	do
 	{
-		// Disable the hook
-		s_Hook->Disable();
-		
 		// Call the original function
-		s_Ret = vprintf(fmt, list);
+		s_Ret = Mira::Framework::o_vprintf(fmt, list);
 
-		s_Hook->Enable();
 	} while (false);
 	__sx_xunlock(&s_Framework->m_PrintfLock, __FILE__, __LINE__);
 
@@ -133,7 +131,9 @@ Mira::Framework::Framework() :
 	auto sx_init_flags = (void(*)(struct sx* sx, const char* description, int opts))kdlsym(_sx_init_flags);
 	sx_init_flags(&m_PrintfLock, "fcksony", 0);
 
-	m_PrintfHook = new Utils::Hook(kdlsym(printf), (void*)OnVPrintf);
+	m_PrintfHook = subhook_new((void*)kdlsym(vprintf), (void*)OnVPrintf, subhook_flags_t::SUBHOOK_64BIT_OFFSET);
+	o_vprintf = (vprintf_t)subhook_get_trampoline(m_PrintfHook);
+	subhook_install(m_PrintfHook);
 }
 
 Mira::Framework::~Framework()

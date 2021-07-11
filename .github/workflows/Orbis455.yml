@@ -1,0 +1,43 @@
+name: Orbis455
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+        # Checkout the repository
+      - uses: actions/checkout@v2
+        # Install required stuff needed to build Mira
+      - name: preinstall
+        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools clang-format cppcheck
+        # Handle loader crap
+      - name: create loader directories
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 make create
+      - name: clean loader
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 make clean
+      - name: create mira directories
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 make create
+      - name: clean mira
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 make clean
+        # 4.74 Support
+      - name: make 4.74 loader
+        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 MIRA_CHECKS=TRUE make
+      - name: make 4.74 elf
+        run: cd kernel; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 ADD_GIT_HASH=TRUE MIRA_CHECKS=TRUE make
+      - name: Upload 4.74 loader
+        uses: actions/upload-artifact@v2
+        with:
+          name: MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_455.bin
+          path: loader/build/MiraLoader_Orbis_MIRA_PLATFORM_ORBIS_BSD_455.bin
+      - name: Upload 4.74 elf
+        uses: actions/upload-artifact@v2
+        with:
+          name: Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_455.elf
+          path: kernel/build/Mira_Orbis_MIRA_PLATFORM_ORBIS_BSD_455.elf

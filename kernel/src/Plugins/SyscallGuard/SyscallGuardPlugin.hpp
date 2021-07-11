@@ -1,7 +1,6 @@
 #pragma once
 #include <Utils/Types.hpp>
 #include <Utils/IModule.hpp>
-#include <Utils/Hook.hpp>
 
 extern "C"
 {

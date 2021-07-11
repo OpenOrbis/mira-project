@@ -8,12 +8,14 @@
 
 using namespace Mira::Plugins;
 
-PrivCheckPlugin::priv_check_t PrivCheckPlugin::o_priv_check = nullptr;
+PrivCheckPlugin::priv_check_cred_t PrivCheckPlugin::o_priv_check_cred = nullptr;
 
-PrivCheckPlugin::PrivCheckPlugin() :
-    m_PrivCheckHook(nullptr)
+PrivCheckPlugin::PrivCheckPlugin()
 {
-    memset(m_Privs, 0, sizeof(m_Privs));
+    
+    m_PrivCheckCredHook = subhook_new((void*)kdlsym(priv_check_cred), (void*)OnPrivCheckCred, subhook_flags_t::SUBHOOK_64BIT_OFFSET);
+    o_priv_check_cred = (priv_check_cred_t)subhook_get_trampoline(m_PrivCheckCredHook);
+    WriteLog(LL_Warn, "priv_check_cred hook created!");
 }
 
 PrivCheckPlugin::~PrivCheckPlugin()
@@ -22,35 +24,17 @@ PrivCheckPlugin::~PrivCheckPlugin()
 
 bool PrivCheckPlugin::OnLoad()
 {
-    if (m_PrivCheckHook == nullptr)
-        m_PrivCheckHook = new Utils::Hook(kdlsym(priv_check), reinterpret_cast<void*>(PrivCheckHook));
-    
-    o_priv_check = reinterpret_cast<priv_check_t>(m_PrivCheckHook->GetTrampoline());
-    if (o_priv_check == nullptr)
-    {
-        WriteLog(LL_Error, "priv check broke.");
-        return false;
-    }
-
-    if (!m_PrivCheckHook->Enable())
-    {
-        WriteLog(LL_Error, "could not enable priv check hook.");
-        return false;
-    }
-
+    subhook_install(m_PrivCheckCredHook);
+    WriteLog(LL_Warn, "priv_check_hook installed.");
 
     return true;
 }
 
 bool PrivCheckPlugin::OnUnload()
 {
-    if (m_PrivCheckHook)
-    {
-        m_PrivCheckHook->Disable();
-        delete m_PrivCheckHook;
-        m_PrivCheckHook = nullptr;
-    }
-    
+    subhook_remove(m_PrivCheckCredHook);
+    WriteLog(LL_Warn, "priv_check_hook removed.");
+
     return true;
 }
 
@@ -201,44 +185,34 @@ PrivCheckPlugin::ThreadPriv* PrivCheckPlugin::GetOrCreatePrivByThreadId(int32_t 
     return l_Priv;
 }
 
-int PrivCheckPlugin::PrivCheckHook(struct thread* p_Thread, int p_Priv)
+int PrivCheckPlugin::OnPrivCheckCred(struct ucred* p_Cred, int p_Priv)
 {
     // Call the original
-    auto s_Ret = o_priv_check(p_Thread, p_Priv);
+    auto s_Ret = o_priv_check_cred(p_Cred, p_Priv);
+    WriteLog(LL_Warn, "orig called");
 
-    auto s_Framaework = Mira::Framework::GetFramework();
-    if (s_Framaework == nullptr)
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
         return s_Ret;
+    }
     
-    auto s_PluginManager = s_Framaework->GetPluginManager();
+    auto s_PluginManager = s_Framework->GetPluginManager();
     if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager.");
         return s_Ret;
+    }
     
     auto s_PrivCheckPlugin = reinterpret_cast<PrivCheckPlugin*>(s_PluginManager->GetPrivCheck());
     if (s_PrivCheckPlugin == nullptr)
-        return s_Ret;
-    
-    auto s_Priv = s_PrivCheckPlugin->FindPrivByThreadId(p_Thread->td_tid);
-    if (s_Priv == nullptr)
-        return s_Ret;
-
-
-    const uint8_t* s_Mask = s_Priv->Mask;
-    if (p_Priv >= ARRAYSIZE(s_Priv->Mask))
     {
-        WriteLog(LL_Error, "attempted to priv index out of bounds idx: (%d).", p_Priv);
+        WriteLog(LL_Error, "could not get plugin.");
         return s_Ret;
     }
 
-    // Not sure if this is correct
-    uint8_t s_Bit = s_Mask[p_Priv];
+    WriteLog(LL_Info, "pcc: ret: (%d) priv: (%d).", s_Ret, p_Priv);
     
-    // If the bit is set to override we force return success here
-    if (s_Bit != 0)
-        return 0;
-
-    WriteLog(LL_Error, "o_priv_check ret: (%d).", s_Ret);
-    
-    // Return the result
     return s_Ret;
 }

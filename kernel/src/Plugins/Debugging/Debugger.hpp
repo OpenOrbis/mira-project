@@ -1,10 +1,10 @@
 #pragma once
 #include <Utils/IModule.hpp>
-#include <Utils/Hook.hpp>
 #include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
 #include <Utils/Kdlsym.hpp>
 #include <Utils/SysWrappers.hpp>
+#include <External/subhook/subhook.h>
 
 #include <Messaging/Rpc/Connection.hpp>
 #include <Messaging/Rpc/Connection.hpp>
@@ -52,7 +52,7 @@ namespace Mira
         private:
             enum { Dbg_BufferSize = PAGE_SIZE };
 
-            Utils::Hook* m_TrapFatalHook;
+            subhook_t m_TrapFatalHook;
 
             struct mtx m_Mutex;
             uint8_t m_Buffer[Dbg_BufferSize];

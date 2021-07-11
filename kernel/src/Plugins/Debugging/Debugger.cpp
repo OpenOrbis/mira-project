@@ -36,12 +36,12 @@ bool Debugger::OnLoad()
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
 	// Create the trap fatal hook
     WriteLog(LL_Info, "creating trap_fatal hook");
-    m_TrapFatalHook = new Utils::Hook(kdlsym(trap_fatal), reinterpret_cast<void*>(OnTrapFatal));
+    m_TrapFatalHook = subhook_new((void*)kdlsym(trap_fatal), (void*)OnTrapFatal, subhook_flags_t::SUBHOOK_64BIT_OFFSET);
     
     if (m_TrapFatalHook != nullptr)
     {
         WriteLog(LL_Info, "enabling trap_fatal hook");
-        m_TrapFatalHook->Enable();
+        subhook_install(m_TrapFatalHook);
     }
 #endif
     return true;
@@ -53,11 +53,8 @@ bool Debugger::OnUnload()
     WriteLog(LL_Info, "deleting trap fatal hook");
 	if (m_TrapFatalHook != nullptr)
     {
-        if (m_TrapFatalHook->IsEnabled())
-            m_TrapFatalHook->Disable();
-        
-        delete m_TrapFatalHook;
-        m_TrapFatalHook = nullptr;
+        subhook_remove(m_TrapFatalHook);
+        subhook_free(m_TrapFatalHook);
     }
 #endif
 

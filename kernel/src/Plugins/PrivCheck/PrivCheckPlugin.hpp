@@ -1,7 +1,7 @@
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
-#include <Utils/Hook.hpp>
+#include <External/subhook/subhook.h>
 
 extern "C"
 {
@@ -40,10 +40,12 @@ namespace Mira
             // The proc's we are overriding
             ThreadPriv m_Privs[1024];
 
-            Utils::Hook* m_PrivCheckHook;
+            //Utils::Hook* m_PrivCheckHook;
+            subhook_t m_PrivCheckCredHook;
 
         protected:
-            MIRA_DECLARE_HOOK(int, priv_check, struct thread* td, int priv);
+            typedef int(*priv_check_cred_t)(struct ucred*,int);
+            static priv_check_cred_t o_priv_check_cred;
 
         protected:
             void SetBit(int32_t p_ThreadId, uint32_t p_BitIndex, bool p_Value);
@@ -74,11 +76,11 @@ namespace Mira
             /**
              * @brief Hooked function for priv_check
              * 
-             * @param td Thread of privs to check
-             * @param priv Priv to check
+             * @param p_Cred ucred of privs to check
+             * @param p_Priv Priv to check
              * @return int 0 on success, error otherwise (see: priv_check documentation)
              */
-            static int PrivCheckHook(struct thread* td, int priv);
+            static int OnPrivCheckCred(struct ucred* p_Cred, int p_Priv);
 
             /**
              * @brief Priv check ioctl handler

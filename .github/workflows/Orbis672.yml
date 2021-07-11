@@ -8,18 +8,18 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    env:
+      MIRA_PLATFORM: MIRA_PLATFORM_ORBIS_BSD_672
     steps:
         # Checkout the repository
       - uses: actions/checkout@v2
         # Install required stuff needed to build Mira
       - name: preinstall
-        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools clang-format cppcheck
+        run: sudo apt install build-essential git clang lldb clang-tidy clang-tools clang-format cppcheck cmake
         # Handle loader crap
-      - name: create loader directories
-        run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 make create
+      - name: run cmake
+        run: cmake -G "Unix Makefiles" -DMIRA_PLATFORM=${{ env.MIRA_PLATFORM }} . 
       - name: clean loader
         run: cd loader; MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 make clean
       - name: create mira directories

@@ -2,6 +2,8 @@
 #include <Boot/InitParams.hpp>
 #include <mira/MiraConfig.hpp>
 
+#include <External/subhook/subhook.h>
+
 struct eventhandler_entry;
 struct eventhandler_list;
 typedef eventhandler_entry* eventhandler_tag;
@@ -14,8 +16,6 @@ extern "C"
 
     void mira_entry(void* args);
 };
-
-extern "C" 
 
 namespace Mira
 {
@@ -93,7 +93,10 @@ namespace Mira
     public:
         // Fixing sony's bullshit
         struct sx m_PrintfLock;
-        Utils::Hook* m_PrintfHook;
+        typedef int(*vprintf_t)(const char* fmt, void* list);
+        static vprintf_t o_vprintf;
+
+        subhook_t m_PrintfHook;
 
     public:
         static Framework* GetFramework();

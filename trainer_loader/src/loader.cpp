@@ -149,7 +149,8 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     int32_t s_Ret = -1;
     _g_consoleHandle = -1;
     void* s_EntryPoint = (void*)nullptr;
-    char data[100];
+    char s_LogBuffer[100];
+    //MiraPrivCheck s_PrivCheck;
 
     // Open up stdout
     _g_consoleHandle = stub_open("/dev/console", 0x0002, 0);
@@ -186,6 +187,19 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         stub_debug_log("[-] Unable to load trainer !\n");
         goto jmp_orig;
     }
+    
+    // s_PrivCheck.IsGet = true;
+    // s_PrivCheck.ThreadId = -1;
+
+    // s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_PRIV_CHECK, (uint64_t)&s_PrivCheck);
+    // if (s_Ret != 0)
+    // {
+    //     snprintf(s_LogBuffer, sizeof(s_LogBuffer), "[-] priv check failed (%d).\n", s_Ret);
+    //     stub_debug_log(s_LogBuffer);
+    //     goto jmp_orig;
+    // }
+    // snprintf(s_LogBuffer, sizeof(s_LogBuffer), "MIRA_PRIV_CHECK GET returned (%d).\n", s_Ret);
+    // stub_debug_log(s_LogBuffer);
 
     stub_debug_log("[+] Loading kernel library ...\n");
 
@@ -239,8 +253,8 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     stub_debug_log("[+] Iterate over '.' ...\n");
 
     s_RetOpenPoint = stub_open(".", 0, 0);
-    snprintf(data, 100, "open(., o_directory): %d \n", s_RetOpenPoint);
-    stub_debug_log(data);
+    snprintf(s_LogBuffer, 100, "open(., o_directory): %d \n", s_RetOpenPoint);
+    stub_debug_log(s_LogBuffer);
 
     IterateDirectory(".", nullptr, [](void* p_Args, const char* p_BasePath, char* p_Name, int32_t p_Type)
     {
@@ -281,11 +295,11 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
         stub_debug_log("[+] _mira: loading prx ...\n");
 
-        int32_t(*trainer_load)() = nullptr;
-        stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
+        int32_t(*s_TrainerLoadEntrypoint)() = nullptr;
+        stub_dlsym(s_TrainerModuleId, "trainer_load", &s_TrainerLoadEntrypoint);
 
-        if (trainer_load != nullptr) {
-            (void)trainer_load();
+        if (s_TrainerLoadEntrypoint != nullptr) {
+            (void)s_TrainerLoadEntrypoint();
             stub_debug_log("[+] _mira: trainer launched :D.\n");
         }
     });
@@ -318,11 +332,11 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         int32_t s_TrainerModuleId = sceKernelLoadStartModule(s_PrxPath, 0, nullptr, 0, 0, 0);
         stub_debug_log("_substitute: loading prx ...\n");
 
-        int32_t(*trainer_load)() = nullptr;
-        stub_dlsym(s_TrainerModuleId, "trainer_load", &trainer_load);
+        int32_t(*s_TrainerLoadEntrypoint)() = nullptr;
+        stub_dlsym(s_TrainerModuleId, "trainer_load", &s_TrainerLoadEntrypoint);
 
-        if (trainer_load != nullptr) {
-            (void)trainer_load();
+        if (s_TrainerLoadEntrypoint != nullptr) {
+            (void)s_TrainerLoadEntrypoint();
             stub_debug_log("_substitute: trainer launched ! :D\n");
         }
     });
@@ -337,8 +351,8 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 jmp_orig:
     if (s_EntryPoint != nullptr)
     {
-        snprintf(data, 100, "[=] Jumping to entry point (%p)\n", s_EntryPoint);
-        stub_debug_log(data);
+        snprintf(s_LogBuffer, sizeof(s_LogBuffer), "[=] Jumping to entry point (%p)\n", s_EntryPoint);
+        stub_debug_log(s_LogBuffer);
         ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
     }
         

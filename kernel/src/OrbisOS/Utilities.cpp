@@ -657,27 +657,27 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get mira main thread.");
-        return -1;
+        return EADDRNOTAVAIL;
     }
 
 	if (p_TargetThread == nullptr)
 	{
 		WriteLog(LL_Error, "invalid target thread.");
-		return -1;
+		return EPROCUNAVAIL;
 	}
 
 	auto s_TargetProc = p_TargetThread->td_proc;
     if (s_TargetProc == nullptr)
     {
         WriteLog(LL_Error, "thread does not have a parent process wtf?");
-        return -1;
+        return EPROCUNAVAIL;
     }
 
     auto s_Descriptor = s_TargetProc->p_fd;
     if (s_Descriptor == nullptr)
     {
         WriteLog(LL_Error, "could not get the file descriptor for proc.");
-        return -1;
+        return EBADF;
     }
 
 	// Get the jailed path
@@ -687,7 +687,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not get the full path (%d).", s_Result);
-        return (s_Result < 0 ? s_Result : -s_Result);
+        return (s_Result < 0 ? -s_Result : s_Result);
     }
 
 	// s_SandboxPath = "/mnt/sandbox/NPXS20001_000"
@@ -699,7 +699,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         if (s_FreePath != nullptr)
             delete s_FreePath;
         
-        return -1;
+        return ENOENT;
     }
 
 	WriteLog(LL_Debug, "SandboxPath: (%s).", s_SandboxPath);
@@ -742,11 +742,11 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         kclose_t(s_DirectoryHandle, s_MainThread);
 
         // Create the new folder inside of the sandbox
-        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0777, p_TargetThread);
+        s_Result = kmkdir_t(s_SubstituteFullMountPath, 0777, s_MainThread);
         if (s_Result < 0)
         {
 			// Skip if the directory already exists
-			if (s_DirectoryHandle != EEXIST)
+			if (s_Result != EEXIST)
 			{
 				WriteLog(LL_Error, "could not create the directory for mount (%s) (%d).", s_SubstituteFullMountPath, s_Result);
 				break;
@@ -786,10 +786,10 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         if (s_Result < 0)
         {
             WriteLog(LL_Error, "could not mount fs inside sandbox (%s). (%d).", s_SubstituteFullMountPath, s_Result);
-            krmdir_t(s_SandboxPath, p_TargetThread);
+            krmdir_t(s_SandboxPath, s_MainThread);
         }
 
-		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0555, p_TargetThread);
+		int s_ResultChmod = kchmod_t(s_SubstituteFullMountPath, 0777, s_MainThread);
 		if (s_ResultChmod != 0)
 			WriteLog(LL_Warn, "chmod failed on (%s) (%d).", s_SubstituteFullMountPath, s_ResultChmod);
 

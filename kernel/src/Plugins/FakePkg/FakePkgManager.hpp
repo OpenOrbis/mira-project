@@ -8,7 +8,7 @@
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
-#include <Utils/Hook.hpp>
+#include <External/subhook/subhook.h>
 
 #include <OrbisOS/FakeStructs.hpp>
 
@@ -25,11 +25,11 @@ namespace Mira
             public Mira::Utils::IModule
         {
         private:
-            Utils::Hook* m_NpdrmDecryptIsolatedRifHook;
-            Utils::Hook* m_NpdrmDecryptRifNewHook;
-            Utils::Hook* m_SceSblDriverSendMsgHook;
-            Utils::Hook* m_SceSblKeymgrInvalidateKey;
-            Utils::Hook* m_SceSblPfsSetKeysHook;
+            subhook_t m_NpdrmDecryptIsolatedRifHook;
+            subhook_t m_NpdrmDecryptRifNewHook;
+            subhook_t m_SceSblDriverSendMsgHook;
+            subhook_t m_SceSblKeymgrInvalidateKey;
+            subhook_t m_SceSblPfsSetKeysHook;
 
             eventhandler_entry* m_processStartEvent;
             eventhandler_entry* m_resumeEvent;

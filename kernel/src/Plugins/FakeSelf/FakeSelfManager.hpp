@@ -8,7 +8,6 @@
 #pragma once
 #include <Utils/IModule.hpp>
 #include <Utils/Types.hpp>
-#include <Utils/Hook.hpp>
 
 #include <OrbisOS/FakeStructs.hpp>
 
@@ -39,16 +38,6 @@ namespace Mira
                 AuthInfoSize = 136,
             };
 
-            //Utils::Hook* m_SceSblACMgrGetPathIdHook;
-            //Utils::Hook* m_SceSblServiceMailboxHook;
-            //Utils::Hook* m_SceSblAuthMgrVerifyHeaderHook;
-            //Utils::Hook* m_SceSblAuthMgrIsLoadable2Hook;
-
-            //Utils::Hook* m__SceSblAuthMgrSmLoadSelfSegmentHook;
-            //Utils::Hook* m__SceSblAuthMgrSmLoadSelfBlockHook;
-
-            //static SelfContext* m_LastContext;
-
             static const uint8_t c_ExecAuthInfo[AuthInfoSize];
             static const uint8_t c_DynlibAuthInfo[AuthInfoSize];
 
@@ -75,32 +64,11 @@ namespace Mira
             static int SceSblAuthMgrGetElfHeader(OrbisOS::SelfContext* p_Context, Elf64_Ehdr** p_OutElfHeader);
             static int SceSblAuthMgrIsLoadable_sceSblACMgrGetPathId(const char* path);
 
-            //
-            // Hook Helper Functions
-            // This calls the original functions disabling the hooks, calling, reenabling hooks
-            //static int SceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response);
-            //static int SceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, SelfAuthInfo* p_NewAuthInfo);
-            //static int SceSblAuthMgrVerifyHeader(SelfContext* p_Context);
-
-            // 1.76 __int64 __fastcall sceSblAuthMgrSmLoadSelfBlock(__int64 a1, unsigned int a2, unsigned int a3, char *a4, char *a5, char *a6, void* a7, void* a8, void* a9, void* a10, int (__fastcall *a11)(signed __int64, __int64), __int64 a12)
-            // 6.72 __int64 __fastcall sceSblAuthMgrSmLoadSelfBlock(SelfContext* a1, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
-            // 5.05 __int64 __fastcall sceSblAuthMgrSmLoadSelfBlock(__int64 a1, unsigned int a2, unsigned int a3, char *a4, char *a5, char* a6, void* a7, void* a8, void* a9, void* a10, void* a11)
-            // Fixed thanks to the almighty flatz =]
-            //static int _SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1, void* unk2, void* unk3);
-            //static int _SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1);
-
-            //void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
-
         protected:
             //
             // Hooked function callbacks
-            //static int OnSceSblACMgrGetPathId(const char* p_Path);
-            //static int OnSceSblServiceMailbox(uint32_t p_ServiceId, void* p_Request, void* p_Response);
             static int OnSceSblAuthMgrVerifyHeader(OrbisOS::SelfContext* p_Context);
             static int OnSceSblAuthMgrIsLoadable2(OrbisOS::SelfContext* p_Context, OrbisOS::SelfAuthInfo* p_OldAuthInfo, int32_t p_PathId, OrbisOS::SelfAuthInfo* p_NewAuthInfo);
-
-            //static int On_SceSblAuthMgrSmLoadSelfBlock(SelfContext* p_Context, uint32_t p_SegmentIndex, uint32_t p_BlockIndex, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1, void* unk2, void* unk3);
-            //static int On_SceSblAuthMgrSmLoadSelfSegment(SelfContext *p_Context, uint32_t p_SegmentIndex, bool p_IsBlockTable, uint8_t* p_Data, size_t p_Size, int(*p_ReadCallback)(uint64_t /*p_Offset*/, uint8_t* /*p_Data*/, size_t /*p_Size*/), void* p_CallbackArg, void* unk0, void* unk1);
         };
     }
 }

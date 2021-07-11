@@ -7,7 +7,6 @@
 
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Kernel.hpp>
-#include <Utils/Hook.hpp>
 
 #include <Utils/SysWrappers.hpp>
 

@@ -6,7 +6,7 @@
                 "${workspaceFolder}/kernel/**",
                 "${workspaceFolder}/kernel/src",
                 "${workspaceFolder}/external/freebsd-headers/include",
-                "${workspaceFolder}/external",
+                "${workspaceFolder}/external/**",
                 "${workspaceFolder}/external/mira/Kernel"
             ],
             "defines": [
