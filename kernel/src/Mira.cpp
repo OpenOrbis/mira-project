@@ -133,7 +133,7 @@ Mira::Framework::Framework() :
 
 	m_PrintfHook = subhook_new((void*)kdlsym(vprintf), (void*)OnVPrintf, subhook_flags_t::SUBHOOK_64BIT_OFFSET);
 	o_vprintf = (vprintf_t)subhook_get_trampoline(m_PrintfHook);
-	subhook_install(m_PrintfHook);
+	//subhook_install(m_PrintfHook);
 }
 
 Mira::Framework::~Framework()

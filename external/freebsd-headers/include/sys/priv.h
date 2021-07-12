@@ -494,9 +494,27 @@
 #define	PRIV_RCTL_REMOVE_RULE	674
 
 /*
+ * SCE Custom (Credits: ChendoChap)
+ */
+#define PRIV_SCE_0			675
+#define PRIV_SCE_0			675
+#define PRIV_SCE_1 			676
+#define PRIV_SCE_2 			677
+#define PRIV_SCE_3 			678 // sys_ktrace & sys_kenv 
+#define PRIV_SCE_4 			679 //sys_ptrace
+#define PRIV_SCE_5 			680 // sys_setpgid
+#define PRIV_SCE_6 			681
+#define PRIV_SCE_7 			682
+#define PRIV_SCE_8 			683 // sys_aio_* & sys_mkdirat sys_revoke & sys_umask  & sys_renameat & sys_lutimes & sys_futimesat & sys_fchown & sys_netbsd_lchown & sys_fchownat & sys_chown & sys_lchmod & sys_unmount & sys_mount & sys_nmount
+#define PRIV_SCE_9 			684
+#define PRIV_SCE_10 		685
+#define PRIV_SCE_11 		686 //auth info & budget set & sys_dmem_container & sys_set_vm_container
+#define PRIV_SCE_12 		687 //sys random path
+#define PRIV_SCE_13 		688 //sys_dup
+/*
  * Track end of privilege list.
  */
-#define	_PRIV_HIGHEST		675
+#define	_PRIV_HIGHEST		689
 
 /*
  * Validate that a named privilege is known by the privilege system.  Invalid

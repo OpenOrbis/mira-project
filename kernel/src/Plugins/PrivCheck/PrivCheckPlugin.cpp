@@ -189,7 +189,6 @@ int PrivCheckPlugin::OnPrivCheckCred(struct ucred* p_Cred, int p_Priv)
 {
     // Call the original
     auto s_Ret = o_priv_check_cred(p_Cred, p_Priv);
-    WriteLog(LL_Warn, "orig called");
 
     auto s_Framework = Mira::Framework::GetFramework();
     if (s_Framework == nullptr)
