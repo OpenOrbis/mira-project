@@ -7,7 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 project(mira-project)
 
 # Set the firmware version
-set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
+set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_505)
 
 # mira-project's required build order
 # There are dependencies that require certain things to be pre-built
