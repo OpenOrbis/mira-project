@@ -91,6 +91,13 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
     if (p_Process == nullptr)
         return false;
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return false;
+    }
+
     // Lock the process whenever we access it
     PROC_LOCK(p_Process);
 
@@ -99,7 +106,7 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
         // Debug print
         //WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
 
-        auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
+        auto s_TrainerManager = s_Framework->GetTrainerManager();
         if (s_TrainerManager != nullptr)
             s_TrainerManager->RemoveEntryPoint(p_Process->p_pid);
 
@@ -126,6 +133,13 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
     // If we don't have any image params bail
     if (imgp == nullptr)
         return g_sv_fixup(stack_base, imgp);
+    
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return -1;
+    }
 
     do
     {
@@ -141,7 +155,7 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
 
         //WriteLog(LL_Debug, "TrainerManager, Pid: (%d).", s_Process->p_pid);
 
-        auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
+        auto s_TrainerManager = s_Framework->GetTrainerManager();
         if (s_TrainerManager == nullptr)
         {
             WriteLog(LL_Error, "no trainer manager found, what?");
@@ -382,8 +396,15 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         return false;
     }
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return false;
+    }
+
     // We will need to be doing file io so we need the rooted process
-    auto s_MiraThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_MiraThread = s_Framework->GetMainThread();
     if (s_MiraThread == nullptr)
     {
         WriteLog(LL_Error, "could not get mira main thread.");
@@ -478,7 +499,14 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
 
 bool TrainerManager::FileExists(const char* p_Path)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return false;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread.");
@@ -498,7 +526,14 @@ bool TrainerManager::FileExists(const char* p_Path)
 
 bool TrainerManager::DirectoryExists(const char* p_Path)
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return false;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread.");
@@ -663,24 +698,32 @@ int TrainerManager::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         return 0;
     }
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return EPROCUNAVAIL;
+    }
+
+    auto s_TrainerManager = s_Framework->GetTrainerManager();
+    if (s_TrainerManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get trainer manager.");
+        return EPROCUNAVAIL;
+    }
+
     switch (p_Command)
     {
     case MIRA_TRAINERS_LOAD:
         {
             WriteLog(LL_Debug, "tid: (%d) requesting trainer loading...", p_Thread->td_tid);
-            (void)Mira::Framework::GetFramework()->GetTrainerManager()->LoadTrainers(p_Thread);
+            (void)s_TrainerManager->LoadTrainers(p_Thread);
             
             return 0;
         }
     case MIRA_TRAINERS_ORIG_EP:
         {
             WriteLog(LL_Debug, "Got Trainer Orig EP request");
-            auto s_TrainerManager = Mira::Framework::GetFramework()->GetTrainerManager();
-            if (s_TrainerManager == nullptr)
-            {
-                WriteLog(LL_Error, "cannot get driver instance.");
-                return ENOMEM;
-            }
             
             auto s_Proc = p_Thread->td_proc;
             if (s_Proc == nullptr)

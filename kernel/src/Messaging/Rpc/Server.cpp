@@ -74,12 +74,19 @@ bool Server::Startup()
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "error getting framework.");
+        return false;
+    }
+
     bool s_Success = false;
     _mtx_lock_flags(&m_Mutex, 0);
     do
     {
         WriteLog(LL_Error, "RpcServer thread starting...");
-        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        auto s_MainThread = s_Framework->GetMainThread();
         if (s_MainThread == nullptr)
         {
             WriteLog(LL_Error, "could not get main thread");
@@ -131,7 +138,7 @@ bool Server::Startup()
 
         // Create the new server processing thread, 8MiB stack
         WriteLog(LL_Debug, "Creating new server thread");
-        s_Ret = kthread_add(Server::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 32, "RpcServer");
+        s_Ret = kthread_add(Server::ServerThread, this, s_Framework->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 32, "RpcServer");
         
         WriteLog(LL_Debug, "rpcserver kthread_add returned (%d).", s_Ret);
 
@@ -147,11 +154,18 @@ bool Server::Teardown()
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return false;
+    }
+
     bool s_Success = false;
     _mtx_lock_flags(&m_Mutex, 0);
     do
     {
-        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        auto s_MainThread = s_Framework->GetMainThread();
         if (s_MainThread == nullptr)
         {
             WriteLog(LL_Error, "could not get main thread");
@@ -234,7 +248,14 @@ void Server::ServerThread(void* p_UserArgs)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "no main thread");

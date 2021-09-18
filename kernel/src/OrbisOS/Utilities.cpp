@@ -652,8 +652,15 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
 {
 	auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
+	
+	auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return EBADF;
+    }
 
-	auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+	auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get mira main thread.");

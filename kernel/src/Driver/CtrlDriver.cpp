@@ -263,7 +263,14 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         return EBADF;
     }
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return EBADF;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get mira main thread.");

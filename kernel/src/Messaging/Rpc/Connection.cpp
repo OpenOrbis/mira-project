@@ -53,6 +53,13 @@ void Connection::Disconnect()
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework to disconnect.");
+        return;
+    }
+
     _mtx_lock_flags(&m_Mutex, 0);
     do
     {
@@ -60,7 +67,7 @@ void Connection::Disconnect()
         if (m_Running)
             m_Running = false;
         
-        auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+        auto s_MainThread = s_Framework->GetMainThread();
         if (s_MainThread == nullptr)
         {
             WriteLog(LL_Error, "could not get main thread");
