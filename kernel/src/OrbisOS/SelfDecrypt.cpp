@@ -42,7 +42,14 @@ SelfDecrypt::SelfDecrypt(const char* p_FilePath) :
     m_Self.fd = -1;
     m_Self.svc_id = -1;
 
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return;
+    }
+
+    auto s_ThreadManager = s_Framework->GetThreadManager();
     if (s_ThreadManager == nullptr)
     {
         WriteLog(LL_Error, "could not get thread manager");
@@ -391,7 +398,13 @@ bool SelfDecrypt::VerifyHeader()
 
 void SelfDecrypt::Close()
 {
-    auto s_ThreadManager = Mira::Framework::GetFramework()->GetThreadManager();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return;
+    }
+    auto s_ThreadManager = s_Framework->GetThreadManager();
     if (s_ThreadManager == nullptr)
     {
         WriteLog(LL_Error, "could not get thread manager");

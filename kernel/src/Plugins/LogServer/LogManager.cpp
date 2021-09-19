@@ -76,7 +76,14 @@ bool LogManager::Startup()
 {
     WriteLog(LL_Error, "here");
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "error getting framework.");
+        return false;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -132,7 +139,7 @@ bool LogManager::Startup()
     }
 
     // Create the new server processing thread, 8MiB stack
-    s_Ret = kthread_add(LogManager::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "LogServer");
+    s_Ret = kthread_add(LogManager::ServerThread, this, s_Framework->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "LogServer");
     WriteLog(LL_Debug, "logserver kthread_add returned (%d).", s_Ret);
 
     return s_Ret == 0;
@@ -140,7 +147,14 @@ bool LogManager::Startup()
 
 bool LogManager::Teardown()
 {
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "error getting framework.");
+        return false;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "could not get main thread");
@@ -168,7 +182,14 @@ void LogManager::ServerThread(void* p_UserArgs)
 {
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 
-    auto s_MainThread = Mira::Framework::GetFramework()->GetMainThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "error getting framework.");
+        return;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
         WriteLog(LL_Error, "no main thread");

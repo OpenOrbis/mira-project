@@ -5,6 +5,10 @@
 #include <Mira.hpp>
 #include <Plugins/PluginManager.hpp>
 
+extern "C"
+{
+    #include <sys/priv.h>
+};
 
 using namespace Mira::Plugins;
 
@@ -187,6 +191,10 @@ PrivCheckPlugin::ThreadPriv* PrivCheckPlugin::GetOrCreatePrivByThreadId(int32_t 
 
 int PrivCheckPlugin::OnPrivCheckCred(struct ucred* p_Cred, int p_Priv)
 {
+    // Unrestrict all SCE calls
+    if (p_Priv >= PRIV_SCE_0)
+        return 0;
+    
     // Call the original
     auto s_Ret = o_priv_check_cred(p_Cred, p_Priv);
 
@@ -211,7 +219,8 @@ int PrivCheckPlugin::OnPrivCheckCred(struct ucred* p_Cred, int p_Priv)
         return s_Ret;
     }
 
-    WriteLog(LL_Info, "pcc: ret: (%d) priv: (%d).", s_Ret, p_Priv);
+    if (s_Ret != 0 && (p_Priv != PRIV_VFS_BLOCKRESERVE && p_Priv != PRIV_VFS_CHROOT))
+        WriteLog(LL_Info, "pcc: ret: (%d) priv: (%d).", s_Ret, p_Priv);
     
     return s_Ret;
 }

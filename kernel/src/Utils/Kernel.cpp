@@ -17,11 +17,18 @@ extern "C"
 
 int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write) 
 {
-	auto s_DebuggerThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return EINVAL;
+    }
+
+	auto s_DebuggerThread = s_Framework->GetSyscoreThread();
 	if (s_DebuggerThread == nullptr)
 	{
 		WriteLog(LL_Error, "could not get debugger thread.");
-		return -EIO;
+		return EINVAL;
 	}
 
     auto proc_rwmem = (int(*)(struct proc* p, struct uio* uio))kdlsym(proc_rwmem);

@@ -115,27 +115,34 @@ int SyscallGuard::SyscallHandler(struct thread * p_Thread, void * p_Uap)
 
     WriteLog(LL_Info, "syscall (%d) called.", s_SyscallNumber);
 
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return EPERM;
+    }
+
     // Get the syscall guard reference
-    auto s_SyscallGuard = static_cast<Plugins::SyscallGuard*>(Mira::Framework::GetFramework()->GetPluginManager()->GetSyscallGuard());
+    auto s_SyscallGuard = static_cast<Plugins::SyscallGuard*>(s_Framework->GetPluginManager()->GetSyscallGuard());
     if (s_SyscallGuard == nullptr)
     {
         WriteLog(LL_Error, "could not get the syscall guard.");
-        return -EPERM;
+        return EPERM;
     }
 
     // Get the main mira process
-    auto s_MiraProcess = Mira::Framework::GetFramework()->GetInitParams()->process;
+    auto s_MiraProcess = s_Framework->GetInitParams()->process;
     if (s_MiraProcess == nullptr)
     {
         WriteLog(LL_Error, "could not get the mira process.");
-        return -EPERM;
+        return EPERM;
     }
 
     // Validate that our syscall number is valid
     if (s_SyscallNumber < NOSYS || s_SyscallNumber >= s_SyscallGuard->m_SyscallCount)
     {
         WriteLog(LL_Error, "invalid syscall called (%d).", s_SyscallNumber);
-        return -EPERM;
+        return EPERM;
     }
 
     // Get the call from our list
@@ -143,7 +150,7 @@ int SyscallGuard::SyscallHandler(struct thread * p_Thread, void * p_Uap)
     if (s_Call == nullptr)
     {
         WriteLog(LL_Error, "could not get a sy_call for syscall (%d).", s_SyscallNumber);
-        return -EPERM;
+        return EPERM;
     }
     
     // Get the status
@@ -155,7 +162,7 @@ int SyscallGuard::SyscallHandler(struct thread * p_Thread, void * p_Uap)
         if (p_Thread->td_proc != s_MiraProcess)
         {
             WriteLog(LL_Error, "syscall (%d) was called by a non-whitelisted process (%d) (%s).", s_SyscallNumber, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
-            return -EPERM;
+            return EPERM;
         }
         break;
     case CallStatus::Status_Enabled:
@@ -163,10 +170,10 @@ int SyscallGuard::SyscallHandler(struct thread * p_Thread, void * p_Uap)
         break;
     case CallStatus::Status_Disabled:
         WriteLog(LL_Error, "syscall (%d) disabled.", s_SyscallNumber);
-        return -EPERM;
+        return EPERM;
     default:
         WriteLog(LL_Error, "invalid syscall (%d) status (%d).", s_SyscallNumber, s_Status);
-        return -EPERM;
+        return EPERM;
     }
 
     // Call and return the original call (or replaced in case of reserved)
