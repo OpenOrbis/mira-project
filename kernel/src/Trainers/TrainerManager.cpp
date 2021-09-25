@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "TrainerManager.hpp"
 #include <Utils/Kdlsym.hpp>
 #include <Utils/Logger.hpp>
@@ -172,7 +175,7 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
         }
 
         // Make sure that we have the eboot.bin
-        auto s_EbootPath = "/app0/eboot.bin";
+        char s_EbootPath[16] = "/app0/eboot.bin";
         if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
         {
             WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);

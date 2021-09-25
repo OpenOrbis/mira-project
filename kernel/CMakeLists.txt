@@ -1,7 +1,10 @@
 # Set the project to be a C CXX ASM
 project(kernel)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+# PVS-Studio Integration
+include(${CMAKE_SOURCE_DIR}/scripts/PVS-Studio.cmake)
+
+#set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Include all of the OOSDK defaults
 include(${CMAKE_SOURCE_DIR}/scripts/kernel.cmake)
@@ -27,3 +30,8 @@ set(TRAINER_LOADER_BIN ${CMAKE_BINARY_DIR}/trainer_loader/trainer_loader.bin)
 add_compile_definitions(TRAINER_LOADER_BIN_PATH="${TRAINER_LOADER_BIN}")
 
 add_executable(kernel ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
+
+pvs_studio_add_target(TARGET kernel.analyze ALL
+                      OUTPUT FORMAT errorfile
+                      ANALYZE ${PROJECT_NAME}
+                      LOG target.err)

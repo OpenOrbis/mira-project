@@ -1,3 +1,6 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+
 #include "SystemDriverCtl.hpp"
 #include <Utils/Logger.hpp>
 #include <Utils/Vector.hpp>
@@ -390,7 +393,7 @@ bool SystemDriverCtl::GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation
 
     // Copy over our names to local memory
     memcpy(s_Name, s_Proc->p_comm, sizeof(s_Proc->p_comm));
-    memcpy(s_ElfPath, s_Proc->p_elfpath, sizeof(s_Proc->p_comm));
+    memcpy(s_ElfPath, s_Proc->p_elfpath, sizeof(s_Proc->p_elfpath));
     memcpy(s_RandomizedPath, s_Proc->p_randomized_path, sizeof(s_Proc->p_randomized_path));
 
 

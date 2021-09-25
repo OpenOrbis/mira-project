@@ -481,10 +481,7 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     struct thread* l_Thread = nullptr;
     bool s_TidFound = false;
     FOREACH_THREAD_IN_PROC(s_Process, l_Thread)
-    {
-        if (l_Thread == nullptr)
-            continue;
-        
+    {        
         // Lock the thread
         thread_lock(l_Thread);
 

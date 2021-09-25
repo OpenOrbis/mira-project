@@ -400,18 +400,19 @@ int Utilities::KillProcess(struct proc* p)
 
 // Based on the work of JOGolden (JKPatch)
 // Create a PThread (POSIX Thread) on remote process
-int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
+int Utilities::CreatePOSIXThread(struct proc* p_Proc, void* p_EntryPoint) {
 	auto thr_create = (int (*)(struct thread * td, uint64_t ctx, void* start_func, void *arg, char *stack_base, size_t stack_size, char *tls_base, long * child_tid, long * parent_tid, uint64_t flags, uint64_t rtp))kdlsym(kern_thr_create);
 
-	if (p == nullptr)
+	if (p_Proc == nullptr)
 	{
 		WriteLog(LL_Error, "invalid proc!");
 		return -1;
 	}
-    struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
+    struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p_Proc);
 
 	// Check if arguments is correct
-	if (!p || !entrypoint) {
+	if (p_EntryPoint == nullptr) 
+	{
 		WriteLog(LL_Error, "Invalid argument !");
 		return -2;
 	}
@@ -435,17 +436,17 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
-	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+	char* s_TitleId = (char*)((uint64_t)p_Proc + 0x390);
 	if (s_TitleId == nullptr)
 		return -4;
 
-	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) ...", s_TitleId, entrypoint);
+	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) ...", s_TitleId, p_EntryPoint);
 
 	// Resolve all addresses
-	void* s_scePthreadAttrInit = s_Debugger->ResolveFuncAddress(p, "scePthreadAttrInit", 0);
-	void* s_scePthreadAttrSetstacksize = s_Debugger->ResolveFuncAddress(p, "scePthreadAttrSetstacksize", 0);
-	void* s_scePthreadCreate = s_Debugger->ResolveFuncAddress(p, "scePthreadCreate", 0);
-	void* s_pthread_getthreadid_np = s_Debugger->ResolveFuncAddress(p, "pthread_getthreadid_np", 0);
+	void* s_scePthreadAttrInit = s_Debugger->ResolveFuncAddress(p_Proc, "scePthreadAttrInit", 0);
+	void* s_scePthreadAttrSetstacksize = s_Debugger->ResolveFuncAddress(p_Proc, "scePthreadAttrSetstacksize", 0);
+	void* s_scePthreadCreate = s_Debugger->ResolveFuncAddress(p_Proc, "scePthreadCreate", 0);
+	void* s_pthread_getthreadid_np = s_Debugger->ResolveFuncAddress(p_Proc, "pthread_getthreadid_np", 0);
 
 	if (!s_scePthreadAttrInit || !s_scePthreadAttrSetstacksize || !s_scePthreadCreate || !s_pthread_getthreadid_np) {
 		WriteLog(LL_Error, "[%s] Unable to resolve addresses !", s_TitleId);
@@ -460,7 +461,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	// Determine thr_initial by finding the first instruction *cmp* and got the relative address
 	unsigned char s_ValidInstruction[3];
 	s_Size = sizeof(s_ValidInstruction);
-	s_Ret = proc_rw_mem(p, s_pthread_getthreadid_np, s_Size, s_ValidInstruction, &s_Size, false);
+	s_Ret = proc_rw_mem(p_Proc, s_pthread_getthreadid_np, s_Size, s_ValidInstruction, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_pthread_getthreadid_np);
 		return -6;
@@ -473,7 +474,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 
 	uint64_t s_RelativeAddress = 0;
 	s_Size = sizeof(uint32_t);
-	s_Ret = proc_rw_mem(p, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3), s_Size, &s_RelativeAddress, &s_Size, false);
+	s_Ret = proc_rw_mem(p_Proc, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3), s_Size, &s_RelativeAddress, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3));
 		return -8;
@@ -487,7 +488,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	// Setup payload
 	struct posixldr_header* s_PayloadHeader = (struct posixldr_header*)s_Payload;
 	s_PayloadHeader->ldrdone = 0;
-	s_PayloadHeader->stubentry = (uint64_t)entrypoint;
+	s_PayloadHeader->stubentry = (uint64_t)p_EntryPoint;
 	s_PayloadHeader->scePthreadAttrInit = (uint64_t)s_scePthreadAttrInit;
 	s_PayloadHeader->scePthreadAttrSetstacksize = (uint64_t)s_scePthreadAttrSetstacksize;
 	s_PayloadHeader->scePthreadCreate = (uint64_t)s_scePthreadCreate;
@@ -504,7 +505,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 
 	// Copy payload to process
 	s_Size = sizeof(s_Payload);
-	s_Ret = proc_rw_mem(p, (void*)(s_PayloadSpace), s_Size, s_Payload, &s_Size, true);
+	s_Ret = proc_rw_mem(p_Proc, (void*)(s_PayloadSpace), s_Size, s_Payload, &s_Size, true);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to write process memory at %p !", s_TitleId, (void*)(s_PayloadSpace));
 		kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
@@ -527,7 +528,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	uint32_t result = 0;
 	while (!result) {
 		s_Size = sizeof(uint32_t);
-		s_Ret = proc_rw_mem(p, (void*)(s_PayloadSpace + sizeof(uint32_t) + sizeof(uint64_t)), s_Size, &result, &s_Size, false);
+		s_Ret = proc_rw_mem(p_Proc, (void*)(s_PayloadSpace + sizeof(uint32_t) + sizeof(uint64_t)), s_Size, &result, &s_Size, false);
 		if (s_Ret) {
 			WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_PayloadSpace);
 		}
@@ -536,7 +537,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	// Cleanup remote memory
 	kmunmap_t(s_PayloadSpace, s_PayloadSize, s_ProcessThread);
 
-	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) : Done.", s_TitleId, entrypoint);
+	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) : Done.", s_TitleId, p_EntryPoint);
 
 	return 0;
 }
@@ -753,7 +754,7 @@ int Utilities::MountInSandbox(const char* p_RealPath, const char* p_SandboxPath,
         if (s_Result < 0)
         {
 			// Skip if the directory already exists
-			if (s_Result != EEXIST)
+			if (s_Result != -EEXIST)
 			{
 				WriteLog(LL_Error, "could not create the directory for mount (%s) (%d).", s_SubstituteFullMountPath, s_Result);
 				break;

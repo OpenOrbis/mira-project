@@ -446,7 +446,7 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
         if (s_Request->DecryptEntireRif.rif.format != 2)
         { 
             // not fake?
-            s_Ret = s_OriginalRet;
+            //s_Ret = s_OriginalRet;
             goto err;
         }
 
@@ -460,8 +460,10 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 
         /* XXX: sorry, i'm lazy to refactor this crappy code :D basically, we're copying decrypted data to proper place,
         consult with kernel code if offsets needs to be changed */
-        memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest) + sizeof(s_Request->DecryptEntireRif.rif.data));
-
+        //memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest) + sizeof(s_Request->DecryptEntireRif.rif.data));
+        memcpy(s_Response->DecryptEntireRif.raw, s_Request->DecryptEntireRif.rif.digest, sizeof(s_Request->DecryptEntireRif.rif.digest));
+        memcpy(s_Response->DecryptEntireRif.raw + sizeof(s_Request->DecryptEntireRif.rif.digest), s_Request->DecryptEntireRif.rif.data, sizeof(s_Request->DecryptEntireRif.rif.data));
+        
         memset(s_Response->DecryptEntireRif.raw + 
         sizeof(s_Request->DecryptEntireRif.rif.digest) +
         sizeof(s_Request->DecryptEntireRif.rif.data), 
@@ -471,7 +473,7 @@ int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
         sizeof(s_Request->DecryptEntireRif.rif.data)));
 
         p_Payload->status = s_Ret;
-        s_Ret = 0;
+        //s_Ret = 0;
     }
 
 err:

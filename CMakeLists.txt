@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Set verbosity
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # set the project name
 project(mira-project)

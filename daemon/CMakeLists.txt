@@ -1,7 +1,7 @@
 # Set the project to be a C CXX ASM
 project(daemon)
 
-set(CMAKE_VERBOSE_MAKEFILE OFF)
+#set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Include all of the OOSDK defaults
 include(${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)

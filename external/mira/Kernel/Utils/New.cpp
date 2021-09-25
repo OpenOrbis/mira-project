@@ -15,19 +15,12 @@ extern "C"
 };
 
 void * operator new(unsigned long int p_Size)
-{
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wnew-returns-null"
-#pragma clang diagnostic ignored "-Wnonnull"
-	if (p_Size == 0)
-		return nullptr;
-#pragma clang diagnostic pop
-	
+{	
 	auto malloc = (void*(*)(unsigned long size, struct malloc_type* type, int flags))kdlsym(malloc);
 	auto M_TEMP = (struct malloc_type*)kdlsym(M_TEMP);
 
 	// Sanity check
-	if (p_Size >= 0x10000000)
+	if (p_Size >= 0x10000000 || p_Size == 0)
 	{
 		auto printf = (void(*)(const char *format, ...))kdlsym(printf);
 		printf("op_new error: requested (%llx) data\n\n\n", p_Size);

@@ -284,7 +284,7 @@ bool FakeSelfManager::IsFakeSelf(SelfContext* p_Context)
     }
     
     SelfExInfo* s_Info = nullptr;
-    if (p_Context != nullptr && p_Context->format == SelfFormat::Self)
+    if (p_Context->format == SelfFormat::Self)
     {
         if (_sceSblAuthMgrGetSelfInfo(p_Context, &s_Info))
             return false;
@@ -391,8 +391,8 @@ int FakeSelfManager::BuildFakeSelfAuthInfo(SelfContext* p_Context, SelfAuthInfo*
         s_FakeAuthInfo.paid = s_ExInfo->paid;
     }
 
-    if (p_AuthInfo)
-        memcpy(p_AuthInfo, &s_FakeAuthInfo, sizeof(*p_AuthInfo));
+    // p_AuthInfo is checked already
+    memcpy(p_AuthInfo, &s_FakeAuthInfo, sizeof(*p_AuthInfo));
 
     return s_Result;
 }
@@ -450,7 +450,7 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint64_t p_ServiceId
         return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
 
-    bool s_IsUnsigned = s_Context && IsFakeSelf(s_Context);
+    bool s_IsUnsigned = IsFakeSelf(s_Context);
     if (s_IsUnsigned)
     {
         WriteLog(LL_Debug, "unsigned/fake (s)elf detected clearing ret val");

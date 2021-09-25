@@ -13,6 +13,7 @@ using namespace Mira::Plugins;
 
 
 Debugger::Debugger() :
+    m_TrapFatalHook(nullptr),
     m_Buffer { 0 }
 {
     auto mtx_init = (void(*)(struct mtx *m, const char *name, const char *type, int opts))kdlsym(mtx_init);
@@ -102,13 +103,14 @@ void* Debugger::FindJmpslotAddress(struct proc* p_Process, const char* p_ModuleN
     caddr_t s_NidsOffsetFound = 0;
 
     // Determine if we need to lock the process, then do it if needed
-    bool s_ProcessUnlockNeeded = false;
     auto s_ProcessLocked = PROC_LOCKED(p_Process);
     if (s_ProcessLocked == false)
     {
         _mtx_lock_flags(&p_Process->p_mtx, 0);
-        s_ProcessUnlockNeeded = true;
+        s_ProcessLocked = true;
     }
+    else
+        s_ProcessLocked = false; // If the process came in already locked, we do not want to unlock it
 
     do
     {
@@ -244,7 +246,7 @@ void* Debugger::FindJmpslotAddress(struct proc* p_Process, const char* p_ModuleN
 
     } while (false);
 
-    if (s_ProcessUnlockNeeded)
+    if (s_ProcessLocked)
         _mtx_unlock_flags(&p_Process->p_mtx, 0);
 
     return s_NidsOffsetFound;

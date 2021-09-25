@@ -24,10 +24,11 @@ void* Utils::AllocateProcessMemory(int32_t p_ProcessId, uint32_t p_Size, int32_t
 
     MiraAllocateMemory s_Memory
     {
-        .Pointer = nullptr,
+        
         .ProcessId = p_ProcessId,
+        .Size = (uint32_t)s_AllocationSize,
         .Protection = p_Protection,
-        .Size = (uint32_t)s_AllocationSize
+        .Pointer = nullptr
     };
 
     auto s_Fd = open("/dev/mira", O_RDWR);
@@ -85,8 +86,8 @@ void Utils::FreeProcessMemory(int32_t p_ProcessId, void* p_Pointer)
     MiraFreeMemory s_Memory
     {
         .ProcessId = p_ProcessId,
-        .Pointer = p_Pointer,
-        .Size = (uint32_t)s_AllocationSize
+        .Size = (uint32_t)s_AllocationSize,
+        .Pointer = p_Pointer
     };
 
     // Open up the device driver

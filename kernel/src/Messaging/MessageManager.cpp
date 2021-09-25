@@ -314,8 +314,6 @@ void MessageManager::OnRequest(Rpc::Connection* p_Connection, const RpcTransport
         for (auto i = 0; i < ARRAYSIZE(m_Listeners); ++i)
         {
             auto l_CategoryEntry = &m_Listeners[i];
-            if (l_CategoryEntry == nullptr)
-                continue;
                         
             if (l_CategoryEntry->GetCategory() != p_Message->header.category)
                 continue;
