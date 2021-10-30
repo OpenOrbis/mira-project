@@ -39,15 +39,15 @@ enum MiraIoctlCmds
     CMD_TRAINERS_START = 21,
     CMD_CreateTrainerShm,           // TODO: Implement
     CMD_GetTrainerShm,              // TODO: Implement
-    CMD_LoadTrainers,               // TODO: Implement
+    CMD_LoadTrainers,               // Requests for the trainer sandbox directories to be mounted and to load trainers
     CMD_GetOriginalEntryPoint,      // Gets the original entry point by process id
     
     CMD_TRAINERS_END = 40,
     // 41-60 = Debugger
     CMD_DEBUGGER_START = 41,
-    CMD_ProcessList,                // Get process list
-    CMD_ProcessInformation,         // Get process information
-    CMD_ThreadCredentials,          // Get/Set thread credentials
+    CMD_GetProcessInformation,      // Get process information
+    CMD_GetThreadCredentials,       // Get thread credentials
+    CMD_SetThreadCredentials,       // Set thread credentials
     CMD_DEBUGGER_END = 60,
 
     // 61-90 = Mira Reserved
@@ -56,14 +56,14 @@ enum MiraIoctlCmds
     CMD_SetConfig,                  // Set mira's kernel configuration
 
     CMD_MountInSandbox,             // Mount full unescaped sandbox path into the current sandbox
-    CMD_PrivMask,                   // Gets/Sets the priv mask
+    CMD_SetThreadPrivMask,          // Gets/Sets the priv mask
     
     // System
     CMD_SystemAllocateMemory,       // Allocate memory by pid
     CMD_SystemFreeMemory,           // Free memory by pid
     CMD_SystemReadProcessMemory,    // Read process memory by pid
     CMD_SystemWriteProcessMemory,   // Write process memory by pid
-    CMD_SystemProcessList,          // Get process list
+    CMD_SystemGetProcessList,       // Get process list
 
     CMD_MIRA_END = 90,
     CMD_MAX
@@ -75,13 +75,11 @@ enum MiraIoctlCmds
 
 
 // Get/set the thread credentials
-#define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ThreadCredentials), sizeof(MiraThreadCredentials))
+#define MIRA_GET_PROC_THREAD_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetThreadCredentials), sizeof(MiraThreadCredentials))
+#define MIRA_SET_PROC_THREAD_CREDENTIALS _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SetThreadCredentials), sizeof(MiraThreadCredentials))
 
-// Get a process id list
-#define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessList), sizeof(MiraProcessList))
-
-// Get process information
-#define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessInformation), sizeof(MiraProcessInformation))
+// Get process detailed information
+#define MIRA_GET_PROC_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetProcessInformation), sizeof(MiraProcessInformation))
 
 // Mount a path within sandbox
 #define MIRA_MOUNT_IN_SANDBOX _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_MountInSandbox), sizeof(MiraMountInSandbox))
@@ -112,4 +110,7 @@ enum MiraIoctlCmds
 #define MIRA_GET_CONFIG _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetConfig), 0)
 #define MIRA_SET_CONFIG _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SetConfig), sizeof(MiraConfig))
 
-#define MIRA_PRIV_CHECK _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_PrivMask), sizeof(MiraPrivCheck))
+// Get process list
+#define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SystemGetProcessList), sizeof(MiraProcessList))
+
+#define MIRA_SET_THREAD_PRIV_MASK _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SetThreadPrivMask), sizeof(MiraSetThreadPrivMask))

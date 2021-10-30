@@ -6,6 +6,8 @@ extern "C"
     #include <Utils/_Syscall.hpp>
 };
 
+#include <Utils/New.hpp>
+
 #include "Dynlib.hpp"
 
 using namespace Mira::Utils;

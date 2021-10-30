@@ -248,7 +248,7 @@ typedef struct __attribute__((packed)) _MiraPrivCheck
         return true;
     }
     
-} MiraPrivCheck;
+} MiraSetThreadPrivMask;
 
 typedef struct _MiraAllocateMemory
 {

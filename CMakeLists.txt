@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Set verbosity
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # set the project name
 project(mira-project)
 
 # Set the firmware version
-set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_505)
+set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 
 # mira-project's required build order
 # There are dependencies that require certain things to be pre-built
@@ -22,7 +22,7 @@ set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_505)
 # /daemon (OOSDK dep, none local)
 
 # Trainer example
-add_subdirectory(example_trainer)
+#add_subdirectory(example_trainer)
 
 # Build the userland common module which gets injected into each process
 add_subdirectory(mira_module)
@@ -49,4 +49,4 @@ add_dependencies(loader kernel)
 #add_subdirectory(tests)
 
 # Add the dependency on mira_module
-#\add_dependencies(tests mira_module)
+#add_dependencies(tests mira_module)

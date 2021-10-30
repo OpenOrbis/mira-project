@@ -189,7 +189,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
             {
                 case MIRA_READ_PROCESS_MEMORY:
                 case MIRA_WRITE_PROCESS_MEMORY:
-                case MIRA_GET_PROC_INFORMATION:
+                //case MIRA_GET_PROC_INFORMATION:
                 case MIRA_GET_PID_LIST:
                 case MIRA_ALLOCATE_PROCESS_MEMORY:
                 case MIRA_FREE_PROCESS_MEMORY:
@@ -211,7 +211,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                     return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 case MIRA_SET_CONFIG:
                     return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_PRIV_CHECK:             
+                case MIRA_SET_THREAD_PRIV_MASK:             
                     return Plugins::PrivCheckPlugin::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 default:
                     WriteLog(LL_Debug, "mira base unknown command: (0x%llx).", p_Command);

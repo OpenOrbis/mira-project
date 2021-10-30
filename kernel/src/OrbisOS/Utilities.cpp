@@ -46,7 +46,7 @@ void Utilities::HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, vo
     uint16_t* s_TempAddress = reinterpret_cast<uint16_t*>(p_HookTrampoline);
     s_TempAddress++;
 
-    uint64_t* s_FunctionAddress = reinterpret_cast<uint64_t*>(s_TempAddress);
+    uint64_t* s_FunctionAddress = reinterpret_cast<uint64_t*>(s_TempAddress); //-V::1032
 
     cpu_disable_wp();
 

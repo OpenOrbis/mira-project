@@ -15,3 +15,5 @@ void operator delete(void* p) noexcept;
 
 // delete[]
 void operator delete[] (void* p) noexcept;
+
+extern "C" void __stack_chk_fail(void);

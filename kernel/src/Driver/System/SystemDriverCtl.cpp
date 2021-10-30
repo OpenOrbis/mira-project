@@ -22,10 +22,10 @@ int SystemDriverCtl::OnSystemDriverCtlIoctl(struct cdev* p_Device, u_long p_Comm
         return OnSystemReadProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     case MIRA_WRITE_PROCESS_MEMORY:
         return OnSystemWriteProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-    case MIRA_GET_PROC_INFORMATION:
-        return OnMiraGetProcInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-    case MIRA_GET_PID_LIST:
-        return OnMiraGetProcList(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    // case MIRA_GET_PROC_INFORMATION:
+    //     return OnMiraGetProcInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+     case MIRA_GET_PID_LIST:
+         return OnSystemGetProcessList(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     default:
         WriteLog(LL_Debug, "invalid ioctl command (%x).", p_Command);
         break;
@@ -185,7 +185,7 @@ int32_t SystemDriverCtl::OnSystemWriteProcessMemory(struct cdev* p_Device, u_lon
 }
 
 
-int32_t SystemDriverCtl::OnMiraGetProcList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t SystemDriverCtl::OnSystemGetProcessList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);

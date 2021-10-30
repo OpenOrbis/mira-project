@@ -23,8 +23,6 @@ int32_t CtrlDriver::OnMiraGetConfig(struct cdev* p_Device, u_long p_Command, cad
         return ENOMEM;
     
     auto s_Configuration = s_Framework->GetConfiguration();
-    if (s_Configuration == nullptr)
-        return ENOMEM;
     
     auto s_Result = copyout(s_Configuration, p_Data, sizeof(*s_Configuration));
     if (s_Result != 0)

@@ -150,7 +150,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     _g_consoleHandle = -1;
     void* s_EntryPoint = (void*)nullptr;
     char s_LogBuffer[100];
-    //MiraPrivCheck s_PrivCheck;
+    //MiraSetThreadPrivMask s_PrivCheck;
 
     // Open up stdout
     _g_consoleHandle = stub_open("/dev/console", 0x0002, 0);

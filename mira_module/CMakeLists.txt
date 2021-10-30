@@ -1,7 +1,7 @@
 # Set the project to be a C CXX ASM
 project(mira_module)
 
-#set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 # Include all of the OOSDK defaults
 include(${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)
@@ -31,4 +31,5 @@ link_libraries(-lSceLibcInternal -lkernel -lc -lc++)
 add_executable(mira_module ${PREBUILT_OBJS} ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
 
 set(MODULE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/mira_module)
-#add_custom_command(TARGET mira_module POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-lib -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --paid 0x3800000000000011)
+
+add_custom_command(TARGET mira_module POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-lib -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --paid 0x3800000000000011)

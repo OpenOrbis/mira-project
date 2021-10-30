@@ -36,6 +36,22 @@ extern "C"
  * All inputs must be wrapped in a struct found in external/mira/Driver/DriverStructs.hpp
  * All outputs must be wrapped in a struct found in external/mira/Driver/DriverStructs.hpp
  * 
+ * All ioctls that require an output parameter must provide an address in local process space that will hold the returned pointer data
+ * 
+ * Example.
+ * 
+ * {
+ *      MyInputStruct s_MyStruct = { 0 };
+ *      void* s_IoctlData = &s_MyStruct;
+ *      if (ioctl(s_DeviceFd, MY_IOCTL_CODE, &s_IoctlData) == 0)
+ *      {
+ *          // s_IoctlData will contain a new pointer or nullptr
+ *          // use s_IoctlData will now be
+ *          // MyOutputStruct* s_IoctlData = someallocatedaddr;
+ *          // After finished using you must call the ioctl for FreeAllocatedData(s_IoctlData)
+ *      }
+ * }
+ * 
  * Each input if allowing get and set, must have a boolean/some kind of flag in the input structure for get or set
  * 
  * Each output if it's dynamic sized, will allocate process memory in the driver, and return a pointer back to the user to use

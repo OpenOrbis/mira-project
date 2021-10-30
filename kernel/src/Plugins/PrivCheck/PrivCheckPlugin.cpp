@@ -101,7 +101,7 @@ int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_
     if (s_PrivCheckPlugin == nullptr)
         return ENOMEM;
     
-    MiraPrivCheck s_PrivCheck = { 0 };
+    MiraSetThreadPrivMask s_PrivCheck = { 0 };
     auto s_Ret = copyin(p_Data, &s_PrivCheck, sizeof(s_PrivCheck));
     if (s_Ret != 0)
         return s_Ret;

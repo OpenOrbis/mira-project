@@ -109,4 +109,4 @@ add_link_options(--no-dynamic-linker)
 # Additional library directories
 add_link_options(-L${OO_PS4_TOOLCHAIN}/lib)
 
-#link_libraries(${OO_PS4_TOOLCHAIN}/lib/crtlib.o)
+add_link_options(-L${OO_PS4_TOOLCHAIN}/lib/crtlib.o)

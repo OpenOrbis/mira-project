@@ -239,7 +239,7 @@ vm_offset_t FakePkgManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t
 }
 
 
-int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size) __attribute__ ((optnone))
+int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size)
 {
     auto sceSblDriverSendMsg = (int (*)(SblMsg* msg, size_t size))kdlsym(sceSblDriverSendMsg);
     if (p_Message->hdr.cmd != SBL_MSG_CCP)

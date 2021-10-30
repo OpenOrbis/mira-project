@@ -1,5 +1,6 @@
 // This is an open source non-commercial project. Dear PVS-Studio, please check it.
 // PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+//-V::668
 
 #include "PluginManager.hpp"
 
@@ -65,7 +66,7 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load logmanager");
 
         // Initialize the fself manager
-        /*m_FakeSelfManager = new Mira::Plugins::FakeSelfManager();
+        m_FakeSelfManager = new Mira::Plugins::FakeSelfManager();
         if (m_FakeSelfManager == nullptr)
         {
             WriteLog(LL_Error, "could not allocate fake self manager.");
@@ -80,7 +81,7 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not allocate fake pkg manager.");
             s_Success = false;
             break;
-        }*/
+        }
 
         m_PrivCheck = new Mira::Plugins::PrivCheckPlugin();
         if (m_PrivCheck == nullptr)
@@ -97,7 +98,7 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load debugger.");
     }
 
-    /*if (m_FakeSelfManager)
+    if (m_FakeSelfManager)
     {
         if (!m_FakeSelfManager->OnLoad())
             WriteLog(LL_Error, "could not load fake self manager.");
@@ -107,7 +108,7 @@ bool PluginManager::OnLoad()
     {
         if (!m_FakePkgManager->OnLoad())
             WriteLog(LL_Error, "could not load fake pkg manager.");
-    }*/
+    }
 
     if (m_EmuRegistry)
     {
