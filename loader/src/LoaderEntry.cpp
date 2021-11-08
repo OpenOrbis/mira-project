@@ -67,6 +67,8 @@ int(*sceNetRecv)(int, void *, size_t, int) = nullptr;
 
 int(*snprintf)(char *str, size_t size, const char *format, ...) = nullptr;
 
+int(*sysKernelGetLowerLimitUpdVersion)(int* unk);
+
 void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap);
 
 void WriteNotificationLog(const char* text)
@@ -100,16 +102,102 @@ void mira_escape(struct thread* td, void* uap)
 
 	printf("[+] mira_escape\n");
 
+	//const int a = offsetof(struct thread, td_proc);
 	struct ucred* cred = td->td_proc->p_ucred;
 	struct filedesc* fd = td->td_proc->p_fd;
+
+
+	struct vnode* root_vnode = nullptr;
+	struct prison* prison0 = nullptr;
+
+	// We need to find proc1
+	struct proc* current_proc = td->td_proc;
+	printf("[=] iterating proc list backwards.\n");
+	while ((current_proc->p_list.le_prev != nullptr) && ((current_proc = *current_proc->p_list.le_prev) != nullptr))
+	{
+		if (current_proc->p_pid != 1)
+			continue;
+		
+		printf("[+] found proc1.\n");
+
+		struct filedesc* current_fd = current_proc->p_fd;
+		if (current_fd == nullptr)
+		{
+			printf("[-] found proc1, but has no fd.\n");
+			break;
+		}
+
+		// Set the root vnode
+		root_vnode = current_fd->fd_rdir;
+
+		struct ucred* current_cred = current_proc->p_ucred;
+		if (current_cred == nullptr)
+		{
+			printf("[-] found proc1, but has no ucred.\n");
+			break;
+		}
+
+		// Set the prison
+		prison0 = current_cred->cr_prison;
+	}
+
+	// Check to see if we got the prison and the root vnode, if not search forward
+	if (prison0 == nullptr || root_vnode == nullptr)
+	{
+		printf("[=] proc1 not found backwards, searching forward\n");
+
+		// Assign us to the current proc
+		current_proc = td->td_proc;
+
+		// Iterate all procs moving forward
+		while ((current_proc = current_proc->p_list.le_next) != nullptr)
+		{
+			// Ignore any process not proc1
+			if (current_proc->p_pid != 1)
+				continue;
+			
+			printf("[+] found proc1.\n");
+
+			// Get the fd
+			struct filedesc* current_fd = current_proc->p_fd;
+			if (current_fd == nullptr)
+			{
+				printf("[-] found proc1, but has no fd.\n");
+				break;
+			}
+
+			// Set the root vnode
+			root_vnode = current_fd->fd_rdir;
+
+			// Get the current credentials
+			struct ucred* current_cred = current_proc->p_ucred;
+			if (current_cred == nullptr)
+			{
+				printf("[-] found proc1, but has no ucred.\n");
+				break;
+			}
+
+			// Set the prison
+			prison0 = current_cred->cr_prison;
+		}
+	}
+
+	// If we do not have prison or root_vnode then bail
+	if (prison0 == nullptr || root_vnode == nullptr)
+	{
+		printf("[-] fatal: prison0 or root_vnode not found, hanging...");
+		for (;;)
+			__asm__("nop");
+	}
+	
 
 	cred->cr_uid = 0;
 	cred->cr_ruid = 0;
 	cred->cr_rgid = 0;
 	cred->cr_groups[0] = 0;
 
-	cred->cr_prison = *(struct prison**)kdlsym(prison0);
-	fd->fd_rdir = fd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+	cred->cr_prison = prison0; //*(struct prison**)kdlsym(prison0);
+	fd->fd_rdir = fd->fd_jdir = root_vnode; //*(struct vnode**)kdlsym(rootvnode);
 
 	// set diag auth ID flags
 	td->td_ucred->cr_sceAuthID = SceAuthenticationId_t::Decid;
@@ -118,12 +206,13 @@ void mira_escape(struct thread* td, void* uap)
 	td->td_ucred->cr_sceCaps[0] = SceCapabilities_t::Max;
 	td->td_ucred->cr_sceCaps[1] = SceCapabilities_t::Max;
 
+	// TODO: Determine if we need to re-enable these patches or not...
 	// Apply patches
-	cpu_disable_wp();
+	//cpu_disable_wp();
 
-	Mira::Boot::Patches::install_prePatches();
+	//Mira::Boot::Patches::install_prePatches();
 
-	cpu_enable_wp();
+	//cpu_enable_wp();
 
 	printf("[-] mira_escape\n");
 }
@@ -139,7 +228,17 @@ extern "C" void* mira_entry(void* args)
 	//int32_t sysUtilModuleId = -1;
 	int32_t netModuleId = -1;
 	int32_t libcModuleId = -1;
-	//int32_t libKernelWebModuleId = -1;
+	int32_t libKernelModuleId = -1;
+
+	{
+		Dynlib::LoadPrx("libkernel.sprx", &libKernelModuleId);
+		if (libKernelModuleId == -1)
+			Dynlib::LoadPrx("libkernel_web.sprx", &libKernelModuleId);
+		if (libKernelModuleId == -1)
+			Dynlib::LoadPrx("libkernel_sys.prx", &libKernelModuleId);
+
+		Dynlib::Dlsym(libKernelModuleId, "sysKernelGetLowerLimitUpdVersion", &sysKernelGetLowerLimitUpdVersion);
+	}
 
 	{
 		Dynlib::LoadPrx("libSceLibcInternal.sprx", &libcModuleId);
@@ -160,15 +259,22 @@ extern "C" void* mira_entry(void* args)
 		Dynlib::Dlsym(netModuleId, "sceNetRecv", &sceNetRecv);
 	}
 
+	// Determine firmware version
+	int unk_pad = 0;
+	int firmware_version = sysKernelGetLowerLimitUpdVersion(&unk_pad);
+	
+
 	// TODO: Check for custom Mira elf section to determine launch type
-	/*char buf[256];
-	memset(buf, 0, sizeof(buf));
+	char buf2[256];
+	memset(buf2, 0, sizeof(buf2));
 
-	snprintf(buf, sizeof(buf), "mira_start: %p mira_end: %p mira_size: %x", &_mira_elf_start, &_mira_elf_end, g_MiraElfSize);
-	WriteNotificationLog(buf);
+	snprintf(buf2, sizeof(buf2), "firmware_version: %x", firmware_version);
+	WriteNotificationLog(buf2);
 
-	return nullptr;*/
+	size_t bufferSize = g_MiraElfSize;
+	uint8_t* buffer = _mira_elf_start;
 
+#if defined(_SOCKET_LOADER)
 	// Allocate a 3MB buffer
 	size_t bufferSize = ALLOC_5MB;
 	uint8_t* buffer = (uint8_t*)_mmap(nullptr, bufferSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -179,7 +285,6 @@ extern "C" void* mira_entry(void* args)
 	}
 	memset(buffer, 0, bufferSize);
 
-#if defined(_SOCKET_LOADER)
 	//Loader::Memset(buffer, 0, bufferSize);
 	// Hold our server socket address
 	struct sockaddr_in serverAddress = { 0 };
@@ -235,7 +340,7 @@ extern "C" void* mira_entry(void* args)
 	// Close the client and server socket connections
 	sceNetSocketClose(clientSocket);
 	sceNetSocketClose(serverSocket);
-#else
+
 	// Handle loading embedded elf
 	uint32_t currentSize = g_MiraElfSize;
 	memcpy(buffer, &_mira_elf_start, currentSize);
@@ -248,12 +353,12 @@ extern "C" void* mira_entry(void* args)
 		buffer[3] == ELFMAG3) // 0x7F 'ELF'
 	{
 		// Determine if we are launching kernel
-		bool isLaunchingKernel = MiraLoader::Loader::CheckKernelElf(buffer, currentSize);
+		bool isLaunchingKernel = MiraLoader::Loader::CheckKernelElf(buffer, bufferSize);
 
 		// Send some debug output to the user to see
 		char buf[128];
 		memset(buf, 0, sizeof(buf));
-		snprintf(buf, sizeof(buf), "%s elf: %p elfSize: %llx", (isLaunchingKernel ? "kern" : "user"), buffer, currentSize);
+		snprintf(buf, sizeof(buf), "%s elf: %p elfSize: %llx", (isLaunchingKernel ? "kernel" : "user"), buffer, bufferSize);
 		WriteNotificationLog(buf);
 
 		if (isLaunchingKernel)
@@ -262,7 +367,7 @@ extern "C" void* mira_entry(void* args)
 			initParams.isElf = true;
 			initParams.isRunning = false;
 			initParams.payloadBase = (uint64_t)buffer;
-			initParams.payloadSize = currentSize;
+			initParams.payloadSize = bufferSize;
 			initParams.process = nullptr;
 			initParams.elfLoader = nullptr;
 			initParams.entrypoint = nullptr;
@@ -274,7 +379,7 @@ extern "C" void* mira_entry(void* args)
 			// Launch ELF
 			// TODO: Check/Add a flag to the elf that determines if this is a kernel or userland elf
 			// Loader(const void* p_Elf, uint32_t p_ElfSize, ElfLoaderType_t p_Type);
-			MiraLoader::Loader loader(buffer, currentSize, ElfLoaderType_t::UserProc);
+			MiraLoader::Loader loader(buffer, bufferSize, ElfLoaderType_t::UserProc);
 
 			auto entryPoint = reinterpret_cast<void(*)(void*)>(loader.GetEntrypoint());
 			if (!entryPoint)
@@ -308,6 +413,13 @@ void miraloader_kernelInitialization(struct thread* td, struct kexec_uap* uap)
 	Mira::Boot::InitParams* userInitParams = reinterpret_cast<Mira::Boot::InitParams*>(uap->arg0);
 
 	// Thread should already be escaped from earlier
+
+	// TODO: In order to make this firmware agnostic we will need to
+	// 1. Get proc0
+	// 2. Iterate proc0's vm_map
+	// 3. Find the .text segment
+	// 4. Pattern scan the entire .text segment for our function signatures
+	// 5. pray?
 
 	// Fill the kernel base address
 	gKernelBase = (uint8_t*)kernelRdmsr(0xC0000082) - kdlsym_addr_Xfast_syscall;
