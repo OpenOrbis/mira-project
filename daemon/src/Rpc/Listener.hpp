@@ -1,23 +1,32 @@
 #pragma once
 #include "Status.hpp"
 
+#ifdef _PROTOBUF
 #include "Protos/Rpc.pb.h"
+#endif
+
 #include <Utils/Logger.hpp>
 
 namespace Mira
 {
     namespace Rpc
     {
+        class RpcMessage;
         enum class Status;
 
         class Listener
         {
         protected:
+            #ifdef _PROTOBUF
             google::protobuf::Arena* m_Arena;
+            #endif
 
         public:
+        #ifdef _PROTOBUF
             Listener(google::protobuf::Arena* p_Arena) :
                 m_Arena(p_Arena)
+        #endif
+            Listener(void* p_Pointer)
             {
                 
             }
@@ -28,6 +37,7 @@ namespace Mira
             template<typename T>
             void SetInnerMessage(RpcMessage* p_Message, T& p_InnerMessage)
             {
+            #if _PROTOBUF
                 auto s_Any = google::protobuf::Arena::CreateMessage<google::protobuf::Any>(m_Arena);
                 if (!s_Any)
                 {
@@ -38,6 +48,7 @@ namespace Mira
                 s_Any->PackFrom(p_InnerMessage);
 
                 p_Message->set_allocated_inner_message(s_Any);
+            #endif
             }
         };
     }

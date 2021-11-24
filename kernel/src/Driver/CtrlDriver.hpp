@@ -58,6 +58,17 @@ extern "C"
  * 
  * This can be freed with munmap after use
  */
+
+/**
+*/
+typedef struct _MiraIoctl
+{
+    void* Input;
+    uint32_t InputSize;
+    void* Output;
+    uint32_t OutputSize;
+} MiraIoctl;
+
 namespace Mira
 {
     namespace Driver

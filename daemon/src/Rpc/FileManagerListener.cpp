@@ -1,3 +1,5 @@
+#if 0
+
 #include "FileManagerListener.hpp"
 #include "Protos/FileManager.pb.h"
 
@@ -9,8 +11,12 @@ extern "C"
 }
 using namespace Mira::Rpc;
 
+#ifdef _PROTOBUF
 FileManagerListener::FileManagerListener(google::protobuf::Arena* p_Arena) :
     Listener(p_Arena)
+#else
+FileManagerListener::FileManagerListener()
+#endif
 {
 
 }
@@ -22,6 +28,7 @@ FileManagerListener::~FileManagerListener()
 
 Status FileManagerListener::OnMessage(RpcMessage* p_Request, RpcMessage* p_Response)
 {
+#ifdef _PROTOBUF
     if (p_Request->inner_message().Is<FileManager::EchoRequest>())
         return OnEcho(p_Request, p_Response);
     
@@ -46,9 +53,13 @@ Status FileManagerListener::OnMessage(RpcMessage* p_Request, RpcMessage* p_Respo
     if (p_Request->inner_message().Is<FileManager::UnlinkRequest>())
         return OnUnlink(p_Request, p_Response);
     
+    
     // By default if we don't have the message we are looking for report that we skipped
     // This will ensure that the manager calls the next listener
     return Status::SKIPPED;
+#else
+    return (Status)0;
+#endif
 }
 
 Status FileManagerListener::OnEcho(RpcMessage* p_Request, RpcMessage* p_Response)
@@ -343,3 +354,4 @@ Status FileManagerListener::OnUnlink(RpcMessage* p_Request, RpcMessage* p_Respon
     
     return Status::OK;
 }
+#endif

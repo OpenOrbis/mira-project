@@ -28,7 +28,7 @@ set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 add_subdirectory(mira_module)
 
 # Build the daemon
-#add_subdirectory(daemon)
+add_subdirectory(daemon)
 
 # This is required for all other steps to succeeed
 add_subdirectory(trainer_loader)

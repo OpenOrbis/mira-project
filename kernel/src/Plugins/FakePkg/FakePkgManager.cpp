@@ -142,6 +142,12 @@ FakePkgManager::~FakePkgManager()
 
 void FakePkgManager::GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[PFS_FINAL_KEY_SIZE])
 {
+    if (p_EncryptionKeyPFS == nullptr)
+    {
+        WriteLog(LL_Error, "p_EncryptinoKeyPFS is nullptr.");
+        return;
+    }
+
     auto s_Thread = curthread;
     FakeKeyD s_D;
     memset(&s_D, 0, sizeof(s_D));
@@ -176,6 +182,12 @@ int FakePkgManager::DecryptNpdrmDebugRif(uint32_t p_Type, uint8_t* p_Data)
     auto s_Thread = __curthread();
     if (s_Thread == nullptr)
         return SCE_SBL_ERROR_NPDRM_ENOTSUP;
+
+    if (p_Data == nullptr)
+    {
+        WriteLog(LL_Error, "p_Data is nullptr.");
+        return SCE_SBL_ERROR_NPDRM_ENOTSUP;
+    }
     
     auto fpu_kern_enter = (int(*)(struct thread *td, struct fpu_kern_ctx *ctx, u_int flags))kdlsym(fpu_kern_enter);
     auto fpu_kern_leave = (int (*)(struct thread *td, struct fpu_kern_ctx *ctx))kdlsym(fpu_kern_leave);
@@ -228,6 +240,12 @@ SblMapListEntry* FakePkgManager::SceSblDriverFindMappedPageListByGpuVa(vm_offset
 
 vm_offset_t FakePkgManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t* p_NumPageGroups)
 {
+    if (p_GpuVa == 0)
+    {
+        WriteLog(LL_Error, "p_GpuVa is nullptr.");
+        return 0;
+    }
+
     auto s_Entry = SceSblDriverFindMappedPageListByGpuVa(p_GpuVa);
     if (s_Entry == nullptr)
         return 0;
@@ -241,6 +259,12 @@ vm_offset_t FakePkgManager::SceSblDriverGpuVaToCpuVa(vm_offset_t p_GpuVa, size_t
 
 int FakePkgManager::OnSceSblDriverSendMsg(SblMsg* p_Message, size_t p_Size)
 {
+    if (p_Message == nullptr)
+    {
+        WriteLog(LL_Error, "p_Message is nullptr.");
+        return SCE_SBL_ERROR_NPDRM_ENOTSUP;
+    }
+
     auto sceSblDriverSendMsg = (int (*)(SblMsg* msg, size_t size))kdlsym(sceSblDriverSendMsg);
     if (p_Message->hdr.cmd != SBL_MSG_CCP)
         return sceSblDriverSendMsg(p_Message, p_Size);
@@ -406,6 +430,12 @@ err:
 
 int FakePkgManager::OnNpdrmDecryptIsolatedRif(KeymgrPayload* p_Payload)
 {
+    if (p_Payload == nullptr)
+    {
+        WriteLog(LL_Error, "p_Payload is nullptr.");
+        return SCE_SBL_ERROR_NPDRM_ENOTSUP;
+    }
+
     auto sceSblKeymgrSmCallfunc = (int (*)(KeymgrPayload* payload))kdlsym(sceSblKeymgrSmCallfunc);
 
     // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address
@@ -429,6 +459,12 @@ int FakePkgManager::OnNpdrmDecryptIsolatedRif(KeymgrPayload* p_Payload)
 
 int FakePkgManager::OnNpdrmDecryptRifNew(KeymgrPayload* p_Payload)
 {
+    if (p_Payload == nullptr)
+    {
+        WriteLog(LL_Error, "p_Payload is nullptr.");
+        return SCE_SBL_ERROR_NPDRM_ENOTSUP;
+    }
+
     auto sceSblKeymgrSmCallfunc = (int (*)(KeymgrPayload* payload))kdlsym(sceSblKeymgrSmCallfunc);
 
     // it's SM request, thus we have the GPU address here, so we need to convert it to the CPU address 
@@ -484,6 +520,8 @@ SblKeyRbtreeEntry* FakePkgManager::sceSblKeymgrGetKey(unsigned int p_Handle)
 {
     SblKeyRbtreeEntry* s_Entry = *(SblKeyRbtreeEntry**)kdlsym(sbl_keymgr_key_rbtree);
 
+    // NOTE: Do we need to take a lock here of any kind?
+    // TODO: Investigate
     while (s_Entry)
     {
         if (s_Entry->handle < p_Handle)
@@ -499,6 +537,12 @@ SblKeyRbtreeEntry* FakePkgManager::sceSblKeymgrGetKey(unsigned int p_Handle)
 
 int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Opts, const char* p_File, int p_Line) 
 {
+    if (p_Sx == nullptr)
+    {
+        WriteLog(LL_Error, "invalid lock provided.");
+        return 0;
+    }
+    
     //WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
     auto sceSblKeymgrSetKeyStorage = (int (*)(uint64_t key_gpu_va, unsigned int key_size, uint32_t key_id, uint32_t key_handle))kdlsym(sceSblKeymgrSetKeyStorage);
     auto sblKeymgrKeySlots = (_SblKeySlotQueue *)kdlsym(sbl_keymgr_key_slots);

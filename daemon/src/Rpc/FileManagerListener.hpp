@@ -15,7 +15,11 @@ namespace Mira
             };
 
         public:
+        #ifdef _PROTOBUF
             FileManagerListener(google::protobuf::Arena* p_Arena);
+        #else
+            FileManagerListener();
+        #endif
             virtual ~FileManagerListener();
             virtual Status OnMessage(RpcMessage* p_Request, RpcMessage* p_Response) override;
 

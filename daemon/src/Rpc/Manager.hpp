@@ -6,7 +6,9 @@
 #include <mutex>
 #include <thread>
 
+#ifdef _PROTOBUF
 #include <google/protobuf/arena.h>
+#endif
 
 extern "C"
 {
@@ -40,7 +42,9 @@ namespace Mira
             int16_t m_Port;
             struct sockaddr_in m_Address;
 
+            #ifdef _PROTOBUF
             google::protobuf::Arena m_Arena;
+            #endif
             std::mutex m_Mutex;
 
             // Internal tracker for the listeners

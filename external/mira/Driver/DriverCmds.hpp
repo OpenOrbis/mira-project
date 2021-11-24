@@ -19,6 +19,46 @@ extern "C" {
 };
 #endif
 
+/*
+   97 
+   98  prison0 describes what is "real" about the system. 
+   99 struct prison prison0 = {
+  100         .pr_id          = 0,
+  101         .pr_name        = "",
+  102         .pr_ref         = 1,
+  103         .pr_uref        = 1,
+  104         .pr_path        = "/",
+  105         .pr_securelevel = -1,
+  106         .pr_childmax    = JAIL_MAX,
+  107         .pr_hostuuid    = DEFAULT_HOSTUUID,
+  108         .pr_children    = LIST_HEAD_INITIALIZER(prison0.pr_children),
+  109 #ifdef VIMAGE
+  110         .pr_flags       = PR_HOST|PR_VNET|_PR_IP_SADDRSEL,
+  111 #else
+  112         .pr_flags       = PR_HOST|_PR_IP_SADDRSEL,
+  113 #endif
+  114         .pr_allow       = PR_ALLOW_ALL,
+  115 };
+  116 MTX_SYSINIT(prison0, &prison0.pr_mtx, "jail mutex", MTX_DEF);
+*/
+
+/*
+# bare minimum.
+- alloc/read/write/protect own process  -> (read/write doesn't have to be in kernel)
+-- ability to see mem map of own proc
+- miraVersion
+- mounting stuff
+- jailbreak stuff
+
+# extra (you don't strictly need this but would eventually make it easier.)
+- request pfi of prx to hook imports without hardcoding offsets. 
+-- mira maintained lib to interpret pfi.
+
+# don't really need this probably? (does anything use this?)
+- alloc/read/write/protect other processes
+-- ability to see all procs ^
+-- ability to see memory map of other procs ^*/
+
 #define MIRA_IOCTL_BASE 'M'
 
 // List of commands, this way everything keeps the same ID's
@@ -40,14 +80,33 @@ enum MiraIoctlCmds
     CMD_CreateTrainerShm,           // TODO: Implement
     CMD_GetTrainerShm,              // TODO: Implement
     CMD_LoadTrainers,               // Requests for the trainer sandbox directories to be mounted and to load trainers
-    CMD_GetOriginalEntryPoint,      // Gets the original entry point by process id
+    CMD_GetProcessEntryPoint,       // Gets the original entry point by process id
     
     CMD_TRAINERS_END = 40,
     // 41-60 = Debugger
     CMD_DEBUGGER_START = 41,
-    CMD_GetProcessInformation,      // Get process information
+    CMD_GetProcessInformation,      // Get process information, such as threads, memory ranges, jail
+
+    // Jails
+    CMD_GetJailList,                // Gets a list of jails and their permissions
+    CMD_SetProcessJail,             // Sets the process jail by index/id
+
+    CMD_GetProcessThreadList,       // Gets the process thread list
+
+    // Credentials
     CMD_GetThreadCredentials,       // Get thread credentials
     CMD_SetThreadCredentials,       // Set thread credentials
+
+    /*// Registers
+    CMD_GetThreadRegisters,         // Gets the process thread registers
+    CMD_SetThreadRegisters,         // Sets the process thread registers
+
+    // Breakpoints
+    CMD_GetBreakpointList,          // Get all breakpoints (software, hardware)
+    CMD_GetBreakpoint,              // Get breakpoint information
+    CMD_SetBreakpoint,              // Set breakpoint information*/
+
+
     CMD_DEBUGGER_END = 60,
 
     // 61-90 = Mira Reserved
@@ -63,6 +122,7 @@ enum MiraIoctlCmds
     CMD_SystemFreeMemory,           // Free memory by pid
     CMD_SystemReadProcessMemory,    // Read process memory by pid
     CMD_SystemWriteProcessMemory,   // Write process memory by pid
+    CMD_SystemProtectProcessMemory, // Changes memory protections by pid
     CMD_SystemGetProcessList,       // Get process list
 
     CMD_MIRA_END = 90,
@@ -92,7 +152,7 @@ enum MiraIoctlCmds
 
 // Trainers
 #define MIRA_TRAINERS_LOAD _IOC(IOC_VOID, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_LoadTrainers), 0)
-#define MIRA_TRAINERS_ORIG_EP _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetOriginalEntryPoint), sizeof(uint64_t))
+#define MIRA_TRAINERS_ORIG_EP _IOC(IOC_OUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_GetProcessEntryPoint), sizeof(uint64_t))
 
 /*
     System

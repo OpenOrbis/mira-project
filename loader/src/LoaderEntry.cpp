@@ -111,12 +111,19 @@ void mira_escape(struct thread* td, void* uap)
 	struct prison* prison0 = nullptr;
 
 	// We need to find proc1
+
 	struct proc* current_proc = td->td_proc;
 	printf("[=] iterating proc list backwards.\n");
-	while ((current_proc->p_list.le_prev != nullptr) && ((current_proc = *current_proc->p_list.le_prev) != nullptr))
+	while (current_proc != nullptr)
 	{
 		if (current_proc->p_pid != 1)
+		{
+			if (current_proc->p_list.le_prev == nullptr)
+				break;
+			
+			current_proc = *current_proc->p_list.le_prev;
 			continue;
+		}
 		
 		printf("[+] found proc1.\n");
 
@@ -150,11 +157,20 @@ void mira_escape(struct thread* td, void* uap)
 		current_proc = td->td_proc;
 
 		// Iterate all procs moving forward
-		while ((current_proc = current_proc->p_list.le_next) != nullptr)
+		while (current_proc != nullptr)
 		{
 			// Ignore any process not proc1
 			if (current_proc->p_pid != 1)
+			{
+				if (current_proc->p_list.le_next == nullptr)
+				{
+					printf("[-] end of list, breaking...\n");
+					break;
+				}
+			
+				current_proc = current_proc->p_list.le_next;
 				continue;
+			}
 			
 			printf("[+] found proc1.\n");
 

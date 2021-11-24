@@ -2,7 +2,9 @@
 
 #include <string>
 
+#ifdef _PROTOBUF
 #include "Protos/Rpc.pb.h"
+#endif
 #include "Connection.hpp"
 #include "FileManagerListener.hpp"
 #include "Status.hpp"
@@ -23,7 +25,11 @@ Manager::Manager() :
     m_NextConnectionId(0)
 {
     // Add default listeners
-    m_Listeners.push_back(std::make_shared<FileManagerListener>(&m_Arena));
+    /*m_Listeners.push_back(std::make_shared<FileManagerListener>(
+        #ifdef _PROTOBUF
+        &m_Arena
+        #endif
+        ));*/
 
     // Make this baby prrrr
     Startup();
@@ -188,6 +194,8 @@ bool Manager::Startup()
                         break;
                     }
 
+                    #if _PROTOBUF
+
                     // Create the new request and responses
                     auto s_Request = google::protobuf::Arena::CreateMessage<RpcMessage>(&m_Arena);
                     if (s_Request == nullptr)
@@ -269,6 +277,7 @@ bool Manager::Startup()
                         // There should only be ONE endpoint per-message type
                         break;
                     }
+                    #endif
                 }
 
                 OnConnectionDisconnect(l_Connection->GetId());

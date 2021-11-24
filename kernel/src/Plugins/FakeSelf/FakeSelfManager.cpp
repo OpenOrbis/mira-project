@@ -130,7 +130,19 @@ int FakeSelfManager::OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuth
     {
         WriteLog(LL_Error, "invalid context");
         return sceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
-    } 
+    }
+
+    if (p_OldAuthInfo == nullptr)
+    {
+        WriteLog(LL_Error, "invalid old auth info.");
+        return sceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
+    }
+
+    if (p_NewAuthInfo == nullptr)
+    {
+        WriteLog(LL_Error, "invalid new auth info.");
+        return sceSblAuthMgrIsLoadable2(p_Context, p_OldAuthInfo, p_PathId, p_NewAuthInfo);
+    }
     
     if (p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context))
     {
@@ -170,6 +182,12 @@ int FakeSelfManager::OnSceSblAuthMgrIsLoadable2(SelfContext* p_Context, SelfAuth
 int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
 {    
     auto sceSblAuthMgrVerifyHeader = (int(*)(SelfContext* p_Context))kdlsym(sceSblAuthMgrVerifyHeader);
+
+    if (p_Context == nullptr)
+    {
+        WriteLog(LL_Error, "invalid context.");
+        return ENOMEM;
+    }
 
     bool s_IsUnsigned = p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context);
     if (s_IsUnsigned)
@@ -220,6 +238,12 @@ int FakeSelfManager::AuthSelfHeader(SelfContext* p_Context)
 int FakeSelfManager::OnSceSblAuthMgrVerifyHeader(SelfContext* p_Context)
 {
     auto _sceSblAuthMgrSmStart = (void(*)(void**))kdlsym(_sceSblAuthMgrSmStart);
+
+    if (p_Context == nullptr)
+    {
+        WriteLog(LL_Error, "context is nullptr.");
+        return ENOMEM;
+    }
 
     void* s_Temp = nullptr;
     _sceSblAuthMgrSmStart(&s_Temp);
@@ -405,6 +429,12 @@ int FakeSelfManager::SceSblAuthMgrGetSelfAuthInfoFake(SelfContext* p_Context, Se
         WriteLog(LL_Error, "invalid context");
         return -EAGAIN;
     }
+
+    if (p_Info == nullptr)
+    {
+        WriteLog(LL_Error, "invalid self auth info.");
+        return -EAGAIN;
+    }
     
     if (p_Context->format == SelfFormat::Elf)
     {
@@ -441,6 +471,12 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfSegment_Mailbox(uint64_t p_ServiceId
     auto s_RequestMessage = static_cast<MailboxMessage*>(p_Request);
     if (s_RequestMessage == nullptr)
     {
+        WriteLog(LL_Error, "invalid request");
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
+
+    if (p_Response == nullptr)
+    {
         WriteLog(LL_Error, "invalid response");
         return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
     }
@@ -466,11 +502,34 @@ int FakeSelfManager::SceSblAuthMgrSmLoadSelfBlock_Mailbox(uint64_t p_ServiceId, 
 {
     auto sceSblServiceMailbox = (int(*)(uint64_t p_ServiceId, void* p_Request, void* p_Response))kdlsym(sceSblServiceMailbox);
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wframe-address"
     // self_context is first param of caller. 0x08 = sizeof(struct self_context*)
     uint8_t* frame = (uint8_t*)__builtin_frame_address(1);
-    SelfContext* p_Context = *(SelfContext**)(frame - 0x08);
+#pragma clang diagnostic pop
 
-    bool s_IsUnsigned = p_Context && (p_Context->format == SelfFormat::Elf || IsFakeSelf(p_Context));
+    SelfContext* s_Context = *(SelfContext**)(frame - 0x08);
+
+    if (p_Request == nullptr)
+    {
+        WriteLog(LL_Error, "invalid request");
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
+
+    if (p_Response == nullptr)
+    {
+        WriteLog(LL_Error, "invalid response");
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
+
+    if (s_Context == nullptr)
+    {
+        WriteLog(LL_Error, "could not load segment, could not get self context.");
+        return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
+    }
+
+    bool s_IsUnsigned = s_Context && (s_Context->format == SelfFormat::Elf || IsFakeSelf(s_Context));
 
     if (!s_IsUnsigned)
         return sceSblServiceMailbox(p_ServiceId, p_Request, p_Response);
