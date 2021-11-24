@@ -1,8 +1,11 @@
 # Set the project to be a C CXX ASM
 project(kernel)
 
-# PVS-Studio Integration
-include(${CMAKE_SOURCE_DIR}/scripts/PVS-Studio.cmake)
+
+if (MIRA_CHECKS)
+    # PVS-Studio Integration
+    include(${CMAKE_SOURCE_DIR}/scripts/PVS-Studio.cmake)
+endif()
 
 #set(CMAKE_VERBOSE_MAKEFILE OFF)
 
@@ -31,7 +34,10 @@ add_compile_definitions(TRAINER_LOADER_BIN_PATH="${TRAINER_LOADER_BIN}")
 
 add_executable(kernel ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
 
-pvs_studio_add_target(TARGET kernel.analyze ALL
-                      OUTPUT FORMAT errorfile
-                      ANALYZE ${PROJECT_NAME}
-                      LOG target.err)
+if (MIRA_CHECKS)
+    message("MIRA_CHECKS is enabled, configuring PVS-Studio for Open-Source projects.")
+    pvs_studio_add_target(TARGET kernel.analyze ALL
+                        OUTPUT FORMAT errorfile
+                        ANALYZE ${PROJECT_NAME}
+                        LOG target.err)
+endif()
