@@ -114,39 +114,9 @@ void mira_escape(struct thread* td, void* uap)
 
 	struct proc* current_proc = td->td_proc;
 	printf("[=] iterating proc list backwards.\n");
-	while (current_proc != nullptr)
-	{
-		if (current_proc->p_pid != 1)
-		{
-			if (current_proc->p_list.le_prev == nullptr)
-				break;
-			
-			current_proc = *current_proc->p_list.le_prev;
-			continue;
-		}
-		
-		printf("[+] found proc1.\n");
-
-		struct filedesc* current_fd = current_proc->p_fd;
-		if (current_fd == nullptr)
-		{
-			printf("[-] found proc1, but has no fd.\n");
-			break;
-		}
-
-		// Set the root vnode
-		root_vnode = current_fd->fd_rdir;
-
-		struct ucred* current_cred = current_proc->p_ucred;
-		if (current_cred == nullptr)
-		{
-			printf("[-] found proc1, but has no ucred.\n");
-			break;
-		}
-
-		// Set the prison
-		prison0 = current_cred->cr_prison;
-	}
+	
+	// Note: ChendoChap: We don't need to iterate the list backwards unless
+	// the process was spawned after our current running process
 
 	// Check to see if we got the prison and the root vnode, if not search forward
 	if (prison0 == nullptr || root_vnode == nullptr)
@@ -160,41 +130,42 @@ void mira_escape(struct thread* td, void* uap)
 		while (current_proc != nullptr)
 		{
 			// Ignore any process not proc1
-			if (current_proc->p_pid != 1)
+			if (current_proc->p_pid == 1)
 			{
-				if (current_proc->p_list.le_next == nullptr)
+				printf("[+] found proc1.\n");
+
+				// Get the fd
+				struct filedesc* current_fd = current_proc->p_fd;
+				if (current_fd == nullptr)
 				{
-					printf("[-] end of list, breaking...\n");
+					printf("[-] found proc1, but has no fd.\n");
 					break;
 				}
-			
-				current_proc = current_proc->p_list.le_next;
-				continue;
-			}
-			
-			printf("[+] found proc1.\n");
 
-			// Get the fd
-			struct filedesc* current_fd = current_proc->p_fd;
-			if (current_fd == nullptr)
+				// Set the root vnode
+				root_vnode = current_fd->fd_rdir;
+
+				// Get the current credentials
+				struct ucred* current_cred = current_proc->p_ucred;
+				if (current_cred == nullptr)
+				{
+					printf("[-] found proc1, but has no ucred.\n");
+					break;
+				}
+
+				// Set the prison
+				prison0 = current_cred->cr_prison;
+			}
+			else if (current_proc->p_pid == 0)
 			{
-				printf("[-] found proc1, but has no fd.\n");
-				break;
+				// Kernel process
+				printf("[+] found proc0.\n");
+
+				// TODO: Get proc0's vmspace and do pattern scanning
 			}
 
-			// Set the root vnode
-			root_vnode = current_fd->fd_rdir;
-
-			// Get the current credentials
-			struct ucred* current_cred = current_proc->p_ucred;
-			if (current_cred == nullptr)
-			{
-				printf("[-] found proc1, but has no ucred.\n");
-				break;
-			}
-
-			// Set the prison
-			prison0 = current_cred->cr_prison;
+			// Update our current proc
+			current_proc = current_proc->p_list.le_next;
 		}
 	}
 
