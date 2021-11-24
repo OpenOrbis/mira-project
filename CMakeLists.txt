@@ -9,6 +9,14 @@ project(mira-project)
 # Set the firmware version
 set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 
+if (NOT "" STREQUAL "$ENV{MIRA_PLATFORM}")
+    message("overriding build by environment variable for MIRA_PLATFORM=$ENV{MIRA_PLATFORM}")
+    set(MIRA_PLATFORM ENV{MIRA_PLATFORM})
+endif()
+
+# Display some output to the user
+message("Configuring for MIRA_PLATFORM=${MIRA_PLATFORM}")
+
 # Enable static analysis checking
 set(MIRA_CHECKS False)
 
