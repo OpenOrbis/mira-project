@@ -64,6 +64,46 @@ bool Debugger::OnUnload()
 
 int32_t Debugger::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+
+    if (p_Device == nullptr || p_Data == 0)
+        return EINVAL;
+
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+        return ENOMEM;
+    
+    auto s_PluginManager = s_Framework->GetPluginManager();
+    if (s_PluginManager == nullptr)
+        return ENOMEM;
+    
+    Debugger* s_Debugger = reinterpret_cast<Debugger*>(s_PluginManager->GetDebugger());
+    if (s_Debugger == nullptr)
+        return ENOMEM;
+
+    auto s_Proc = p_Thread->td_proc;
+    if (s_Proc == nullptr)
+        return EPROCUNAVAIL;
+
+    switch (p_Command) {
+        case MIRA_FIND_JMPSLOT: {
+
+            MiraFindJMPSlot s_Options;
+            copyin(p_Data, &s_Options, sizeof(MiraFindJMPSlot));
+
+            void* s_Address = s_Debugger->FindJmpslotAddress(s_Proc, s_Options.module, s_Options.function, s_Options.is_nid);
+            if (s_Address == nullptr)
+            {
+                WriteLog(LL_Error, "address not found for proc (%d) module (%s) function (%s).", s_Proc->p_pid, s_Options.module, s_Options.function);
+                return ESRCH;
+            }
+            
+            copyout(&s_Address, s_Options.value, sizeof(s_Address));
+            
+        }
+    }
+
     // TODO: Handle debugger specific stuff (same that's available over rpc)
     return 0;
 }

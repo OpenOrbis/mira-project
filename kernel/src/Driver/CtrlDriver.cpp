@@ -180,6 +180,13 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         return ENOMEM;
     }
 
+    auto s_PluginManager = s_Framework->GetPluginManager();
+    if (s_PluginManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get plugin manager.");
+        return ENOMEM;
+    }
+
     switch (IOCGROUP(p_Command)) 
     {
         case MIRA_IOCTL_BASE:
@@ -211,8 +218,10 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                     return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 case MIRA_SET_CONFIG:
                     return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_SET_THREAD_PRIV_MASK:             
+                case MIRA_SET_THREAD_PRIV_MASK:
                     return Plugins::PrivCheckPlugin::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                case MIRA_FIND_JMPSLOT:
+                    return Plugins::Debugger::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 default:
                     WriteLog(LL_Debug, "mira base unknown command: (0x%llx).", p_Command);
                     break;

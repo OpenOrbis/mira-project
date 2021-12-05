@@ -273,3 +273,19 @@ typedef struct _MiraFreeMemory
 
     void* Pointer;
 } MiraFreeMemory;
+
+
+typedef struct __attribute__((packed)) _MiraFindJMPSlot
+{
+    // Library name (Nothing is Main)
+    char module[_MAX_PATH];
+
+    // Function name
+    char function[_MAX_PATH];
+
+    // Is nids or name ?
+    bool is_nid;
+
+    // Where value need to be returned
+    void* value;
+} MiraFindJMPSlot;
