@@ -301,7 +301,7 @@ bool FakePkgManager::ShellCorePatch()
 		return false;
 	}
 
-#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_450
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_450 && MIRA_PLATFORM != MIRA_PLATFORM_ORBIS_BSD_900
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_external_hdd_pkg_installer_patch), 1, (void*)"\x00", nullptr, true);
 	if (s_Ret < 0)
 	{

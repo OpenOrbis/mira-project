@@ -129,12 +129,14 @@ bool RemotePlayEnabler::ShellUIPatch()
 	s_Entries = nullptr;
 
 	// `/system_ex/app/NPXS20001/eboot.bin`
+#if MIRA_PLATFORM != MIRA_PLATFORM_ORBIS_BSD_900
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_ShellUITextStart + ssu_CreateUserForIDU_patch), 4, (void*)"\x48\x31\xC0\xC3", nullptr, true);
 	if (s_Ret < 0)
 	{
 		WriteLog(LL_Error, "ssu_CreateUserForIDU_patch");
 		return false;
 	}
+#endif
 
 #if MIRA_PLATFORM == MIRA_PLATFORM_ORBIS_BSD_405
 	// `/system_ex/app/NPXS20001/libSceVsh_aot.sprx`
@@ -214,6 +216,7 @@ bool RemotePlayEnabler::RemotePlayPatch()
 	s_Entries = nullptr;
 
 	// `/system/vsh/app/NPXS21006/eboot.bin`
+#if MIRA_PLATFORM != MIRA_PLATFORM_ORBIS_BSD_900
 	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_RemotePlayTextStart + srp_enabler_patchA), 1, (void*)"\x01", nullptr, true);
 	if (s_Ret < 0)
 	{
@@ -230,6 +233,7 @@ bool RemotePlayEnabler::RemotePlayPatch()
 	}
 
 	WriteLog(LL_Debug, "SceRemotePlay successfully patched");
+#endif
 
 	return true;
 }
