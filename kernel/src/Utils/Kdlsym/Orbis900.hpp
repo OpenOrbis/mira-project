@@ -83,11 +83,11 @@
 #define kdlsym_addr_M_TEMP                                 0x015621E0
 #define kdlsym_addr_make_dev_p                             0x001EF590
 #define kdlsym_addr_malloc                                 0x00301B20
-#define kdlsym_addr_memcmp                                 0x00271E20 //sus
+#define kdlsym_addr_memcmp                                 0x00271E20
 #define kdlsym_addr_memcpy                                 0x002714B0
 #define kdlsym_addr_memmove                                0x000AF850
 #define kdlsym_addr_memset                                 0x001496C0
-#define kdlsym_addr_mini_syscore_self_binary               0x01579DF8 // sus
+#define kdlsym_addr_mini_syscore_self_binary               0x01579DF8
 #define kdlsym_addr_mount_arg                              0x0004DCC0
 #define kdlsym_addr_mount_argb                             0x0004D460
 #define kdlsym_addr_mount_argf                             0x0004DDB0
@@ -100,13 +100,13 @@
 #define kdlsym_addr_pfind                                  0x00178960
 #define kdlsym_addr_pmap_activate                          0x00138940
 #define kdlsym_addr_printf                                 0x000B7A30
-#define kdlsym_addr_prison0                                0x01A76580 // sus
+#define kdlsym_addr_prison0                                0x0111F870 // sus
 #define kdlsym_addr_proc0                                  0x01B90E00
 #define kdlsym_addr_proc_reparent                          0x00173E90
 #define kdlsym_addr_proc_rwmem                             0x0041EB00
 #define kdlsym_addr_realloc                                0x00301DE0
 #define kdlsym_addr_rootvnode                              0x021EFF20
-#define kdlsym_addr_RsaesPkcs1v15Dec2048CRT                0x003ED220
+#define kdlsym_addr_RsaesPkcs1v15Dec2048CRT                0x004628B0
 #define kdlsym_addr_sbl_eap_internal_partition_key         0x026C4C90
 #define kdlsym_addr_sbl_keymgr_buf_gva                     0x0264C808
 #define kdlsym_addr_sbl_keymgr_buf_va                      0x0264C000
