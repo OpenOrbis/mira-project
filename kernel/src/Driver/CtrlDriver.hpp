@@ -140,7 +140,7 @@ typedef struct _MiraProcessInformation
     char Name[sizeof(((struct proc*)0)->p_comm)];
     char ElfPath[sizeof(((struct proc*)0)->p_elfpath)];
     char RandomizedPath[sizeof(((struct proc*)0)->p_randomized_path)];
-    ThreadResult Threads[];
+    ThreadResult Threads[0];
 } MiraProcessInformation;
 
 typedef struct _MiraProcessList
@@ -149,7 +149,7 @@ typedef struct _MiraProcessList
     uint32_t Size;
 
     // Pid array
-    int32_t Pids[];
+    int32_t Pids[0];
 } MiraProcessList;
 
 typedef struct _MiraMountInSandbox
@@ -186,7 +186,7 @@ typedef struct _MiraGetTrainersShm
     uint32_t ShmCount;
 
     // Array of shm names
-    MiraTrainerShm Shms[];
+    MiraTrainerShm Shms[0];
 } MiraGetTrainersShm;
 
 #define MIRA_IOCTL_BASE 'M'
