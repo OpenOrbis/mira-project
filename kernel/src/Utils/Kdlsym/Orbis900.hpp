@@ -187,8 +187,8 @@
 // FakeSelf Hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0064473C
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0064488E
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x0064232D
-#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x00642F68
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfBlock__sceSblServiceMailbox_hook   0x00642F68
+#define kdlsym_addr_sceSblAuthMgrSmLoadSelfSegment__sceSblServiceMailbox_hook 0x0064232D
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookA                           0x00645026
 #define kdlsym_addr_sceSblAuthMgrVerifyHeader_hookB                           0x00645D09
 
