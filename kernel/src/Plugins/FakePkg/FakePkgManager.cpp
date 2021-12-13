@@ -140,6 +140,247 @@ FakePkgManager::~FakePkgManager()
 
 }
 
+bool FakePkgManager::OnLoad()
+{
+#if defined(USERLAND_PATCHES)
+    ShellCorePatch();
+    ShellUIPatch();
+#endif
+    return true;
+}
+
+#if USERLAND_PATCHES
+bool FakePkgManager::ShellCorePatch()
+{
+    WriteLog(LL_Debug, "patching SceShellCore");
+
+
+    struct ::proc* s_Process = Utilities::FindProcessByName("SceShellCore");
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find SceShellCore");
+        return false;
+    }
+
+    ProcVmMapEntry* s_Entries = nullptr;
+    size_t s_NumEntries = 0;
+    
+    auto s_Ret = Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not get vm map");
+        return false;
+    }
+
+    if (s_Entries == nullptr || s_NumEntries == 0)
+    {
+        WriteLog(LL_Error, "invalid entries (%p) or numEntries (%d)", s_Entries, s_NumEntries);
+        return false;
+    }
+
+    uint8_t* s_TextStart = nullptr;
+    for (auto i = 0; i < s_NumEntries; ++i)
+    {
+        if (s_Entries[i].prot == (PROT_READ | PROT_EXEC))
+        {
+            s_TextStart = (uint8_t*)s_Entries[i].start;
+            break;
+        }
+    }
+
+    if (s_TextStart == nullptr)
+    {
+        WriteLog(LL_Error, "could not find SceShellCore text start");
+        return false;
+    }
+
+    WriteLog(LL_Debug, "SceShellCore .text: (%p)", s_TextStart);
+
+    // Free the entries we got returned
+    delete [] s_Entries;
+    s_Entries = nullptr;
+
+    uint8_t xor__eax_eax[5] = { 0x31, 0xC0, 0x90, 0x90, 0x90 };
+
+    /*
+    s_Ret = kptrace_t(PT_ATTACH, s_Process->p_pid, 0, 0, s_MainThread);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not attach to shellcore");
+        return false;
+    }
+    int32_t s_Status = 0;
+    s_Ret = kwait4_t(s_Process->p_pid, &s_Status, WUNTRACED, nullptr, s_MainThread);
+    WriteLog(LL_Debug, "wait4 returned (%d)", s_Ret);*/
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchA");
+        return false;
+    }
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchB");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchC");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_sceKernelIsGenuineCEX_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_sceKernelIsGenuineCEX_patchD");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchA), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchA");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchB), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchB");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchC), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchC");
+        return false;
+    }
+    
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_nidf_libSceDipsw_patchD), sizeof(xor__eax_eax), xor__eax_eax, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_nidf_libSceDipsw_patchD");
+        return false;
+    }
+
+#if MIRA_PLATFORM==MIRA_PLATFORM_ORBIS_BSD_505
+	s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_enable_fakepkg_patch), 8, (void*)"\xE9\x96\x00\x00\x00\x90\x90\x90", nullptr, true);
+	if (s_Ret < 0)
+	{
+		WriteLog(LL_Error, "ssc_enable_fakepkg_patch");
+		return false;
+	}
+#endif
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_TextStart + ssc_fake_to_free_patch), 4, (void*)"free", nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssc_fake_to_free_patch");
+        return false;
+    }
+
+    /*Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_1_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_2_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_3_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_1_4_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_1_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_2_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_3_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_ENABLE_DEBUG_PKG_PATCH_2_4_OFFSET), xor__eax_eax, sizeof(xor__eax_eax));
+    Utilities::PtraceIO(s_Process->p_pid, PIOD_WRITE_I, (void*)(s_TextStart + SHELLCORE_USE_FREE_PREFIX_INSTEAD_OF_FAKE_OFFSET), (void*)"free", 4);
+    if (kptrace_t(PT_DETACH, s_Process->p_pid, (caddr_t)SIGCONT, 0, s_MainThread) < 0)
+    {
+        WriteLog(LL_Error, "could not detach from shellcore");
+        return false;
+    }*/
+
+    WriteLog(LL_Debug, "SceShellCore successfully patched");
+
+    return true;
+}
+
+bool FakePkgManager::ShellUIPatch()
+{
+    WriteLog(LL_Debug, "patching SceShellUI");
+
+    struct ::proc* s_Process = Utilities::FindProcessByName("SceShellUI");
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find SceShellUI");
+        return false;
+    }
+
+    ProcVmMapEntry* s_Entries = nullptr;
+    size_t s_NumEntries = 0;
+    auto s_Ret = Utilities::GetProcessVmMap(s_Process, &s_Entries, &s_NumEntries);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "could not get vm map");
+        return false;
+    }
+
+    if (s_Entries == nullptr || s_NumEntries == 0)
+    {
+        WriteLog(LL_Error, "invalid entries (%p) or numEntries (%d)", s_Entries, s_NumEntries);
+        return false;
+    }
+
+    uint8_t* s_LibKernelTextStart = nullptr;
+    for (auto i = 0; i < s_NumEntries; ++i)
+    {
+        if (!memcmp(s_Entries[i].name, "libkernel_sys.sprx", 18) && s_Entries[i].prot >= (PROT_READ | PROT_EXEC))
+        {
+            s_LibKernelTextStart = (uint8_t*)s_Entries[i].start;
+            break;
+        }
+    }
+
+    if (s_LibKernelTextStart == nullptr)
+    {
+        WriteLog(LL_Error, "could not find SceShellUI libkernel_sys.sprx text start");
+        return false;
+    }
+
+    WriteLog(LL_Debug, "SceShellUI libkernel_sys.sprx .text: (%p)", s_LibKernelTextStart);
+
+    // Free the entries we got returned
+    delete [] s_Entries;
+    s_Entries = nullptr;
+
+    // TODO: Fix all fw suport; I don't feel like fixing 1.76 support atm -kd
+    #if MIRA_PLATFORM <= MIRA_PLATFORM_ORBIS_BSD_176 || MIRA_PLATFORM > MIRA_PLATFORM_ORBIS_BSD_505 && MIRA_PLATFORM!=MIRA_PLATFORM_ORBIS_BSD_620 
+    #else
+
+    uint8_t mov__eax_1__ret[6] = { 0xB8, 0x01, 0x00, 0x00, 0x00, 0xC3 };
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssu_sceSblRcMgrIsAllowDebugMenuForSettings_patch");
+        return false;
+    }
+
+    s_Ret = Utilities::ProcessReadWriteMemory(s_Process, (void*)(s_LibKernelTextStart + ssu_sceSblRcMgrIsStoreMode_patch), sizeof(mov__eax_1__ret), mov__eax_1__ret, nullptr, true);
+    if (s_Ret < 0)
+    {
+        WriteLog(LL_Error, "ssu_sceSblRcMgrIsStoreMode_patch");
+        return false;
+    }
+
+    #endif
+
+    WriteLog(LL_Debug, "SceShellUI successfully patched");
+
+    return true;
+}
+#endif
+
 void FakePkgManager::GenPfsCryptoKey(uint8_t* p_EncryptionKeyPFS, uint8_t p_Seed[PFS_SEED_SIZE], uint32_t p_Index, uint8_t p_Key[PFS_FINAL_KEY_SIZE])
 {
     if (p_EncryptionKeyPFS == nullptr)
@@ -542,7 +783,7 @@ int FakePkgManager::OnSceSblKeymgrInvalidateKeySxXlock(struct sx* p_Sx, int p_Op
         WriteLog(LL_Error, "invalid lock provided.");
         return 0;
     }
-    
+
     //WriteLog(LL_Debug, "OnSceSblKeymgrInvalidateKeySxXlock");
     auto sceSblKeymgrSetKeyStorage = (int (*)(uint64_t key_gpu_va, unsigned int key_size, uint32_t key_id, uint32_t key_handle))kdlsym(sceSblKeymgrSetKeyStorage);
     auto sblKeymgrKeySlots = (_SblKeySlotQueue *)kdlsym(sbl_keymgr_key_slots);

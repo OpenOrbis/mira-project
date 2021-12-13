@@ -1,6 +1,9 @@
 # Set the project to be a C CXX ASM
 project(kernel)
 
+# DEBUG ONLY!!!
+# Enable Kernel to Userland Patches
+add_compile_definitions(USERLAND_PATCHES=1)
 
 if (MIRA_CHECKS)
     # PVS-Studio Integration

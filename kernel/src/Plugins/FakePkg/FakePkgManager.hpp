@@ -46,6 +46,7 @@ namespace Mira
         public:
             FakePkgManager();
             virtual ~FakePkgManager();
+            virtual bool OnLoad();
 
         private:
             // Helper functions

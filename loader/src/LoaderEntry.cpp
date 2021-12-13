@@ -195,11 +195,11 @@ void mira_escape(struct thread* td, void* uap)
 
 	// TODO: Determine if we need to re-enable these patches or not...
 	// Apply patches
-	//cpu_disable_wp();
+	cpu_disable_wp();
 
-	//Mira::Boot::Patches::install_prePatches();
+	Mira::Boot::Patches::install_prePatches();
 
-	//cpu_enable_wp();
+	cpu_enable_wp();
 
 	printf("[-] mira_escape\n");
 }
@@ -247,21 +247,21 @@ extern "C" void* mira_entry(void* args)
 	}
 
 	// Determine firmware version
-	int unk_pad = 0;
-	int firmware_version = sysKernelGetLowerLimitUpdVersion(&unk_pad);
-	
+	if (sysKernelGetLowerLimitUpdVersion != nullptr)
+	{
+		WriteNotificationLog("attempting to get fw version.");
+		int unk_pad = 0;
+		int firmware_version = sysKernelGetLowerLimitUpdVersion(&unk_pad);
+		
 
-	// TODO: Check for custom Mira elf section to determine launch type
-	char buf2[256];
-	memset(buf2, 0, sizeof(buf2));
+		// TODO: Check for custom Mira elf section to determine launch type
+		char buf2[256];
+		memset(buf2, 0, sizeof(buf2));
 
-	snprintf(buf2, sizeof(buf2), "firmware_version: %x", firmware_version);
-	WriteNotificationLog(buf2);
+		snprintf(buf2, sizeof(buf2), "firmware_version: %x", firmware_version);
+		WriteNotificationLog(buf2);
+	}
 
-	size_t bufferSize = g_MiraElfSize;
-	uint8_t* buffer = _mira_elf_start;
-
-#if defined(_SOCKET_LOADER)
 	// Allocate a 3MB buffer
 	size_t bufferSize = ALLOC_5MB;
 	uint8_t* buffer = (uint8_t*)_mmap(nullptr, bufferSize, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
@@ -272,6 +272,7 @@ extern "C" void* mira_entry(void* args)
 	}
 	memset(buffer, 0, bufferSize);
 
+#if defined(_SOCKET_LOADER)
 	//Loader::Memset(buffer, 0, bufferSize);
 	// Hold our server socket address
 	struct sockaddr_in serverAddress = { 0 };
@@ -331,6 +332,9 @@ extern "C" void* mira_entry(void* args)
 	// Handle loading embedded elf
 	uint32_t currentSize = g_MiraElfSize;
 	memcpy(buffer, &_mira_elf_start, currentSize);
+#else
+	uint32_t currentSize = g_MiraElfSize;
+	memcpy(buffer, &_mira_elf_start, currentSize);
 #endif
 
 	// Determine if we launch a elf or a payload
@@ -340,7 +344,7 @@ extern "C" void* mira_entry(void* args)
 		buffer[3] == ELFMAG3) // 0x7F 'ELF'
 	{
 		// Determine if we are launching kernel
-		bool isLaunchingKernel = MiraLoader::Loader::CheckKernelElf(buffer, bufferSize);
+		bool isLaunchingKernel = MiraLoader::Loader::CheckKernelElf(buffer, currentSize);
 
 		// Send some debug output to the user to see
 		char buf[128];
@@ -354,7 +358,7 @@ extern "C" void* mira_entry(void* args)
 			initParams.isElf = true;
 			initParams.isRunning = false;
 			initParams.payloadBase = (uint64_t)buffer;
-			initParams.payloadSize = bufferSize;
+			initParams.payloadSize = currentSize;
 			initParams.process = nullptr;
 			initParams.elfLoader = nullptr;
 			initParams.entrypoint = nullptr;
@@ -366,7 +370,7 @@ extern "C" void* mira_entry(void* args)
 			// Launch ELF
 			// TODO: Check/Add a flag to the elf that determines if this is a kernel or userland elf
 			// Loader(const void* p_Elf, uint32_t p_ElfSize, ElfLoaderType_t p_Type);
-			MiraLoader::Loader loader(buffer, bufferSize, ElfLoaderType_t::UserProc);
+			MiraLoader::Loader loader(buffer, currentSize, ElfLoaderType_t::UserProc);
 
 			auto entryPoint = reinterpret_cast<void(*)(void*)>(loader.GetEntrypoint());
 			if (!entryPoint)

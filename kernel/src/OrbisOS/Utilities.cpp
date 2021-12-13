@@ -90,7 +90,51 @@ uint64_t Utilities::PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_D
         return (uint64_t)s_Desc.piod_len;
 }
 
-/* // Credits: flatz (https://github.com/flatz)
+// Credits: flatz
+struct proc* Utilities::FindProcessByName(const char* p_Name) 
+{
+	auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+	auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
+	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
+
+	struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+	struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+
+	struct proc* s_FoundProc = nullptr;
+
+	if (!p_Name)
+		return NULL;
+
+	_sx_slock(allproclock, 0, __FILE__, __LINE__);
+
+	do
+	{
+		struct proc* s_Proc = nullptr;
+
+		FOREACH_PROC_IN_SYSTEM(s_Proc) 
+		{
+			PROC_LOCK(s_Proc);
+
+			if (strncmp(p_Name, s_Proc->p_comm, strlen(p_Name)) == 0) {
+				s_FoundProc = s_Proc;
+				PROC_UNLOCK(s_Proc);
+				break;
+			}
+
+			PROC_UNLOCK(s_Proc);
+		}
+	} while (false);
+
+	_sx_sunlock(allproclock, __FILE__, __LINE__);
+
+	return s_FoundProc;
+}
+
+#if USERLAND_PATCHES
+ // Credits: flatz (https://github.com/flatz)
 int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_BytesReadWrote, bool p_Write)
 {
 	if (p_Process == nullptr)
@@ -143,51 +187,7 @@ int Utilities::ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddr
 
 	return s_Ret;
 }
- */
-// Credits: flatz
-struct proc* Utilities::FindProcessByName(const char* p_Name) 
-{
-	auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
-	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
-	auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
-	auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
-	auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
-	struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
-	struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
-
-	struct proc* s_FoundProc = nullptr;
-
-	if (!p_Name)
-		return NULL;
-
-	_sx_slock(allproclock, 0, __FILE__, __LINE__);
-
-	do
-	{
-		struct proc* s_Proc = nullptr;
-
-		FOREACH_PROC_IN_SYSTEM(s_Proc) 
-		{
-			PROC_LOCK(s_Proc);
-
-			if (strncmp(p_Name, s_Proc->p_comm, strlen(p_Name)) == 0) {
-				s_FoundProc = s_Proc;
-				PROC_UNLOCK(s_Proc);
-				break;
-			}
-
-			PROC_UNLOCK(s_Proc);
-		}
-	} while (false);
-
-	_sx_sunlock(allproclock, __FILE__, __LINE__);
-
-	return s_FoundProc;
-}
-
-/* 
 // Credits: flatz
 int Utilities::GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries) 
 {
@@ -302,7 +302,7 @@ error:
 
 	return ret;
 }
- *//* 
+
 // Allow / Disallow to write on a executable
 int Utilities::ExecutableWriteProtection(struct proc* p, bool write_allowed) {
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
@@ -369,7 +369,9 @@ int Utilities::ExecutableWriteProtection(struct proc* p, bool write_allowed) {
     delete [] s_Entries;
     s_Entries = nullptr;
     return 0;
-} */
+}
+
+#endif
 
 // Mount NullFS folder
 int Utilities::MountNullFS(char* where, char* what, int flags)

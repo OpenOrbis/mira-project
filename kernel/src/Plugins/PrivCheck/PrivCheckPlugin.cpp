@@ -222,8 +222,8 @@ int PrivCheckPlugin::OnPrivCheckCred(struct ucred* p_Cred, int p_Priv)
         return s_Ret;
     }
 
-    if (s_Ret != 0 && (p_Priv != PRIV_VFS_BLOCKRESERVE && p_Priv != PRIV_VFS_CHROOT))
-        WriteLog(LL_Info, "pcc: ret: (%d) priv: (%d).", s_Ret, p_Priv);
+    /*if (s_Ret != 0 && (p_Priv != PRIV_VFS_BLOCKRESERVE && p_Priv != PRIV_VFS_CHROOT))
+        WriteLog(LL_Info, "pcc: ret: (%d) priv: (%d).", s_Ret, p_Priv);*/
     
     return s_Ret;
 }

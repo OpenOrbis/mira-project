@@ -34,9 +34,11 @@ namespace Mira
             static void HookFunctionCall(uint8_t* p_HookTrampoline, void* p_Function, void* p_Address);
             static uint64_t PtraceIO(int32_t p_ProcessId, int32_t p_Operation, void* p_DestAddress, void* p_ToReadWriteAddress, size_t p_ToReadWriteSize);
             static struct ::proc* FindProcessByName(const char* name);
-            //static int ExecutableWriteProtection(struct proc* p, bool write_allowed);
-            //static int ProcessReadWriteMemory(struct ::proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_ReadWriteSize, bool p_Write);
-            //static int GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries);
+#if USERLAND_PATCHES
+            static int ExecutableWriteProtection(struct proc* p, bool write_allowed);
+            static int ProcessReadWriteMemory(struct proc* p_Process, void* p_DestAddress, size_t p_Size, void* p_ToReadWriteAddress, size_t* p_ReadWriteSize, bool p_Write);
+            static int GetProcessVmMap(struct ::proc* p_Process, ProcVmMapEntry** p_Entries, size_t* p_NumEntries);
+#endif
             static int MountNullFS(char* where, char* what, int flags);
             static int CreatePOSIXThread(struct proc* p, void* entrypoint);
             static int LoadPRXModule(struct proc* p, const char* prx_path);
