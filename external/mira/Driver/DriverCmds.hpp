@@ -106,6 +106,8 @@ enum MiraIoctlCmds
     CMD_GetBreakpoint,              // Get breakpoint information
     CMD_SetBreakpoint,              // Set breakpoint information*/
 
+    // Process
+    CMD_FindJmpslot,                // Find the offset of a function on a I(mport) A(ddress) T(able)
 
     CMD_DEBUGGER_END = 60,
 
@@ -174,3 +176,9 @@ enum MiraIoctlCmds
 #define MIRA_GET_PID_LIST _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SystemGetProcessList), sizeof(MiraProcessList))
 
 #define MIRA_SET_THREAD_PRIV_MASK _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_SetThreadPrivMask), sizeof(MiraSetThreadPrivMask))
+
+/*
+    Debugger
+*/
+
+#define MIRA_FIND_JMPSLOT _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_FindJmpslot), sizeof(MiraFindJMPSlot))
