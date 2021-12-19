@@ -15,7 +15,7 @@ jobs:
         platform: x64
     - uses: actions/checkout@v1
     - name: configure176
-      run: mkdir build176 && cd build176 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_176 -G "Unix Makefiles" .. && cd ..
+      run: export MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_176 && mkdir build176 && cd build176 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_176 -G "Unix Makefiles" .. && cd ..
     - name: configure405
       run: mkdir build405 && cd build405 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_405 -G "Unix Makefiles" .. && cd .. 
     - name: configure455
