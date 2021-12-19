@@ -1,3 +1,6 @@
+# Check the current CMake version(3.20 Min.)
+cmake_minimum_required(VERSION 3.20)
+
 # Set the project to be a C CXX ASM
 project(mira_module)
 

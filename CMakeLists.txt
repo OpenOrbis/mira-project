@@ -65,14 +65,12 @@ if (${OOSDK_FOUND} EQUAL True)
     add_subdirectory(mira_module)
 
     # Build the daemon
-    add_subdirectory(daemon)
+    #add_subdirectory(daemon)
 
     # Make the standalone tests
     #add_subdirectory(tests)
-
-    # Add the dependency on mira_module
-    #add_dependencies(tests mira_module)
-
+else()
+    message("OpenOrbis SDK is not found, extra libraries is skipped ...")
 endif()
 
 # This is required for all other steps to succeeed
