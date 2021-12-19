@@ -1,5 +1,6 @@
 #pragma once
 #include <sys/types.h>
+#include "Stack.hpp"
 
 #ifndef NULL
 #define NULL 0

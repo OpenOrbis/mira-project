@@ -17,8 +17,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)  # for libraries and headers in the 
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # Set all of the default CFLAGS
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_C_COMPILER clang-13)
+set(CMAKE_CXX_COMPILER clang++-13)
 set(CMAKE_AR llvm-ar)
 
 # Set the C standard to c11
@@ -52,8 +52,8 @@ add_compile_options(-fno-rtti)
 # Set the C/C++ compiler flags
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic -m64 -O0 -fno-builtin -nodefaultlibs -nostdlib -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -m64 -O0 -fno-builtin -nodefaultlibs -nostdlib -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic -m64 -O0 -fno-builtin -ffunction-sections -nodefaultlibs -nostdlib -mstack-protector-guard=global -fstack-protector-all -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas -Wno-unused-but-set-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic -m64 -O0 -fno-builtin -ffunction-sections -nodefaultlibs -nostdlib -mstack-protector-guard=global -fstack-protector-all -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas -Wno-unused-but-set-variable")
 
 #add_link_options(-fuse-ld=ld.lld)
 # Add the default compiler defines

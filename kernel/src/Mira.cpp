@@ -156,6 +156,9 @@ extern "C" void mira_entry(void* args)
 
 	cpu_enable_wp();
 
+	// Initialize our stack check variable
+	__stack_chk_guard_setup();
+
     auto kthread_exit = (void(*)(void))kdlsym(kthread_exit);
 	//auto kproc_exit = (void(*)(int ecode))kdlsym(kproc_exit);
 	auto vmspace_alloc = (struct vmspace* (*)(vm_offset_t min, vm_offset_t max))kdlsym(vmspace_alloc);

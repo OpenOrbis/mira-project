@@ -7,7 +7,6 @@ extern "C"
 };
 
 #include <Utils/New.hpp>
-
 #include "Dynlib.hpp"
 
 using namespace Mira::Utils;

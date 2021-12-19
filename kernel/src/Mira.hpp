@@ -65,7 +65,7 @@ namespace Mira
             Shutdown,
         };
 
-        static Framework* m_Instance;
+        static Framework* m_Instance __attribute__((section(".instance.data")));
 
         // Configuration
         Mira::Boot::InitParams m_InitParams;
@@ -99,7 +99,7 @@ namespace Mira
         subhook_t m_PrintfHook;
 
     public:
-        static Framework* GetFramework();
+        static Framework* GetFramework() __attribute__((section(".instance.text")));
 
     protected:
         Framework();
@@ -139,11 +139,11 @@ namespace Mira
         void SetSuspendFlag() { m_State = State::Suspend; }
         void ClearFlag() { m_State = State::None; }
 
-        Mira::Plugins::PluginManager* GetPluginManager() { return m_PluginManager; }
-        Mira::Messaging::MessageManager* GetMessageManager() { return m_MessageManager; }
-        Mira::Trainers::TrainerManager* GetTrainerManager() { return m_TrainerManager; }
+        Mira::Plugins::PluginManager* GetPluginManager() const { return m_PluginManager; }
+        Mira::Messaging::MessageManager* GetMessageManager() const { return m_MessageManager; }
+        Mira::Trainers::TrainerManager* GetTrainerManager() const { return m_TrainerManager; }
 
-        Mira::Driver::CtrlDriver* GetDriver() { return m_CtrlDriver; }
+        Mira::Driver::CtrlDriver* GetDriver() const { return m_CtrlDriver; }
 
         struct thread* GetMainThread();
         struct thread* GetSyscoreThread();

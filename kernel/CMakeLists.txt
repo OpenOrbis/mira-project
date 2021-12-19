@@ -4,6 +4,7 @@ project(kernel)
 # DEBUG ONLY!!!
 # Enable Kernel to Userland Patches
 add_compile_definitions(USERLAND_PATCHES=1)
+#add_compile_options(-fstack-usage)
 
 if (MIRA_CHECKS)
     # PVS-Studio Integration

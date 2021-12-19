@@ -1,4 +1,5 @@
 #pragma once
+#include <Utils/Stack.hpp>
 #include <Utils/Types.hpp>
 
 namespace Mira

@@ -633,7 +633,7 @@ void TrainerManager::RemoveEntryPoint(int32_t p_ProcessId)
     auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
 	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
-    auto s_Removed = false;
+    //auto s_Removed = false;
 
     _mtx_lock_flags(&m_Mutex, 0);
 
@@ -647,7 +647,7 @@ void TrainerManager::RemoveEntryPoint(int32_t p_ProcessId)
                 WriteLog(LL_Info, "Removing Entrypoint (%p) from (%d).", l_Info.EntryPoint, p_ProcessId);
                 l_Info.ProcessId = -1;
                 l_Info.EntryPoint = nullptr;
-                s_Removed = true;
+                //s_Removed = true;
                 break;
             }
         }

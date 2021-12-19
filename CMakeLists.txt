@@ -7,7 +7,7 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 project(mira-project)
 
 # Set the firmware version
-set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_505)
+set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
 
 if (NOT "" STREQUAL "$ENV{MIRA_PLATFORM}")
     message("overriding build by environment variable for MIRA_PLATFORM=$ENV{MIRA_PLATFORM}")
@@ -51,12 +51,12 @@ if ("" STREQUAL ${OO_PS4_TOOLCHAIN})
 endif()
 
 # Spit out a message if we have static analysis enabled
-if (MIRA_CHECKS EQUAL True)
+if (${MIRA_CHECKS} EQUAL True)
     message("MIRA_CHECKS is enabled, enabling static analysis.")
 endif()
 
 # Check to see if we found the OpenOrbis Toolchain
-if (OOSDK_FOUND EQUAL True)
+if (${OOSDK_FOUND} EQUAL True)
     message("OpenOrbis SDK found, building extra libraries...")
     # Trainer example
     #add_subdirectory(example_trainer)

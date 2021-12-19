@@ -1,6 +1,5 @@
 #pragma once
 
-
 // new
 void * operator new(unsigned long int cbSize);
 
@@ -15,5 +14,3 @@ void operator delete(void* p) noexcept;
 
 // delete[]
 void operator delete[] (void* p) noexcept;
-
-extern "C" void __stack_chk_fail(void);

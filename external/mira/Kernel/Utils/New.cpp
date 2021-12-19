@@ -3,16 +3,6 @@
 
 #include "New.hpp"
 #include <Utils/Kdlsym.hpp>
-//#include <Utils/Kernel.hpp>
-//#include <Utils/Logger.hpp>
-
-void __stack_chk_fail(void)
-{
-	auto printf = (void(*)(const char *format, ...))kdlsym(printf);
-	printf("!!!!!!!!!!\n\n__stack_chk_fail: stack_corruption detected!!!!!!!!!!!\n\n");
-	for (;;)
-		__asm__("nop");
-}
 
 extern "C"
 {

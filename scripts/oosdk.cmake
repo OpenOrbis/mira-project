@@ -11,8 +11,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)  # for libraries and headers in the 
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # Set all of the default CFLAGS
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_C_COMPILER clang-10)
+set(CMAKE_CXX_COMPILER clang++-10)
 set(CMAKE_AR llvm-ar)
 set(CMAKE_OBJCOPY objcopy)
 
