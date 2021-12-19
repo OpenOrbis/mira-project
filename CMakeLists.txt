@@ -56,7 +56,7 @@ if (MIRA_CHECKS EQUAL True)
 endif()
 
 # Check to see if we found the OpenOrbis Toolchain
-if (${OOSDK_FOUND} EQUAL True)
+if (OOSDK_FOUND EQUAL True)
     message("OpenOrbis SDK found, building extra libraries...")
     # Trainer example
     #add_subdirectory(example_trainer)
