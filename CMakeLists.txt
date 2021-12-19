@@ -7,7 +7,11 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 project(mira-project)
 
 # Set the firmware version
-set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
+if (MIRA_PLATFORM)
+else()
+    message("MIRA_PLATFORM not defined, defaulting to 672")
+    set(MIRA_PLATFORM MIRA_PLATFORM_ORBIS_BSD_672)
+endif()
 
 if (NOT "" STREQUAL "$ENV{MIRA_PLATFORM}")
     message("overriding build by environment variable for MIRA_PLATFORM=$ENV{MIRA_PLATFORM}")
