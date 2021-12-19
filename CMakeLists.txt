@@ -44,14 +44,14 @@ if (NOT "" STREQUAL "$ENV{OO_PS4_TOOLCHAIN}")
 endif()
 
 # Verify that we have a cmake variable set
-if ("" STREQUAL ${OO_PS4_TOOLCHAIN})
+if ("" STREQUAL OO_PS4_TOOLCHAIN)
     message("OO_PS4_TOOLCHAIN environment variable not set!")
     message("Skipping OOSDK dependent projects")
     set(OOSDK_FOUND False)
 endif()
 
 # Spit out a message if we have static analysis enabled
-if (${MIRA_CHECKS} EQUAL True)
+if (MIRA_CHECKS EQUAL True)
     message("MIRA_CHECKS is enabled, enabling static analysis.")
 endif()
 
