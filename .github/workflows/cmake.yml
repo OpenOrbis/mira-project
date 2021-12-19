@@ -15,12 +15,39 @@ jobs:
         platform: x64
     - uses: actions/checkout@v1
     - name: configure
-      run: mkdir build && cd build && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -G "Unix Makefiles" ..
+      run: mkdir build176 && cd build176 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_176 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build405 && cd build405 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_405 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build455 && cd build455 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_455 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build474 && cd build474 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_474 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build501 && cd build501 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_501 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build505 && cd build505 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_505 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build620 && cd build620 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_620 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build650 && cd build650 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_650 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build672 && cd build672 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_672 -G "Unix Makefiles" .. && cd ..
+      run: mkdir build755 && cd build755 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_755 -G "Unix Makefiles" .. && cd ..
     - name: build
-      run: cmake --build build
-
-    - name: upload loader
+      run: cmake --build build176
+      run: cmake --build build405
+      run: cmake --build build455
+      run: cmake --build build474
+      run: cmake --build build501
+      run: cmake --build build505
+      run: cmake --build build620
+      run: cmake --build build650
+      run: cmake --build build672
+      run: cmake --build build755
+    - name: upload mira binaries
       uses: actions/upload-artifact@v2
       with:
-        name: loader.bin
-        path: build/loader/loader.bin
+        name: mira loader binary
+        path: |
+          build176/loader/loader.bin
+          build405/loader/loader.bin
+          build455/loader/loader.bin
+          build474/loader/loader.bin
+          build501/loader/loader.bin
+          build505/loader/loader.bin
+          build620/loader/loader.bin
+          build650/loader/loader.bin
+          build672/loader/loader.bin
+          build755/loader/loader.bin
