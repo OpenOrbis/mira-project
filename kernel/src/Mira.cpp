@@ -290,6 +290,10 @@ extern "C" void mira_entry(void* args)
 
 	WriteLog(LL_Info, "Shutting down.");
 
+	auto s_ShellUI = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+	if (s_ShellUI != nullptr)
+		Mira::OrbisOS::Utilities::KillProcess(s_ShellUI);
+
 	kthread_exit();
 }
 
