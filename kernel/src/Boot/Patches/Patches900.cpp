@@ -108,7 +108,7 @@ void Mira::Boot::Patches::install_prerunPatches_900()
 	// via DeathRGH
 	kmem = (uint8_t *)&gKernelBase[0x0041F9D1];
 	kmem[0] = 0xE9;
-	kmem[1] = 0xE2;
+	kmem[1] = 0x7C;
 	kmem[2] = 0x02;
 	kmem[3] = 0x00;
 	kmem[4] = 0x00;
