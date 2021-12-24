@@ -15,6 +15,14 @@
 extern "C" uint64_t _g_rsi;
 extern "C" uint64_t _g_rdi;
 extern "C" uint32_t _g_consoleHandle;
+extern "C" uint8_t _g_launchMode;
+
+typedef enum _LaunchMode : uint8_t
+{
+    Normal,
+    Injected,
+    COUNT
+} LaunchMode;
 
 // Libkernel
 int (*sceKernelLoadStartModule)(const char *name, size_t argc, const void *argv, unsigned int flags, int, int) = nullptr;
@@ -165,20 +173,25 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 
     stub_debug_log("[+] Hello from Loader land !\n");
 
-    // Request for original start point
-    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
-    if (s_Ret != 0)
+    if (_g_launchMode == LaunchMode::Normal)
     {
-        stub_debug_log("[-] No entry point found ?\n");
-        goto jmp_orig;
+        // Request for original start point
+        s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
+        if (s_Ret != 0)
+        {
+            stub_debug_log("[-] No entry point found ?\n");
+            goto jmp_orig;
+        }
+
+        // Validate the entry point
+        if (s_EntryPoint == nullptr)
+        {
+            stub_debug_log("[-] Entry point is null 2!\n");
+            goto jmp_orig;
+        }
     }
 
-    // Validate the entry point
-    if (s_EntryPoint == nullptr)
-    {
-        stub_debug_log("[-] Entry point is null 2!\n");
-        goto jmp_orig;
-    }
+
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
     s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
@@ -349,11 +362,13 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     stub_close(s_DriverDescriptor);
 
 jmp_orig:
-    if (s_EntryPoint != nullptr)
+    if (_g_launchMode == LaunchMode::Normal)
     {
-        snprintf(s_LogBuffer, sizeof(s_LogBuffer), "[=] Jumping to entry point (%p)\n", s_EntryPoint);
-        stub_debug_log(s_LogBuffer);
-        ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
+        if (s_EntryPoint != nullptr)
+        {
+            snprintf(s_LogBuffer, sizeof(s_LogBuffer), "[=] Jumping to entry point (%p)\n", s_EntryPoint);
+            stub_debug_log(s_LogBuffer);
+            ((void(*)(uint64_t, uint64_t))s_EntryPoint)(p_Rdi, p_Rsi);
+        }
     }
-        
 }

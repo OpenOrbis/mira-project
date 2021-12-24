@@ -1,11 +1,16 @@
 .intel_syntax noprefix
 .text
 
-.global _start, _g_rdi, _g_rsi, _g_consoleHandle
+.global _start, _g_rdi, _g_rsi, _g_consoleHandle, _g_launchMode
 
 .org 0
 _start:
 	jmp		loader_entry
+
+# This is the launch mode
+# 0 = normal
+# 1 = injected
+_g_launchMode: .byte 0
 
 .org 0x10
 _padding:
