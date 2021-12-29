@@ -115,7 +115,6 @@ bool PluginManager::OnLoad()
         }
 
         // Initialize Substitute
-#if MIRA_PLATFORM != MIRA_PLATFORM_ORBIS_BSD_900
         m_Substitute = new Mira::Plugins::Substitute();
         if (m_Substitute == nullptr)
         {
@@ -123,7 +122,6 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
-#endif
 
         // Initialize BrowserActivator
         m_BrowserActivator = new Mira::Plugins::BrowserActivator();
@@ -192,13 +190,11 @@ bool PluginManager::OnLoad()
             WriteLog(LL_Error, "could not load emulated registry.");
     }
 
-#if MIRA_PLATFORM != MIRA_PLATFORM_ORBIS_BSD_900
     if (m_Substitute)
     {
         if (!m_Substitute->OnLoad())
             WriteLog(LL_Error, "could not load substitute.");
     }
-#endif
 
     if (m_BrowserActivator)
     {
