@@ -370,7 +370,7 @@ const char *strrchr(const char *s, int c)
 
 uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
 {
-    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
 
     // Validate target process
     if (p_TargetProcess == nullptr)
@@ -397,8 +397,17 @@ uint8_t* TrainerManager::AllocateTrainerLoader(struct proc* p_TargetProcess)
 
     WriteLog(LL_Debug, "Allocated Address: (%p).", s_Address);
 
+    // NOTE: The commented out code below does not work if the requesting process isn't the one being injected into
     // Write out the trainer loader into the process address space
-    auto s_Result = copyout(&_trainer_loader_start, s_Address, s_Size);
+    /*auto s_Result = copyout(&_trainer_loader_start, s_Address, s_Size);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not write trainer loader data to process (%d).", s_Result);
+        return nullptr;
+    }*/
+
+    size_t s_ReadWriteSize = s_Size;
+    auto s_Result = OrbisOS::Utilities::ProcessReadWriteMemory(p_TargetProcess, s_Address, s_Size, &_trainer_loader_start, &s_ReadWriteSize, true);
     if (s_Result != 0)
     {
         WriteLog(LL_Error, "could not write trainer loader data to process (%d).", s_Result);

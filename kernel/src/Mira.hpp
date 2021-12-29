@@ -183,6 +183,7 @@ namespace Mira
         struct thread* GetMainThread();
         struct thread* GetSyscoreThread();
         struct thread* GetShellcoreThread();
+        struct thread* GetShellUIThread();
 
     private:
         static void OnMiraSuspend(void* __unused p_Reserved);

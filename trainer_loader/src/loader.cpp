@@ -19,9 +19,9 @@ extern "C" uint8_t _g_launchMode;
 
 typedef enum _LaunchMode : uint8_t
 {
-    Normal,
-    Injected,
-    COUNT
+    Normal = 0xF3,
+    Injected = 0xFA,
+    COUNT = 0x02
 } LaunchMode;
 
 // Libkernel

@@ -10,7 +10,7 @@ _start:
 # This is the launch mode
 # 0 = normal
 # 1 = injected
-_g_launchMode: .byte 0
+_g_launchMode: .byte 0xF3
 
 .org 0x10
 _padding:

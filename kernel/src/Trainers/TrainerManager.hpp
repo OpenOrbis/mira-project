@@ -155,7 +155,10 @@ namespace Mira
             // Checks if a directory exists
             bool DirectoryExists(const char* p_Path);
 
+            // TODO: Remove public hack
+        public:
             static uint8_t* AllocateTrainerLoader(struct proc* p_TargetProcess);
+        protected:
 
             void AddOrUpdateEntryPoint(int32_t p_ProcessId, void* p_EntryPoint);
             void RemoveEntryPoint(int32_t p_ProcessId);

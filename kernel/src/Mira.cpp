@@ -411,7 +411,42 @@ bool Mira::Framework::Initialize()
 	m_InitParams.isRunning = true;
 
 	WriteLog(LL_Debug, "initalize thread (%d).", curthread->td_tid);
-  
+
+	// EXPERIMENTAL: Inject into ShellUI
+	auto s_ShellUIThread = GetShellUIThread();
+	if (s_ShellUIThread)
+	{
+		WriteLog(LL_Debug, "ShellUI Main Thread found (%p).", s_ShellUIThread);
+
+		auto s_TrainerLoaderAddress = GetTrainerManager()->AllocateTrainerLoader(s_ShellUIThread->td_proc);
+		if (s_TrainerLoaderAddress != nullptr)
+		{
+			//auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+			
+			WriteLog(LL_Debug, "Trainer loader allocated in ShellUI at (%p).", s_TrainerLoaderAddress);
+			uint8_t s_InjectedLaunchFlag = 0xFA;
+			// Skip the jmp <short>
+			// Set the launch flag to injected
+			//copyout(&s_InjectedLaunchFlag, s_TrainerLoaderAddress+5, sizeof(s_InjectedLaunchFlag));
+			size_t s_InjectedLaunchFlagSize = sizeof(s_InjectedLaunchFlag);
+			auto s_SUIRet = OrbisOS::Utilities::ProcessReadWriteMemory(s_ShellUIThread->td_proc, s_TrainerLoaderAddress+5, sizeof(s_InjectedLaunchFlag), &s_InjectedLaunchFlag, &s_InjectedLaunchFlagSize, true);
+			if (s_SUIRet == 0)
+			{
+				WriteLog(LL_Debug, "changed trainer loader launch type to injected.");
+
+				// Who the fuck knows if this still works
+				auto s_ShellUIInjectRet = OrbisOS::Utilities::CreatePOSIXThread(s_ShellUIThread->td_proc, s_TrainerLoaderAddress);
+				if (s_ShellUIInjectRet != 0)
+				{
+					WriteLog(LL_Error, "apparently injection failed error (%d).", s_ShellUIInjectRet);
+				}
+			}
+			else
+				WriteLog(LL_Error, "could not change trainer loader launch type to injected.");
+			
+		}
+	}
+	
 	return true;
 }
 
@@ -583,6 +618,26 @@ struct thread* Mira::Framework::GetShellcoreThread()
 	if (s_Process == nullptr)
 	{
 		WriteLog(LL_Error, "could not get SceShellCore process.");
+		return nullptr;
+	}
+
+	struct thread* s_MainThread = nullptr;
+
+	_mtx_lock_flags(&s_Process->p_mtx, 0);
+	s_MainThread = FIRST_THREAD_IN_PROC(s_Process);
+	_mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+	return s_MainThread;
+}
+
+struct thread* Mira::Framework::GetShellUIThread()
+{
+	auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+	auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+	struct ::proc* s_Process = OrbisOS::Utilities::FindProcessByName("SceShellUI");
+	if (s_Process == nullptr)
+	{
+		WriteLog(LL_Error, "could not get SceShellUI process.");
 		return nullptr;
 	}
 
