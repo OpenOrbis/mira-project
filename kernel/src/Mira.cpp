@@ -25,6 +25,7 @@
 #include <Plugins/PluginManager.hpp>
 #include <Messaging/Rpc/Server.hpp>
 #include <Trainers/TrainerManager.hpp>
+#include <OrbisOS/MountManager.hpp>
 
 #include <OrbisOS/Utilities.hpp>
 
@@ -124,6 +125,7 @@ Mira::Framework::Framework() :
 	m_PluginManager(nullptr),
 	m_MessageManager(nullptr),
 	m_TrainerManager(nullptr),
+	m_MountManager(nullptr),
 	m_CtrlDriver(nullptr)
 {
 	InitializeMiraConfig(&m_Configuration);
@@ -285,14 +287,15 @@ extern "C" void mira_entry(void* args)
 	// At this point we don't need kernel context anymore
 	WriteLog(LL_Info, "Mira initialization complete tid: (%d).", curthread->td_tid);
 
+	/*auto s_ShellUI = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
+	WriteLog(LL_Debug, "ShellUI Proc (%p).", s_ShellUI);
+	if (s_ShellUI != nullptr)
+		Mira::OrbisOS::Utilities::KillProcess(s_ShellUI);*/
+
 	// This never returns until shutdown
 	s_Framework->Update();
 
 	WriteLog(LL_Info, "Shutting down.");
-
-	auto s_ShellUI = Mira::OrbisOS::Utilities::FindProcessByName("SceShellUI");
-	if (s_ShellUI != nullptr)
-		Mira::OrbisOS::Utilities::KillProcess(s_ShellUI);
 
 	kthread_exit();
 }
@@ -372,6 +375,21 @@ bool Mira::Framework::Initialize()
 	if (!m_TrainerManager->OnLoad())
 	{
 		WriteLog(LL_Error, "could not load the trainer manager.");
+		return false;
+	}
+
+	// Install the mount manager
+	m_MountManager = new OrbisOS::MountManager();
+	if (m_MountManager == nullptr)
+	{
+		WriteLog(LL_Error, "could not allocate mount manager.");
+		return false;
+	}
+
+	// Load the mount manager
+	if (!m_MountManager->OnLoad())
+	{
+		WriteLog(LL_Error, "could not load mount manager.");
 		return false;
 	}
 
@@ -745,5 +763,13 @@ void Mira::Framework::OnMiraProcessExit(void* _unused, struct proc* p_Process)
 	{
 		if (!s_TrainerManager->OnProcessExit(p_Process))
 			WriteLog(LL_Error, "trainer manager process exit error");
+	}
+
+	// Call mount manager callback
+	auto s_MountManager = s_Framework->GetMountManager();
+	if (s_MountManager)
+	{
+		if (!s_MountManager->OnProcessExit(p_Process))
+			WriteLog(LL_Error, "mount manager process exit error.");
 	}
 }

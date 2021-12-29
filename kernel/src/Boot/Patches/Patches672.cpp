@@ -131,14 +131,14 @@ void Mira::Boot::Patches::install_prerunPatches_672()
 	kmem[4] = 0x90;
 	kmem[5] = 0x90;
 
-	// second ptrace patch
+	// BAD PATCH: second ptrace patch
 	// via DeathRGH
-	kmem = (uint8_t *)&gKernelBase[0x0010FD22];
-	kmem[0] = 0xE9;
-	kmem[1] = 0xE2;
-	kmem[2] = 0x02;
-	kmem[3] = 0x00;
-	kmem[4] = 0x00;
+	//kmem = (uint8_t *)&gKernelBase[0x0010FD22];
+	//kmem[0] = 0xE9;
+	//kmem[1] = 0xE2;
+	//kmem[2] = 0x02;
+	//kmem[3] = 0x00;
+	//kmem[4] = 0x00;
 
 	// setlogin patch (for autolaunch check)
 	kmem = (uint8_t *)&gKernelBase[0x0010EC1C];

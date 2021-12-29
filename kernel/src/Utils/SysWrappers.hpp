@@ -157,4 +157,7 @@ extern "C"
     extern int kthr_create_t(void* stack_base, size_t stack_size, void*(*start_func)(void*), void* arg, long flags, long* new_thread_id);
 
     //extern int kdynlib_load_prx_t(const char* p_PrxPath, int* p_OutModuleId, struct thread* td);
+
+    extern int ksysctl_t(int *name, uint32_t namelen, void *old, size_t *oldlenp, void *newp, size_t newlen, struct thread* td);
+
 };

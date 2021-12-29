@@ -14,6 +14,7 @@
 #include <Plugins/PluginManager.hpp>
 #include <Plugins/PrivCheck/PrivCheckPlugin.hpp>
 #include <Plugins/Debugging/Debugger.hpp>
+#include <OrbisOS/MountManager.hpp>
 
 #include <Trainers/TrainerManager.hpp>
 
@@ -279,6 +280,13 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         return EBADF;
     }
 
+    auto s_MountManager = s_Framework->GetMountManager();
+    if (s_MountManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mount manager.");
+        return EBADF;
+    }
+
     auto s_MainThread = s_Framework->GetMainThread();
     if (s_MainThread == nullptr)
     {
@@ -313,8 +321,15 @@ int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command
         WriteLog(LL_Error, "sandbox path does not need to start with '/'.");
         return (EACCES);
     }
-    
-    return OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, nullptr, p_Thread);
+
+    // Create the mount point
+    if (!s_MountManager->CreateMountInSandbox(s_Input.HostPath, s_Input.SandboxPath, p_Thread))
+        return (EACCES);
+
+    return  0;
+
+    // TODO: Once mountmanager is verified working remove comment below
+    //OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, nullptr, p_Thread);
 }
 
 int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)

@@ -162,6 +162,21 @@ void mira_escape(struct thread* td, void* uap)
 				printf("[+] found proc0.\n");
 
 				// TODO: Get proc0's vmspace and do pattern scanning
+				struct vmspace* vmspace = current_proc->p_vmspace;
+				if (vmspace == nullptr)
+				{
+					printf("[-] proc0 vmspace is nullptr.\n");
+					break;
+				}
+
+				uint64_t proc0_textAddress = reinterpret_cast<uint64_t>(vmspace->vm_taddr);
+				uint64_t proc0_textSize = vmspace->vm_tsize;
+
+				uint64_t proc0_dataAddress = reinterpret_cast<uint64_t>(vmspace->vm_daddr);
+				uint64_t proc0_dataSize = vmspace->vm_dsize;
+
+				printf("[+] proc0: .text 0x%x-0x%x (0x%x) .data 0x%x-0x%x (0x%x).\n", proc0_textAddress, proc0_textAddress+proc0_textSize, proc0_textSize,
+																					  proc0_dataAddress, proc0_dataAddress+proc0_dataSize, proc0_dataSize);
 			}
 
 			// Update our current proc

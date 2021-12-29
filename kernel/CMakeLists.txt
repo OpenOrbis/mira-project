@@ -33,6 +33,8 @@ add_link_options(-entry=mira_entry)
 add_link_options(-T ${PROJECT_SOURCE_DIR}/src/link.ld)
 add_link_options(-v)
 
+add_compile_options(-Wno-ignored-attributes)
+
 set(TRAINER_LOADER_BIN ${CMAKE_BINARY_DIR}/trainer_loader/trainer_loader.bin)
 add_compile_definitions(TRAINER_LOADER_BIN_PATH="${TRAINER_LOADER_BIN}")
 

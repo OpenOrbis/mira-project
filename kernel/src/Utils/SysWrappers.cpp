@@ -2817,3 +2817,71 @@ int kthr_create_t(void* stack_base, size_t* stack_size, void*(*start_func)(void*
 
 	return ret;
 }
+
+struct ps4gdb_sys_gen_uap{
+	uint64_t p1;
+	uint64_t p2;
+	uint64_t p3;
+	uint64_t p4;
+	uint64_t p5;
+	uint64_t p6;
+	uint64_t p7;
+};
+
+int ksysctl_internal(int *name, uint32_t namelen, void *old, size_t *oldlenp, void *newp, size_t newlen, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_sysctl = (int(*)(struct thread*, struct ps4gdb_sys_gen_uap*))sysents[SYS___SYSCTL].sy_call;
+	if (!sys_sysctl)
+		return -1;
+
+	int error;
+	struct ps4gdb_sys_gen_uap uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	uap.p1 = (uint64_t)name;
+	uap.p2 = (uint64_t)namelen;
+    uap.p3 = (uint64_t)old;
+	uap.p4 = (uint64_t)oldlenp;
+    uap.p5 = (uint64_t)newp;
+	uap.p6 = (uint64_t)newlen;
+
+	error = sys_sysctl(td, &uap);
+	if (error)
+		return -error;
+
+	// return socket
+	return td->td_retval[0];
+}
+
+int ksysctl_t(int *name, uint32_t namelen, void *old, size_t *oldlenp, void *newp, size_t newlen, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = ksysctl_internal(name, namelen, old, oldlenp, newp, newlen, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}

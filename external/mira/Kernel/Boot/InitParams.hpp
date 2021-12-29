@@ -37,6 +37,14 @@ namespace Mira
             
             // If the kproc is currently running
             uint8_t isRunning : 1;
+
+            // Additional, old mira loader will not handle these
+            uint64_t kernelTextBase;
+            uint64_t kernelTextSize;
+            uint64_t kernelDataBase;
+            uint64_t kernelDataSize;
+            uint64_t kernelprison0;
+            uint64_t kernelrootvnode;
         } InitParams;
     }
 }

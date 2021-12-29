@@ -22,6 +22,7 @@ namespace Mira
     namespace OrbisOS
     {
         class ThreadManager;
+        class MountManager;
     }
 
     namespace Driver
@@ -57,37 +58,71 @@ namespace Mira
     class Framework
     {
     private:
+        /**
+         * @brief State of Mira's main process
+         * 
+         * This is used to assist with properly suspending and resuming
+         */
         enum class State
         {
+            // Invalid/No state
             None = 0,
+
+            // Set to suspend state
             Suspend,
+
+            // Set to resume state
             Resume,
+
+            // Set to shutdown
             Shutdown,
+
+            COUNT
         };
 
+        // Private instance pointer
         static Framework* m_Instance __attribute__((section(".instance.data")));
 
+        //
         // Configuration
+        //
         Mira::Boot::InitParams m_InitParams;
         MiraConfig m_Configuration;
 
         State m_State;
 
+        //
         // System state events
+        //
         struct eventhandler_entry* m_SuspendTag;
         struct eventhandler_entry* m_ResumeTag;
 
+        //
         // Process system events
+        //
         struct eventhandler_entry* m_ProcessExec;
         struct eventhandler_entry* m_ProcessExecEnd;
         struct eventhandler_entry* m_ProcessExit;
 
+        //
         // Managers
+        //
+
+        // Manager for all static and dynamically loaded plugins
         Mira::Plugins::PluginManager* m_PluginManager;
+
+        // Manager for messaging in between plugins
         Mira::Messaging::MessageManager* m_MessageManager;
+
+        // Manager for trainers
         Mira::Trainers::TrainerManager* m_TrainerManager;
 
+        // Manager for mount points
+        Mira::OrbisOS::MountManager* m_MountManager;
+
+        //
         // Device driver
+        //
         Mira::Driver::CtrlDriver* m_CtrlDriver;
 
     public:
@@ -142,7 +177,7 @@ namespace Mira
         Mira::Plugins::PluginManager* GetPluginManager() const { return m_PluginManager; }
         Mira::Messaging::MessageManager* GetMessageManager() const { return m_MessageManager; }
         Mira::Trainers::TrainerManager* GetTrainerManager() const { return m_TrainerManager; }
-
+        Mira::OrbisOS::MountManager* GetMountManager() const { return m_MountManager; }
         Mira::Driver::CtrlDriver* GetDriver() const { return m_CtrlDriver; }
 
         struct thread* GetMainThread();

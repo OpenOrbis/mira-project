@@ -8,6 +8,7 @@
 #include <Utils/System.hpp>
 
 #include <OrbisOS/Utilities.hpp>
+#include <OrbisOS/MountManager.hpp>
 
 #include <Driver/CtrlDriver.hpp>
 
@@ -108,10 +109,38 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
     {
         // Debug print
         //WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
+        //const uint32_t c_PathLength = 260;
 
         auto s_TrainerManager = s_Framework->GetTrainerManager();
         if (s_TrainerManager != nullptr)
             s_TrainerManager->RemoveEntryPoint(p_Process->p_pid);
+        
+        // TODO: Find a proper way to get the title id
+        auto s_ProcessTitleId = ((char*)p_Process) + 0x390; // "CUSA00001";
+        WriteLog(LL_Info, "Unloading Trainers Directory for TID: (%s).", s_ProcessTitleId);
+        
+        auto s_MainThread = p_Process->p_singlethread ? p_Process->p_singlethread : p_Process->p_threads.tqh_first;
+
+        // Determine if we need to mount the _stubstitute path into the sandbox
+        if (DirectoryExists(s_MainThread, "/_substitute"))
+        {
+            WriteLog(LL_Info, "Main Thread: Substitute directory not found for proc (%d) (%s).", p_Process->p_pid, p_Process->p_comm);
+
+            // Mount the host directory in the sandbox
+            //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
+            auto s_Result = kunmount_t((char*)"/_substitute", 0, s_MainThread);
+            WriteLog(LL_Info, "Unmounting Directory: (%d).", s_Result);
+
+            // auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
+            // if (s_Result < 0)
+            // {
+            //     WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
+            //     return false;
+            // }
+
+            // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+            //WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+        }
 
     } while (false);
     
@@ -406,6 +435,13 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         return false;
     }
 
+    auto s_MountManager = s_Framework->GetMountManager();
+    if (s_MountManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get mount manager.");
+        return false;
+    }
+
     // We will need to be doing file io so we need the rooted process
     auto s_MiraThread = s_Framework->GetMainThread();
     if (s_MiraThread == nullptr)
@@ -453,6 +489,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         }
     }
 
+    // TODO: Determine final file path name
     // Determine if we need to mount the _stubstitute path into the sandbox
     if (!DirectoryExists(p_CallingThread, "/_substitute"))
     {
@@ -460,10 +497,11 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
 
         // Mount the host directory in the sandbox
         char s_MountedSandboxDirectory[c_PathLength] = { 0 };
-        auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
-        if (s_Result < 0)
+        // TODO: Fix this implementation
+
+        if (!s_MountManager->CreateMountInSandbox(s_BasePath, "_substitute", p_CallingThread))
         {
-            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
+            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_BasePath);
             return false;
         }
 
@@ -471,32 +509,6 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
     }
 
-    /*// Get the _mira folder on the usb path
-    char s_MiraModulePath[c_PathLength];
-    snprintf(s_MiraModulePath, sizeof(s_MiraModulePath), "%s/_mira", s_BasePath);
-    if (!DirectoryExists(s_MiraModulePath))
-    {
-        WriteLog(LL_Error, "could not find trainers directory for mira modules (%s).", s_MiraModulePath);
-        return false;
-    }
-
-    // Determine if we need to mount the _mira path into the sandbox
-    if (!DirectoryExists(p_CallingThread, "/_mira"))
-    {
-        WriteLog(LL_Info, "mira directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
-
-        // Mount the host directory in the sandbox
-        char s_MountedSandboxDirectory[c_PathLength] = { 0 };
-        auto s_Result = OrbisOS::Utilities::MountInSandbox(s_MiraModulePath, "/_mira", s_MountedSandboxDirectory, p_CallingThread);
-        if (s_Result < 0)
-        {
-            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_mira).", s_Result);
-            return false;
-        }
-
-        // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
-        WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
-    }*/
     return true;
 }
 
