@@ -446,28 +446,42 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 	}
 
 	// Determine thr_initial by finding the first instruction *cmp* and got the relative address
-	unsigned char s_ValidInstruction[3];
-	s_Size = sizeof(s_ValidInstruction);
-	s_Ret = proc_rw_mem(p, s_pthread_getthreadid_np, s_Size, s_ValidInstruction, &s_Size, false);
+	// There is a HUGE .rodata section in the same ELF segment, so this cannot end up at the very end a possibly an out-of-bounds read is fine
+	unsigned char s_PthreadGetthreadidNp[16];
+	s_Size = sizeof(s_PthreadGetthreadidNp);
+	s_Ret = proc_rw_mem(p, s_pthread_getthreadid_np, s_Size, s_PthreadGetthreadidNp, &s_Size, false);
 	if (s_Ret > 0) {
 		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, s_pthread_getthreadid_np);
 		return -5;
 	}
+	unsigned char* s_ValidInstruction = s_PthreadGetthreadidNp;
+	int32_t* p_RelativeAddress = 0;
+	unsigned char* p_RelativeBase = 0;
 
-	if ( !(s_ValidInstruction[0] == 0x48 && s_ValidInstruction[1] == 0x83 && s_ValidInstruction[2] == 0x3D) ) {
-		WriteLog(LL_Error, "[%s] Invalid instruction detected ! Abord.", s_TitleId);
+	//push rbp ; mov rbp, rsp
+	if (s_ValidInstruction[0] == 0x55 && s_ValidInstruction[1] == 0x48 && s_ValidInstruction[2] == 0x89 && s_ValidInstruction[3] == 0xE5)
+		s_ValidInstruction += 4;
+
+	//cmp qword ptr [rip+...], 0
+	if (s_ValidInstruction[0] == 0x48 && s_ValidInstruction[1] == 0x83 && s_ValidInstruction[2] == 0x3D) {
+		p_RelativeAddress = reinterpret_cast<int32_t*>(s_ValidInstruction + 3);
+		p_RelativeBase = s_ValidInstruction + 8;
+	}
+
+	//lea rax, [rip+...] ; cmp qword ptr [rax], 0
+	if (s_ValidInstruction[0] == 0x48 && s_ValidInstruction[1] == 0x8D && s_ValidInstruction[2] == 0x05
+         && s_ValidInstruction[7] == 0x48 && s_ValidInstruction[8] == 0x83 && s_ValidInstruction[9] == 0x38 && s_ValidInstruction[10] == 0x00) {
+		p_RelativeAddress = reinterpret_cast<int32_t*>(s_ValidInstruction + 3);
+		p_RelativeBase = s_ValidInstruction + 7;
+	}
+
+	if (!p_RelativeAddress) {
+		WriteLog(LL_Error, "[%s] Invalid/unsupported instruction detected ! Abord.", s_TitleId);
 		return -6;
 	}
 
-	uint64_t s_RelativeAddress = 0;
-	s_Size = sizeof(uint32_t);
-	s_Ret = proc_rw_mem(p, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3), s_Size, &s_RelativeAddress, &s_Size, false);
-	if (s_Ret > 0) {
-		WriteLog(LL_Error, "[%s] Unable to read process memory at %p !", s_TitleId, (void*)((uint64_t)s_pthread_getthreadid_np + 0x3));
-		return -7;
-	}
-
-	void* s_thr_initial = (void*)((uint64_t)s_pthread_getthreadid_np + s_RelativeAddress + 0x8);
+	void* s_thr_initial = (void*)((uint64_t)s_pthread_getthreadid_np + (p_RelativeBase - s_PthreadGetthreadidNp) + *p_RelativeAddress);
+	WriteLog(LL_Debug, "[%s] s_thr_initial = %p", s_TitleId, s_thr_initial);
 
 	// Payload containts all call needed for create a thread (The payload is inside the folders is in /src/OrbisOS/asm/, compile with NASM)
 	unsigned char s_Payload[0x150] = "\x4D\x49\x52\x41\x50\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x72\x70\x63\x73\x74\x75\x62\x00\x48\x8B\x3D\xD9\xFF\xFF\xFF\x48\x8B\x37\x48\x8B\xBE\xE0\x01\x00\x00\xE8\x7D\x00\x00\x00\x48\x8D\x3D\xD3\xFF\xFF\xFF\x4C\x8B\x25\xA4\xFF\xFF\xFF\x41\xFF\xD4\xBE\x00\x00\x08\x00\x48\x8D\x3D\xBD\xFF\xFF\xFF\x4C\x8B\x25\x96\xFF\xFF\xFF\x41\xFF\xD4\x4C\x8D\x05\xB4\xFF\xFF\xFF\xB9\x00\x00\x00\x00\x48\x8B\x15\x70\xFF\xFF\xFF\x48\x8D\x35\x99\xFF\xFF\xFF\x48\x8D\x3D\x8A\xFF\xFF\xFF\x4C\x8B\x25\x73\xFF\xFF\xFF\x41\xFF\xD4\xC7\x05\x4A\xFF\xFF\xFF\x01\x00\x00\x00\xBF\x00\x00\x00\x00\xE8\x01\x00\x00\x00\xC3\xB8\xAF\x01\x00\x00\x49\x89\xCA\x0F\x05\xC3\xB8\xA5\x00\x00\x00\x49\x89\xCA\x0F\x05\xC3\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x89\x7D\xE8\x48\x8D\x75\xE8\xBF\x81\x00\x00\x00\xE8\xDA\xFF\xFF\xFF\x48\x83\xC4\x18\x5B\x5D\xC3";
