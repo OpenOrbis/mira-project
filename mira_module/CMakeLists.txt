@@ -1,38 +1,47 @@
-# Check the current CMake version(3.20 Min.)
+# Default cmake version
 cmake_minimum_required(VERSION 3.20)
 
-# Set the project to be a C CXX ASM
+# Name of the project
 project(mira_module)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-# Include all of the OOSDK defaults
-include(${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)
+# NOTE: By default this line is disabled
+# You should compile this project by using
+# mkdir build && cd build
+# cmake -DCMAKE_TOOLCHAIN_FILE=$OO_PS4_TOOLCHAIN/oosdk.cmake ..
+# cmake --build .
+#
+# Include all of the OO_PS4_TOOLCHAIN defaults
+include (${CMAKE_SOURCE_DIR}/scripts/oosdk.cmake)
 
+# Enable assembly files
 enable_language(ASM)
 
-# Set the include directories
-include_directories(${CMAKE_SOURCE_DIR}/external ${CMAKE_SOURCE_DIR}/external/mira ${PROJECT_SOURCE_DIR}/src ${OO_PS4_TOOLCHAIN}/include)
+# Not needed for library examples
+# Set the SCE authentication id
+#set(PROJECT_AUTH_ID 0x3800000000000011)
 
-# Get all of the source files that need to be compiled
-file(GLOB_RECURSE MIRA_MODULE_SRC_FILES ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.cc ${PROJECT_SOURCE_DIR}/*.cxx ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.hpp ${PROJECT_SOURCE_DIR}/*.hxx)
-file(GLOB_RECURSE MIRA_MODULE_S_FILES ${PROJECT_SOURCE_DIR}/*.s ${PROJECT_SOURCE_DIR}/*.S)
+# Include the default source directory, add additional include paths here
+include_directories(${PROJECT_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/external)
+
+# Linked libraries
+link_libraries(-lc -lkernel -lc++)
+
+# Get all source location
+file(GLOB_RECURSE PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_DIR}/*.cc ${PROJECT_SOURCE_DIR}/*.cxx ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.hpp ${PROJECT_SOURCE_DIR}/*.hxx)
 
 # Prebuilt objects
 set(PREBUILT_OBJS 
     ${OO_PS4_TOOLCHAIN}/lib/crtlib.o
 )
 
-# Set all assembler flags
-set_source_files_properties(${MIRA_MODULE_S_FILES} PROPERTIES COMPILE_FLAGS "-x assembler-with-cpp")
+# Add our project
+# NOTE: libraries use crtlib.o, executables use crt1.o
+add_executable(${PROJECT_NAME} ${PREBUILT_OBJS} ${PROJECT_SOURCES})
 
-set_source_files_properties(${PREBUILT_OBJS} PROPERTIES EXTERNAL_OBJECT true GENERATED true)
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-link_libraries(-lSceLibcInternal -lkernel -lc -lc++)
-
-# This is busted...
-add_executable(mira_module ${PREBUILT_OBJS} ${MIRA_MODULE_S_FILES} ${MIRA_MODULE_SRC_FILES})
-
-set(MODULE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/mira_module)
-
-add_custom_command(TARGET mira_module POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-lib -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --paid 0x3800000000000011)
+# Create the fself
+set(MODULE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME})
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-fself -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --lib ${MODULE_OUTPUT_PATH}.prx)

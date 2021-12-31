@@ -11,22 +11,14 @@ extern "C" int testLibraryFunction()
     return 0x1337;
 }
 
-extern "C" void _init()
-{
-    // idk why
-}
-
-extern "C" void _fini()
-{
-    // idk why
-}
-
 extern "C" bool trainer_load()
 {
+    printf("trainer_load()\n");
     return true;
 }
 
 extern "C" bool trainer_unload()
 {
+    printf("trainer_unload()\n");
     return true;
 }

@@ -1,5 +1,5 @@
 // Main entry point
-int main();
+extern "C" int main(void);
 
 /*
 /data/mira

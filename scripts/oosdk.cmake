@@ -1,81 +1,74 @@
-# OOSDK Defaults
-cmake_minimum_required(VERSION 3.12)
+# Default cmake version
+cmake_minimum_required(VERSION 3.13)
 
-# Credits: znullptr
+# Enable verbose makefile
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
+# Set the target configuration, credits znullptr & specter
 set(CMAKE_SYSTEM_NAME FreeBSD)
 set(CMAKE_SYSTEM_PROCESSOR x86_64)
-set(CMAKE_SYSTEM_VERSION 9)
+set(CMAKE_SYSTEM_VERSION 12)
+set(TARGET x86_64-pc-freebsd-elf)
 
-#set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER) # search for programs in the build host directories
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)  # for libraries and headers in the target directories
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
-# Set all of the default CFLAGS
-set(CMAKE_C_COMPILER clang-10)
-set(CMAKE_CXX_COMPILER clang++-10)
-set(CMAKE_AR llvm-ar)
-set(CMAKE_OBJCOPY objcopy)
-
-# Set the C standard to c11
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED False)
-
-# Set the C++ standard to c++17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED False)
-
-set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES "")
-set(CMAKE_C_STANDARD_LIBRARIES "")
-
-set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES "")
-set(CMAKE_CXX_STANDARD_LIBRARIES "")
-
-set(CMAKE_ASM_STANDARD_INCLUDE_DIRECTORIES "")
-set(CMAKE_ASM_STANDARD_LIBRARIES "")
-
-# If the OO_PS4_TOOLCHAIN environment variable is found, set a CMake variable with the same name
-if (NOT "" STREQUAL "$ENV{OO_PS4_TOOLCHAIN}")
-  file(TO_CMAKE_PATH $ENV{OO_PS4_TOOLCHAIN} OO_PS4_TOOLCHAIN)
+# Check to see if the OO_PS4_TOOLCHAIN environment variable exists
+if(DEFINED ENV{OO_PS4_TOOLCHAIN})
+    set(OO_PS4_TOOLCHAIN $ENV{OO_PS4_TOOLCHAIN})
+else()
+    message(FATAL "OO_PS4_TOOLCHAIN environment variable not found")
 endif()
 
-# Verify that we have a cmake variable set
-if ("" STREQUAL ${OO_PS4_TOOLCHAIN})
-    message(FATAL_ERROR, "OO_PS4_TOOLCHAIN environment variable not set!")
-endif()
+LIST(APPEND CMAKE_PROGRAM_PATH ${OO_PS4_TOOLCHAIN})
 
-# Set all of the default CFLAGS
+# Specify the cross compiler
+# The target triple needs to match the prefix of the binutils exactly
+# (e.g. CMake looks for arm-none-eabi-ar)
+set(CLANG_TARGET_TRIPLE x86_64-pc-freebsd-elf)
+
+# C Compiler
 set(CMAKE_C_COMPILER clang)
+set(CMAKE_C_COMPILER_TARGET ${CLANG_TARGET_TRIPLE})
+
+
+# C++ Compiler
 set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_AR llvm-ar)
+set(CMAKE_CXX_COMPILER_TARGET ${CLANG_TARGET_TRIPLE})
 
-set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES "")
-set(CMAKE_C_STANDARD_LIBRARIES "")
+# ASM Compiler
+set(CMAKE_ASM_COMPILER /usr/bin/clang)
+set(CMAKE_ASM_COMPILER_TARGET ${CLANG_TARGET_TRIPLE})
 
-set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES "")
-set(CMAKE_CXX_STANDARD_LIBRARIES "")
+# Don't run the linker on compiler check
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-set(CMAKE_ASM_STANDARD_INCLUDE_DIRECTORIES "")
-set(CMAKE_ASM_STANDARD_LIBRARIES "")
+# Specify compiler flags
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(ARCH_FLAGS "-funwind-tables")
+set(CMAKE_C_FLAGS "-Wall -std=c11 ${ARCH_FLAGS}")
+set(CMAKE_CXX_FLAGS "-Wall -std=c++17  ${ARCH_FLAGS}")
+set(CMAKE_ASM_FLAGS "-Wall ${ARCH_FLAGS} -x assembler-with-cpp")
 
-set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
-set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "")
+# Specify linker flags
+#add_link_options(-T ${OO_PS4_TOOLCHAIN}/link.x)
+#add_link_options(-L${OO_PS4_TOOLCHAIN}/lib)
+#add_link_options(--eh-frame-hdr)
 
-set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
-set(CMAKE_C_IMPLICIT_LINK_DIRECTORIES "")
-
+set(CMAKE_EXE_LINKER_FLAGS "-m elf_x86_64 -pie --script ${OO_PS4_TOOLCHAIN}/link.x --eh-frame-hdr -L${OO_PS4_TOOLCHAIN}/lib")
 set(CMAKE_CXX_LINK_EXECUTABLE "ld.lld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
 set(CMAKE_C_LINK_EXECUTABLE "ld.lld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
 
-# Set the C/C++ compiler flags
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# C/C++ toolchain
+set(CMAKE_SYSROOT "${OO_PS4_TOOLCHAIN}")
+set(CMAKE_FIND_ROOT_PATH ${GCC_ARM_SYSROOT})
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -m64 -std=c++17 -O0 -fno-builtin -nodefaultlibs -nostdlib -fcheck-new -ffreestanding -fno-strict-aliasing -fno-exceptions -fno-asynchronous-unwind-tables -Wall -Werror -Wno-unknown-pragmas")
+# Set default include directories
+include_directories(SYSTEM ${OO_PS4_TOOLCHAIN}/include ${OO_PS4_TOOLCHAIN}/include/c++/v1)
 
-# Add the default compiler defines
-add_compile_definitions(_STANDALONE MIRA_PLATFORM=${MIRA_PLATFORM} MIRA_UNSUPPORTED_PLATFORMS=1 __LP64__ _M_X64 __amd64__ __BSD_VISIBLE)
+# Set default library directories
+# NOTE: We do not use this, because it passes the clang/clang++ -Wl,rpath=/lib instead of just plain -L/lib
+# it is taken care of above in the CMAKE_EXE_LINKER_FLAGS
+#link_directories(${OO_PS4_TOOLCHAIN}/lib)
 
-# Add the default compiler defines
+# Add C compiler definitions
 add_compile_definitions(PS4=1 __BSD_VISIBLE=1 _BSD_SOURCE=1)
 
 # If we are compiling for debug mode enable the flag
@@ -83,30 +76,9 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(_DEBUG=1)
 endif()
 
-# Additional include directories
-include_directories("${OO_PS4_TOOLCHAIN}/include" "${OO_PS4_TOOLCHAIN}/include/c++/v1" "${PROJECT_SOURCE_DIR}")
+# Search for programs in the build host directories
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM BOTH)
 
-add_compile_options(-fno-rtti)
-
-# Force using lld
-#add_link_options(-fuse-ld=lld)
-
-# Don't include system standard libraries
-add_link_options(-nostdlib)
-
-# Make this a pie executable
-add_link_options(-pie)
-
-# TODO: Ask specter why this is needed?
-add_link_options(--eh-frame-hdr)
-
-# Linker script
-add_link_options(-T ${OO_PS4_TOOLCHAIN}/link.x)
-
-# No dynamic linker is required to fix cmake issue
-add_link_options(--no-dynamic-linker)
-
-# Additional library directories
-add_link_options(-L${OO_PS4_TOOLCHAIN}/lib)
-
-add_link_options(-L${OO_PS4_TOOLCHAIN}/lib/crtlib.o)
+# For libraries and headers in the target directories
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)

@@ -114,24 +114,21 @@ bool MountManager::DestroyMount(uint32_t p_MountIndex)
         return true;
     }
 
+    // Check to see if our sandboxed directory exists
     if (DirectoryExists(s_MiraMainThread, s_MountPoint->MntSandboxDirectory))
     {
-        WriteLog(LL_Info, "Directory (%s) found for pid: (%d) titleid: (%s).", s_MountPoint->MntSandboxDirectory, s_MountPoint->ProcessId, s_MountPoint->TitleId);
+        // Debug output so we know we found a directory to clean
+        WriteLog(LL_Debug, "Found directory to unmount (%s) found for pid: (%d) titleid: (%s).", s_MountPoint->MntSandboxDirectory, s_MountPoint->ProcessId, s_MountPoint->TitleId);
 
-            // Mount the host directory in the sandbox
-            //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
-            auto s_Result = kunmount_t(s_MountPoint->MntSandboxDirectory, 0, s_MiraMainThread);
-            WriteLog(LL_Info, "Unmounting Directory: (%d).", s_Result);
+        // Mount the host directory in the sandbox
+        //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
+        auto s_Result = kunmount_t(s_MountPoint->MntSandboxDirectory, 0, s_MiraMainThread);
+        if (s_Result != 0)
+            WriteLog(LL_Error, "could not unmount directory: (%d).", s_Result);
 
-            // auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
-            // if (s_Result < 0)
-            // {
-            //     WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
-            //     return false;
-            // }
-
-            // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
-            //WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+        s_Result = krmdir_t(s_MountPoint->MntSandboxDirectory, s_MiraMainThread);
+        if (s_Result != 0)
+            WriteLog(LL_Error, "could not rmdir (%s) (%d).", s_MountPoint->MntSandboxDirectory, s_Result);
     }
 
     // Clear the mount point
@@ -142,6 +139,8 @@ bool MountManager::DestroyMount(uint32_t p_MountIndex)
 
 bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const char* p_FolderName, const struct thread* p_Thread)
 {
+    // p_SourceDirectory = "/mnt/usb0/mira/trainers"
+    // p_FolderName = "_mira"
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
@@ -155,7 +154,7 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
     // Validate folder name
     if (p_FolderName == nullptr)
     {
-        WriteLog(LL_Error, "invalid folder name");
+        WriteLog(LL_Error, "invalid folder name.");
         return false;
     }
     
@@ -238,12 +237,12 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
 
     WriteLog(LL_Debug, "SandboxPath: (%s).", s_SandboxPath);
 	if (s_FreePath)
-		WriteLog(LL_Debug, "FreePath: (%s).", s_FreePath);
+		WriteLog(LL_Debug, "FreePath: (%p).", s_FreePath);
 
 
     int32_t s_ThreadId = p_Thread->td_tid;
     int32_t s_ProcessId = s_Process->p_pid;
-
+    bool s_Success = false;
     do
     {
         // Get the mount point address
@@ -254,18 +253,32 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
         s_MountPoint->ProcessId = s_ProcessId;
 
         // s_SandboxPath = "/mnt/sandbox/NPXS20001_000"
-        // s_MountPoint->MntSandboxDirectory = "/mnt/sandbox/NPXS20001_000/_substitute"
+        // s_MountPoint->MntSandboxDirectory = "/mnt/sandbox/NPXS20001_000/_mira"
 		// p_FolderName = "_mira"
-        auto s_Result = snprintf(s_MountPoint->MntSandboxDirectory, 
-                                sizeof(s_MountPoint->MntSandboxDirectory),
-                                "%s/%s",
-                                s_SandboxPath,
-                                p_FolderName);
+        auto s_Result = snprintf(s_MountPoint->FolderName, sizeof(s_MountPoint->FolderName),
+                                "%s", p_FolderName);
         if (s_Result < 0)
         {
+            WriteLog(LL_Error, "failed to sprintf FolderName.");
             ClearMountPoint(s_FreeIndex);
             break;
         }
+
+        WriteLog(LL_Debug, "FolderName: (%s).", s_MountPoint->FolderName);
+
+        s_Result = snprintf(s_MountPoint->MntSandboxDirectory, 
+                                sizeof(s_MountPoint->MntSandboxDirectory),
+                                "%s/%s",
+                                s_SandboxPath,
+                                s_MountPoint->FolderName);
+        if (s_Result < 0)
+        {
+            WriteLog(LL_Error, "failed to snprintf MntSandboxDirectory.");
+            ClearMountPoint(s_FreeIndex);
+            break;
+        }
+
+        WriteLog(LL_Debug, "MntSandboxDirectory: (%s).", s_MountPoint->MntSandboxDirectory);
         
         // Get the "source path"
         s_Result = snprintf(s_MountPoint->SourceDirectory,
@@ -275,9 +288,12 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
         
         if (s_Result < 0)
         {
+            WriteLog(LL_Error, "failed to snprintf SourceDirectory.");
             ClearMountPoint(s_FreeIndex);
             break;
         }
+
+        WriteLog(LL_Debug, "SourceDirectory: (%s).", s_MountPoint->SourceDirectory);
         
         // Check to see if the real path directory actually exists
         auto s_DirectoryHandle = kopen_t(s_MountPoint->SourceDirectory, O_RDONLY | O_DIRECTORY, 0511, s_MiraMainThread);
@@ -290,8 +306,17 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
         // Close the directory once we know it exists
         kclose_t(s_DirectoryHandle, s_MiraMainThread);
 
+        // Create the new folder where we will be mounting
+        s_Result = kmkdir_t(s_MountPoint->MntSandboxDirectory, 0777, s_MiraMainThread);
+        if (s_Result != 0)
+        {
+            WriteLog(LL_Error, "mkdir failed for path (%s) (%d).", s_MountPoint->MntSandboxDirectory, s_Result);
+            ClearMountPoint(s_FreeIndex);
+            break;
+        }
+
         // Mount the nullfs overlay
-        if (!MountNullFs(s_MountPoint->SourceDirectory, p_SourceDirectory, 0))
+        if (!MountNullFs(s_MountPoint->MntSandboxDirectory, s_MountPoint->SourceDirectory, 0))
         {
             WriteLog(LL_Error, "could not mount nullfs.");
             krmdir_t(s_MountPoint->MntSandboxDirectory, s_MiraMainThread);
@@ -306,6 +331,8 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
         
         // Increment our mount count
         m_MountCount++;
+
+        s_Success = true;
     } while (false);
 
     // If we have an allocated free path, then free it
@@ -316,7 +343,7 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
     }
 
     // Return success
-    return true;
+    return s_Success;
 }
 
 bool MountManager::MountNullFs(const char* p_Where, const char* p_What, int p_Flags)

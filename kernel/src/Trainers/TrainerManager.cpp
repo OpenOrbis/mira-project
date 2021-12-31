@@ -502,7 +502,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
 
     // TODO: Determine final file path name
     // Determine if we need to mount the _stubstitute path into the sandbox
-    if (!DirectoryExists(p_CallingThread, "/_substitute"))
+    if (!DirectoryExists(p_CallingThread, "/_mira"))
     {
         WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
 
@@ -510,13 +510,13 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         char s_MountedSandboxDirectory[c_PathLength] = { 0 };
         // TODO: Fix this implementation
 
-        if (!s_MountManager->CreateMountInSandbox(s_BasePath, "_substitute", p_CallingThread))
+        if (!s_MountManager->CreateMountInSandbox(s_BasePath, "_mira", p_CallingThread))
         {
-            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_BasePath);
+            WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_mira).", s_BasePath);
             return false;
         }
 
-        // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+        // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_mira"
         WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
     }
 

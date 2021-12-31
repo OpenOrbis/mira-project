@@ -10,7 +10,7 @@
 #endif
 
 // Entry point
-int main()
+int main(void)
 {
     WriteLog(LL_Debug, "MiraDaemon Entry Point.");
 

@@ -23,7 +23,3 @@ _padding:
 _g_rdi: .quad 0
 _g_rsi: .quad 0
 _g_consoleHandle: .int 0
-
-#_mira_elf_start:
-#.incbin MIRA_ELF_PATH
-#_mira_elf_end:

@@ -2,162 +2,131 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-
-#include <orbis/Sysmodule.h>
+#include <sstream>
 
 #include "graphics.h"
-
-#include <memory>
-#include "tests.h"
 
 // Dimensions
 #define FRAME_WIDTH     1920
 #define FRAME_HEIGHT    1080
 #define FRAME_DEPTH        4
+#define DEBUGLOG debugLogStream
 
-// Font information
-#define FONT_SIZE_LARGE  128
-#define FONT_SIZE_SMALL   64
+// Logging
+std::stringstream debugLogStream;
 
-// Background and foreground colors
-Color bgColor;
-Color fgColor;
+int frameID = 0;
 
-// Font faces
-FT_Face fontLarge;
-FT_Face fontSmall;
+// drawMandelbrot runs the Mandelbrot algorithm and draws pixels to the frame buffer accordingly. Returns nothing, called every loop iteration.
+void drawMandelbrot(Scene2D *scene)
+{
+    /* screen (integer) coordinate */
+    int iX, iY;
+    const int iXmax = 1920;
+    const int iYmax = 1080;
+
+    /* world ( double) coordinate = parameter plane*/
+    double Cx, Cy;
+    const double CxMin = -2.5;
+    const double CxMax = 1.5;
+    const double CyMin = -2.0;
+    const double CyMax = 2.0;
+
+    double PixelWidth = (CxMax - CxMin) / iXmax;
+    double PixelHeight = (CyMax - CyMin) / iYmax;
+
+    /* color component ( R or G or B) is coded from 0 to 255 */
+    /* it is 24 bit color RGB file */
+    //const int MaxColorComponentValue = 255;
+
+    static unsigned char color[3];
+
+    /* Z=Zx+Zy*i  ;   Z0 = 0 */
+    double Zx, Zy;
+    double Zx2, Zy2; /* Zx2=Zx*Zx;  Zy2=Zy*Zy  */
+
+    int Iteration;
+    const int IterationMax = 255;
+
+    /* bail-out value , radius of circle ;  */
+    const double EscapeRadius = 2;
+    double ER2 = EscapeRadius * EscapeRadius;
+
+    /* compute and write image data bytes to the file*/
+    for (iY = 0; iY < iYmax; iY++)
+    {
+        Cy = CyMin + iY * PixelHeight;
+        if (fabs(Cy) < PixelHeight / 2) Cy = 0.0; /* Main antenna */
+
+        for (iX = 0; iX < iXmax; iX++)
+        {
+            Cx = CxMin + iX * PixelWidth;
+
+            /* initial value of orbit = critical point Z= 0 */
+            Zx = 0.0;
+            Zy = 0.0;
+            Zx2 = Zx * Zx;
+            Zy2 = Zy * Zy;
+
+            for (Iteration = 0; Iteration < IterationMax && ((Zx2 + Zy2) < ER2); Iteration++)
+            {
+                Zy = 2 * Zx*Zy + Cy;
+                Zx = Zx2 - Zy2 + Cx;
+                Zx2 = Zx * Zx;
+                Zy2 = Zy * Zy;
+            };
+
+            color[0] = 0;
+            color[1] = 0;
+            color[2] = 0;
+
+            if (Iteration < 20)
+                color[2] = (int)((255 * Iteration) / 20);
+
+            Color pixelColor = { color[0], color[1], color[2] };
+            scene->DrawPixel(iX, iY, pixelColor);
+        }
+    }
+}
 
 int main()
 {
-    int rc;
-    int video;
-    int curFrame = 0;
+    //int rc;
+    //int video;
+    //int curFrame = 0;
+    //void *surfaceBuff = 0;
 
-    // Set colors
-    bgColor = { 0, 0, 0 };
-    fgColor = { 255, 255, 255 };
-
-    // Load freetype
-    rc = sceSysmoduleLoadModule(0x009A);
-
-    if (rc < 0)
+    // No buffering
+    setvbuf(stdout, NULL, _IONBF, 0);
+    
+    // Create a 2D scene
+    DEBUGLOG << "Creating a scene";
+    
+    auto scene = new Scene2D(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
+    
+    if(!scene->Init(0xC000000, 2))
     {
-        printf("[ERROR] Failed to load freetype module\n");
-        return rc;
+    	DEBUGLOG << "Failed to initialize 2D scene";
+    	for(;;);
     }
 
-    // Initialize freetype
-    rc = FT_Init_FreeType(&ftLib);
-
-    if (rc != 0)
-    {
-        printf("[ERROR] Failed to initialize freetypee\n");
-        return rc;
-    }
-
-    // Initialize the font faces with arial (must be included in the package root!)
-    const char *font = "/app0/arial.ttf";
-
-    rc = initFont(&fontLarge, font, FONT_SIZE_LARGE);
-
-    if (rc != 0)
-    {
-        printf("[ERROR] Failed to initialize font '%s'\n", font);
-        return rc;
-    }
-
-    rc = initFont(&fontSmall, font, FONT_SIZE_SMALL);
-
-    if (rc != 0)
-    {
-        printf("[ERROR] Failed to initialize freetype\n");
-        return rc;
-    }
-
-    // Open a handle to video out
-    video = sceVideoOutOpen(ORBIS_VIDEO_USER_MAIN, ORBIS_VIDEO_OUT_BUS_MAIN, 0, 0);
-
-    if (video < 0)
-    {
-        printf("[ERROR] Failed to open a video out handle\n");
-        return video;
-    }
-
-    // Create a queue for flip events
-    if (initializeFlipQueue(video) < 0)
-    {
-        sceVideoOutClose(video);
-
-        printf("[ERROR] Failed to create an event queue\n");
-        return rc;
-    }
-
-    setDimensions(FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH);
-
-    // Allocate direct memory for the frame buffers
-    rc = allocateVideoMem(0xC000000, 0x200000);
-
-    if (rc < 0)
-    {
-        sceVideoOutClose(video);
-
-        printf("[ERROR] Failed to allocate video memory\n");
-        return rc;
-    }
-
-    // Set the frame buffers
-    rc = allocateFrameBuffers(video, 2);
-
-    if (rc < 0)
-    {
-        deallocateVideoMem();
-        sceVideoOutClose(video);
-
-        printf("[ERROR] Failed to allocate frame buffers from video memory\n");
-        return rc;
-    }
-
-    setActiveFrameBuffer(0);
-
-    // Set the flip rate
-    sceVideoOutSetFlipRate(video, 0);
-
-    // Blacken the background (easier on the eyes)
-    frameBufferFill(bgColor);
-
-    // START TESTING
-    auto s_TestSuite = std::make_shared<Mira::Tests>();
-    if (!s_TestSuite)
-    {
-        printf("[ERROR] Failed to allocate test suite.\n");
-        return -1;
-    }
-
-    s_TestSuite->RunAll();
-
-    // END TESTING
+    scene->FrameBufferClear();
+    
+    DEBUGLOG << "Entering draw loop...";
 
     // Draw loop
     for (;;)
     {
-        int frameID = curFrame ^ 1;
+        // Draw the mandelbrot
+        drawMandelbrot(scene);
 
-        // Draw the sample text
-        //const char *textLarge = "OpenOrbis Sample\nHello, World!";
-        //const char *textSmall = "Built with the OpenOrbis toolchain...";
-        const char *textWrapContent = s_TestSuite->GetLog().c_str(); //"text wrapping example, it breaks line based on width of container";
-        
-        //drawText((char *)textLarge, fontLarge, 150, 400, bgColor, fgColor);
-        //drawText((char *)textSmall, fontSmall, 150, 750, bgColor, fgColor);
-        drawTextContainer((char *)textWrapContent, fontSmall, 0, 0, 1280, 720, bgColor, fgColor);
-        
         // Submit the frame buffer
-        sceVideoOutSubmitFlip(video, ActiveFrameBufferIdx, ORBIS_VIDEO_OUT_FLIP_VSYNC, curFrame);
-        frameWait(video, curFrame);
+        scene->SubmitFlip(frameID);
+        scene->FrameWait(frameID);
 
         // Swap to the next buffer
-        frameBufferSwap();
-        curFrame = frameID;
+        scene->FrameBufferSwap();
+        frameID++;
     }
 
     return 0;

@@ -14,7 +14,7 @@
 
 extern "C" uint64_t _g_rsi;
 extern "C" uint64_t _g_rdi;
-extern "C" uint32_t _g_consoleHandle;
+extern "C" int32_t _g_consoleHandle;
 extern "C" uint8_t _g_launchMode;
 
 typedef enum _LaunchMode : uint8_t
@@ -162,18 +162,11 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 
     stub_debug_log("[+] trainer_loader entry reached!\n");
 
-    // Debug log the launch mode type
-    if (_g_launchMode == LaunchMode::Normal)
-        stub_debug_log("[=] launching in normal mode.\n");
-    else if (_g_launchMode == LaunchMode::Injected)
-        stub_debug_log("[=] launching in injected mode.\n");
-    else
-        stub_debug_log("[-] unknown launch mode, results may vary.\n");
-
     // Open up stdout
-    _g_consoleHandle = stub_open("/dev/console", 0x0002, 0);
-
-    stub_debug_log("[+] /dev/console opened.\n");
+    // BUG: This freezes the thread, no crash, just freeze. Commenting this out has no adverse side effects so fuck it
+    // TODO: Remove this once confirmed working in all scenarios
+    // _g_consoleHandle = stub_open("/dev/console", 0x0002, 0);
+    // stub_debug_log("[+] /dev/console opened.\n");
 
     // Open Mira driver
     int s_DriverDescriptor = stub_open("/dev/mira", 0, 0);
@@ -204,6 +197,15 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
             stub_debug_log("[-] Entry point is null 2!\n");
             goto jmp_orig;
         }
+    }
+    else if (_g_launchMode == LaunchMode::Injected)
+    {
+        stub_debug_log("[=] launch mode set to injected.\n");
+    }
+    else
+    {
+        stub_debug_log("[-] launch mode unknown.\n");
+        goto jmp_orig;
     }
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
@@ -370,12 +372,16 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 
     stub_debug_log("[+] End of PRX search !\n");
 
-    stub_debug_log("[+] Goodbye ! Return to entrypoint :D\n");
+    if (_g_launchMode == LaunchMode::Normal)
+        stub_debug_log("[+] Goodbye ! Return to entrypoint :D\n");
+    else
+        stub_debug_log("[+] Goodbye ! Thread exiting.\n");
+jmp_orig:
 
     // Close access to the driver
-    stub_close(s_DriverDescriptor);
+    if (s_DriverDescriptor > 0)
+        stub_close(s_DriverDescriptor);
 
-jmp_orig:
     if (_g_launchMode == LaunchMode::Normal)
     {
         if (s_EntryPoint != nullptr)

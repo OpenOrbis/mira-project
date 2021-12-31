@@ -7,6 +7,7 @@
 #include "_syscalls.hpp"
 
 int64_t debug_log(const char* debug_message) {
+    
     return (int64_t)syscall3(601, (void*)0x7, reinterpret_cast<void*>(const_cast<char*>(debug_message)), (void*)0x0);
 }
 
