@@ -10,6 +10,7 @@ extern "C"
     #include <sys/mutex.h>
     #include <sys/filedesc.h>
     #include <sys/fcntl.h>
+    #include <sys/stat.h>
 };
 
 using namespace Mira::OrbisOS;
@@ -85,6 +86,56 @@ bool MountManager::OnProcessExit(struct proc* p_Process)
             }
         }
     } while (false);    
+
+    return true;
+}
+
+bool MountManager::DestroyMount(uint32_t p_MountIndex)
+{
+    if (p_MountIndex >= m_MountCount)
+        return false;
+    
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+        return false;
+
+    auto s_MiraMainThread = s_Framework->GetMainThread();
+    if (s_MiraMainThread == nullptr)
+        return false;
+    
+    // Get the mount point
+    MountPoint* s_MountPoint = &m_Mounts[p_MountIndex];
+
+    // If this process/thread id are already -1 that means it was empty, clear data just to be sure
+    if (s_MountPoint->ProcessId == -1 ||
+        s_MountPoint->ThreadId == -1)
+    {
+        ClearMountPoint(p_MountIndex);
+        return true;
+    }
+
+    if (DirectoryExists(s_MiraMainThread, s_MountPoint->MntSandboxDirectory))
+    {
+        WriteLog(LL_Info, "Directory (%s) found for pid: (%d) titleid: (%s).", s_MountPoint->MntSandboxDirectory, s_MountPoint->ProcessId, s_MountPoint->TitleId);
+
+            // Mount the host directory in the sandbox
+            //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
+            auto s_Result = kunmount_t(s_MountPoint->MntSandboxDirectory, 0, s_MiraMainThread);
+            WriteLog(LL_Info, "Unmounting Directory: (%d).", s_Result);
+
+            // auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
+            // if (s_Result < 0)
+            // {
+            //     WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
+            //     return false;
+            // }
+
+            // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+            //WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+    }
+
+    // Clear the mount point
+    ClearMountPoint(p_MountIndex);
 
     return true;
 }
@@ -359,4 +410,45 @@ int32_t MountManager::FindFreeMountPointIndex()
 
     // We did not find any mount index
     return -1;
+}
+
+bool MountManager::DirectoryExists(const char* p_Path)
+{
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return false;
+    }
+
+    auto s_MainThread = s_Framework->GetMainThread();
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread.");
+        return false;
+    }
+
+    return DirectoryExists(s_MainThread, p_Path);
+}
+
+bool MountManager::DirectoryExists(struct thread* p_Thread, const char* p_Path)
+{
+    auto s_MainThread = p_Thread;
+    if (s_MainThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get main thread.");
+        return false;
+    }
+
+    struct stat s_Stat = { 0 };
+    auto s_Ret = kstat_t(const_cast<char*>(p_Path), &s_Stat, s_MainThread);
+    if (s_Ret < 0)
+    {
+        // Only log if we got something other that ENOENT
+        if (s_Ret != -ENOENT)
+            WriteLog(LL_Error, "could not stat (%s) ret (%d).", p_Path, s_Ret);
+        return false;
+    }
+
+    return S_ISDIR(s_Stat.st_mode);
 }

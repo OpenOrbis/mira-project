@@ -60,6 +60,9 @@ namespace Mira
             bool ClearMountPoint(uint32_t p_Index);
             int32_t GetMountPointByProcessId(int32_t p_ProcessId);
             int32_t GetMountPointByThreadId(int32_t p_ThreadId);
+
+            bool DirectoryExists(const char* p_Path);
+            bool DirectoryExists(struct thread* p_Thread, const char* p_Path);
         public:
             MountManager();
             virtual ~MountManager();
@@ -77,7 +80,8 @@ namespace Mira
              * @return true on success, false otherwise
              */
             bool CreateMountInSandbox(const char* p_SourceDirectory, const char* p_MountedName, const struct thread* p_Thread);
-            bool DestroyMount();
+            
+            bool DestroyMount(uint32_t p_MountIndex);
 
             void DestroyAllMounts();
 

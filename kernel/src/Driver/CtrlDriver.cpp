@@ -151,7 +151,7 @@ CtrlDriver::~CtrlDriver()
 int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_DeviceType, struct thread* p_Thread)
 {
     if (p_Thread != nullptr && p_Thread->td_proc)
-        WriteLog(LL_Debug, "ctrl driver opened from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
+        WriteLog(LL_Debug, "ctrl driver opened from tid: (%d) pid: (%d) (%s).", p_Thread->td_tid, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
 
     return 0;
 }
@@ -159,7 +159,7 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
 int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_DeviceType, struct thread* p_Thread)
 {
     if (p_Thread != nullptr && p_Thread->td_proc)
-        WriteLog(LL_Debug, "ctrl driver closed from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
+        WriteLog(LL_Debug, "ctrl driver closed from tid: (%d) pid: (%d) (%s).", p_Thread->td_tid, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
 
     return 0;
 }
@@ -172,7 +172,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     p_Command = p_Command & 0xFFFFFFFF; // Clear the upper32
 
     if (p_Thread != nullptr && p_Thread->td_proc)
-        WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d).", p_Thread->td_tid, p_Thread->td_proc->p_pid);
+        WriteLog(LL_Debug, "ctrl driver ioctl from tid: (%d) pid: (%d) (%s).", p_Thread->td_tid, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
 
     auto s_Framework = Mira::Framework::GetFramework();
     if (s_Framework == nullptr)

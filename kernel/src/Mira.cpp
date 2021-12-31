@@ -424,7 +424,7 @@ bool Mira::Framework::Initialize()
 			//auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
 			
 			WriteLog(LL_Debug, "Trainer loader allocated in ShellUI at (%p).", s_TrainerLoaderAddress);
-			uint8_t s_InjectedLaunchFlag = 0xFA;
+			uint8_t s_InjectedLaunchFlag = 1;
 			// Skip the jmp <short>
 			// Set the launch flag to injected
 			//copyout(&s_InjectedLaunchFlag, s_TrainerLoaderAddress+5, sizeof(s_InjectedLaunchFlag));

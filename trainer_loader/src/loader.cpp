@@ -19,9 +19,9 @@ extern "C" uint8_t _g_launchMode;
 
 typedef enum _LaunchMode : uint8_t
 {
-    Normal = 0xF3,
-    Injected = 0xFA,
-    COUNT = 0x02
+    Normal = 0,
+    Injected = 1,
+    COUNT = 2
 } LaunchMode;
 
 // Libkernel
@@ -160,13 +160,26 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
     char s_LogBuffer[100];
     //MiraSetThreadPrivMask s_PrivCheck;
 
+    stub_debug_log("[+] trainer_loader entry reached!\n");
+
+    // Debug log the launch mode type
+    if (_g_launchMode == LaunchMode::Normal)
+        stub_debug_log("[=] launching in normal mode.\n");
+    else if (_g_launchMode == LaunchMode::Injected)
+        stub_debug_log("[=] launching in injected mode.\n");
+    else
+        stub_debug_log("[-] unknown launch mode, results may vary.\n");
+
     // Open up stdout
     _g_consoleHandle = stub_open("/dev/console", 0x0002, 0);
+
+    stub_debug_log("[+] /dev/console opened.\n");
 
     // Open Mira driver
     int s_DriverDescriptor = stub_open("/dev/mira", 0, 0);
     if (s_DriverDescriptor < 0)
     {
+        stub_debug_log("[-] could not open /dev/mira.\n");
         *(uint8_t*)0x1337 = 0x0;
         goto jmp_orig;
     }
@@ -175,6 +188,8 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 
     if (_g_launchMode == LaunchMode::Normal)
     {
+        stub_debug_log("[=] launch mode set to normal.\n");
+
         // Request for original start point
         s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
         if (s_Ret != 0)
@@ -191,9 +206,8 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         }
     }
 
-
-
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
+    stub_debug_log("[=] requesting trainer load via ioctl.\n");
     s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
     if (s_Ret != 0)
     {

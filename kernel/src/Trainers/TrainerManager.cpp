@@ -86,8 +86,10 @@ bool TrainerManager::OnUnload()
 
 bool TrainerManager::OnProcessExit(struct proc* p_Process)
 {
-    auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
-	auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
+    return true;
+
+    //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
+	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
 	//auto strncmp = (int(*)(const char *, const char *, size_t))kdlsym(strncmp);
 
@@ -102,51 +104,51 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
         return false;
     }
 
-    // Lock the process whenever we access it
-    PROC_LOCK(p_Process);
+    // // Lock the process whenever we access it
+    // PROC_LOCK(p_Process);
 
-    do
-    {
-        // Debug print
-        //WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
-        //const uint32_t c_PathLength = 260;
+    // do
+    // {
+    //     // Debug print
+    //     //WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
+    //     //const uint32_t c_PathLength = 260;
 
-        auto s_TrainerManager = s_Framework->GetTrainerManager();
-        if (s_TrainerManager != nullptr)
-            s_TrainerManager->RemoveEntryPoint(p_Process->p_pid);
+    //     auto s_TrainerManager = s_Framework->GetTrainerManager();
+    //     if (s_TrainerManager != nullptr)
+    //         s_TrainerManager->RemoveEntryPoint(p_Process->p_pid);
         
-        // TODO: Find a proper way to get the title id
-        auto s_ProcessTitleId = ((char*)p_Process) + 0x390; // "CUSA00001";
-        WriteLog(LL_Info, "Unloading Trainers Directory for TID: (%s).", s_ProcessTitleId);
+    //     // TODO: Find a proper way to get the title id
+    //     auto s_ProcessTitleId = ((char*)p_Process) + 0x390; // "CUSA00001";
+    //     WriteLog(LL_Info, "Unloading Trainers Directory for pid: (%d) (%s).", p_Process->p_pid, s_ProcessTitleId);
         
-        auto s_MainThread = p_Process->p_singlethread ? p_Process->p_singlethread : p_Process->p_threads.tqh_first;
+    //     auto s_MainThread = p_Process->p_singlethread ? p_Process->p_singlethread : p_Process->p_threads.tqh_first;
 
-        // Determine if we need to mount the _stubstitute path into the sandbox
-        if (DirectoryExists(s_MainThread, "/_substitute"))
-        {
-            WriteLog(LL_Info, "Main Thread: Substitute directory not found for proc (%d) (%s).", p_Process->p_pid, p_Process->p_comm);
+    //     // Determine if we need to mount the _stubstitute path into the sandbox
+    //     if (DirectoryExists(s_MainThread, "/_substitute"))
+    //     {
+    //         WriteLog(LL_Info, "Main Thread: Substitute directory not found for proc (%d) (%s).", p_Process->p_pid, p_Process->p_comm);
 
-            // Mount the host directory in the sandbox
-            //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
-            auto s_Result = kunmount_t((char*)"/_substitute", 0, s_MainThread);
-            WriteLog(LL_Info, "Unmounting Directory: (%d).", s_Result);
+    //         // Mount the host directory in the sandbox
+    //         //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
+    //         auto s_Result = kunmount_t((char*)"/_substitute", 0, s_MainThread);
+    //         WriteLog(LL_Info, "Unmounting Directory: (%d).", s_Result);
 
-            // auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
-            // if (s_Result < 0)
-            // {
-            //     WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
-            //     return false;
-            // }
+    //         // auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
+    //         // if (s_Result < 0)
+    //         // {
+    //         //     WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
+    //         //     return false;
+    //         // }
 
-            // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
-            //WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
-        }
+    //         // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
+    //         //WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
+    //     }
 
-    } while (false);
+    // } while (false);
     
 
-    // Unlock the process
-    PROC_UNLOCK(p_Process);
+    // // Unlock the process
+    // PROC_UNLOCK(p_Process);
 
     return true;
 }
@@ -207,7 +209,7 @@ int TrainerManager::OnSvFixup(register_t** stack_base, struct image_params* imgp
         char s_EbootPath[16] = "/app0/eboot.bin";
         if (strncmp(s_EbootPath, imgp->execpath, sizeof(s_EbootPath)) != 0)
         {
-            WriteLog(LL_Error, "skipping non eboot process (%s).", s_Process->p_comm);
+            WriteLog(LL_Error, "skipping non eboot process (%s) pid: (%d).", s_Process->p_comm, s_Process->p_pid);
             break;
         }
 
@@ -580,7 +582,9 @@ bool TrainerManager::DirectoryExists(struct thread* p_Thread, const char* p_Path
     auto s_Ret = kstat_t(const_cast<char*>(p_Path), &s_Stat, s_MainThread);
     if (s_Ret < 0)
     {
-        WriteLog(LL_Error, "could not stat (%s) ret (%d).", p_Path, s_Ret);
+        // Only log if we got something other that ENOENT
+        if (s_Ret != -ENOENT)
+            WriteLog(LL_Error, "could not stat (%s) ret (%d).", p_Path, s_Ret);
         return false;
     }
 
@@ -767,6 +771,10 @@ int TrainerManager::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 
             copyout(&s_EntryPoint, p_Data, sizeof(s_EntryPoint));
             return 0;
+        }
+    default:
+        {
+            WriteLog(LL_Error, "TrainerManager driver cmd ioctl (0x%x) unknown.", p_Command);
         }
     }
     return 0;
