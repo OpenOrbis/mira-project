@@ -479,7 +479,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         char s_MountedSandboxDirectory[c_PathLength] = { 0 };
         // TODO: Fix this implementation
 
-        if (!s_MountManager->CreateMountInSandbox(s_BasePath, "_mira", p_CallingThread))
+        if (!s_MountManager->CreateMountInSandbox(s_TitleIdPath, "_mira", p_CallingThread))
         {
             WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_mira).", s_BasePath);
             return false;

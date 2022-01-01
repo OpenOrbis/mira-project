@@ -81,8 +81,13 @@ bool MountManager::OnProcessExit(struct proc* p_Process)
             {
                 WriteLog(LL_Debug, "pid (%d) is closing, unmounting (%s)->(%s).", s_ProcessId, s_MountPoint->SourceDirectory, s_MountPoint->MntSandboxDirectory);
 
-                // TODO: Unmount
-                ClearMountPoint(l_MountIndex);
+                // Unmount
+                if (!DestroyMount(l_MountIndex))
+                {
+                    WriteLog(LL_Error, "could not unmount idx: (%d).", l_MountIndex);
+                
+                    ClearMountPoint(l_MountIndex);
+                }
             }
         }
     } while (false);    
@@ -115,7 +120,7 @@ bool MountManager::DestroyMount(uint32_t p_MountIndex)
     }
 
     // Check to see if our sandboxed directory exists
-    if (DirectoryExists(s_MiraMainThread, s_MountPoint->MntSandboxDirectory))
+    //if (DirectoryExists(s_MiraMainThread, s_MountPoint->MntSandboxDirectory))
     {
         // Debug output so we know we found a directory to clean
         WriteLog(LL_Debug, "Found directory to unmount (%s) found for pid: (%d) titleid: (%s).", s_MountPoint->MntSandboxDirectory, s_MountPoint->ProcessId, s_MountPoint->TitleId);
@@ -315,6 +320,30 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
             break;
         }
 
+        // We need absolute root permissions in current thread
+        auto s_CurrentThreadCred = curthread->td_proc->p_ucred;
+        auto s_CurrentThreadFd = curthread->td_proc->p_fd;
+
+        int32_t s_CurrentUid = s_CurrentThreadCred->cr_uid;
+        int32_t s_CurrentRUid = s_CurrentThreadCred->cr_ruid;
+        int32_t s_CurrentRGid = s_CurrentThreadCred->cr_rgid;
+        int32_t s_CurrentGroup = s_CurrentThreadCred->cr_groups[0];
+        auto s_CurrentPrison = s_CurrentThreadCred->cr_prison;
+        auto s_CurrentRdir = s_CurrentThreadFd->fd_rdir;
+        auto s_CurrentJdir = s_CurrentThreadFd->fd_jdir;
+
+        // Escape the current thread
+        // TODO: we should have a nice function for this somewhere
+        s_CurrentThreadCred->cr_uid = 0;
+        s_CurrentThreadCred->cr_ruid = 0;
+        s_CurrentThreadCred->cr_rgid = 0;
+        s_CurrentThreadCred->cr_groups[0] = 0;
+        s_CurrentThreadCred->cr_prison = *(struct prison**)kdlsym(prison0);
+
+        // Escape the real and jail dirs
+        s_CurrentThreadFd->fd_rdir = s_CurrentThreadFd->fd_jdir = *(struct vnode**)kdlsym(rootvnode);
+
+
         // Mount the nullfs overlay
         if (!MountNullFs(s_MountPoint->MntSandboxDirectory, s_MountPoint->SourceDirectory, 0))
         {
@@ -323,6 +352,18 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
             ClearMountPoint(s_FreeIndex);
             break;
         }
+
+        // Restore the current thread
+        // TODO: we should have a nice function for this somewhere
+        s_CurrentThreadCred->cr_uid = s_CurrentUid;
+        s_CurrentThreadCred->cr_ruid = s_CurrentRUid;
+        s_CurrentThreadCred->cr_rgid = s_CurrentRGid;
+        s_CurrentThreadCred->cr_groups[0] = s_CurrentGroup;
+        s_CurrentThreadCred->cr_prison = s_CurrentPrison;
+
+        // Escape the real and jail dirs
+        s_CurrentThreadFd->fd_rdir = s_CurrentRdir;
+        s_CurrentThreadFd->fd_jdir = s_CurrentJdir;
 
         // Update the access permissions to 0777
         s_Result = kchmod_t(s_MountPoint->MntSandboxDirectory, 0777, s_MiraMainThread);
