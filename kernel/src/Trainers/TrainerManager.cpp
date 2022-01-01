@@ -86,8 +86,6 @@ bool TrainerManager::OnUnload()
 
 bool TrainerManager::OnProcessExit(struct proc* p_Process)
 {
-    return true;
-
     //auto _mtx_unlock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_unlock_flags);
 	//auto _mtx_lock_flags = (void(*)(struct mtx *m, int opts, const char *file, int line))kdlsym(_mtx_lock_flags);
 	//auto strlen = (size_t(*)(const char *str))kdlsym(strlen);
@@ -104,51 +102,22 @@ bool TrainerManager::OnProcessExit(struct proc* p_Process)
         return false;
     }
 
-    // // Lock the process whenever we access it
-    // PROC_LOCK(p_Process);
+    auto s_TrainerManager = s_Framework->GetTrainerManager();
+    if (s_TrainerManager == nullptr)
+    {
+        WriteLog(LL_Error, "could not get trainer manager.");
+        return false;
+    }
 
-    // do
-    // {
-    //     // Debug print
-    //     //WriteLog(LL_Info, "process is exiting: (%s) (%d).", p_Process->p_comm, p_Process->p_pid);
-    //     //const uint32_t c_PathLength = 260;
+    // TODO: Determine if we need to lock this process
+    // Lock the process whenever we access it
+    //PROC_LOCK(p_Process);
+    //PROC_LOCKED(p_Process);
+    int32_t s_ProcessId = p_Process->p_pid;
+    // Unlock the process
+    //PROC_UNLOCK(p_Process);
 
-    //     auto s_TrainerManager = s_Framework->GetTrainerManager();
-    //     if (s_TrainerManager != nullptr)
-    //         s_TrainerManager->RemoveEntryPoint(p_Process->p_pid);
-        
-    //     // TODO: Find a proper way to get the title id
-    //     auto s_ProcessTitleId = ((char*)p_Process) + 0x390; // "CUSA00001";
-    //     WriteLog(LL_Info, "Unloading Trainers Directory for pid: (%d) (%s).", p_Process->p_pid, s_ProcessTitleId);
-        
-    //     auto s_MainThread = p_Process->p_singlethread ? p_Process->p_singlethread : p_Process->p_threads.tqh_first;
-
-    //     // Determine if we need to mount the _stubstitute path into the sandbox
-    //     if (DirectoryExists(s_MainThread, "/_substitute"))
-    //     {
-    //         WriteLog(LL_Info, "Main Thread: Substitute directory not found for proc (%d) (%s).", p_Process->p_pid, p_Process->p_comm);
-
-    //         // Mount the host directory in the sandbox
-    //         //char s_MountedSandboxDirectory[c_PathLength] = { 0 };
-    //         auto s_Result = kunmount_t((char*)"/_substitute", 0, s_MainThread);
-    //         WriteLog(LL_Info, "Unmounting Directory: (%d).", s_Result);
-
-    //         // auto s_Result = OrbisOS::Utilities::MountInSandbox(s_TitleIdPath, "/_substitute", s_MountedSandboxDirectory, p_CallingThread);
-    //         // if (s_Result < 0)
-    //         // {
-    //         //     WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_substitute).", s_Result);
-    //         //     return false;
-    //         // }
-
-    //         // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_substitute"
-    //         //WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
-    //     }
-
-    // } while (false);
-    
-
-    // // Unlock the process
-    // PROC_UNLOCK(p_Process);
+    s_TrainerManager->RemoveEntryPoint(s_ProcessId);
 
     return true;
 }
