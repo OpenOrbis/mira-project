@@ -1,5 +1,6 @@
 #include "_syscalls.hpp"
 #include <mira/Driver/DriverCmds.hpp>
+#include <mira/Driver/DriverStructs.hpp>
 
 #include <sys/types.h>
 
@@ -184,7 +185,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
         stub_debug_log("[=] launch mode set to normal.\n");
 
         // Request for original start point
-        s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_ORIG_EP, (uint64_t)&s_EntryPoint);
+        s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINER_GET_ENTRY_POINT, (uint64_t)&s_EntryPoint);
         if (s_Ret != 0)
         {
             stub_debug_log("[-] No entry point found ?\n");
@@ -210,7 +211,7 @@ extern "C" void loader_entry(uint64_t p_Rdi, uint64_t p_Rsi)
 
     // Request to load all available trainers (logic is done in kernel, is this bad idea? probably...)
     stub_debug_log("[=] requesting trainer load via ioctl.\n");
-    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINERS_LOAD, 0);
+    s_Ret = stub_ioctl(s_DriverDescriptor, MIRA_TRAINER_LOAD, 0);
     if (s_Ret != 0)
     {
         stub_debug_log("[-] Unable to load trainer !\n");

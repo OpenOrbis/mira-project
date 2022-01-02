@@ -54,7 +54,7 @@ public:
      * @param p_ProcessInfo Output buffer with enough space for sizeof(MiraProcessInformation) + sizeof(ThreadResult) * N (where N = Maximum number of output threads, 2048 is default)
      * @return true on success, false otherwise
      */
-    static bool GetProcInformation(int32_t p_ProcessId, MiraProcessInformation* p_ProcessInfo);
+    static bool GetProcInformation(int32_t p_ProcessId, ProcessInfo* p_ProcessInfo);
 
     // TODO: Need implementing
     static bool GetProcessPriv(uint8_t* p_Privs);
