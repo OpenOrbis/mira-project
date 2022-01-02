@@ -23,6 +23,14 @@ typedef uint64_t SceCapabilites;
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 #endif
 
+// Include all of our structures and IOC's
+#include "Mira/MiraStructs.hpp"
+#include "Prison/PrisonStructs.hpp"
+#include "Processes/ProcessStructs.hpp"
+#include "Trainers/TrainerStructs.hpp"
+
+/*
+
 typedef enum class _State : uint32_t
 {
     Get,
@@ -33,21 +41,6 @@ typedef enum class _State : uint32_t
 // Process Handler Information
 // "safe" way in order to modify kernel ucred externally
 typedef struct __attribute__((packed)) _MiraThreadCredentials {
-    typedef enum class _MiraThreadCredentialsPrison : uint32_t
-    {
-        // Non-root prison
-        Default,
-
-        // Switch prison to root vnode
-        Root,
-
-        // Total options count
-        COUNT
-    } MiraThreadCredentialsPrison;
-
-    // Is this a get or set operation
-    GSState State;
-
     // Process ID to modify
     int32_t ProcessId;
 
@@ -153,15 +146,8 @@ typedef struct __attribute__((packed)) _MiraProcessList
     uint32_t StructureSize;
 
     // Pid array
-    int32_t Pids[];
+    int32_t ProcessIds[0];
 } MiraProcessList;
-
-typedef struct __attribute__((packed)) _MiraMountInSandbox
-{
-    int32_t Permissions;
-    char HostPath[_MAX_PATH];
-    char SandboxPath[_MAX_PATH];
-} MiraMountInSandbox;
 
 typedef struct __attribute__((packed)) _MiraCreateTrainerShm
 {
@@ -187,105 +173,4 @@ typedef struct __attribute__((packed)) _MiraGetTrainersShm
     // Array of shm names
     MiraTrainerShm Shms[];
 } MiraGetTrainersShm;
-
-typedef struct __attribute__((packed)) _MiraReadProcessMemory
-{
-    // Size of the structure
-    uint32_t StructureSize;
-
-    // -1 for calling process
-    int32_t ProcessId;
-
-    // Address to read from in process
-    void* Address;
-
-    uint8_t Data[];
-} MiraReadProcessMemory;
-
-typedef struct __attribute__((packed)) _MiraWriteProcessMemory
-{
-    // Size of the structure
-    uint32_t StructureSize;
-
-    // -1 for calling process
-    int32_t ProcessId;
-
-    // Address to write to in process
-    void* Address;
-
-    // Data to write
-    uint8_t Data[];
-} MiraWriteProcessMemory;
-
-typedef struct __attribute__((packed)) _MiraPrivCheck
-{
-    // Thread id
-    int32_t ThreadId;
-
-    // Get or set the mask?
-    uint32_t IsGet;
-
-    // Override mask
-    uint8_t Mask[1024]; // This must match MaskSizeInBytes in PrivCheckPlugin.hpp
-
-    inline bool SetBit(uint32_t p_Index, bool p_Override)
-    {
-        if (p_Index >= ARRAYSIZE(Mask))
-            return false;
-        
-        // eh?
-        
-        Mask[p_Index] = p_Override;
-
-        return true;
-    }
-    inline bool GetBit(uint32_t p_Index, bool& p_Overridden)
-    {
-        if (p_Index >= ARRAYSIZE(Mask))
-            return false;
-        
-        p_Overridden = Mask[p_Index] != 0;
-        return true;
-    }
-    
-} MiraSetThreadPrivMask;
-
-typedef struct _MiraAllocateMemory
-{
-    // Process id to allocate memory in (<= 0 for current process)
-    int32_t ProcessId;
-
-    // Allocation size
-    uint32_t Size;
-
-    // Protection to set (RWX allowed)
-    int32_t Protection;
-
-    // Output pointer (should be set to nullptr on request, will be filled or nullptr on return)
-    uint8_t* Pointer;
-} MiraAllocateMemory;
-
-typedef struct _MiraFreeMemory
-{
-    int32_t ProcessId;
-
-    uint32_t Size;
-
-    void* Pointer;
-} MiraFreeMemory;
-
-
-typedef struct __attribute__((packed)) _MiraFindJMPSlot
-{
-    // Library name (Nothing is Main)
-    char module[_MAX_PATH];
-
-    // Function name
-    char function[_MAX_PATH];
-
-    // Is nids or name ?
-    bool is_nid;
-
-    // Where value need to be returned
-    void* value;
-} MiraFindJMPSlot;
+*/

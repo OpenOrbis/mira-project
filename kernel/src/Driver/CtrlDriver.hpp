@@ -22,6 +22,7 @@ extern "C"
 
 #include <mira/MiraConfig.hpp>
 #include <mira/Driver/DriverCmds.hpp>
+#include <mira/Driver/DriverStructs.hpp>
 
 #include <Driver/System/SystemDriverCtl.hpp>
 

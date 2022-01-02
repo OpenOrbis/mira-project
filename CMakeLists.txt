@@ -15,7 +15,7 @@ endif()
 
 if (NOT "" STREQUAL "$ENV{MIRA_PLATFORM}")
     message("overriding build by environment variable for MIRA_PLATFORM=$ENV{MIRA_PLATFORM}")
-    set(MIRA_PLATFORM ENV{MIRA_PLATFORM})
+    set(MIRA_PLATFORM $ENV{MIRA_PLATFORM})
 endif()
 
 # Display some output to the user
