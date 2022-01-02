@@ -120,7 +120,7 @@ bool MountManager::DestroyMount(uint32_t p_MountIndex)
     }
 
     // Check to see if our sandboxed directory exists
-    //if (DirectoryExists(s_MiraMainThread, s_MountPoint->MntSandboxDirectory))
+    if (DirectoryExists(s_MiraMainThread, s_MountPoint->MntSandboxDirectory))
     {
         // Debug output so we know we found a directory to clean
         WriteLog(LL_Debug, "Found directory to unmount (%s) found for pid: (%d) titleid: (%s).", s_MountPoint->MntSandboxDirectory, s_MountPoint->ProcessId, s_MountPoint->TitleId);
@@ -144,7 +144,7 @@ bool MountManager::DestroyMount(uint32_t p_MountIndex)
 
 bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const char* p_FolderName, const struct thread* p_Thread)
 {
-    // p_SourceDirectory = "/mnt/usb0/mira/trainers"
+    // p_SourceDirectory = "/mnt/usb0/mira/trainers/CUSA00001"
     // p_FolderName = "_mira"
     auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
@@ -508,15 +508,13 @@ bool MountManager::DirectoryExists(struct thread* p_Thread, const char* p_Path)
         return false;
     }
 
-    struct stat s_Stat = { 0 };
-    auto s_Ret = kstat_t(const_cast<char*>(p_Path), &s_Stat, s_MainThread);
-    if (s_Ret < 0)
-    {
-        // Only log if we got something other that ENOENT
-        if (s_Ret != -ENOENT)
-            WriteLog(LL_Error, "could not stat (%s) ret (%d).", p_Path, s_Ret);
-        return false;
-    }
+    bool s_DirectoryExists = false;
+    auto s_DirectoryHandle = kopen_t(p_Path, O_RDONLY | O_DIRECTORY, 0511, s_MainThread);
+    if (s_DirectoryHandle > 0)
+        s_DirectoryExists = true;
 
-    return S_ISDIR(s_Stat.st_mode);
+    // Close the directory once we know it exists
+    kclose_t(s_DirectoryHandle, s_MainThread);
+
+    return s_DirectoryExists;
 }

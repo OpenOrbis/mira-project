@@ -455,7 +455,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
     // Check to see if there exists a folder with the title id
     if (!DirectoryExists(s_TitleIdPath))
     {
-        WriteLog(LL_Error, "could not find trainers directory for title id (%s).", s_ProcessTitleId);
+        //WriteLog(LL_Error, "could not find trainers directory for title id (%s).", s_ProcessTitleId);
         // Check to see if the all directory exists
         memset(s_TitleIdPath, 0, c_PathLength);
         // /mnt/usbN/mira/trainers/all
@@ -464,7 +464,7 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
         // Check to see if there exists a "all" folder
         if (!DirectoryExists(s_TitleIdPath))
         {
-            WriteLog(LL_Error, "could not find /mira/trainers/all path.");
+            //WriteLog(LL_Error, "could not find /mira/trainers/all path.");
             return false;
         }
     }
@@ -473,20 +473,13 @@ bool TrainerManager::LoadTrainers(struct thread* p_CallingThread)
     // Determine if we need to mount the _stubstitute path into the sandbox
     if (!DirectoryExists(p_CallingThread, "/_mira"))
     {
-        WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
-
-        // Mount the host directory in the sandbox
-        char s_MountedSandboxDirectory[c_PathLength] = { 0 };
-        // TODO: Fix this implementation
+        //WriteLog(LL_Info, "Substitute directory not found for proc (%d) (%s).", s_CallingProc->p_pid, s_CallingProc->p_comm);
 
         if (!s_MountManager->CreateMountInSandbox(s_TitleIdPath, "_mira", p_CallingThread))
         {
             WriteLog(LL_Error, "could not mount (%s) into the sandbox in (_mira).", s_BasePath);
             return false;
         }
-
-        // s_MountedSandboxDirectory = "/mnt/sandbox/NPXS22010_000/_mira"
-        WriteLog(LL_Info, "host directory mounted to (%s).", s_MountedSandboxDirectory);
     }
 
     return true;

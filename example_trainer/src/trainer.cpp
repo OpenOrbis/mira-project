@@ -24,14 +24,8 @@ extern "C" void trainer_load()
 {
     debug_log("[+] trainer_load has been reached\n");
 
-    std::thread main_thread(PrintThread);
-    main_thread.detach();
+    for (uint32_t i = 0; i < 4; ++i)
+        debug_log("[=] InsideShellUI\n\n");
 
     debug_log("[+] detached thread\n");
-}
-
-extern "C" void _start()
-{
-	// Empty start
-	return;
 }

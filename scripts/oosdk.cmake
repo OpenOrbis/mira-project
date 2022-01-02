@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 # Enable verbose makefile
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 # Set the target configuration, credits znullptr & specter
 set(CMAKE_SYSTEM_NAME FreeBSD)
