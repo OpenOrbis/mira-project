@@ -12,10 +12,13 @@ RUN apt-get -qq update && \
         ca-certificates \
         autoconf automake cmake dpkg-dev file git make patch \
         libc-dev libc++-dev libgcc-10-dev libstdc++-10-dev  \
-        dirmngr gnupg2 lbzip2 wget xz-utils libtinfo5 clang-13 lldb-13 lld-13 git && \
+        dirmngr gnupg2 lbzip2 wget xz-utils libtinfo5 clang-13 lldb-13 lld-13 git tar && \
     rm -rf /var/lib/apt/lists/*
 
 # TODO: Prep OOSDK Toolchain
+RUN mkdir /toolchain && cd /toolchain && wget https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.2/v0.5.2.tar.gz && \
+    tar -zxvf v0.5.2.tar.gz && mv OpenOrbis/PS4Toolchain/* /toolchain && rm -rf /toolchain/OpenOrbis && \
+    export OO_PS4_TOOLCHAIN=/toolchain
 
 # Build Mira
 RUN export MIRA_PLATFORM=${MIRA_PLATFORM} && mkdir /build && cd /build && \
