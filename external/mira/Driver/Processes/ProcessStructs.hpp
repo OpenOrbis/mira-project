@@ -137,13 +137,19 @@ typedef struct _ProcessThreadWriteCredentials
 {
     // TODO: Implement
 } ProcessThreadWriteCredentals;
-#define MIRA_PROCESS_WRITE_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessThreadWriteCredentials), sizeof(ProcessThreadWriteCredentials))
+#define MIRA_PROCESS_THREAD_WRITE_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessThreadWriteCredentials), sizeof(ProcessThreadWriteCredentals))
 
 typedef struct _ProcessThreadReadPrivilegeMask
 {
     // TODO: Implement
 } ProcessThreadReadPrivilegeMask;
 #define MIRA_PROCESS_THREAD_READ_PRIVILEGE_MASK _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessThreadReadPrivilegeMask), sizeof(ProcessThreadReadPrivilegeMask))
+
+typedef struct _ProcessThreadWritePrivilegeMask
+{
+
+} ProcessThreadWritePrivilegeMask;
+#define MIRA_PROCESS_THREAD_WRITE_PRIVILEGE_MASK _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessThreadWritePrivilegeMask), sizeof(ProcessThreadWritePrivilegeMask))
 
 typedef struct _ProcessFindImportAddress
 {

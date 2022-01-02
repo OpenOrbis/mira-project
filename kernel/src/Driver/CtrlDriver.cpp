@@ -3,6 +3,7 @@
 
 #include "CtrlDriver.hpp"
 #include <mira/Driver/DriverCmds.hpp>
+#include <mira/Driver/DriverStructs.hpp>
 #include <Utils/Kernel.hpp>
 #include <Utils/Logger.hpp>
 #include <Utils/Kdlsym.hpp>
@@ -64,7 +65,7 @@ CtrlDriver::CtrlDriver() :
     // Create our mutex to protect state
     mtx_init(&m_Mutex, "MiraCtrl", nullptr, MTX_DEF);
 
-    WriteLog(LL_Debug, "MIRA_TRAINERS_LOAD: (%x).", MIRA_TRAINERS_LOAD);
+    WriteLog(LL_Debug, "MIRA_TRAINER_LOAD: (%x).", MIRA_TRAINER_LOAD);
 
     // Add the device driver
     int32_t s_ErrorDev = make_dev_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
@@ -195,33 +196,35 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
             // If we are handling Mira specific ioctl's
             switch (p_Command)
             {
-                case MIRA_READ_PROCESS_MEMORY:
-                case MIRA_WRITE_PROCESS_MEMORY:
+                case MIRA_PROCESS_READ_MEMORY:
+                case MIRA_PROCESS_WRITE_MEMORY:
                 //case MIRA_GET_PROC_INFORMATION:
-                case MIRA_GET_PID_LIST:
-                case MIRA_ALLOCATE_PROCESS_MEMORY:
-                case MIRA_FREE_PROCESS_MEMORY:
+                case MIRA_PROCESS_LIST:
+                case MIRA_PROCESS_ALLOCATE_MEMORY:
+                case MIRA_PROCESS_FREE_MEMORY:
                     return SystemDriverCtl::OnSystemDriverCtlIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 case MIRA_MOUNT_IN_SANDBOX:
                     return OnMiraMountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
 
                 // Get/set the thread credentials
-                case MIRA_GET_PROC_THREAD_CREDENTIALS:
+                case MIRA_PROCESS_THREAD_READ_CREDENTIALS:
+                case MIRA_PROCESS_THREAD_WRITE_CREDENTIALS:
                     return OnMiraThreadCredentials(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 
-                case MIRA_TRAINERS_CREATE_SHM:
-                case MIRA_TRAINERS_GET_SHM:
-                case MIRA_TRAINERS_LOAD:
-                case MIRA_TRAINERS_ORIG_EP:
+                /*case MIRA_TRAINER_CREATE_SHM:
+                case MIRA_TRAINER_GET_SHM:*/
+                case MIRA_TRAINER_LOAD:
+                case MIRA_TRAINER_GET_ENTRY_POINT:
                     return Mira::Trainers::TrainerManager::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
 
-                case MIRA_GET_CONFIG:
+                case MIRA_READ_CONFIG:
                     return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_SET_CONFIG:
+                case MIRA_WRITE_CONFIG:
                     return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_SET_THREAD_PRIV_MASK:
+                case MIRA_PROCESS_THREAD_READ_PRIVILEGE_MASK:
+                case MIRA_PROCESS_THREAD_WRITE_PRIVILEGE_MASK:
                     return Plugins::PrivCheckPlugin::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_FIND_JMPSLOT:
+                case MIRA_PROCESS_FIND_IMPORT_ADDRESS:
                     return Plugins::Debugger::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 default:
                     WriteLog(LL_Debug, "mira base unknown command: (0x%llx).", p_Command);

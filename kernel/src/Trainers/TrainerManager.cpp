@@ -704,14 +704,14 @@ int TrainerManager::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
 
     switch (p_Command)
     {
-    case MIRA_TRAINERS_LOAD:
+    case MIRA_TRAINER_LOAD:
         {
             WriteLog(LL_Debug, "tid: (%d) requesting trainer loading...", p_Thread->td_tid);
             (void)s_TrainerManager->LoadTrainers(p_Thread);
             
             return 0;
         }
-    case MIRA_TRAINERS_ORIG_EP:
+    case MIRA_TRAINER_GET_ENTRY_POINT:
         {
             WriteLog(LL_Debug, "Got Trainer Orig EP request");
             
