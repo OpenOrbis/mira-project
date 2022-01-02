@@ -14,6 +14,8 @@ jobs:
         version: 13
         platform: x64
     - uses: actions/checkout@v1
+    - name: Install Pre-Reqs
+      run: apt update && apt install lld
     - name: Download and install OOSDK
       run: mkdir /home/runner/toolchain && pushd /home/runner/toolchain && wget https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.2/v0.5.2.tar.gz && tar -zxvf v0.5.2.tar.gz && mv OpenOrbis/PS4Toolchain/* /home/runner/toolchain && rm -rf OpenOrbis && export OO_PS4_TOOLCHAIN=/home/runner/toolchain && echo "OO_PS4_TOOLCHAIN=/home/runner/toolchain" >> $GITHUB_ENV && popd
     #- name: configure176
