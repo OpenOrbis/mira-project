@@ -33,7 +33,7 @@ file(GLOB_RECURSE PROJECT_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp ${PROJECT_SOURCE_D
 
 # Prebuilt objects
 set(PREBUILT_OBJS 
-    ${OO_PS4_TOOLCHAIN}/lib/crt1.o
+    ${OO_PS4_TOOLCHAIN}/lib/crtlib.o
 )
 
 # Add our project
@@ -44,4 +44,4 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # Create the fself
 set(MODULE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME})
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-fself -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --eboot ${MODULE_OUTPUT_PATH}.EBOOT.BIN --paid ${PROJECT_AUTH_ID})
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${OO_PS4_TOOLCHAIN}/bin/linux/create-fself -in=${MODULE_OUTPUT_PATH} -out=${MODULE_OUTPUT_PATH}.oelf --lib ${MODULE_OUTPUT_PATH}.prx --paid ${PROJECT_AUTH_ID})

@@ -14,6 +14,10 @@ jobs:
         version: 13
         platform: x64
     - uses: actions/checkout@v1
+    - name: Download and install OOSDK
+      run: mkdir /toolchain && cd /toolchain && wget https://github.com/OpenOrbis/OpenOrbis-PS4-Toolchain/releases/download/v0.5.2/v0.5.2.tar.gz && \
+    tar -zxvf v0.5.2.tar.gz && mv OpenOrbis/PS4Toolchain/* /toolchain && rm -rf /toolchain/OpenOrbis && \
+    export OO_PS4_TOOLCHAIN=/toolchain
     #- name: configure176
     #  run: export MIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_176 && mkdir build176 && cd build176 && cmake --no-warn-unused-cli -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Debug -DCMAKE_C_COMPILER=clang-13 -DCMAKE_CXX_COMPILER=clang++-13 -DMIRA_PLATFORM=MIRA_PLATFORM_ORBIS_BSD_176 -G "Unix Makefiles" .. && cd ..
     #- name: configure405
