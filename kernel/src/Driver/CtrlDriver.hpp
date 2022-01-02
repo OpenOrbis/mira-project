@@ -116,8 +116,27 @@ namespace Mira
             static void OnProcessExec(void*, struct proc *p);
 
         private:
+            /**
+             * @brief Determines if the CtrlDriver is ready to start accepting new clients
+             * 
+             * NOTE: This checks if the m_ApiInfos has been allocated
+             * @return true on success, false otherwise 
+             */
             bool IsInitialized() const { return m_ApiInfos != nullptr && m_MaxApiInfoCount > 0; }
+
+            /**
+             * @brief Finds an available slot index for ApiInfo array
+             * 
+             * @return int32_t -1 on error, success otherwise
+             */
             int32_t FindFreeApiInfoIndex() const;
+
+            /**
+             * @brief Finds an ApiInfo index by thread id
+             * 
+             * @param p_ThreadId Caller thread id
+             * @return int32_t -1 on error, success otherwise
+             */
             int32_t FindApiInfoByThreadId(int32_t p_ThreadId);
             void ClearApiInfo(uint32_t p_Index);
             void DestroyAllApiInfos();

@@ -16,19 +16,26 @@ using namespace Mira::Driver::v1;
 
 int32_t MiraCtrl::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
+    switch (IOCGROUP(p_Command)) 
+    {
+        case MIRA_IOCTL_BASE:
+        {
+            // If we are handling Mira specific ioctl's
+            switch (p_Command)
+            {
+                case MIRA_MOUNT_IN_SANDBOX:
+                    return OnMiraMountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+            }
+        }
+    }
+
     return EINVAL;
 }
 
 
 int32_t MiraCtrl::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-
-    //auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    //auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
-    //auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
-
 
     if (p_Device == nullptr)
     {

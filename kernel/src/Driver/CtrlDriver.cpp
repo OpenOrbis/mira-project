@@ -70,8 +70,6 @@ CtrlDriver::CtrlDriver() :
     // Create our mutex to protect state
     mtx_init(&m_Mutex, "MiraCtrl", nullptr, MTX_DEF);
 
-    WriteLog(LL_Debug, "MIRA_TRAINER_LOAD: (%x).", MIRA_TRAINER_LOAD);
-
     // Add the device driver
     int32_t s_ErrorDev = make_dev_p(MAKEDEV_CHECKNAME | MAKEDEV_WAITOK,
         &m_Device,
@@ -95,6 +93,7 @@ CtrlDriver::CtrlDriver() :
         return;
     }
 
+    // Allocate new api information
     m_ApiInfos = new ApiInfo[m_MaxApiInfoCount];
     if (m_ApiInfos == nullptr)
     {
@@ -102,6 +101,7 @@ CtrlDriver::CtrlDriver() :
         return;
     }
 
+    // Initialize all of our api info
     for (uint32_t l_ApiIndex = 0; l_ApiIndex < m_MaxApiInfoCount; ++l_ApiIndex)
         ClearApiInfo(l_ApiIndex);
 }
@@ -175,6 +175,14 @@ void CtrlDriver::OnProcessExec(void* __unused a1, struct proc *p)
 
 CtrlDriver::~CtrlDriver()
 {
+    WriteLog(LL_Debug, "freeing app infos");
+    DestroyAllApiInfos();
+
+    m_MaxApiInfoCount = 0;
+    if (m_ApiInfos != nullptr)
+        delete [] m_ApiInfos;
+    m_ApiInfos = nullptr;
+
     WriteLog(LL_Debug, "destroying driver");
 
     // Destroy the device driver
@@ -191,6 +199,7 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
     if (p_OFlags < CtrlDriverFlags::Latest || p_OFlags >= CtrlDriverFlags::COUNT)
         return (EINVAL);
     
+    // Get the selected version flags
     CtrlDriverFlags s_VersionFlags = (CtrlDriverFlags)p_OFlags;
 
     switch (s_VersionFlags)
@@ -206,6 +215,7 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
             return (EINVAL);
     };
 
+    // Get mira framework
     auto s_Framework = Mira::Framework::GetFramework();
     if (s_Framework == nullptr)
     {
@@ -213,6 +223,7 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
         return (ENOMEM);
     }
 
+    // Get the driver
     auto s_Driver = s_Framework->GetDriver();
     if (s_Driver == nullptr)
     {
@@ -230,6 +241,7 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
         return 0;
     }
 
+    // If there is no existing thread id, then find a free index
     int32_t s_FreeApiInfoIndex = s_Driver->FindFreeApiInfoIndex();
     if (s_FreeApiInfoIndex == -1)
     {
@@ -237,6 +249,7 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
         return (ENOMEM);
     }
 
+    // Apply our version information and the thread id
     ApiInfo* s_ApiInfo = &s_Driver->m_ApiInfos[s_FreeApiInfoIndex];
     s_ApiInfo->ThreadId = p_Thread->td_tid;
     s_ApiInfo->Version = s_VersionFlags;
@@ -246,9 +259,11 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
 
 int32_t CtrlDriver::FindFreeApiInfoIndex() const
 {
+    // Check to see if CtrlDriver has been initialized
     if (!IsInitialized())
         return -1;
     
+    // Iterate all of the ApiInfo looking for a free slot
     for (uint32_t l_Index = 0; l_Index < m_MaxApiInfoCount; ++l_Index)
     {
         ApiInfo* l_Info = &m_ApiInfos[l_Index];
@@ -256,14 +271,17 @@ int32_t CtrlDriver::FindFreeApiInfoIndex() const
             return l_Index;
     }
 
+    // None was found
     return -1;
 }
 
 int32_t CtrlDriver::FindApiInfoByThreadId(int32_t p_ThreadId)
 {
+    // Check if we are initialized
     if (!IsInitialized())
         return -1;
     
+    // Iterate looking for our specific thread id
     for (uint32_t l_Index = 0; l_Index < m_MaxApiInfoCount; ++l_Index)
     {
         ApiInfo* l_Info = &m_ApiInfos[l_Index];
@@ -271,6 +289,7 @@ int32_t CtrlDriver::FindApiInfoByThreadId(int32_t p_ThreadId)
             return l_Index;
     }
 
+    // None have been found
     return -1;
 }
 
@@ -279,6 +298,7 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver closed from tid: (%d) pid: (%d) (%s).", p_Thread->td_tid, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
     
+    // Get the framework
     auto s_Framework = Mira::Framework::GetFramework();
     if (s_Framework == nullptr)
     {
@@ -286,6 +306,7 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
         return 0;
     }
 
+    // Get a reference to our driver
     auto s_Driver = s_Framework->GetDriver();
     if (s_Driver == nullptr)
     {
@@ -293,6 +314,7 @@ int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_D
         return 0;
     }
 
+    // Get the ApiInfo index
     auto s_ApiInfoIndex = s_Driver->FindApiInfoByThreadId(p_Thread->td_tid);
     if (s_ApiInfoIndex == -1)
     {
@@ -337,6 +359,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         return ENOENT;
     }
 
+    // Get the specific version that this thread is on (multi-api support)
     auto s_Version = s_Driver->m_ApiInfos[s_ApiInfoIndex].Version;
 
     switch (IOCGROUP(p_Command)) 
@@ -345,6 +368,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         {
             switch (s_Version)
             {
+                // Currently we only support v1
                 case CtrlDriverFlags::v1:
                     return v1::v1Ctrl::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 default:
