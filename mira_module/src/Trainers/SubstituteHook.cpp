@@ -8,7 +8,8 @@
 
 void* Mira::SubstituteHook::FindJmpslotAddress(char* p_Module, char* p_Function, bool p_isNid)
 {
-    // Open mira device
+    // TODO: Reimplement
+    /*// Open mira device
     auto s_Device = open("/dev/mira", O_RDWR);
     if (s_Device == -1)
         return NULL;
@@ -36,5 +37,6 @@ void* Mira::SubstituteHook::FindJmpslotAddress(char* p_Module, char* p_Function,
     }
 
     close(s_Device);
-    return result;
+    return result;*/
+    return nullptr;
 }

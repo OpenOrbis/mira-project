@@ -64,8 +64,8 @@ bool Debugger::OnUnload()
 
 int32_t Debugger::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 
     if (p_Device == nullptr || p_Data == 0)
         return EINVAL;
@@ -86,6 +86,8 @@ int32_t Debugger::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Dat
     if (s_Proc == nullptr)
         return EPROCUNAVAIL;
 
+    // TODO: Reimplement
+    /*
     switch (p_Command) {
         case MIRA_FIND_JMPSLOT: {
 
@@ -102,7 +104,7 @@ int32_t Debugger::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Dat
             copyout(&s_Address, s_Options.value, sizeof(s_Address));
             
         }
-    }
+    }*/
 
     // TODO: Handle debugger specific stuff (same that's available over rpc)
     return 0;

@@ -5,7 +5,7 @@
 #include <Utils/Logger.hpp>
 #include <Utils/System.hpp>
 
-using namespace Mira::Driver::v1::Processes;
+using namespace Mira::Driver::v1;
 
 bool ProcessCtrl::GetProcessList()
 {

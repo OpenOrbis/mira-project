@@ -346,7 +346,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
             switch (s_Version)
             {
                 case CtrlDriverFlags::v1:
-                    return v1::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                    return v1::v1Ctrl::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 default:
                     WriteLog(LL_Error, "unknown driver version.");
                     break;
@@ -361,6 +361,7 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     return EINVAL;
 }
 
+/*
 int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
@@ -509,3 +510,4 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     
     return s_ThreadModified;
 }
+*/

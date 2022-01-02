@@ -1,17 +1,26 @@
 #include "MiraCtrl.hpp"
 #include <Utils/Logger.hpp>
+#include <mira/Driver/DriverCmds.hpp>
+#include <mira/Driver/DriverStructs.hpp>
+
+#include <OrbisOS/MountManager.hpp>
+
+#include <Mira.hpp>
+
+extern "C"
+{
+    #include <sys/proc.h>
+};
 
 using namespace Mira::Driver::v1;
 
-static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
-
-int32_t OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+int32_t MiraCtrl::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    
+    return EINVAL;
 }
 
 
-static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t MiraCtrl::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
