@@ -53,8 +53,8 @@ set(CMAKE_ASM_FLAGS "-Wall ${ARCH_FLAGS} -x assembler-with-cpp")
 #add_link_options(--eh-frame-hdr)
 
 set(CMAKE_EXE_LINKER_FLAGS "-m elf_x86_64 -pie --script ${OO_PS4_TOOLCHAIN}/link.x --eh-frame-hdr -L${OO_PS4_TOOLCHAIN}/lib")
-set(CMAKE_CXX_LINK_EXECUTABLE "ld.lld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
-set(CMAKE_C_LINK_EXECUTABLE "ld.lld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
+set(CMAKE_CXX_LINK_EXECUTABLE "ld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
+set(CMAKE_C_LINK_EXECUTABLE "ld <LINK_FLAGS> -o <TARGET> <OBJECTS> <LINK_LIBRARIES>")
 
 # C/C++ toolchain
 set(CMAKE_SYSROOT "${OO_PS4_TOOLCHAIN}")
