@@ -61,7 +61,7 @@ jobs:
     - name: upload mira binaries
       uses: actions/upload-artifact@v2
       with:
-        name: mira loader binary
+        name: Binaries
         path: |
           build176/loader/loader.bin
           build405/loader/loader.bin
@@ -72,4 +72,9 @@ jobs:
           build620/loader/loader.bin
           build650/loader/loader.bin
           build672/loader/loader.bin
+          build672/example_trainer/example_trainer.prx
+          build672/tests/tests.EBOOT.BIN
+          build672/daemon/daemon.prx
+          build672/mira_module/mira_module.prx
           build755/loader/loader.bin
+          
