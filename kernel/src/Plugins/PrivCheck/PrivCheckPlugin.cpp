@@ -83,7 +83,7 @@ bool PrivCheckPlugin::GetBit(int32_t p_ThreadId, uint32_t p_PrivIndex)
 
 int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
-    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
 
     if (p_Device == nullptr || p_Data == 0)
@@ -101,12 +101,12 @@ int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_
     if (s_PrivCheckPlugin == nullptr)
         return ENOMEM;
     
-    MiraSetThreadPrivMask s_PrivCheck = { 0 };
+    ProcessThreadWritePrivilegeMask s_PrivCheck;
     auto s_Ret = copyin(p_Data, &s_PrivCheck, sizeof(s_PrivCheck));
     if (s_Ret != 0)
         return s_Ret;
     
-    // Check to see if we are using the "current proc"
+    /*// Check to see if we are using the "current proc"
     // NOTE: This happens if incoming pid is <= 0 or if the specified thread id matches current pid
     if (s_PrivCheck.ThreadId <= 0 ||
         p_Thread->td_tid == s_PrivCheck.ThreadId)
@@ -149,7 +149,7 @@ int PrivCheckPlugin::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_
     s_Ret = copyout(&s_PrivCheck, p_Data, sizeof(s_PrivCheck));
     if (s_Ret != 0)
         WriteLog(LL_Error, "could not copy out the priv check structure.");
-    
+    */
     return s_Ret;
 }
 

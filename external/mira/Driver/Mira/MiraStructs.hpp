@@ -1,10 +1,11 @@
 #pragma once
 #include "../Ioc.hpp"
 
-typedef struct _MiraConfig
+// WE already have a definition of this in external/mira/MiraConfig.hpp
+/*typedef struct _MiraConfig
 {
 
-} MiraConfig;
+} MiraConfig;*/
 #define MIRA_READ_CONFIG _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_MiraReadConfig), sizeof(MiraConfig))
 #define MIRA_WRITE_CONFIG _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_MiraWriteConfig), sizeof(MiraConfig))
 

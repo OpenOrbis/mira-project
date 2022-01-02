@@ -21,6 +21,9 @@
 
 #include <Mira.hpp>
 
+// v1 of Mira Ioctls
+#include "v1/v1.hpp"
+
 extern "C"
 {
     #include <sys/eventhandler.h>
@@ -49,6 +52,8 @@ using namespace Mira::Driver;
 void* orig_ioctl;
 
 CtrlDriver::CtrlDriver() :
+    m_MaxApiInfoCount(MaxApiInfoCount),
+    m_ApiInfos(nullptr),
     m_DeviceSw { 0 },
     m_Device(nullptr)
 {
@@ -89,6 +94,34 @@ CtrlDriver::CtrlDriver() :
         WriteLog(LL_Error, "could not create device driver (%d).", s_ErrorDev);
         return;
     }
+
+    m_ApiInfos = new ApiInfo[m_MaxApiInfoCount];
+    if (m_ApiInfos == nullptr)
+    {
+        WriteLog(LL_Error, "could not allocate (%d) api infos.");
+        return;
+    }
+
+    for (uint32_t l_ApiIndex = 0; l_ApiIndex < m_MaxApiInfoCount; ++l_ApiIndex)
+        ClearApiInfo(l_ApiIndex);
+}
+
+void CtrlDriver::ClearApiInfo(uint32_t p_Index)
+{
+    if (!IsInitialized())
+        return;
+
+    if (p_Index >= m_MaxApiInfoCount)
+        return;
+
+    ApiInfo* s_ApiInfo = &m_ApiInfos[p_Index];
+    s_ApiInfo->ThreadId = InvalidId;
+    s_ApiInfo->Version = CtrlDriverFlags::Latest;
+}
+
+void CtrlDriver::DestroyAllApiInfos()
+{
+    // TODO: Implement, not needed
 }
 
 void CtrlDriver::OnProcessExec(void* __unused a1, struct proc *p)
@@ -154,13 +187,121 @@ int32_t CtrlDriver::OnOpen(struct cdev* p_Device, int32_t p_OFlags, int32_t p_De
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver opened from tid: (%d) pid: (%d) (%s).", p_Thread->td_tid, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
 
+    // Validate that our flags are in bounds
+    if (p_OFlags < CtrlDriverFlags::Latest || p_OFlags >= CtrlDriverFlags::COUNT)
+        return (EINVAL);
+    
+    CtrlDriverFlags s_VersionFlags = (CtrlDriverFlags)p_OFlags;
+
+    switch (s_VersionFlags)
+    {
+        // We do this to mask out Latest to the proper version
+        case CtrlDriverFlags::v1:
+        case CtrlDriverFlags::Latest:
+            WriteLog(LL_Info, "Process requested v1 API.");
+            s_VersionFlags = CtrlDriverFlags::v1;
+            break;
+        default:
+            WriteLog(LL_Error, "invalid selection for version flags.");
+            return (EINVAL);
+    };
+
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return (ENOMEM);
+    }
+
+    auto s_Driver = s_Framework->GetDriver();
+    if (s_Driver == nullptr)
+    {
+        WriteLog(LL_Error, "could not get driver.");
+        return (ENOMEM);
+    }
+
+    // Check to see if this device has already been opened on this thread,
+    // I have no clue why anyone would do this, but we need to support this
+    // edge case in case of stupidity
+    int32_t s_ExistingIndex = s_Driver->FindApiInfoByThreadId(p_Thread->td_tid);
+    if (s_ExistingIndex != -1)
+    {
+        WriteLog(LL_Warn, "device driver opened from same thread multiple times, fix your code damnit.");
+        return 0;
+    }
+
+    int32_t s_FreeApiInfoIndex = s_Driver->FindFreeApiInfoIndex();
+    if (s_FreeApiInfoIndex == -1)
+    {
+        WriteLog(LL_Error, "there are no available api info slots.");
+        return (ENOMEM);
+    }
+
+    ApiInfo* s_ApiInfo = &s_Driver->m_ApiInfos[s_FreeApiInfoIndex];
+    s_ApiInfo->ThreadId = p_Thread->td_tid;
+    s_ApiInfo->Version = s_VersionFlags;
+
     return 0;
+}
+
+int32_t CtrlDriver::FindFreeApiInfoIndex() const
+{
+    if (!IsInitialized())
+        return -1;
+    
+    for (uint32_t l_Index = 0; l_Index < m_MaxApiInfoCount; ++l_Index)
+    {
+        ApiInfo* l_Info = &m_ApiInfos[l_Index];
+        if (l_Info->ThreadId == InvalidId)
+            return l_Index;
+    }
+
+    return -1;
+}
+
+int32_t CtrlDriver::FindApiInfoByThreadId(int32_t p_ThreadId)
+{
+    if (!IsInitialized())
+        return -1;
+    
+    for (uint32_t l_Index = 0; l_Index < m_MaxApiInfoCount; ++l_Index)
+    {
+        ApiInfo* l_Info = &m_ApiInfos[l_Index];
+        if (l_Info->ThreadId == p_ThreadId)
+            return l_Index;
+    }
+
+    return -1;
 }
 
 int32_t CtrlDriver::OnClose(struct cdev* p_Device, int32_t p_FFlags, int32_t p_DeviceType, struct thread* p_Thread)
 {
     if (p_Thread != nullptr && p_Thread->td_proc)
         WriteLog(LL_Debug, "ctrl driver closed from tid: (%d) pid: (%d) (%s).", p_Thread->td_tid, p_Thread->td_proc->p_pid, p_Thread->td_proc->p_comm);
+    
+    auto s_Framework = Mira::Framework::GetFramework();
+    if (s_Framework == nullptr)
+    {
+        WriteLog(LL_Error, "could not get framework.");
+        return 0;
+    }
+
+    auto s_Driver = s_Framework->GetDriver();
+    if (s_Driver == nullptr)
+    {
+        WriteLog(LL_Error, "could not get driver.");
+        return 0;
+    }
+
+    auto s_ApiInfoIndex = s_Driver->FindApiInfoByThreadId(p_Thread->td_tid);
+    if (s_ApiInfoIndex == -1)
+    {
+        WriteLog(LL_Warn, "driver closure with no api info tid: (%d).", p_Thread->td_tid);
+        return 0;
+    }
+
+    // Clear out the previous api info
+    s_Driver->ClearApiInfo(s_ApiInfoIndex);
 
     return 0;
 }
@@ -182,52 +323,32 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
         return ENOMEM;
     }
 
-    auto s_PluginManager = s_Framework->GetPluginManager();
-    if (s_PluginManager == nullptr)
+    auto s_Driver = s_Framework->GetDriver();
+    if (s_Driver == nullptr)
     {
-        WriteLog(LL_Error, "could not get plugin manager.");
+        WriteLog(LL_Error, "could not get mira driver.");
         return ENOMEM;
     }
+
+    auto s_ApiInfoIndex = s_Driver->FindApiInfoByThreadId(p_Thread->td_tid);
+    if (s_ApiInfoIndex == -1)
+    {
+        WriteLog(LL_Error, "could not find api info.");
+        return ENOENT;
+    }
+
+    auto s_Version = s_Driver->m_ApiInfos[s_ApiInfoIndex].Version;
 
     switch (IOCGROUP(p_Command)) 
     {
         case MIRA_IOCTL_BASE:
         {
-            // If we are handling Mira specific ioctl's
-            switch (p_Command)
+            switch (s_Version)
             {
-                case MIRA_PROCESS_READ_MEMORY:
-                case MIRA_PROCESS_WRITE_MEMORY:
-                //case MIRA_GET_PROC_INFORMATION:
-                case MIRA_PROCESS_LIST:
-                case MIRA_PROCESS_ALLOCATE_MEMORY:
-                case MIRA_PROCESS_FREE_MEMORY:
-                    return SystemDriverCtl::OnSystemDriverCtlIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_MOUNT_IN_SANDBOX:
-                    return OnMiraMountInSandbox(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-
-                // Get/set the thread credentials
-                case MIRA_PROCESS_THREAD_READ_CREDENTIALS:
-                case MIRA_PROCESS_THREAD_WRITE_CREDENTIALS:
-                    return OnMiraThreadCredentials(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                
-                /*case MIRA_TRAINER_CREATE_SHM:
-                case MIRA_TRAINER_GET_SHM:*/
-                case MIRA_TRAINER_LOAD:
-                case MIRA_TRAINER_GET_ENTRY_POINT:
-                    return Mira::Trainers::TrainerManager::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-
-                case MIRA_READ_CONFIG:
-                    return OnMiraGetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_WRITE_CONFIG:
-                    return OnMiraSetConfig(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_PROCESS_THREAD_READ_PRIVILEGE_MASK:
-                case MIRA_PROCESS_THREAD_WRITE_PRIVILEGE_MASK:
-                    return Plugins::PrivCheckPlugin::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-                case MIRA_PROCESS_FIND_IMPORT_ADDRESS:
-                    return Plugins::Debugger::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+                case CtrlDriverFlags::v1:
+                    return v1::OnIoctl(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
                 default:
-                    WriteLog(LL_Debug, "mira base unknown command: (0x%llx).", p_Command);
+                    WriteLog(LL_Error, "unknown driver version.");
                     break;
             }
         }
@@ -238,101 +359,6 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
     }
 
     return EINVAL;
-}
-
-int32_t CtrlDriver::OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
-{
-    //auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
-    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-
-    //auto snprintf = (int(*)(char *str, size_t size, const char *format, ...))kdlsym(snprintf);
-    //auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
-    //auto strstr = (char *(*)(const char *haystack, const char *needle) )kdlsym(strstr);
-
-
-    if (p_Device == nullptr)
-    {
-        WriteLog(LL_Error, "invalid device.");
-        return ENODEV;
-    }
-
-    if (p_Thread == nullptr)
-    {
-        WriteLog(LL_Error, "invalid thread.");
-        return EBADF;
-    }
-
-    auto s_TargetProc = p_Thread->td_proc;
-    if (s_TargetProc == nullptr)
-    {
-        WriteLog(LL_Error, "thread does not have a parent process wtf?");
-        return EPROCUNAVAIL;
-    }
-
-    auto s_Descriptor = s_TargetProc->p_fd;
-    if (s_Descriptor == nullptr)
-    {
-        WriteLog(LL_Error, "could not get the file descriptor for proc.");
-        return EBADF;
-    }
-
-    auto s_Framework = Mira::Framework::GetFramework();
-    if (s_Framework == nullptr)
-    {
-        WriteLog(LL_Error, "could not get framework.");
-        return EBADF;
-    }
-
-    auto s_MountManager = s_Framework->GetMountManager();
-    if (s_MountManager == nullptr)
-    {
-        WriteLog(LL_Error, "could not get mount manager.");
-        return EBADF;
-    }
-
-    auto s_MainThread = s_Framework->GetMainThread();
-    if (s_MainThread == nullptr)
-    {
-        WriteLog(LL_Error, "could not get mira main thread.");
-        return EBADF;
-    }
-
-    // Read in the mount point and the flags
-    MiraMountInSandbox s_Input = { 0 };
-    auto s_Result = copyin(p_Data, &s_Input, sizeof(s_Input));
-    if (s_Result != 0)
-    {
-        WriteLog(LL_Error, "could not copyin all data (%d).", s_Result);
-        return (s_Result < 0 ? -s_Result : s_Result);
-    }
-
-    // Check to make sure that there's some kind of path
-    if (s_Input.HostPath[0] == '\0')
-    {
-        WriteLog(LL_Error, "invalid input path.");
-        return (EACCES);
-    }
-
-    if (s_Input.SandboxPath[0] == '\0')
-    {
-        WriteLog(LL_Error, "invalid sandbox path.");
-        return (EACCES);
-    }
-
-    if (s_Input.SandboxPath[0] == '/')
-    {
-        WriteLog(LL_Error, "sandbox path does not need to start with '/'.");
-        return (EACCES);
-    }
-
-    // Create the mount point
-    if (!s_MountManager->CreateMountInSandbox(s_Input.HostPath, s_Input.SandboxPath, p_Thread))
-        return (EACCES);
-
-    return  0;
-
-    // TODO: Once mountmanager is verified working remove comment below
-    //OrbisOS::Utilities::MountInSandbox(s_Input.HostPath, s_Input.SandboxPath, nullptr, p_Thread);
 }
 
 int32_t CtrlDriver::OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
@@ -482,114 +508,4 @@ bool CtrlDriver::SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     _mtx_unlock_flags(&s_Process->p_mtx, 0);
     
     return s_ThreadModified;
-}
-
-bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output)
-{
-    auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
-    auto _thread_lock_flags = (void(*)(struct thread *, int, const char *, int))kdlsym(_thread_lock_flags);
-    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
-    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
-
-    if (p_Output != nullptr)
-        WriteLog(LL_Info, "output is filled in, is this a bug?");
-    
-    // Get the process
-    auto s_Process = pfind(p_ProcessId);
-    if (s_Process == nullptr)
-    {
-        WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
-        return false;
-    }
-
-    // On success this will be filled out
-    MiraThreadCredentials* s_Credentials = nullptr;
-
-    struct thread* l_Thread = nullptr;
-    bool s_TidFound = false;
-    FOREACH_THREAD_IN_PROC(s_Process, l_Thread)
-    {        
-        // Lock the thread
-        thread_lock(l_Thread);
-
-        WriteLog(LL_Debug, "checking tid: (%d) == (%d).", l_Thread->td_tid, p_ThreadId);
-
-        // If the thread id's match then we need to copy this data out
-        if (l_Thread->td_tid == p_ThreadId)
-        {
-            // We always want to break out of this so we unlock the thread
-            do
-            {
-                // Check that we have a valid credential
-                auto l_ThreadCredential = l_Thread->td_ucred;
-                if (l_ThreadCredential == nullptr)
-                {
-                    WriteLog(LL_Error, "invalid ucred.");
-                    break;
-                }
-
-                // Allocate new credentials
-                s_Credentials = new MiraThreadCredentials;
-                if (s_Credentials == nullptr)
-                {
-                    WriteLog(LL_Error, "could not allocate new credentials.");
-                    break;
-                }
-
-                s_Credentials->State = GSState::Get;
-                s_Credentials->ProcessId = p_ProcessId;
-                s_Credentials->ThreadId = p_ThreadId;
-                
-                // ucred
-                s_Credentials->EffectiveUserId = l_ThreadCredential->cr_uid;
-                s_Credentials->RealUserId = l_ThreadCredential->cr_ruid;
-                s_Credentials->SavedUserId = l_ThreadCredential->cr_svuid;
-                s_Credentials->NumGroups = l_ThreadCredential->cr_ngroups;
-                s_Credentials->RealGroupId = l_ThreadCredential->cr_rgid;
-                s_Credentials->SavedGroupId = l_ThreadCredential->cr_svgid;
-
-                // Check if this prison is rooted
-                if (*(struct prison**)kdlsym(prison0) == l_ThreadCredential->cr_prison)
-                    s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Root;
-                else
-                    s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Default;
-                
-                s_Credentials->SceAuthId = (SceAuthenticationId)(l_ThreadCredential->cr_sceAuthID);
-
-                // Check that the sizes are the same and copy it as-is, idgaf
-                static_assert(sizeof(s_Credentials->Capabilities) == sizeof(l_ThreadCredential->cr_sceCaps), "caps sizes don't match");
-                memcpy(s_Credentials->Capabilities, l_ThreadCredential->cr_sceCaps, sizeof(s_Credentials->Capabilities));
-
-                static_assert(sizeof(s_Credentials->Attributes) == sizeof(l_ThreadCredential->cr_sceAttr), "attribute sizes don't match");
-                memcpy(s_Credentials->Attributes, l_ThreadCredential->cr_sceAttr, sizeof(s_Credentials->Attributes));
-
-                s_TidFound = true;
-            } while (false);
-        }
-
-        // Unlock the thread        
-        thread_unlock(l_Thread);
-
-        if (s_TidFound)
-            break;
-    }
-    
-    // Unlock the process
-    _mtx_unlock_flags(&s_Process->p_mtx, 0);
-
-    // Extra debugging output
-    if (s_TidFound == false)
-        WriteLog(LL_Error, "could not find thread id (%d).", p_ThreadId);
-
-    // Check if we got any credentials
-    if (s_Credentials == nullptr)
-    {
-        WriteLog(LL_Error, "could not find thread credentials.");
-        return false;
-    }
-
-    // Assign
-    p_Output = s_Credentials;
-
-    return true;
 }

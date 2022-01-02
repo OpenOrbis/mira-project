@@ -1,47 +1,188 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: http://www.viva64.com
+#include "ProcessCtrl.hpp"
+#include <mira/Driver/DriverStructs.hpp>
+#include <OrbisOS/Utilities.hpp>
 
-#include "SystemDriverCtl.hpp"
 #include <Utils/Logger.hpp>
-#include <Utils/Vector.hpp>
 #include <Utils/System.hpp>
 
-#include <mira/Driver/DriverCmds.hpp>
+using namespace Mira::Driver::v1::Processes;
 
-using namespace Mira::Driver;
+bool ProcessCtrl::GetProcessList()
+{
+    /*const uint32_t c_ProcessListHeaderSize = sizeof(s_ProcessListHeader);
+    const uint32_t c_PidOffset = offsetof(MiraProcessList, ProcessIds);
 
-int SystemDriverCtl::OnSystemDriverCtlIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+    auto _mtx_lock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+    auto _sx_slock = (int(*)(struct sx *sx, int opts, const char *file, int line))kdlsym(_sx_slock);
+	auto _sx_sunlock = (void(*)(struct sx *sx, const char *file, int line))kdlsym(_sx_sunlock);
+
+    struct proclist* allproc = (struct proclist*)*(uint64_t*)kdlsym(allproc);
+    struct sx* allproclock = (struct sx*)kdlsym(allproc_lock);
+
+    struct thread* p_Thread = nullptr;
+    struct proc* myProcess = p_Thread->td_proc;
+    int32_t* s_UserProcessIdList = (int32_t*)c_PidOffset;
+
+    uint32_t s_CurrentPidIndex = 0;
+    struct proc* p = NULL;
+    _sx_slock(allproclock, 0, __FILE__, __LINE__);
+    FOREACH_PROC_IN_SYSTEM(p)
+    {
+        _mtx_lock_flags(&p->p_mtx, 0);
+        size_t s_PidSize = sizeof(p->p_pid);
+        Mira::OrbisOS::Utilities::ProcessReadWriteMemory(myProcess, s_UserProcessIdList + s_CurrentPidIndex, sizeof(p->p_pid), &p->p_pid, &s_PidSize, true);
+        _mtx_unlock_flags(&p->p_mtx, 0);
+
+        ++s_CurrentPidIndex;
+    }
+    _sx_sunlock(allproclock, __FILE__, __LINE__);*/
+
+    return false;
+}
+/*
+bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output)
+{
+    auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+    auto _thread_lock_flags = (void(*)(struct thread *, int, const char *, int))kdlsym(_thread_lock_flags);
+    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+
+    if (p_Output != nullptr)
+        WriteLog(LL_Info, "output is filled in, is this a bug?");
+    
+    // Get the process
+    auto s_Process = pfind(p_ProcessId);
+    if (s_Process == nullptr)
+    {
+        WriteLog(LL_Error, "could not find process for pid (%d).", p_ProcessId);
+        return false;
+    }
+
+    // On success this will be filled out
+    MiraThreadCredentials* s_Credentials = nullptr;
+
+    struct thread* l_Thread = nullptr;
+    bool s_TidFound = false;
+    FOREACH_THREAD_IN_PROC(s_Process, l_Thread)
+    {        
+        // Lock the thread
+        thread_lock(l_Thread);
+
+        WriteLog(LL_Debug, "checking tid: (%d) == (%d).", l_Thread->td_tid, p_ThreadId);
+
+        // If the thread id's match then we need to copy this data out
+        if (l_Thread->td_tid == p_ThreadId)
+        {
+            // We always want to break out of this so we unlock the thread
+            do
+            {
+                // Check that we have a valid credential
+                auto l_ThreadCredential = l_Thread->td_ucred;
+                if (l_ThreadCredential == nullptr)
+                {
+                    WriteLog(LL_Error, "invalid ucred.");
+                    break;
+                }
+
+                // Allocate new credentials
+                s_Credentials = new MiraThreadCredentials;
+                if (s_Credentials == nullptr)
+                {
+                    WriteLog(LL_Error, "could not allocate new credentials.");
+                    break;
+                }
+
+                s_Credentials->State = GSState::Get;
+                s_Credentials->ProcessId = p_ProcessId;
+                s_Credentials->ThreadId = p_ThreadId;
+                
+                // ucred
+                s_Credentials->EffectiveUserId = l_ThreadCredential->cr_uid;
+                s_Credentials->RealUserId = l_ThreadCredential->cr_ruid;
+                s_Credentials->SavedUserId = l_ThreadCredential->cr_svuid;
+                s_Credentials->NumGroups = l_ThreadCredential->cr_ngroups;
+                s_Credentials->RealGroupId = l_ThreadCredential->cr_rgid;
+                s_Credentials->SavedGroupId = l_ThreadCredential->cr_svgid;
+
+                // Check if this prison is rooted
+                if (*(struct prison**)kdlsym(prison0) == l_ThreadCredential->cr_prison)
+                    s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Root;
+                else
+                    s_Credentials->Prison = MiraThreadCredentials::_MiraThreadCredentialsPrison::Default;
+                
+                s_Credentials->SceAuthId = (SceAuthenticationId)(l_ThreadCredential->cr_sceAuthID);
+
+                // Check that the sizes are the same and copy it as-is, idgaf
+                static_assert(sizeof(s_Credentials->Capabilities) == sizeof(l_ThreadCredential->cr_sceCaps), "caps sizes don't match");
+                memcpy(s_Credentials->Capabilities, l_ThreadCredential->cr_sceCaps, sizeof(s_Credentials->Capabilities));
+
+                static_assert(sizeof(s_Credentials->Attributes) == sizeof(l_ThreadCredential->cr_sceAttr), "attribute sizes don't match");
+                memcpy(s_Credentials->Attributes, l_ThreadCredential->cr_sceAttr, sizeof(s_Credentials->Attributes));
+
+                s_TidFound = true;
+            } while (false);
+        }
+
+        // Unlock the thread        
+        thread_unlock(l_Thread);
+
+        if (s_TidFound)
+            break;
+    }
+    
+    // Unlock the process
+    _mtx_unlock_flags(&s_Process->p_mtx, 0);
+
+    // Extra debugging output
+    if (s_TidFound == false)
+        WriteLog(LL_Error, "could not find thread id (%d).", p_ThreadId);
+
+    // Check if we got any credentials
+    if (s_Credentials == nullptr)
+    {
+        WriteLog(LL_Error, "could not find thread credentials.");
+        return false;
+    }
+
+    // Assign
+    p_Output = s_Credentials;
+
+    return true;
+}
+*/
+
+int32_t ProcessCtrl::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     switch (p_Command)
     {
-    case MIRA_ALLOCATE_PROCESS_MEMORY:
-        return OnSystemAllocateProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-    case MIRA_FREE_PROCESS_MEMORY:
-        return OnSystemFreeProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-    case MIRA_READ_PROCESS_MEMORY:
-        return OnSystemReadProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-    case MIRA_WRITE_PROCESS_MEMORY:
-        return OnSystemWriteProcessMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    case MIRA_PROCESS_ALLOCATE_MEMORY:
+        return OnProcessAllocateMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    case MIRA_PROCESS_FREE_MEMORY:
+        return OnProcessFreeMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    case MIRA_PROCESS_READ_MEMORY:
+        return OnProcessReadMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    case MIRA_PROCESS_WRITE_MEMORY:
+        return OnProcessWriteMemory(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     // case MIRA_GET_PROC_INFORMATION:
     //     return OnMiraGetProcInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
-     case MIRA_GET_PID_LIST:
-         return OnSystemGetProcessList(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+    // case MIRA_GET_PID_LIST:
+    //     return OnSystemGetProcessList(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
     default:
         WriteLog(LL_Debug, "invalid ioctl command (%x).", p_Command);
         break;
     }
 
     return EINVAL;
+
 }
 
-/*
-    Memory
-*/
-int32_t SystemDriverCtl::OnSystemAllocateProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+
+int32_t ProcessCtrl::OnProcessAllocateMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-    MiraAllocateMemory s_AllocateMemory = { 0 };
+    ProcessAllocateMemory s_AllocateMemory = { 0 };
 
     auto s_Ret = copyin(p_Data, &s_AllocateMemory, sizeof(s_AllocateMemory));
     if (s_Ret != 0)
@@ -66,10 +207,10 @@ int32_t SystemDriverCtl::OnSystemAllocateProcessMemory(struct cdev* p_Device, u_
     return 0;
 }
 
-int32_t SystemDriverCtl::OnSystemFreeProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t ProcessCtrl::OnProcessFreeMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
-    MiraFreeMemory s_FreeMemory = { 0 };
+    ProcessFreeMemory s_FreeMemory = { 0 };
 
     auto s_Ret = copyin(p_Data, &s_FreeMemory, sizeof(s_FreeMemory));
     if (s_Ret != 0)
@@ -87,13 +228,13 @@ int32_t SystemDriverCtl::OnSystemFreeProcessMemory(struct cdev* p_Device, u_long
     return 0;
 }
 
-int32_t SystemDriverCtl::OnSystemReadProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t ProcessCtrl::OnProcessReadMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
-    MiraReadProcessMemory s_ReadProcessMemory;
+    ProcessReadMemory s_ReadProcessMemory;
 
     auto s_Ret = copyin(p_Data, &s_ReadProcessMemory, sizeof(s_ReadProcessMemory));
     if (s_Ret != 0)
@@ -102,14 +243,7 @@ int32_t SystemDriverCtl::OnSystemReadProcessMemory(struct cdev* p_Device, u_long
         return ENOMEM;
     }
 
-    // Validate that the incoming structure size is enough to hold the output
-    if (s_ReadProcessMemory.StructureSize <= sizeof(s_ReadProcessMemory))
-    {
-        WriteLog(LL_Error, "structure size < needed size.");
-        return EINVAL;
-    }
-
-    auto s_Size = s_ReadProcessMemory.StructureSize - sizeof(s_ReadProcessMemory);
+    auto s_Size = s_ReadProcessMemory.DataSize;
     if (s_Size > PAGE_SIZE * 4)
     {
         WriteLog(LL_Error, "requested too large of size (%x).", s_Size);
@@ -124,24 +258,27 @@ int32_t SystemDriverCtl::OnSystemReadProcessMemory(struct cdev* p_Device, u_long
         return ESRCH;
     }
 
-    if (!Utils::System::CopyProcessMemory(s_Proc, s_ReadProcessMemory.Address, p_Thread->td_proc, p_Data + offsetof(MiraReadProcessMemory, Data), s_Size))
+    do
     {
-        WriteLog(LL_Error, "could not copy (%d: %p) -> (%d: %p)", s_Proc->p_pid, s_ReadProcessMemory.Address, p_Thread->td_proc->p_pid, p_Data + offsetof(MiraReadProcessMemory, Data));
-        return EPROCUNAVAIL;
-    }
+        if (!Utils::System::CopyProcessMemory(s_Proc, s_ReadProcessMemory.Address, p_Thread->td_proc, p_Data + offsetof(ProcessReadMemory, Data), s_Size))
+        {
+            WriteLog(LL_Error, "could not copy (%d: %p) -> (%d: %p)", s_Proc->p_pid, s_ReadProcessMemory.Address, p_Thread->td_proc->p_pid, p_Data + offsetof(ProcessReadMemory, Data));
+            break;
+        }
+    } while (false);
 
     _mtx_unlock_flags(&s_Proc->p_mtx, 0);
 
     return 0;
 }
 
-int32_t SystemDriverCtl::OnSystemWriteProcessMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+int32_t ProcessCtrl::OnProcessWriteMemory(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
     auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
     auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
     auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
 
-    MiraWriteProcessMemory s_WriteProcessMemory;
+    ProcessWriteMemory s_WriteProcessMemory;
 
     auto s_Ret = copyin(p_Data, &s_WriteProcessMemory, sizeof(s_WriteProcessMemory));
     if (s_Ret != 0)
@@ -150,14 +287,8 @@ int32_t SystemDriverCtl::OnSystemWriteProcessMemory(struct cdev* p_Device, u_lon
         return ENOMEM;
     }
 
-    // Validate that the incoming structure size is enough to hold the output
-    if (s_WriteProcessMemory.StructureSize <= sizeof(s_WriteProcessMemory))
-    {
-        WriteLog(LL_Error, "structure size < needed size.");
-        return EINVAL;
-    }
-
-    auto s_Size = s_WriteProcessMemory.StructureSize - sizeof(s_WriteProcessMemory);
+    // Check the amount of data to write
+    auto s_Size = s_WriteProcessMemory.DataSize;
     if (s_Size > PAGE_SIZE * 4)
     {
         WriteLog(LL_Error, "requested too large of size (%x).", s_Size);
@@ -173,17 +304,15 @@ int32_t SystemDriverCtl::OnSystemWriteProcessMemory(struct cdev* p_Device, u_lon
     }
 
     // Copy from our proc to the other proc
-    if (!Utils::System::CopyProcessMemory(p_Thread->td_proc, p_Data + offsetof(MiraWriteProcessMemory, Data), s_Proc, s_WriteProcessMemory.Address, s_Size))
-    {
-        WriteLog(LL_Error, "could not copy (%d: %p) -> (%d: %p)", s_Proc->p_pid, s_WriteProcessMemory.Address, p_Thread->td_proc->p_pid, p_Data + offsetof(MiraWriteProcessMemory, Data));
-        return EPROCUNAVAIL;
-    }
+    if (!Utils::System::CopyProcessMemory(p_Thread->td_proc, p_Data + offsetof(ProcessWriteMemory, Data), s_Proc, s_WriteProcessMemory.Address, s_Size))
+        WriteLog(LL_Error, "could not copy (%d: %p) -> (%d: %p)", s_Proc->p_pid, s_WriteProcessMemory.Address, p_Thread->td_proc->p_pid, p_Data + offsetof(ProcessWriteMemory, Data));
 
     _mtx_unlock_flags(&s_Proc->p_mtx, 0);
 
     return 0;
 }
 
+/*
 
 int32_t SystemDriverCtl::OnSystemGetProcessList(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
 {
@@ -551,3 +680,4 @@ int32_t SystemDriverCtl::OnMiraGetProcInformation(struct cdev* p_Device, u_long 
     delete [] s_Output;
     return 0;
 }
+*/

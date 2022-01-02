@@ -46,11 +46,11 @@ namespace Mira
             } MountPoint;
             
         private:
-            uint32_t m_MountCount;
             uint32_t m_MaxMountCount;
             MountPoint* m_Mounts;
 
-            bool IsInitialized() { return m_Mounts != nullptr && m_MaxMountCount != 0; }
+            bool IsInitialized() const { return m_Mounts != nullptr && m_MaxMountCount != 0; }
+            uint32_t MountCount() const;
             
             bool MountNullFs(const char* p_Where, const char* p_What, int p_Flags);
 

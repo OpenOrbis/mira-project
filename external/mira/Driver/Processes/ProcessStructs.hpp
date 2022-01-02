@@ -30,7 +30,7 @@ typedef struct _ProcessFreeMemory
 } ProcessFreeMemory;
 #define MIRA_PROCESS_FREE_MEMORY _IOC(IOC_IN, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessFreeMemory), sizeof(ProcessFreeMemory))
 
-typedef struct __attribute__((packed)) _ProcessReadMemory
+typedef struct _ProcessReadMemory
 {
     // <= 0 for calling process
     int32_t ProcessId;
@@ -42,11 +42,11 @@ typedef struct __attribute__((packed)) _ProcessReadMemory
     uint32_t DataSize;
 
     // Read data output
-    uint8_t Data[0];
+    uint8_t Data[];
 } ProcessReadMemory;
 #define MIRA_PROCESS_READ_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessReadMemory), sizeof(ProcessReadMemory))
 
-typedef struct __attribute__((packed)) _ProcessWriteMemory
+typedef struct _ProcessWriteMemory
 {
     // <= 0 for calling process
     int32_t ProcessId;
@@ -54,8 +54,11 @@ typedef struct __attribute__((packed)) _ProcessWriteMemory
     // Address to write to process
     void* Address;
 
+    // Size of the data to write
+    uint32_t DataSize;
+
     // Data to write
-    uint8_t Data[0];
+    uint8_t Data[];
 } ProcessWriteMemory;
 #define MIRA_PROCESS_WRITE_MEMORY _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessWriteMemory), sizeof(ProcessWriteMemory))
 
@@ -136,7 +139,7 @@ typedef struct _ProcessThreadReadCredentials
 typedef struct _ProcessThreadWriteCredentials
 {
     // TODO: Implement
-} ProcessThreadWriteCredentals;
+} ProcessThreadWriteCredentials;
 #define MIRA_PROCESS_THREAD_WRITE_CREDENTIALS _IOC(IOC_INOUT, MIRA_IOCTL_BASE, (uint32_t)(MiraIoctlCmds::CMD_ProcessThreadWriteCredentials), sizeof(ProcessThreadWriteCredentals))
 
 typedef struct _ProcessThreadReadPrivilegeMask

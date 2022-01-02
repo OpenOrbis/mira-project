@@ -16,7 +16,6 @@ extern "C"
 using namespace Mira::OrbisOS;
 
 MountManager::MountManager() :
-    m_MountCount(0),
     m_MaxMountCount(MaxMountPoints),
     m_Mounts(nullptr)
 {
@@ -30,17 +29,9 @@ MountManager::MountManager() :
         return;
     }
 
-    // Zero all allocations
-    memset(m_Mounts, 0, sizeof(MountPoint) * m_MaxMountCount);
-
     // Iterate and set the process/thread id to invalid
-    for (uint32_t i = 0; i < m_MaxMountCount; ++i)
-    {
-        MountPoint* l_MountPoint = &m_Mounts[i];
-
-        l_MountPoint->ThreadId = InvalidId;
-        l_MountPoint->ProcessId = InvalidId;
-    }
+    for (uint32_t l_MountIndex = 0; l_MountIndex < m_MaxMountCount; ++l_MountIndex)
+        ClearMountPoint(l_MountIndex);
 }
 
 MountManager::~MountManager()
@@ -97,7 +88,7 @@ bool MountManager::OnProcessExit(struct proc* p_Process)
 
 bool MountManager::DestroyMount(uint32_t p_MountIndex)
 {
-    if (p_MountIndex >= m_MountCount)
+    if (p_MountIndex >= MountCount())
         return false;
     
     auto s_Framework = Mira::Framework::GetFramework();
@@ -112,8 +103,8 @@ bool MountManager::DestroyMount(uint32_t p_MountIndex)
     MountPoint* s_MountPoint = &m_Mounts[p_MountIndex];
 
     // If this process/thread id are already -1 that means it was empty, clear data just to be sure
-    if (s_MountPoint->ProcessId == -1 ||
-        s_MountPoint->ThreadId == -1)
+    if (s_MountPoint->ProcessId == InvalidId ||
+        s_MountPoint->ThreadId == InvalidId)
     {
         ClearMountPoint(p_MountIndex);
         return true;
@@ -369,9 +360,6 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
         s_Result = kchmod_t(s_MountPoint->MntSandboxDirectory, 0777, s_MiraMainThread);
         if (s_Result != 0)
             WriteLog(LL_Warn, "chmod failed on (%s) (%d).", s_MountPoint->MntSandboxDirectory, s_Result);
-        
-        // Increment our mount count
-        m_MountCount++;
 
         s_Success = true;
     } while (false);
@@ -385,6 +373,22 @@ bool MountManager::CreateMountInSandbox(const char* p_SourceDirectory, const cha
 
     // Return success
     return s_Success;
+}
+
+uint32_t MountManager::MountCount() const
+{
+    if (!IsInitialized())
+        return 0;
+    
+    uint32_t s_MountCount = 0;
+    for (uint32_t l_MountIndex = 0; l_MountIndex < m_MaxMountCount; ++l_MountIndex)
+    {
+        if (m_Mounts[l_MountIndex].ProcessId != InvalidId &&
+            m_Mounts[l_MountIndex].ThreadId != InvalidId)
+            s_MountCount += 1;
+    }
+
+    return s_MountCount;
 }
 
 bool MountManager::MountNullFs(const char* p_Where, const char* p_What, int p_Flags)
@@ -464,15 +468,15 @@ int32_t MountManager::FindFreeMountPointIndex()
         return -1;
     
     // If we do not have any mounts then skip
-    if (m_MountCount >= m_MaxMountCount)
+    if (MountCount() >= m_MaxMountCount)
         return -1;
     
     // Iterate over all of our current mounts
     for (uint32_t l_MountIndex = 0; l_MountIndex < m_MaxMountCount; ++l_MountIndex)
     {
         const MountPoint* l_MountPoint = &m_Mounts[l_MountIndex];
-        if (l_MountPoint->ProcessId == -1 &&
-            l_MountPoint->ThreadId == -1)
+        if (l_MountPoint->ProcessId == InvalidId &&
+            l_MountPoint->ThreadId == InvalidId)
             return l_MountIndex;
     }
 

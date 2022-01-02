@@ -24,8 +24,6 @@ extern "C"
 #include <mira/Driver/DriverCmds.hpp>
 #include <mira/Driver/DriverStructs.hpp>
 
-#include <Driver/System/SystemDriverCtl.hpp>
-
 /**
  * @brief Mira Control Driver
  * 
@@ -60,15 +58,6 @@ extern "C"
  * This can be freed with munmap after use
  */
 
-/**
-*/
-typedef struct _MiraIoctl
-{
-    void* Input;
-    uint32_t InputSize;
-    void* Output;
-    uint32_t OutputSize;
-} MiraIoctl;
 
 namespace Mira
 {
@@ -77,10 +66,44 @@ namespace Mira
         class CtrlDriver
         {
         private:
+            enum
+            {
+                MaxApiInfoCount = 16,
+                InvalidId = -1,
+            };
+
+            // The open flags determine which API this is going to run from
+            typedef enum _CtrlDriverFlags
+            {
+                // Run the default latest API provided by Mira
+                Latest = 0,
+
+                // Initial v1 API
+                v1 = 1,
+
+                // Total API flag Count
+                COUNT
+            } CtrlDriverFlags;
+
+            typedef struct _ApiInfo
+            {
+                // Thread id
+                int32_t ThreadId;
+
+                // Api version
+                CtrlDriverFlags Version;
+            } ApiInfo;
+
+            // Upper limit of available api infos
+            uint32_t m_MaxApiInfoCount;
+            ApiInfo* m_ApiInfos;
+
             struct cdevsw m_DeviceSw;
             struct cdev* m_Device;
 
             struct mtx m_Mutex;
+
+            uint32_t m_Versions;
 
         public:
             CtrlDriver();
@@ -91,6 +114,15 @@ namespace Mira
             static int32_t OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
         
             static void OnProcessExec(void*, struct proc *p);
+
+        private:
+            bool IsInitialized() const { return m_ApiInfos != nullptr && m_MaxApiInfoCount > 0; }
+            int32_t FindFreeApiInfoIndex() const;
+            int32_t FindApiInfoByThreadId(int32_t p_ThreadId);
+            void ClearApiInfo(uint32_t p_Index);
+            void DestroyAllApiInfos();
+
+
         protected:
             // Callback functions
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
@@ -98,8 +130,8 @@ namespace Mira
             static int32_t OnMiraGetConfig(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraSetConfig(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
-            static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);
-            static bool SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input);
+            static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, ProcessThreadReadCredentials*& p_Output);
+            static bool SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, ProcessThreadWriteCredentials& p_Input);
         };
     }
 }
