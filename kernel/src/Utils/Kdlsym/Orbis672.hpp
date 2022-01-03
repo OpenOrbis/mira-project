@@ -181,6 +181,11 @@
 #define kdlsym_addr_wakeup                                 0x0022A0A0
 #define kdlsym_addr_Xfast_syscall                          0x000001C0
 
+// PS4GDB
+#define kdlsym_addr_bzero                                  0x003C14F0
+#define kdlsym_addr_sys_getpid                             0x10B500
+#define kdlsym_addr_sys_sysctl                             0x2785C0
+
 // Kernel Hooks
 #define kdlsym_addr_printf_hook                            0x01A9FE98
 
