@@ -182,6 +182,11 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_wakeup                                 0x002635C0
 #define kdlsym_addr_Xfast_syscall                          0x0030B7D0
 
+// PS4GDB
+#define kdlsym_addr_bzero                                  0xDEADC0DEDEADBEEF
+#define kdlsym_addr_sys_getpid                             0xDEADC0DEDEADBEEF
+#define kdlsym_addr_sys_sysctl                             0xDEADC0DEDEADBEEF
+
 // Kernel Hooks
 #define kdlsym_addr_printf_hook                            0x019A3E18
 

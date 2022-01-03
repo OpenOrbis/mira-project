@@ -43,6 +43,8 @@ namespace Mira
             Mira::Utils::IModule* m_RemotePlayEnabler;
             Mira::Utils::IModule* m_SyscallGuard;
             Mira::Utils::IModule* m_TTYRedirector;
+			Mira::Utils::IModule* m_PS4GDB;
+			Mira::Utils::IModule* m_ModuleLoader;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }

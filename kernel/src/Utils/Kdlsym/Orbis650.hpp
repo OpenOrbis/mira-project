@@ -134,6 +134,11 @@ for the platforms that do enable kernel ASLR (Address Space Layout Randomization
 #define kdlsym_addr_Xfast_syscall                          0x000001C0 //	FFFFFFFF822001C0	lol
 #define kdlsym_addr_wakeup                                 0x003FB940 //	FFFFFFFF82429CF0
 
+// PS4GDB
+#define kdlsym_addr_bzero                                  0xDEADC0DEDEADBEEF
+#define kdlsym_addr_sys_getpid                             0xDEADC0DEDEADBEEF
+#define kdlsym_addr_sys_sysctl                             0xDEADC0DEDEADBEEF
+
 // FakeSelf hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0
 #define kdlsym_addr_sceSblAuthMgrIsLoadable2_hook                             0x0

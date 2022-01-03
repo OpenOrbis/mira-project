@@ -15,6 +15,8 @@
 #include <Plugins/RemotePlayEnabler/RemotePlayEnabler.hpp>
 #include <Plugins/SyscallGuard/SyscallGuardPlugin.hpp>
 #include <Plugins/TTYRedirector/TTYRedirector.hpp>
+#include <Plugins/ModuleLoader/ModuleLoader.hpp>
+#include <Plugins/PS4GDB/PS4GDB.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -44,6 +46,8 @@ PluginManager::PluginManager() :
     // Hushes error: private field 'm_FileManager' is not used [-Werror,-Wunused-private-field]
 	m_Logger = nullptr;
     m_FileManager = nullptr;
+	m_PS4GDB = nullptr;
+	m_ModuleLoader = nullptr;
 }
 
 PluginManager::~PluginManager()
@@ -158,6 +162,24 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
+		
+		// Initialize PS4GDB
+		m_PS4GDB = new Mira::Plugins::PS4GDB();
+        if (m_PS4GDB == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate PS4GDB.");
+            s_Success = false;
+            break;
+        }
+		
+		// Initialize ModuleLoader
+        m_ModuleLoader = new Mira::Plugins::ModuleLoader();
+        if (m_ModuleLoader == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate ModuleLoader.");
+            s_Success = false;
+            break;
+        }
     } while (false);
 
     if (m_Debugger)
@@ -218,6 +240,18 @@ bool PluginManager::OnLoad()
     {
         if (!m_TTYRedirector->OnLoad())
             WriteLog(LL_Error, "could not load tty redirector.");
+    }
+    
+	if (m_PS4GDB)
+    {
+        if (!m_PS4GDB->OnLoad())
+            WriteLog(LL_Error, "could not load PS4GDB.");
+    }
+	
+	if (m_ModuleLoader)
+    {
+        if (!m_ModuleLoader->OnLoad())
+            WriteLog(LL_Error, "could not load ModuleLoader.");
     }
 
     return s_Success;
@@ -562,6 +596,18 @@ bool PluginManager::OnResume()
     {
         if (!m_TTYRedirector->OnResume())
             WriteLog(LL_Error, "tty redirector resume failed");
+    }
+	
+	if (m_ModuleLoader)
+    {
+        if (!m_ModuleLoader->OnResume())
+            WriteLog(LL_Error, "could not Resume ModuleLoader.");
+    }
+    
+    if (m_PS4GDB)
+    {
+        if (!m_PS4GDB->OnResume())
+            WriteLog(LL_Error, "could not Resume PS4GDB.");
     }
 
     // Iterate through all of the plugins
