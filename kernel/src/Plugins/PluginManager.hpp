@@ -45,6 +45,7 @@ namespace Mira
             Mira::Utils::IModule* m_TTYRedirector;
 			Mira::Utils::IModule* m_PS4GDB;
 			Mira::Utils::IModule* m_ModuleLoader;
+            Mira::Utils::IModule* m_RING0GDB;
 
         public:
             Mira::Utils::IModule* GetDebugger() { return m_Debugger; }

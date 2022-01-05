@@ -17,6 +17,7 @@
 #include <Plugins/TTYRedirector/TTYRedirector.hpp>
 #include <Plugins/ModuleLoader/ModuleLoader.hpp>
 #include <Plugins/PS4GDB/PS4GDB.hpp>
+#include <Plugins/RING0GDB/RING0GDB.hpp>
 
 // Utility functions
 #include <Utils/Logger.hpp>
@@ -48,6 +49,7 @@ PluginManager::PluginManager() :
     m_FileManager = nullptr;
 	m_PS4GDB = nullptr;
 	m_ModuleLoader = nullptr;
+    m_RING0GDB = nullptr;
 }
 
 PluginManager::~PluginManager()
@@ -180,6 +182,15 @@ bool PluginManager::OnLoad()
             s_Success = false;
             break;
         }
+
+        // Initialize RING0GDB
+        m_RING0GDB = new Mira::Plugins::RING0GDB();
+        if (m_RING0GDB == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate RING0GDB.");
+            s_Success = false;
+            break;
+        }
     } while (false);
 
     if (m_Debugger)
@@ -252,6 +263,12 @@ bool PluginManager::OnLoad()
     {
         if (!m_ModuleLoader->OnLoad())
             WriteLog(LL_Error, "could not load ModuleLoader.");
+    }
+
+    if(m_RING0GDB)
+    {
+        if (!m_RING0GDB->OnLoad())
+            WriteLog(LL_Error, "could not load RING0GDB.");
     }
 
     return s_Success;

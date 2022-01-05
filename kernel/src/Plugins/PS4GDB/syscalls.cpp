@@ -49,6 +49,18 @@ int ps4gdb_sys_bind(int s, int port){
 	return kbind_t(s, (sockaddr*)&sockadr, sizeof(sockadr), curthread);
 }
 
+int ps4gdb_sys_bindt(int s, int port, struct thread *td){
+	PS4GDB_kbzero();
+	
+	struct sockaddr_in sockadr;
+	kbzero(&sockadr, sizeof(sockadr));
+	sockadr.sin_family = AF_INET;
+	sockadr.sin_port = htons(port);
+	sockadr.sin_addr.s_addr = INADDR_ANY;
+
+	return kbind_t(s, (sockaddr*)&sockadr, sizeof(sockadr), td);
+}
+
 int ps4gdb_sys_listen(int s, int backlog){
 	return klisten_t(s, backlog, curthread);
 }
