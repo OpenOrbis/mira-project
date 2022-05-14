@@ -183,8 +183,8 @@
 
 // PS4GDB
 #define kdlsym_addr_bzero                                  0x002713F0
-#define kdlsym_addr_sys_getpid                             0x271E50
-#define kdlsym_addr_sys_sysctl                             0x2A2E90
+#define kdlsym_addr_sys_getpid                             0x00001030
+#define kdlsym_addr_sys_sysctl                             0x002A2E90
 
 // Kernel Hooks
 #define kdlsym_addr_printf_hook                            0x01A7ED68
