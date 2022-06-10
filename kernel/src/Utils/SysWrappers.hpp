@@ -159,4 +159,6 @@ extern "C"
     extern int klinkat_t(int fd1, const char *path1, int fd2, const char *path2, int flag, struct thread* td);
 
     extern int ksandbox_path_t(char* path, struct thread* td);
+
+    extern int kpipe_t(int* fds, struct thread* td);
 };
