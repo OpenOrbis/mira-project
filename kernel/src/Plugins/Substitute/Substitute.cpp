@@ -1084,7 +1084,9 @@ bool Substitute::OnProcessExecEnd(struct proc *p)
 
     char* s_SandboxPath = nullptr;
     char* s_Freepath = nullptr;
-    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+    if (fd->fd_jdir != nullptr) {
+        vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+    }
 
     if (s_SandboxPath == nullptr) {
         if (s_Freepath)
@@ -1202,7 +1204,9 @@ bool Substitute::OnProcessExit(struct proc *p) {
 
     char* s_SandboxPath = nullptr;
     char* s_Freepath = nullptr;
-    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+    if (fd->fd_jdir != nullptr) {
+        vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+    }
 
     if (s_SandboxPath == nullptr) {
         if (s_Freepath)
@@ -1290,7 +1294,9 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
 
     char* s_SandboxPath = nullptr;
     char* s_Freepath = nullptr;
-    vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+    if (fd->fd_jdir != nullptr) {
+        vn_fullpath(s_MainThread, fd->fd_jdir, &s_SandboxPath, &s_Freepath);
+    }
 
     if (s_SandboxPath == nullptr) {
         if (s_Freepath)
