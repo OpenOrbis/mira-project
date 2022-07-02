@@ -224,6 +224,13 @@ extern "C" void mira_entry(void* args)
 
 	// At this point we don't need kernel context anymore
 	WriteLog(LL_Info, "Mira initialization complete");
+
+	// Try not to exit
+	int pipe_fds[2];
+	kpipe_t(pipe_fds, curthread);
+	char cha;
+	kread_t(pipe_fds[0], &cha, 1, curthread);
+
 	kthread_exit();
 }
 
