@@ -2520,3 +2520,56 @@ int ksandbox_path_t(char* path, struct thread* td)
 
 	return ret;
 }
+
+int kpipe_internal(int* ans, struct thread* td)
+{
+	auto sv = (struct sysentvec*)kdlsym(self_orbis_sysvec);
+	struct sysent* sysents = sv->sv_table;
+	auto sys_pipe = (int(*)(struct thread*, struct pipe_args*))sysents[SYS_PIPE].sy_call;
+	if (!sys_pipe)
+		return -1;
+
+	int error;
+	struct pipe_args uap;
+
+	// clear errors
+	td->td_retval[0] = 0;
+
+	// call syscall
+	error = sys_pipe(td, &uap);
+	if (error)
+		return -error;
+
+	// return pipes
+	ans[0] = td->td_retval[0];
+	ans[1] = td->td_retval[1];
+	return 0;
+}
+
+int kpipe_t(int* ans, struct thread* td)
+{
+	int ret = -EIO;
+	int retry = 0;
+
+	for (;;)
+	{
+		ret = kpipe_internal(ans, td);
+		if (ret < 0)
+		{
+			if (ret == -EINTR)
+			{
+				if (retry > MaxInterruptRetries)
+					break;
+					
+				retry++;
+				continue;
+			}
+			
+			return ret;
+		}
+
+		break;
+	}
+
+	return ret;
+}
