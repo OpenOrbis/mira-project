@@ -17,7 +17,7 @@ PROJ_NAME := MiraLoader
 CPPC := clang
 
 # Linker
-LNK := ld # ps4-ld, we are compiling for the kernel so this is not going to use the OpenOrbis userland linker
+LNK := ld.lld
 
 # C compiler
 CC := clang
