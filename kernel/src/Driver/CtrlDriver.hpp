@@ -126,8 +126,6 @@ typedef struct _MiraProcessInformation
         char Name[sizeof(((struct thread*)0)->td_name)];
     } ThreadResult;
 
-    // Structure size
-    uint32_t Size;
     int32_t ProcessId;
     int32_t OpPid;
     int32_t DebugChild;
@@ -137,11 +135,14 @@ typedef struct _MiraProcessInformation
     uint32_t Code;
     uint32_t Stops;
     uint32_t SType;
-    char Name[sizeof(((struct proc*)0)->p_comm)];
-    char ElfPath[sizeof(((struct proc*)0)->p_elfpath)];
-    char RandomizedPath[sizeof(((struct proc*)0)->p_randomized_path)];
-    ThreadResult Threads[0];
+    char Name[32];
+    char TitleId[16];
+    char ContentId[64];
+    char RandomizedPath[256];
+    char ElfPath[1024];
+    //ThreadResult Threads[0];
 } MiraProcessInformation;
+static_assert(sizeof(MiraProcessInformation) == 0x594);
 
 typedef struct _MiraProcessList
 {
@@ -241,7 +242,7 @@ namespace Mira
             static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Helper functions
-            static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
+            static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation* p_Result);
             static bool GetProcessList(MiraProcessList*& p_List);
 
             static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);

@@ -17,12 +17,12 @@ extern "C"
 
 int proc_rw_mem(struct proc* p, void* ptr, size_t size, void* data, size_t* n, int write) 
 {
-	auto s_DebuggerThread = Mira::Framework::GetFramework()->GetSyscoreThread();
-	if (s_DebuggerThread == nullptr)
-	{
-		WriteLog(LL_Error, "could not get debugger thread.");
-		return -EIO;
-	}
+    auto s_DebuggerThread = Mira::Framework::GetFramework()->GetSyscoreThread();
+    if (s_DebuggerThread == nullptr)
+    {
+        WriteLog(LL_Error, "could not get debugger thread.");
+        return -EIO;
+    }
 
     auto proc_rwmem = (int(*)(struct proc* p, struct uio* uio))kdlsym(proc_rwmem);
     struct thread* td = s_DebuggerThread;
@@ -141,3 +141,19 @@ void build_iovec(struct iovec **iov, int *iovlen, const char *name, const char *
 
     *iovlen = ++i;
 }
+
+//
+// strlcpy implementation taken from http://www.musl-libc.org/
+// which is licensed under the standard MIT license
+//
+size_t strlcpy(char *d, const char *s, size_t n)
+{
+    char *d0 = d;
+
+    if (!n--) goto finish;
+    for (; n && (*d=*s); n--, s++, d++);
+    *d = 0;
+finish:
+    return d-d0 + strlen(s);
+}
+
