@@ -191,6 +191,10 @@ int32_t CtrlDriver::OnIoctl(struct cdev* p_Device, u_long p_Command, caddr_t p_D
                 // Get/set the thread credentials
                 case MIRA_GET_PROC_THREAD_CREDENTIALS:
                     return OnMiraThreadCredentials(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
+
+                // Get the requested thread information
+                case MIRA_GET_THRD_INFORMATION:
+                    return OnMiraGetThrdInformation(p_Device, p_Command, p_Data, p_FFlag, p_Thread);
             }
         }
 
@@ -962,4 +966,160 @@ bool CtrlDriver::GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, M
     p_Output = s_Credentials;
 
     return true;
+}
+
+int32_t CtrlDriver::OnMiraGetThrdInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread)
+{
+    auto copyout = (int(*)(const void *kaddr, void *udaddr, size_t len))kdlsym(copyout);
+    auto copyin = (int(*)(const void* uaddr, void* kaddr, size_t len))kdlsym(copyin);
+
+    MiraThreadInformation s_Input = { 0 };
+    auto s_Result = copyin(p_Data, &s_Input, sizeof(MiraThreadInformation));
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyin enough data.");
+        return -EFAULT;
+    }
+
+    // Get the process ID
+    // If set to 0, assume the caller wants its own threads info
+    const auto s_ProcessId = s_Input.ProcessId > 0 ? s_Input.ProcessId
+	    : p_Thread->td_proc->p_pid;
+
+    // Fetch threads info
+    MiraThreadInformation* s_Output = GetThreadInfo(s_ProcessId);
+    if (s_Output == NULL)
+    {
+        WriteLog(LL_Error, "could not get threads' information.");
+        return -ENOMEM;
+    }
+
+    // Check the output size
+    if (s_Input.Size < s_Output->Size)
+    {
+        WriteLog(LL_Error, "Output data not large enough (%d) < (%d).", s_Input.Size, s_Output->Size);
+        delete [] s_Output;
+        return -EMSGSIZE;
+    }
+
+    // Copy out the data
+    s_Result = copyout(s_Output, p_Data, s_Output->Size);
+    if (s_Result != 0)
+    {
+        WriteLog(LL_Error, "could not copyout (%d).", s_Result);
+    }
+
+    delete [] s_Output;
+    return (s_Result < 0 ? s_Result : -s_Result);
+}
+
+MiraThreadInformation* CtrlDriver::GetThreadInfo(int32_t p_ProcessId)
+{
+    auto pfind = (struct proc* (*)(pid_t processId))kdlsym(pfind);
+    auto _thread_lock_flags = (void(*)(struct thread *, int, const char *, int))kdlsym(_thread_lock_flags);
+    auto _mtx_unlock_flags = (void(*)(struct mtx *mutex, int flags))kdlsym(_mtx_unlock_flags);
+    auto spinlock_exit = (void(*)(void))kdlsym(spinlock_exit);
+
+    // Check the process id (we don't allow querying kernel)
+    if (p_ProcessId <= 0)
+    {
+        WriteLog(LL_Error, "ProcessId (%d) is invalid.", p_ProcessId);
+        return nullptr;
+    }
+
+    Vector<MiraThreadResult*> s_Threads;
+
+    auto s_Proc = pfind(p_ProcessId);
+    if (s_Proc == nullptr)
+    {
+        WriteLog(LL_Error, "could not get process.");
+        return nullptr;
+    }
+    // Proc is locked
+
+    // Iterate through each thread in the process
+    struct thread* s_CurrentThread = nullptr;
+    FOREACH_THREAD_IN_PROC(s_Proc, s_CurrentThread)
+    {
+        // Lock the thread
+        thread_lock(s_CurrentThread);
+
+        // Allocate a new entry
+        auto l_Info = new MiraThreadResult
+        {
+            .ThreadId = s_CurrentThread->td_tid,
+            .ErrNo = s_CurrentThread->td_errno,
+            .RetVal = s_CurrentThread->td_retval[0]
+        };
+
+        // Check if the allocation failed, it shouldn't but hey the ps4 fucks you sometimes.
+        if (l_Info == nullptr)
+        {
+            WriteLog(LL_Error, "could not get info for pid (%d) tid (%d).", s_Proc->p_pid, s_CurrentThread->td_tid);
+        }
+        else
+        {
+            memset(l_Info->Name, 0, sizeof(l_Info->Name));
+            strlcpy(l_Info->Name, s_CurrentThread->td_name, sizeof(l_Info->Name));
+            static_assert(sizeof(l_Info->Name) >= sizeof(s_CurrentThread->td_name));
+
+            s_Threads.push_back(l_Info);
+        }
+
+	// Unlock the thread
+        thread_unlock(s_CurrentThread);
+    }
+
+    _mtx_unlock_flags(&s_Proc->p_mtx, 0);
+    // Proc is unlocked, don't touch it anymore
+
+    // Use a dowhile here because we always want to free the resource
+    MiraThreadInformation* s_Result = nullptr;
+    do
+    {
+        auto s_Count = s_Threads.size();
+        if (s_Count == 0 || s_Count > 2048)
+        {
+            WriteLog(LL_Error, "invalid thread count: (%d).", s_Count);
+            break;
+        }
+
+        auto s_TotalSize = ( sizeof(MiraProcessInformation) + (sizeof(MiraThreadResult) * s_Count) );
+        auto s_Output = new uint8_t[s_TotalSize];
+        if (s_Output == nullptr)
+        {
+            WriteLog(LL_Error, "could not allocate (0x%x) bytes.", s_TotalSize);
+            break;
+        }
+        memset(s_Output, 0, s_TotalSize);
+
+        // Copy over all of the process information
+        s_Result = reinterpret_cast<MiraThreadInformation*>(s_Output);
+        s_Result->Size = s_TotalSize;
+	s_Result->NumThreads = s_Count;
+        s_Result->ProcessId = p_ProcessId;
+
+        for (auto i = 0; i < s_Count; ++i)
+        {
+            auto l_Thread = s_Threads[i];
+            auto l_OutThread = &s_Result->Threads[i];
+
+            l_OutThread->ThreadId = l_Thread->ThreadId;
+            l_OutThread->ErrNo = l_Thread->ErrNo;
+            l_OutThread->RetVal = l_Thread->RetVal;
+            memcpy(l_OutThread->Name, l_Thread->Name, sizeof(l_OutThread->Name));
+        }
+    } while (false);
+
+    // Clean up our allocations
+    for (auto i = 0; i < s_Threads.size(); ++i)
+    {
+        auto l_Info = s_Threads.at(i);
+        if (l_Info != nullptr)
+            delete l_Info;
+
+        s_Threads[i] = nullptr;
+    }
+
+    return s_Result;
 }
