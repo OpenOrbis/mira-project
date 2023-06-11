@@ -572,19 +572,26 @@ struct proc {
 	struct dynlib	*p_dynlib;      /* Sony Dynlib info */
 
 	// extra stuff
+	char            p_unk348[0x48];
+	char		p_titleid[10]; // 0x390
+	char            p_unk39a[0x3A];
+	char		p_contentid[64]; // 0x3d4
+
 #if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
-	char            p_unk348[0x104];
+	char            p_unk414[0x38];
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
-	char            p_unk348[0x100];
+	char            p_unk414[0x34];
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
-	char            p_unk348[0x104];
+	char            p_unk414[0x38];
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
-	char            p_unk348[0x0FC];
+	char            p_unk414[0x30];
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
-	char            p_unk348[0x0F4];
+	char            p_unk414[0x28];
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
+#error Reverse this struct proc portion for 4.00
 	char            p_unk348[0x0A0];
 #elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
+#error Reverse this struct proc portion for 3.55
 	char            p_unk348[0x090];
 #endif
 	
@@ -654,6 +661,21 @@ static_assert(offsetof(struct proc, p_dynlib) == 0x340, "dynlib start incorrect"
 static_assert(offsetof(struct proc, p_unk338) == 0x338, "unk338 start incorrect");
 static_assert(offsetof(struct proc, p_dynlib) == 0x340, "dynlib start incorrect");
 static_assert(offsetof(struct proc, p_magic) == 0x44C, "struct start incorrect");
+#endif
+#if MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_650
+	static_assert(sizeof(struct proc) == 0xB68, "");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_600
+	static_assert(sizeof(struct proc) == 0xB60, "");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_550
+	static_assert(sizeof(struct proc) == 0xB68, "");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_500
+	static_assert(sizeof(struct proc) == 0xB60, "");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_455
+	static_assert(sizeof(struct proc) == 0xB50, "");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_400
+	static_assert(sizeof(struct proc) == 0xAF8, "");
+#elif MIRA_PLATFORM >= MIRA_PLATFORM_ORBIS_BSD_355
+	static_assert(sizeof(struct proc) == 0xAE8, "");
 #endif
 
 #define	p_session	p_pgrp->pg_session
