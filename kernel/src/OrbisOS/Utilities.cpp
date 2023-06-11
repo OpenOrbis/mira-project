@@ -425,7 +425,7 @@ int Utilities::CreatePOSIXThread(struct proc* p, void* entrypoint) {
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
-	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+	char* s_TitleId = p->p_titleid;
 
 	WriteLog(LL_Info, "[%s] Creating POSIX Thread (Entrypoint: %p) ...", s_TitleId, entrypoint);
 
@@ -567,7 +567,7 @@ int Utilities::LoadPRXModule(struct proc* p, const char* prx_path)
 
 	size_t s_Size = 0;
 	int s_Ret = 0;
-	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+	char* s_TitleId = p->p_titleid;
 
 	WriteLog(LL_Info, "[%s] Loading PRX (%s) over POSIX ...", s_TitleId, prx_path);
 

@@ -118,16 +118,6 @@ typedef enum class _MiraProcessInformationType : uint8_t
 
 typedef struct _MiraProcessInformation
 {
-    typedef struct _ThreadResult
-    {
-        int32_t ThreadId;
-        int32_t ErrNo;
-        int64_t RetVal;
-        char Name[sizeof(((struct thread*)0)->td_name)];
-    } ThreadResult;
-
-    // Structure size
-    uint32_t Size;
     int32_t ProcessId;
     int32_t OpPid;
     int32_t DebugChild;
@@ -137,11 +127,32 @@ typedef struct _MiraProcessInformation
     uint32_t Code;
     uint32_t Stops;
     uint32_t SType;
-    char Name[sizeof(((struct proc*)0)->p_comm)];
-    char ElfPath[sizeof(((struct proc*)0)->p_elfpath)];
-    char RandomizedPath[sizeof(((struct proc*)0)->p_randomized_path)];
-    ThreadResult Threads[0];
+    char Name[32];
+    char TitleId[16];
+    char ContentId[64];
+    char RandomizedPath[256];
+    char ElfPath[1024];
 } MiraProcessInformation;
+static_assert(sizeof(MiraProcessInformation) == 0x594);
+
+typedef struct _MiraThreadResult
+{
+    int32_t ThreadId;
+    int32_t ErrNo;
+    int64_t RetVal;
+    char Name[36];
+} MiraThreadResult;
+static_assert(sizeof(MiraThreadResult) == 0x38);
+typedef struct _MiraThreadInformation
+{
+    // Structure size
+    uint32_t Size;
+
+    int32_t ProcessId;
+    uint32_t NumThreads;
+    MiraThreadResult Threads[];
+} MiraThreadInformation;
+static_assert(sizeof(MiraThreadInformation) == 0x10);
 
 typedef struct _MiraProcessList
 {
@@ -212,6 +223,9 @@ typedef struct _MiraGetTrainersShm
 // Get the currently loaded shm's
 #define MIRA_GET_TRAINERS_SHM _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 6, sizeof(MiraGetTrainersShm));
 
+// Get thread information
+#define MIRA_GET_THRD_INFORMATION _IOC(IOC_INOUT, MIRA_IOCTL_BASE, 7, sizeof(MiraThreadInformation))
+
 namespace Mira
 {
     namespace Driver
@@ -239,13 +253,16 @@ namespace Mira
             static int32_t OnMiraMountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraUnmountInSandbox(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
             static int32_t OnMiraThreadCredentials(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
+            static int32_t OnMiraGetThrdInformation(struct cdev* p_Device, u_long p_Command, caddr_t p_Data, int32_t p_FFlag, struct thread* p_Thread);
 
             // Helper functions
-            static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation*& p_Result);
+            static bool GetProcessInfo(int32_t p_ProcessId, MiraProcessInformation* p_Result);
             static bool GetProcessList(MiraProcessList*& p_List);
 
             static bool GetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials*& p_Output);
             static bool SetThreadCredentials(int32_t p_ProcessId, int32_t p_ThreadId, MiraThreadCredentials& p_Input);
+
+            static MiraThreadInformation* GetThreadInfo(int32_t p_ProcessId);
         };
     }
 }

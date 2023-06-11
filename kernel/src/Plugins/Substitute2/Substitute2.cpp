@@ -23,7 +23,7 @@ bool Substitute2::OnProcessExecEnd(struct proc* p_Process)
         return true;
     
     // Check the title id's against the supported
-    const char* s_TitleId = &p_Process->p_unk348[0x58];
+    const char* s_TitleId = p_Process->p_titleid;
     if (s_TitleId == nullptr)
         return false;
 

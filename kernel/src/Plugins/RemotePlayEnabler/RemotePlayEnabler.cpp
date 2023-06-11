@@ -36,7 +36,7 @@ void RemotePlayEnabler::ProcessStartEvent(void *arg, struct ::proc *p)
 	if (!p)
 		return;
 
-	char* s_TitleId = (char*)((uint64_t)p + 0x390);
+	char* s_TitleId = p->p_titleid;
 	if (strncmp(s_TitleId, "NPXS20001", 9) == 0)
 		ShellUIPatch();
 

@@ -75,6 +75,7 @@ extern int	 memcmp(const void *, const void *, size_t);
 
 extern size_t strlen(const char *str);
 extern int strcmp(const char *str1, const char *str2);
+extern size_t strlcpy(char *d, const char *s, size_t n);
 
 extern void cpu_enable_wp();
 extern void cpu_disable_wp();

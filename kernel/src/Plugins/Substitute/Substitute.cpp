@@ -769,7 +769,7 @@ void Substitute::CleanupProcessHook(struct proc* p) {
     if (!p)
         return;
 
-    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    char* s_TitleId = p->p_titleid;
     WriteLog(LL_Info, "Cleaning up hook for %s", s_TitleId);
 
 
@@ -799,8 +799,7 @@ void* Substitute::FindOriginalAddress(struct proc* p, const char* name, int32_t 
     if (p == nullptr)
         return nullptr;
 
-    // TODO: Fix this structure within proc
-    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    char* s_TitleId = p->p_titleid;
     void* s_Address = nullptr;
 
     WriteLog(LL_Info, "TitleId: (%s).", s_TitleId);
@@ -869,7 +868,7 @@ uint64_t Substitute::FindJmpslotAddress(struct proc* p, const char* module_name,
         return 0;
     }
 
-    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    char* s_TitleId = p->p_titleid;
 
     // Get the nids of the function
     char nids[0xD] = { 0 };
@@ -1000,7 +999,7 @@ void Substitute::LoadAllPrx(struct thread* td, const char* folder_path)
         return;
     }
 
-    char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
+    char* s_TitleId = td->td_proc->p_titleid;
 
     // Opening substitute folder
     auto s_DirectoryHandle = kopen_t(folder_path, O_RDONLY | O_DIRECTORY, 0777, td);
@@ -1059,7 +1058,7 @@ bool Substitute::OnProcessExecEnd(struct proc *p)
     auto vn_fullpath = (int(*)(struct thread *td, struct vnode *vp, char **retbuf, char **freebuf))kdlsym(vn_fullpath);
 
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
-    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    char* s_TitleId = p->p_titleid;
 
     // Check if it's a valid process
     if ( !s_TitleId || s_TitleId[0] == 0 )
@@ -1173,7 +1172,7 @@ bool Substitute::OnProcessExit(struct proc *p) {
 
     // Get process information
     struct thread* s_ProcessThread = FIRST_THREAD_IN_PROC(p);
-    char* s_TitleId = (char*)((uint64_t)p + 0x390);
+    char* s_TitleId = p->p_titleid;
 
     Substitute* substitute = GetPlugin();
 
@@ -1277,7 +1276,7 @@ int Substitute::Sys_dynlib_dlsym_hook(struct thread* td, struct dynlib_dlsym_arg
         return ret;
     }
 
-    char* s_TitleId = (char*)((uint64_t)td->td_proc + 0x390);
+    char* s_TitleId = td->td_proc->p_titleid;
 
     // Check if it's a valid process
     if ( !s_TitleId || s_TitleId[0] == 0) {
