@@ -1023,8 +1023,9 @@ void Substitute::LoadAllPrx(struct thread* td, const char* folder_path)
                 auto l_Dent = (struct dirent*)(s_Buffer + l_Pos);
                 s_DentCount++;
 
-                // Check if the sprx is legit
-                if (strstr(l_Dent->d_name, ".sprx")) {
+                // Check if the (s)prx is legit
+                if (strstr(l_Dent->d_name, ".prx")
+                  || strstr(l_Dent->d_name, ".sprx")) {
                     // Generating relative path
                     char s_RelativeSprxPath[PATH_MAX];
                     snprintf(s_RelativeSprxPath, PATH_MAX, "%s%s", folder_path, l_Dent->d_name);
