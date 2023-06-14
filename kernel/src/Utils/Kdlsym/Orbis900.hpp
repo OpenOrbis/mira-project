@@ -187,7 +187,7 @@
 #define kdlsym_addr_sys_sysctl                             0x2A2E90
 
 // Kernel Hooks
-#define kdlsym_addr_printf_hook                            0x01A7ED68
+#define kdlsym_addr_printf_hook                            0x01A7ED98
 
 // FakeSelf Hooks
 #define kdlsym_addr_sceSblAuthMgrIsLoadable__sceSblACMgrGetPathId_hook        0x0064473C
