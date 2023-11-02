@@ -87,6 +87,9 @@ bool LogManager::Startup()
 
     WriteLog(LL_Error, "here");
 
+    // Make sure nothing's running
+    Teardown();
+
     auto kthread_add = (int(*)(void(*func)(void*), void* arg, struct proc* procptr, struct thread** tdptr, int flags, int pages, const char* fmt, ...))kdlsym(kthread_add);
     WriteLog(LL_Error, "m_Socket (%d) &m_Socket (%p) s_MainThread (%p)", m_Socket, &m_Socket, s_MainThread);
 
@@ -132,6 +135,9 @@ bool LogManager::Startup()
         m_Socket = -1;
         return false;
     }
+
+    // Set our running state
+    m_Running = true;
 
     // Create the new server processing thread, 8MiB stack
     s_Ret = kthread_add(LogManager::ServerThread, this, Mira::Framework::GetFramework()->GetInitParams()->process, reinterpret_cast<thread**>(&m_Thread), 0, 200, "LogServer");
@@ -189,9 +195,6 @@ void LogManager::ServerThread(void* p_UserArgs)
         kthread_exit();
         return;
     }
-
-    // Set our running state
-    s_LogManager->m_Running = true;
 
     // Create our timeout
     struct timeval s_Timeout
@@ -274,7 +277,7 @@ void LogManager::ServerThread(void* p_UserArgs)
 cleanup:
     // Disconnects all clients, set running to false
     WriteLog(LL_Debug, "logserver tearing down");
-    s_LogManager->Teardown();
+    kclose_t(s_LogDevice, s_MainThread);
 
     WriteLog(LL_Debug, "logserver exiting cleanly");
     kthread_exit();
